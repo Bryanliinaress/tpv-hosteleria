@@ -1,21 +1,47 @@
 import { useState } from 'react'
+import { QRCodeSVG } from 'qrcode.react'
 import { useStore } from '../../store/useStore'
 
+const emptyForm = { nombre: '', precio: '', categoria: '', descripcion: '' }
+
 export default function PanelAdmin() {
-  const { carta, mesas } = useStore()
+  const { carta, mesas, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos } = useStore()
   const [tab, setTab] = useState('carta')
+  const [editando, setEditando] = useState(null) // productoId en edición
+  const [form, setForm] = useState(emptyForm)
 
   const totalVentas = mesas.reduce((s, m) =>
     s + m.personas.reduce((ss, p) =>
       ss + p.items.reduce((sss, i) => sss + i.precio * i.cantidad, 0), 0), 0)
   const mesasOcupadas = mesas.filter(m => m.estado !== 'libre').length
 
+  const empezarNuevo = (categoriaId) => {
+    setEditando('nuevo')
+    setForm({ ...emptyForm, categoria: categoriaId })
+  }
+  const empezarEdicion = (prod) => {
+    setEditando(prod.id)
+    setForm({ nombre: prod.nombre, precio: String(prod.precio), categoria: prod.categoria, descripcion: prod.descripcion })
+  }
+  const cancelar = () => { setEditando(null); setForm(emptyForm) }
+  const guardar = () => {
+    if (!form.nombre.trim() || !form.categoria) return
+    if (editando === 'nuevo') addProducto(form)
+    else updateProducto(editando, form)
+    cancelar()
+  }
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <div style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', padding: '1rem 1.5rem' }}>
-        <h1 style={{ fontWeight: 800, fontSize: '1.25rem' }}>🛠 Panel Administración</h1>
-        <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>Gestión del local</p>
+      <div style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h1 style={{ fontWeight: 800, fontSize: '1.25rem' }}>🛠 Panel Administración</h1>
+          <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>Gestión del local</p>
+        </div>
+        <button onClick={resetDatos} title="Borra todos los datos guardados y recarga" style={{ background: '#1e293b', color: 'var(--color-muted)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.875rem', cursor: 'pointer', fontSize: '0.8rem' }}>
+          ↺ Reiniciar datos
+        </button>
       </div>
 
       {/* Stats rápidas */}
@@ -61,23 +87,41 @@ export default function PanelAdmin() {
                   <span style={{ fontSize: '1.1rem' }}>{cat.emoji}</span>
                   <h3 style={{ fontWeight: 700, fontSize: '1rem' }}>{cat.nombre}</h3>
                   <span style={{ fontSize: '0.75rem', background: cat.tipo === 'comida' ? '#052e16' : '#2d0a14', color: cat.tipo === 'comida' ? '#10b981' : '#f43f5e', borderRadius: '9999px', padding: '0.15rem 0.5rem' }}>{cat.tipo}</span>
+                  <button onClick={() => empezarNuevo(cat.id)} style={{ marginLeft: 'auto', background: '#f97316', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.3rem 0.75rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
+                    + Añadir
+                  </button>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.625rem' }}>
+
+                {/* Formulario nuevo producto dentro de esta categoría */}
+                {editando === 'nuevo' && form.categoria === cat.id && (
+                  <FormProducto carta={carta} form={form} setForm={setForm} onGuardar={guardar} onCancelar={cancelar} titulo="Nuevo producto" />
+                )}
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '0.625rem' }}>
                   {carta.productos.filter(p => p.categoria === cat.id).map(prod => (
-                    <div key={prod.id} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.625rem', padding: '0.875rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{prod.nombre}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>{prod.descripcion}</div>
+                    editando === prod.id ? (
+                      <FormProducto key={prod.id} carta={carta} form={form} setForm={setForm} onGuardar={guardar} onCancelar={cancelar} titulo="Editar producto" />
+                    ) : (
+                      <div key={prod.id} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.625rem', padding: '0.875rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: prod.disponible ? 1 : 0.5 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>
+                            {prod.nombre}
+                            {!prod.disponible && <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', color: '#f43f5e' }}>(agotado)</span>}
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>{prod.descripcion}</div>
+                        </div>
+                        <div style={{ fontWeight: 700, color: '#f97316', fontSize: '0.9rem', margin: '0 0.75rem', whiteSpace: 'nowrap' }}>{prod.precio.toFixed(2)} €</div>
+                        <div style={{ display: 'flex', gap: '0.25rem' }}>
+                          <button onClick={() => toggleDisponible(prod.id)} title={prod.disponible ? 'Marcar agotado' : 'Marcar disponible'} style={iconBtn}>{prod.disponible ? '🟢' : '⚪'}</button>
+                          <button onClick={() => empezarEdicion(prod)} title="Editar" style={iconBtn}>✏️</button>
+                          <button onClick={() => { if (confirm(`¿Borrar "${prod.nombre}"?`)) deleteProducto(prod.id) }} title="Borrar" style={iconBtn}>🗑️</button>
+                        </div>
                       </div>
-                      <div style={{ fontWeight: 700, color: '#f97316', fontSize: '0.9rem', marginLeft: '1rem', whiteSpace: 'nowrap' }}>{prod.precio.toFixed(2)} €</div>
-                    </div>
+                    )
                   ))}
                 </div>
               </div>
             ))}
-            <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--color-muted)', fontSize: '0.85rem', background: 'var(--color-surface)', borderRadius: '0.75rem', border: '1px dashed var(--color-border)' }}>
-              ✏️ La edición completa de la carta estará disponible en la siguiente versión con backend conectado
-            </div>
           </div>
         )}
 
@@ -111,27 +155,71 @@ export default function PanelAdmin() {
         {tab === 'qr' && (
           <div>
             <p style={{ color: 'var(--color-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
-              Cada mesa tiene su URL única. En producción, genera el QR con estas URLs y colócalo en cada mesa.
+              Cada mesa tiene su QR único. Imprímelo y colócalo en la mesa: al escanearlo, el cliente abre directamente su carta.
             </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '0.75rem' }}>
-              {mesas.map(m => (
-                <div key={m.id} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.75rem', padding: '1rem' }}>
-                  <div style={{ fontWeight: 700, marginBottom: '0.5rem' }}>Mesa {m.numero}</div>
-                  <code style={{ fontSize: '0.75rem', color: '#a78bfa', background: '#0f172a', padding: '0.375rem 0.5rem', borderRadius: '0.375rem', display: 'block', wordBreak: 'break-all' }}>
-                    {window.location.origin}/mesa/{m.id}
-                  </code>
-                  <button
-                    onClick={() => navigator.clipboard?.writeText(`${window.location.origin}/mesa/${m.id}`)}
-                    style={{ marginTop: '0.625rem', background: '#1e293b', color: 'var(--color-muted)', border: '1px solid var(--color-border)', borderRadius: '0.375rem', padding: '0.375rem 0.75rem', cursor: 'pointer', fontSize: '0.75rem', width: '100%' }}
-                  >
-                    Copiar URL
-                  </button>
-                </div>
-              ))}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.875rem' }}>
+              {mesas.map(m => {
+                const url = `${window.location.origin}/mesa/${m.id}`
+                return (
+                  <div key={m.id} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.75rem', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.625rem' }}>
+                    <div style={{ fontWeight: 700 }}>Mesa {m.numero}</div>
+                    <div style={{ background: 'white', padding: '0.625rem', borderRadius: '0.5rem' }}>
+                      <QRCodeSVG value={url} size={128} level="M" />
+                    </div>
+                    <code style={{ fontSize: '0.65rem', color: '#a78bfa', wordBreak: 'break-all', textAlign: 'center' }}>{url}</code>
+                    <button
+                      onClick={() => navigator.clipboard?.writeText(url)}
+                      style={{ background: '#1e293b', color: 'var(--color-muted)', border: '1px solid var(--color-border)', borderRadius: '0.375rem', padding: '0.375rem 0.75rem', cursor: 'pointer', fontSize: '0.75rem', width: '100%' }}
+                    >
+                      Copiar URL
+                    </button>
+                  </div>
+                )
+              })}
             </div>
           </div>
         )}
       </div>
     </div>
   )
+}
+
+function FormProducto({ carta, form, setForm, onGuardar, onCancelar, titulo }) {
+  const set = (campo) => (e) => setForm(f => ({ ...f, [campo]: e.target.value }))
+  return (
+    <div style={{ background: 'var(--color-surface)', border: '1px solid #f97316', borderRadius: '0.625rem', padding: '1rem', marginBottom: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.625rem', gridColumn: '1 / -1' }}>
+      <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#f97316' }}>{titulo}</div>
+      <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap' }}>
+        <input value={form.nombre} onChange={set('nombre')} placeholder="Nombre" style={{ ...inputStyle, flex: '2 1 180px' }} />
+        <input value={form.precio} onChange={set('precio')} placeholder="Precio €" type="number" step="0.10" style={{ ...inputStyle, flex: '1 1 90px' }} />
+        <select value={form.categoria} onChange={set('categoria')} style={{ ...inputStyle, flex: '1 1 140px' }}>
+          {carta.categorias.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.nombre}</option>)}
+        </select>
+      </div>
+      <input value={form.descripcion} onChange={set('descripcion')} placeholder="Descripción" style={inputStyle} />
+      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+        <button onClick={onCancelar} style={{ background: '#334155', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer', fontSize: '0.85rem' }}>Cancelar</button>
+        <button onClick={onGuardar} style={{ background: '#f97316', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1.25rem', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}>Guardar</button>
+      </div>
+    </div>
+  )
+}
+
+const inputStyle = {
+  background: '#0f172a',
+  border: '1px solid var(--color-border)',
+  borderRadius: '0.5rem',
+  padding: '0.5rem 0.75rem',
+  color: 'var(--color-text)',
+  fontSize: '0.85rem',
+  width: '100%',
+}
+
+const iconBtn = {
+  background: 'none',
+  border: 'none',
+  cursor: 'pointer',
+  fontSize: '0.95rem',
+  padding: '0.25rem',
+  lineHeight: 1,
 }

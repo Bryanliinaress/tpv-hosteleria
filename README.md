@@ -13,7 +13,13 @@ Aplicación de TPV (Terminal Punto de Venta) para hostelería construida con **R
 | `/barra` | Pantalla Barra | Cola de pedidos de bebida con estados |
 | `/admin` | Panel Admin | Carta, mesas, QR codes y estadísticas básicas |
 
-El estado se mantiene en memoria con un store de **Zustand** (`src/store/useStore.js`). No hay backend todavía: los datos de carta y mesas son de demostración.
+El estado se mantiene en un store de **Zustand** (`src/store/useStore.js`) con **persistencia en `localStorage`** y **sincronización en vivo entre pestañas/pantallas del mismo navegador** (vía evento `storage`). Así, un pedido hecho en la pantalla del cliente aparece al instante en cocina/barra/camarero y nada se pierde al recargar.
+
+> Nota: la sincronización es **por navegador**. Para multi-dispositivo real (varias tablets/móviles) hace falta un backend — ver _Roadmap_.
+
+### Funciones del Panel Admin
+- **Carta editable:** añadir, editar, borrar productos y marcarlos como agotados/disponibles.
+- **QR Codes:** generación de códigos QR reales por mesa (`qrcode.react`) listos para imprimir.
 
 ## Estructura
 
@@ -42,6 +48,15 @@ npm run preview  # previsualiza el build
 npm run lint     # ESLint
 ```
 
+## Roadmap
+
+- [x] Persistencia local (`localStorage`)
+- [x] Sincronización en vivo entre pantallas del mismo navegador
+- [x] Edición de carta en el Panel Admin
+- [x] Generación de QR reales por mesa
+- [ ] Backend (Supabase) para sincronización multi-dispositivo en tiempo real
+- [ ] Autenticación de personal (roles)
+
 ## Estado del proyecto
 
-`v0.1.0` · En desarrollo. La edición de carta y la persistencia con backend están planificadas para la siguiente versión.
+`v0.1.0` · En desarrollo.

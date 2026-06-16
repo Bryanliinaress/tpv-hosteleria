@@ -1,6 +1,7 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
-export const useStore = create((set, get) => ({
+export const useStore = create(persist((set, get) => ({
   // ── CARTA ──────────────────────────────────────────────
   carta: {
     categorias: [
@@ -150,4 +151,74 @@ export const useStore = create((set, get) => ({
   pedirCuenta: (mesaId) => set(state => ({
     mesas: state.mesas.map(m => m.id !== mesaId ? m : { ...m, estado: 'esperando_cobro' }),
   })),
+
+  // ── GESTIÓN DE CARTA (admin) ───────────────────────────
+  addProducto: (producto) => set(state => {
+    const id = `p${Date.now()}`
+    return {
+      carta: {
+        ...state.carta,
+        productos: [...state.carta.productos, {
+          id,
+          nombre: producto.nombre,
+          precio: Number(producto.precio) || 0,
+          categoria: producto.categoria,
+          tipo: state.carta.categorias.find(c => c.id === producto.categoria)?.tipo || 'comida',
+          descripcion: producto.descripcion || '',
+          disponible: true,
+        }],
+      },
+    }
+  }),
+
+  updateProducto: (productoId, cambios) => set(state => ({
+    carta: {
+      ...state.carta,
+      productos: state.carta.productos.map(p => p.id !== productoId ? p : {
+        ...p,
+        ...cambios,
+        ...(cambios.precio !== undefined ? { precio: Number(cambios.precio) || 0 } : {}),
+        ...(cambios.categoria ? { tipo: state.carta.categorias.find(c => c.id === cambios.categoria)?.tipo || p.tipo } : {}),
+      }),
+    },
+  })),
+
+  deleteProducto: (productoId) => set(state => ({
+    carta: {
+      ...state.carta,
+      productos: state.carta.productos.filter(p => p.id !== productoId),
+    },
+  })),
+
+  toggleDisponible: (productoId) => set(state => ({
+    carta: {
+      ...state.carta,
+      productos: state.carta.productos.map(p => p.id !== productoId ? p : { ...p, disponible: !p.disponible }),
+    },
+  })),
+
+  // ── UTILIDAD ───────────────────────────────────────────
+  resetDatos: () => {
+    localStorage.removeItem('tpv-hosteleria')
+    location.reload()
+  },
+}), {
+  name: 'tpv-hosteleria',
+  partialize: (state) => ({
+    carta: state.carta,
+    mesas: state.mesas,
+    pedidosCocina: state.pedidosCocina,
+    pedidosBarra: state.pedidosBarra,
+  }),
 }))
+
+// ── Sincronización en vivo entre pestañas/pantallas ──────
+// Cuando otra pestaña (cliente, cocina, barra, camarero...) modifica el
+// localStorage, rehidratamos el store para reflejar los cambios al instante.
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'tpv-hosteleria') {
+      useStore.persist.rehydrate()
+    }
+  })
+}
