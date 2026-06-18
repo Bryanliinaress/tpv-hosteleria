@@ -159,7 +159,7 @@ export default function PanelAdmin() {
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.875rem' }}>
               {mesas.map(m => {
-                const url = `${window.location.origin}/mesa/${m.id}`
+                const url = `${window.location.origin}${import.meta.env.BASE_URL}#/mesa/${m.id}`
                 return (
                   <div key={m.id} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.75rem', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.625rem' }}>
                     <div style={{ fontWeight: 700 }}>Mesa {m.numero}</div>
