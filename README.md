@@ -13,9 +13,13 @@ Aplicación de TPV (Terminal Punto de Venta) para hostelería construida con **R
 | `/barra` | Pantalla Barra | Cola de pedidos de bebida con estados |
 | `/admin` | Panel Admin | Carta, mesas, QR codes y estadísticas básicas |
 
-El estado se mantiene en un store de **Zustand** (`src/store/useStore.js`) con **persistencia en `localStorage`** y **sincronización en vivo entre pestañas/pantallas del mismo navegador** (vía evento `storage`). Así, un pedido hecho en la pantalla del cliente aparece al instante en cocina/barra/camarero y nada se pierde al recargar.
+El estado se mantiene en un store de **Zustand** (`src/store/useStore.js`) con **persistencia en `localStorage`** y, sobre todo, **sincronización en tiempo real multi-dispositivo vía Supabase**. Un pedido hecho en el móvil de un cliente aparece al instante en Cocina/Barra/Camarero en **cualquier otro dispositivo**.
 
-> Nota: la sincronización es **por navegador**. Para multi-dispositivo real (varias tablets/móviles) hace falta un backend — ver _Roadmap_.
+### Sincronización (Supabase)
+- El estado compartido (mesas + colas de cocina/barra) se guarda en una fila JSONB en Supabase y se propaga con **Realtime** (`src/lib/sync.js`).
+- Configuración por variables de entorno (`.env`, ver `.env.example`): `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`.
+- Si no hay credenciales, la app funciona en **modo local** (solo `localStorage`).
+- La identidad de cada comensal se guarda por dispositivo (no se comparte), así cada móvil es una persona distinta.
 
 ### Funciones del Panel Admin
 - **Carta editable:** añadir, editar, borrar productos y marcarlos como agotados/disponibles.
@@ -64,7 +68,9 @@ npm run lint     # ESLint
 - [x] Generación de QR reales por mesa
 - [x] Identificación del cliente por nombre y mesa compartida
 - [x] Notas al pedido, dividir platos y pago por persona con propina
-- [ ] Backend (Supabase) para sincronización multi-dispositivo en tiempo real
+- [x] Backend (Supabase) para sincronización multi-dispositivo en tiempo real
+- [x] Despliegue público en GitHub Pages
+- [ ] Sincronizar también la carta (admin) y bloquear escritura con RLS por rol
 - [ ] Autenticación de personal (roles)
 
 ## Estado del proyecto
