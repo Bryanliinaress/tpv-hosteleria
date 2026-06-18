@@ -102,7 +102,7 @@ export default function CartaCliente() {
     if (item.nota) p.push('“' + item.nota + '”')
     return p.join(' · ')
   }
-  const minPrecio = (prod) => Math.min(prod.precios.piruleta, prod.precios.vienesa)
+  const minPrecio = (prod) => Math.min(prod.precios.pitufo, prod.precios.viena)
 
   const lineasDe = (persona) => {
     const lineas = []
@@ -310,8 +310,12 @@ export default function CartaCliente() {
   }
 
   // ── Vista CARTA ───────────────────────────────────────
-  const precioPers = pers ? (pers.producto.precios[pers.formato] + (carta.tiposPan.find(t => t.id === pers.tipo)?.sup || 0)) : 0
-  const toggleEn = (arr, val, setKey) => setPers(s => ({ ...s, [setKey]: arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val] }))
+  const PRECIO_EXTRA = 0.20
+  const precioPers = pers ? (pers.producto.precios[pers.formato] + (carta.tiposPan.find(t => t.id === pers.tipo)?.sup || 0) + PRECIO_EXTRA * pers.anadidos.length) : 0
+  const toggleEn = (setKey, val) => setPers(s => {
+    const arr = s[setKey]
+    return { ...s, [setKey]: arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val] }
+  })
   const confirmarPers = () => {
     const fmt = carta.formatos.find(f => f.id === pers.formato)
     const tp = carta.tiposPan.find(t => t.id === pers.tipo)
@@ -380,7 +384,7 @@ export default function CartaCliente() {
               <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)', marginBottom: '0.25rem' }}>{prod.descripcion}</div>
               <div style={{ fontWeight: 700, color: '#f97316' }}>desde {minPrecio(prod).toFixed(2)} €</div>
             </div>
-            <button onClick={() => setPers({ producto: prod, formato: 'piruleta', tipo: 'normal', quitados: [], anadidos: [], nota: '' })} style={btnStyle('#f97316', { padding: '0.5rem 0.9rem', whiteSpace: 'nowrap' })}>Añadir</button>
+            <button onClick={() => setPers({ producto: prod, formato: 'pitufo', tipo: 'normal', quitados: [], anadidos: [], nota: '' })} style={btnStyle('#f97316', { padding: '0.5rem 0.9rem', whiteSpace: 'nowrap' })}>Añadir</button>
           </div>
         ))}
       </div>
@@ -430,7 +434,7 @@ export default function CartaCliente() {
                   {pers.producto.ingredientes.map(ing => {
                     const quitado = pers.quitados.includes(ing)
                     return (
-                      <button key={ing} onClick={() => toggleEn(pers.quitados, ing, 'quitados')} style={btnStyle(quitado ? '#7f1d1d' : '#334155', { fontSize: '0.78rem', padding: '0.35rem 0.65rem', textDecoration: quitado ? 'line-through' : 'none' })}>
+                      <button key={ing} onClick={() => toggleEn('quitados', ing)} style={btnStyle(quitado ? '#7f1d1d' : '#334155', { fontSize: '0.78rem', padding: '0.35rem 0.65rem', textDecoration: quitado ? 'line-through' : 'none' })}>
                         {quitado ? '✕ ' : ''}{ing}
                       </button>
                     )
@@ -439,14 +443,14 @@ export default function CartaCliente() {
               </>
             )}
 
-            {/* Añadir condimentos extra */}
-            <p style={labelMini}>Añadir extra</p>
+            {/* Añadir condimentos extra (+0,20 € cada uno) */}
+            <p style={labelMini}>Añadir extra · +0,20 € c/u</p>
             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
               {carta.extras.map(ex => {
                 const puesto = pers.anadidos.includes(ex)
                 return (
-                  <button key={ex} onClick={() => toggleEn(pers.anadidos, ex, 'anadidos')} style={btnStyle(puesto ? '#065f46' : '#1e293b', { fontSize: '0.78rem', padding: '0.35rem 0.65rem' })}>
-                    {puesto ? '✓ ' : '+ '}{ex}
+                  <button key={ex} onClick={() => toggleEn('anadidos', ex)} style={btnStyle(puesto ? '#065f46' : '#1e293b', { fontSize: '0.78rem', padding: '0.35rem 0.65rem' })}>
+                    {puesto ? '✓ ' : '+ '}{ex} <span style={{ opacity: 0.7 }}>+0,20€</span>
                   </button>
                 )
               })}

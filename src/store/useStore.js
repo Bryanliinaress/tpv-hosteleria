@@ -18,8 +18,8 @@ export const useStore = create(persist((set, get) => ({
     ],
     // Formato de pan = las dos columnas de precio de la carta
     formatos: [
-      { id: 'piruleta', nombre: 'Piruleta' },
-      { id: 'vienesa', nombre: 'Vienesa' },
+      { id: 'pitufo', nombre: 'Pitufo' },
+      { id: 'viena', nombre: 'Viena' },
     ],
     // Tipo/variedad de pan, con suplemento sobre el precio
     tiposPan: [
@@ -33,30 +33,30 @@ export const useStore = create(persist((set, get) => ({
     // Condimentos que se pueden añadir (gratis, como nota a cocina)
     extras: ['Tomate', 'Aceite', 'Mantequilla', 'Queso', 'Huevo', 'Lechuga', 'Mayonesa', 'Pimientos'],
     productos: [
-      { id: 'cl1', nombre: 'Mantequilla', precios: { piruleta: 1.50, vienesa: 2.50 }, ingredientes: ['Mantequilla'] },
-      { id: 'cl2', nombre: 'Aceite', precios: { piruleta: 1.50, vienesa: 2.50 }, ingredientes: ['Aceite'] },
-      { id: 'cl3', nombre: 'Aceite y tomate', precios: { piruleta: 1.50, vienesa: 2.50 }, ingredientes: ['Aceite', 'Tomate'] },
-      { id: 'cl4', nombre: 'Jamón york y mantequilla', precios: { piruleta: 2.00, vienesa: 3.00 }, ingredientes: ['Jamón york', 'Mantequilla'] },
-      { id: 'cl5', nombre: 'Mixto', precios: { piruleta: 2.00, vienesa: 3.00 }, ingredientes: ['Jamón york', 'Queso', 'Mantequilla'] },
-      { id: 'cl6', nombre: 'Catalana', precios: { piruleta: 2.00, vienesa: 3.00 }, ingredientes: ['Jamón serrano', 'Tomate', 'Aceite'] },
-      { id: 'cl7', nombre: 'Catalana con queso manchego', precios: { piruleta: 2.80, vienesa: 4.20 }, ingredientes: ['Jamón serrano', 'Tomate', 'Aceite', 'Queso manchego'] },
-      { id: 'cl8', nombre: 'Lomo en manteca', precios: { piruleta: 2.00, vienesa: 3.00 }, ingredientes: ['Lomo en manteca'] },
-      { id: 'cl9', nombre: 'Especial de la casa', precios: { piruleta: 3.50, vienesa: 5.00 }, ingredientes: ['Especial de la casa'] },
-      { id: 'cl10', nombre: 'Serranito (pollo o cerdo)', precios: { piruleta: 3.50, vienesa: 5.00 }, ingredientes: ['Carne (pollo o cerdo)', 'Pimiento', 'Tomate'] },
-      { id: 'cl11', nombre: 'Filete de pollo', precios: { piruleta: 3.50, vienesa: 5.00 }, ingredientes: ['Filete de pollo'] },
-      { id: 'cl12', nombre: 'Beicon completo', precios: { piruleta: 2.50, vienesa: 4.80 }, ingredientes: ['Beicon', 'Huevo'] },
-      { id: 'cl13', nombre: 'Atún', precios: { piruleta: 2.30, vienesa: 3.50 }, ingredientes: ['Atún'] },
-      { id: 'cl14', nombre: 'Tortilla francesa completa', precios: { piruleta: 2.80, vienesa: 4.20 }, ingredientes: ['Tortilla francesa'] },
-      { id: 'cl15', nombre: 'Tortilla de patatas', precios: { piruleta: 2.50, vienesa: 4.20 }, ingredientes: ['Tortilla de patatas'] },
-      { id: 'cl16', nombre: 'Lomo adobado completo', precios: { piruleta: 2.50, vienesa: 4.80 }, ingredientes: ['Lomo adobado'] },
-      { id: 'cl17', nombre: 'Mixto vegetal', precios: { piruleta: 2.50, vienesa: 4.20 }, ingredientes: ['Vegetales', 'Queso'] },
-      { id: 'cl18', nombre: 'Sobrasada', precios: { piruleta: 1.50, vienesa: 2.50 }, ingredientes: ['Sobrasada'] },
-      { id: 'cl19', nombre: 'Zurrapa', precios: { piruleta: 1.50, vienesa: 2.50 }, ingredientes: ['Zurrapa'] },
-      { id: 'cl20', nombre: 'Queso manchego', precios: { piruleta: 2.50, vienesa: 4.20 }, ingredientes: ['Queso manchego'] },
-      { id: 'cl21', nombre: 'Jamón ibérico', precios: { piruleta: 3.50, vienesa: 5.00 }, ingredientes: ['Jamón ibérico'] },
-      { id: 'cl22', nombre: 'Pavo', precios: { piruleta: 2.00, vienesa: 3.00 }, ingredientes: ['Pavo'] },
-      { id: 'cl23', nombre: 'Salchichón', precios: { piruleta: 2.00, vienesa: 3.00 }, ingredientes: ['Salchichón'] },
-      { id: 'cl24', nombre: 'York pata', precios: { piruleta: 2.60, vienesa: 4.50 }, ingredientes: ['Jamón york pata'] },
+      { id: 'cl1', nombre: 'Mantequilla', precios: { pitufo: 1.50, viena: 2.50 }, ingredientes: ['Mantequilla'] },
+      { id: 'cl2', nombre: 'Aceite', precios: { pitufo: 1.50, viena: 2.50 }, ingredientes: ['Aceite'] },
+      { id: 'cl3', nombre: 'Aceite y tomate', precios: { pitufo: 1.50, viena: 2.50 }, ingredientes: ['Aceite', 'Tomate'] },
+      { id: 'cl4', nombre: 'Jamón york y mantequilla', precios: { pitufo: 2.00, viena: 3.00 }, ingredientes: ['Jamón york', 'Mantequilla'] },
+      { id: 'cl5', nombre: 'Mixto', precios: { pitufo: 2.00, viena: 3.00 }, ingredientes: ['Jamón york', 'Queso', 'Mantequilla'] },
+      { id: 'cl6', nombre: 'Catalana', precios: { pitufo: 2.00, viena: 3.00 }, ingredientes: ['Jamón serrano', 'Tomate', 'Aceite'] },
+      { id: 'cl7', nombre: 'Catalana con queso manchego', precios: { pitufo: 2.80, viena: 4.20 }, ingredientes: ['Jamón serrano', 'Tomate', 'Aceite', 'Queso manchego'] },
+      { id: 'cl8', nombre: 'Lomo en manteca', precios: { pitufo: 2.00, viena: 3.00 }, ingredientes: ['Lomo en manteca'] },
+      { id: 'cl9', nombre: 'Especial de la casa', precios: { pitufo: 3.50, viena: 5.00 }, ingredientes: ['Especial de la casa'] },
+      { id: 'cl10', nombre: 'Serranito (pollo o cerdo)', precios: { pitufo: 3.50, viena: 5.00 }, ingredientes: ['Carne (pollo o cerdo)', 'Pimiento', 'Tomate'] },
+      { id: 'cl11', nombre: 'Filete de pollo', precios: { pitufo: 3.50, viena: 5.00 }, ingredientes: ['Filete de pollo'] },
+      { id: 'cl12', nombre: 'Beicon completo', precios: { pitufo: 2.50, viena: 4.80 }, ingredientes: ['Beicon', 'Huevo'] },
+      { id: 'cl13', nombre: 'Atún', precios: { pitufo: 2.30, viena: 3.50 }, ingredientes: ['Atún'] },
+      { id: 'cl14', nombre: 'Tortilla francesa completa', precios: { pitufo: 2.80, viena: 4.20 }, ingredientes: ['Tortilla francesa'] },
+      { id: 'cl15', nombre: 'Tortilla de patatas', precios: { pitufo: 2.50, viena: 4.20 }, ingredientes: ['Tortilla de patatas'] },
+      { id: 'cl16', nombre: 'Lomo adobado completo', precios: { pitufo: 2.50, viena: 4.80 }, ingredientes: ['Lomo adobado'] },
+      { id: 'cl17', nombre: 'Mixto vegetal', precios: { pitufo: 2.50, viena: 4.20 }, ingredientes: ['Vegetales', 'Queso'] },
+      { id: 'cl18', nombre: 'Sobrasada', precios: { pitufo: 1.50, viena: 2.50 }, ingredientes: ['Sobrasada'] },
+      { id: 'cl19', nombre: 'Zurrapa', precios: { pitufo: 1.50, viena: 2.50 }, ingredientes: ['Zurrapa'] },
+      { id: 'cl20', nombre: 'Queso manchego', precios: { pitufo: 2.50, viena: 4.20 }, ingredientes: ['Queso manchego'] },
+      { id: 'cl21', nombre: 'Jamón ibérico', precios: { pitufo: 3.50, viena: 5.00 }, ingredientes: ['Jamón ibérico'] },
+      { id: 'cl22', nombre: 'Pavo', precios: { pitufo: 2.00, viena: 3.00 }, ingredientes: ['Pavo'] },
+      { id: 'cl23', nombre: 'Salchichón', precios: { pitufo: 2.00, viena: 3.00 }, ingredientes: ['Salchichón'] },
+      { id: 'cl24', nombre: 'York pata', precios: { pitufo: 2.60, viena: 4.50 }, ingredientes: ['Jamón york pata'] },
     ].map(p => ({ ...p, categoria: 'desayunos', tipo: 'comida', descripcion: p.ingredientes.join(', '), disponible: true })),
   },
 
@@ -289,8 +289,8 @@ export const useStore = create(persist((set, get) => ({
           id,
           nombre: producto.nombre,
           precios: {
-            piruleta: Number(producto.precioPiruleta) || 0,
-            vienesa: Number(producto.precioVienesa) || 0,
+            pitufo: Number(producto.precioPitufo) || 0,
+            viena: Number(producto.precioViena) || 0,
           },
           categoria: producto.categoria,
           tipo: state.carta.categorias.find(c => c.id === producto.categoria)?.tipo || 'comida',
@@ -313,10 +313,10 @@ export const useStore = create(persist((set, get) => ({
           next.descripcion = cambios.descripcion
           next.ingredientes = cambios.descripcion.split(',').map(s => s.trim()).filter(Boolean)
         }
-        if (cambios.precioPiruleta !== undefined || cambios.precioVienesa !== undefined) {
+        if (cambios.precioPitufo !== undefined || cambios.precioViena !== undefined) {
           next.precios = {
-            piruleta: Number(cambios.precioPiruleta ?? p.precios?.piruleta) || 0,
-            vienesa: Number(cambios.precioVienesa ?? p.precios?.vienesa) || 0,
+            pitufo: Number(cambios.precioPitufo ?? p.precios?.pitufo) || 0,
+            viena: Number(cambios.precioViena ?? p.precios?.viena) || 0,
           }
         }
         return next
@@ -339,7 +339,7 @@ export const useStore = create(persist((set, get) => ({
   },
 }), {
   name: 'tpv-hosteleria',
-  version: 2,
+  version: 3,
   migrate: () => undefined, // si cambia el formato de carta, descarta lo viejo y usa el por defecto
   partialize: (state) => ({
     carta: state.carta,
