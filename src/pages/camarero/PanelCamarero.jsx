@@ -8,7 +8,7 @@ const ESTADO = {
 }
 
 export default function PanelCamarero() {
-  const { mesas, carta, pedidosCocina, pedidosBarra, liberarMesa, confirmarPedido } = useStore()
+  const { mesas, carta, pedidosCocina, pedidosBarra, avisos, liberarMesa, confirmarPedido, atenderAviso } = useStore()
   const [mesaSeleccionada, setMesaSeleccionada] = useState(null)
 
   const mesa = mesas.find(m => m.id === mesaSeleccionada)
@@ -29,6 +29,20 @@ export default function PanelCamarero() {
           {totalBarra > 0 && <div style={{ background: '#2d0a14', color: '#f43f5e', borderRadius: '0.5rem', padding: '0.375rem 0.75rem', fontSize: '0.8rem', fontWeight: 700 }}>🍺 {totalBarra} listo(s)</div>}
         </div>
       </div>
+
+      {/* Avisos de clientes (llamadas al camarero) */}
+      {avisos.length > 0 && (
+        <div style={{ background: '#3b1d00', borderBottom: '1px solid #7c3a00', padding: '0.75rem 1.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.625rem', alignItems: 'center' }}>
+          <span style={{ fontWeight: 800, color: '#fbbf24', fontSize: '0.85rem' }}>🔔 Te llaman:</span>
+          {avisos.map(a => (
+            <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#1e293b', border: '1px solid #f59e0b', borderRadius: '9999px', padding: '0.25rem 0.4rem 0.25rem 0.75rem' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>Mesa {a.mesaNumero}</span>
+              {a.personaNombre && <span style={{ fontSize: '0.78rem', color: 'var(--color-muted)' }}>· {a.personaNombre}</span>}
+              <button onClick={() => atenderAviso(a.id)} title="Marcar atendido" style={{ background: '#10b981', color: 'white', border: 'none', borderRadius: '9999px', width: '1.5rem', height: '1.5rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem' }}>✓</button>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Grid mesas */}

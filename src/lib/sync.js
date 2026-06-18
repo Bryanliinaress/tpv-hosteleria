@@ -18,6 +18,7 @@ const sliceEstado = (s) => ({
   mesas: s.mesas,
   pedidosCocina: s.pedidosCocina,
   pedidosBarra: s.pedidosBarra,
+  avisos: s.avisos,
 })
 
 function aplicarRemoto(data) {
@@ -27,6 +28,7 @@ function aplicarRemoto(data) {
     mesas: data.mesas,
     pedidosCocina: data.pedidosCocina || [],
     pedidosBarra: data.pedidosBarra || [],
+    avisos: data.avisos || [],
   })
   aplicandoRemoto = false
 }
@@ -67,7 +69,7 @@ export async function initSync() {
   // 3) Empuja los cambios locales (con debounce, ignorando los recibidos)
   useStore.subscribe((state, prev) => {
     if (aplicandoRemoto) return
-    if (state.mesas === prev.mesas && state.pedidosCocina === prev.pedidosCocina && state.pedidosBarra === prev.pedidosBarra) return
+    if (state.mesas === prev.mesas && state.pedidosCocina === prev.pedidosCocina && state.pedidosBarra === prev.pedidosBarra && state.avisos === prev.avisos) return
     clearTimeout(writeTimer)
     writeTimer = setTimeout(empujarEstado, 150)
   })

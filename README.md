@@ -32,6 +32,9 @@ El estado se mantiene en un store de **Zustand** (`src/store/useStore.js`) con *
 - **Notas al pedido:** nota por plato (ej. "sin cebolla") que llega a cocina/barra.
 - **Dividir un plato:** reparte el coste de un plato a partes iguales entre los comensales elegidos.
 - **Pago por persona + propina:** cada uno paga su parte (con propina opcional); cuando la cuenta llega a 0, la mesa se reinicia sola. Se mantiene el cobro tradicional del camarero.
+- **Seguimiento en vivo:** el cliente ve el estado de cada plato (en cola → preparándose → ¡listo!) y recibe un aviso cuando está listo.
+- **Llamar al camarero:** botón 🔔 que avisa al Panel Camarero en tiempo real.
+- **Buscador de carta** y **resumen de confirmación** antes de enviar el pedido a cocina.
 
 ## Estructura
 

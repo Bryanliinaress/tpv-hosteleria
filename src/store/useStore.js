@@ -44,6 +44,9 @@ export const useStore = create(persist((set, get) => ({
   pedidosCocina: [],
   pedidosBarra: [],
 
+  // ── AVISOS AL CAMARERO ─────────────────────────────────
+  avisos: [], // { id, mesaId, mesaNumero, personaNombre, hora }
+
   // ── ACCIONES ───────────────────────────────────────────
   // Un cliente se une a la mesa por su nombre. Si la mesa está libre, la
   // abre (primer comensal). Si ya está ocupada, se suma como una persona más.
@@ -77,6 +80,7 @@ export const useStore = create(persist((set, get) => ({
     }),
     pedidosCocina: state.pedidosCocina.filter(p => p.mesaId !== mesaId),
     pedidosBarra: state.pedidosBarra.filter(p => p.mesaId !== mesaId),
+    avisos: state.avisos.filter(a => a.mesaId !== mesaId),
   })),
 
   addItem: (mesaId, personaId, producto) => set(state => ({
@@ -169,6 +173,26 @@ export const useStore = create(persist((set, get) => ({
     mesas: state.mesas.map(m => m.id !== mesaId ? m : { ...m, estado: 'esperando_cobro' }),
   })),
 
+  // El cliente llama al camarero (agua, dudas...). Aparece en el Panel Camarero.
+  llamarCamarero: (mesaId, personaNombre) => set(state => {
+    const mesa = state.mesas.find(m => m.id === mesaId)
+    // Evita duplicar avisos de la misma mesa sin atender
+    if (state.avisos.some(a => a.mesaId === mesaId)) return {}
+    return {
+      avisos: [...state.avisos, {
+        id: `aviso-${mesaId}-${Date.now()}`,
+        mesaId,
+        mesaNumero: mesa?.numero,
+        personaNombre,
+        hora: new Date().toISOString(),
+      }],
+    }
+  }),
+
+  atenderAviso: (avisoId) => set(state => ({
+    avisos: state.avisos.filter(a => a.id !== avisoId),
+  })),
+
   // Pago por persona: marca a un comensal como pagado. Cuando TODOS los
   // comensales de la mesa han pagado (la cuenta llega a 0), la sesión de la
   // mesa se reinicia automáticamente y queda libre para el siguiente grupo.
@@ -187,6 +211,7 @@ export const useStore = create(persist((set, get) => ({
         }),
         pedidosCocina: state.pedidosCocina.filter(p => p.mesaId !== mesaId),
         pedidosBarra: state.pedidosBarra.filter(p => p.mesaId !== mesaId),
+        avisos: state.avisos.filter(a => a.mesaId !== mesaId),
       }
     }
     return { mesas }
@@ -280,6 +305,7 @@ export const useStore = create(persist((set, get) => ({
     mesas: state.mesas,
     pedidosCocina: state.pedidosCocina,
     pedidosBarra: state.pedidosBarra,
+    avisos: state.avisos,
   }),
 }))
 

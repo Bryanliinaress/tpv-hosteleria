@@ -4,7 +4,7 @@ import { useStore, owedPorPersona } from '../../store/useStore'
 
 export default function CartaCliente() {
   const { mesaId } = useParams()
-  const { carta, mesas, unirseAMesa, addItem, removeItem, confirmarPedido, pedirCuenta, pagarParte, setNota, toggleCompartir } = useStore()
+  const { carta, mesas, pedidosCocina, pedidosBarra, avisos, unirseAMesa, addItem, removeItem, confirmarPedido, pedirCuenta, pagarParte, setNota, toggleCompartir, llamarCamarero } = useStore()
   const mesa = mesas.find(m => m.id === mesaId)
 
   const [miPersonaId, setMiPersonaId] = useState(() => localStorage.getItem(`tpv-yo-${mesaId}`))
@@ -16,6 +16,8 @@ export default function CartaCliente() {
   const [pagando, setPagando] = useState(null) // personaId con el selector de propina abierto
   const [propinaPct, setPropinaPct] = useState(0)
   const [dividiendo, setDividiendo] = useState(null) // clave del ítem con el selector de reparto abierto
+  const [busqueda, setBusqueda] = useState('')
+  const [mostrarResumen, setMostrarResumen] = useState(false) // overlay de confirmación antes de enviar
 
   // ¿Mi comensal sigue en la mesa? (si la mesa se reinició, ya no estará)
   const yo = mesa?.personas.find(p => p.id === miPersonaId)
@@ -86,7 +88,10 @@ export default function CartaCliente() {
 
   // ── Cliente identificado ──────────────────────────────
   const personaActiva = mesa.personas.find(p => p.id === pidiendoPara) || yo
-  const productosFiltrados = carta.productos.filter(p => p.categoria === categoriaActiva && p.disponible)
+  const q = busqueda.trim().toLowerCase()
+  const productosFiltrados = q
+    ? carta.productos.filter(p => p.disponible && (p.nombre.toLowerCase().includes(q) || p.descripcion.toLowerCase().includes(q)))
+    : carta.productos.filter(p => p.categoria === categoriaActiva && p.disponible)
   const itemsPendientes = personaActiva.items.filter(i => i.estado === 'pendiente')
   const itemsEnviados = personaActiva.items.filter(i => i.estado === 'enviado')
   const totalPendiente = itemsPendientes.reduce((s, i) => s + i.precio * i.cantidad, 0)
@@ -94,6 +99,24 @@ export default function CartaCliente() {
   const owed = owedPorPersona(mesa)
   const totalPendienteMesa = mesa.personas.filter(p => !p.pagado).reduce((s, p) => s + owed[p.id], 0)
   const pedirParaOtro = personaActiva.id !== yo.id
+
+  // ── Seguimiento del pedido (estado en cocina/barra) ───
+  const ESTADO_ITEM = {
+    recibido: { label: 'En cola', color: '#f59e0b', emoji: '📥' },
+    preparando: { label: 'Preparándose', color: '#3b82f6', emoji: '👨‍🍳' },
+    listo: { label: '¡Listo!', color: '#10b981', emoji: '✅' },
+  }
+  const misPedidos = [...pedidosCocina, ...pedidosBarra].filter(p => p.personaId === yo.id)
+  const misListos = misPedidos.filter(p => p.estado === 'listo')
+  // Estado más atrasado de un plato enviado (por nombre), para mostrar su badge
+  const estadoDeItem = (nombreItem) => {
+    const ents = misPedidos.filter(p => p.nombre === nombreItem)
+    if (ents.length === 0) return null
+    if (ents.some(e => e.estado === 'recibido')) return 'recibido'
+    if (ents.some(e => e.estado === 'preparando')) return 'preparando'
+    return 'listo'
+  }
+  const avisoActivo = avisos.some(a => a.mesaId === mesaId)
 
   // Líneas que componen lo que debe una persona (sus platos + su parte de los compartidos)
   const lineasDe = (persona) => {
@@ -234,13 +257,21 @@ export default function CartaCliente() {
 
         {itemsEnviados.length > 0 && (
           <div style={{ marginBottom: '1rem' }}>
-            <p style={labelMini}>Ya enviado a cocina/barra</p>
-            {itemsEnviados.map((item, idx) => (
-              <div key={idx} style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', opacity: 0.7 }}>
-                <span style={{ fontSize: '0.875rem' }}>{item.cantidad}× {item.nombre}</span>
-                <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{(item.precio * item.cantidad).toFixed(2)} €</span>
-              </div>
-            ))}
+            <p style={labelMini}>Ya enviado · seguimiento en vivo</p>
+            {itemsEnviados.map((item, idx) => {
+              const ents = [...pedidosCocina, ...pedidosBarra].filter(p => p.personaId === personaActiva.id && p.nombre === item.nombre)
+              const clave = ents.some(e => e.estado === 'recibido') ? 'recibido' : ents.some(e => e.estado === 'preparando') ? 'preparando' : ents.length ? 'listo' : null
+              const est = clave && ESTADO_ITEM[clave]
+              return (
+                <div key={idx} style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', borderColor: est ? est.color + '66' : 'var(--color-border)' }}>
+                  <div>
+                    <div style={{ fontSize: '0.875rem' }}>{item.cantidad}× {item.nombre}</div>
+                    {est && <div style={{ fontSize: '0.72rem', color: est.color, fontWeight: 700, marginTop: '0.15rem' }}>{est.emoji} {est.label}</div>}
+                  </div>
+                  <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{(item.precio * item.cantidad).toFixed(2)} €</span>
+                </div>
+              )
+            })}
           </div>
         )}
 
@@ -273,7 +304,7 @@ export default function CartaCliente() {
               <span>Total pendiente</span>
               <span style={{ color: '#f97316' }}>{totalPendiente.toFixed(2)} €</span>
             </div>
-            <button onClick={() => { confirmarPedido(mesaId); setVista('carta') }} style={btnStyle('#f97316', { width: '100%', padding: '0.875rem', fontSize: '1rem' })}>
+            <button onClick={() => setMostrarResumen(true)} style={btnStyle('#f97316', { width: '100%', padding: '0.875rem', fontSize: '1rem' })}>
               Enviar pedido 🚀
             </button>
           </>
@@ -282,6 +313,35 @@ export default function CartaCliente() {
             <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🛒</div>
             <p>Aún no hay nada por enviar</p>
             <button onClick={() => setVista('carta')} style={{ ...btnStyle('#f97316'), marginTop: '1rem' }}>Ver carta</button>
+          </div>
+        )}
+
+        {/* Resumen / confirmación antes de enviar */}
+        {mostrarResumen && (
+          <div onClick={() => setMostrarResumen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 50 }}>
+            <div onClick={e => e.stopPropagation()} style={{ background: 'var(--color-surface)', borderTopLeftRadius: '1rem', borderTopRightRadius: '1rem', padding: '1.25rem', width: '100%', maxWidth: '480px', maxHeight: '85vh', overflowY: 'auto' }}>
+              <h3 style={{ fontWeight: 800, fontSize: '1.1rem', marginBottom: '0.25rem' }}>Confirmar pedido</h3>
+              <p style={{ fontSize: '0.8rem', color: 'var(--color-muted)', marginBottom: '1rem' }}>Revisa antes de enviarlo a cocina/barra</p>
+              {itemsPendientes.map((item, idx) => (
+                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '0.5rem 0', borderBottom: '1px solid var(--color-border)' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{item.cantidad}× {item.nombre}</div>
+                    {item.nota && <div style={{ fontSize: '0.78rem', color: '#fbbf24' }}>📝 {item.nota}</div>}
+                  </div>
+                  <span style={{ fontWeight: 600, fontSize: '0.9rem', whiteSpace: 'nowrap' }}>{(item.precio * item.cantidad).toFixed(2)} €</span>
+                </div>
+              ))}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1rem', margin: '0.75rem 0 1rem' }}>
+                <span>Total</span>
+                <span style={{ color: '#f97316' }}>{totalPendiente.toFixed(2)} €</span>
+              </div>
+              <button onClick={() => { confirmarPedido(mesaId); setMostrarResumen(false); setVista('carta') }} style={btnStyle('#f97316', { width: '100%', padding: '0.875rem', fontSize: '1rem', marginBottom: '0.5rem' })}>
+                Confirmar y enviar 🚀
+              </button>
+              <button onClick={() => setMostrarResumen(false)} style={btnStyle('#334155', { width: '100%', padding: '0.7rem', fontSize: '0.9rem' })}>
+                Seguir pidiendo
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -299,6 +359,13 @@ export default function CartaCliente() {
             <span style={{ marginLeft: '0.5rem', fontSize: '0.8rem', color: '#f97316', fontWeight: 600 }}>Hola, {yo.nombre} 👋</span>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              onClick={() => !avisoActivo && llamarCamarero(mesaId, yo.nombre)}
+              title="Llamar al camarero"
+              style={btnStyle(avisoActivo ? '#10b981' : '#1e293b', { fontSize: '0.8rem', padding: '0.375rem 0.75rem', cursor: avisoActivo ? 'default' : 'pointer' })}
+            >
+              {avisoActivo ? '🔔 Avisado' : '🔔'}
+            </button>
             <button onClick={() => setVista('pedido')} style={{ ...btnStyle('#1e293b', { fontSize: '0.8rem', padding: '0.375rem 0.75rem' }), position: 'relative' }}>
               🛒 {itemsPendientes.length > 0 && <span style={badge}>{itemsPendientes.length}</span>}
             </button>
@@ -320,23 +387,58 @@ export default function CartaCliente() {
         </div>
       </div>
 
+      {/* Aviso: tu pedido está listo */}
+      {misListos.length > 0 && (
+        <div style={{ background: '#052e16', color: '#10b981', fontSize: '0.85rem', fontWeight: 700, padding: '0.55rem 1.25rem', textAlign: 'center', borderBottom: '1px solid #14532d' }}>
+          ✅ ¡Listo para ti! {misListos.map(p => `${p.cantidad}× ${p.nombre}`).join(', ')}
+        </div>
+      )}
+
       {pedirParaOtro && (
         <div style={{ background: '#2d1900', color: '#f59e0b', fontSize: '0.78rem', padding: '0.4rem 1.25rem', textAlign: 'center' }}>
           Estás pidiendo para <strong>{personaActiva.nombre}</strong>
         </div>
       )}
 
-      {/* Categorías */}
-      <div style={{ display: 'flex', gap: '0.5rem', padding: '0.75rem 1.25rem', overflowX: 'auto', background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' }}>
-        {carta.categorias.map(cat => (
-          <button key={cat.id} onClick={() => setCategoriaActiva(cat.id)} style={btnStyle(categoriaActiva === cat.id ? '#f97316' : '#1e293b', { whiteSpace: 'nowrap', fontSize: '0.8rem', padding: '0.375rem 0.75rem' })}>
-            {cat.emoji} {cat.nombre}
-          </button>
-        ))}
+      {/* Buscador */}
+      <div style={{ padding: '0.75rem 1.25rem 0', background: 'var(--color-bg)' }}>
+        <div style={{ position: 'relative' }}>
+          <input
+            value={busqueda}
+            onChange={e => setBusqueda(e.target.value)}
+            placeholder="🔍 Buscar en la carta…"
+            style={{ ...inputStyle, fontSize: '0.85rem', padding: '0.5rem 0.75rem' }}
+          />
+          {busqueda && (
+            <button onClick={() => setBusqueda('')} style={{ position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--color-muted)', cursor: 'pointer', fontSize: '1rem' }}>✕</button>
+          )}
+        </div>
       </div>
+
+      {/* Categorías (ocultas al buscar) */}
+      {!q && (
+        <div style={{ display: 'flex', gap: '0.5rem', padding: '0.75rem 1.25rem', overflowX: 'auto', background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' }}>
+          {carta.categorias.map(cat => (
+            <button key={cat.id} onClick={() => setCategoriaActiva(cat.id)} style={btnStyle(categoriaActiva === cat.id ? '#f97316' : '#1e293b', { whiteSpace: 'nowrap', fontSize: '0.8rem', padding: '0.375rem 0.75rem' })}>
+              {cat.emoji} {cat.nombre}
+            </button>
+          ))}
+        </div>
+      )}
+      {q && (
+        <div style={{ padding: '0.5rem 1.25rem 0.75rem', background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)', fontSize: '0.78rem', color: 'var(--color-muted)' }}>
+          {productosFiltrados.length} resultado(s) para «{busqueda}»
+        </div>
+      )}
 
       {/* Productos */}
       <div style={{ flex: 1, padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        {productosFiltrados.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-muted)' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🔍</div>
+            <p>No hay platos que coincidan con «{busqueda}»</p>
+          </div>
+        )}
         {productosFiltrados.map(prod => {
           const enPedido = personaActiva.items.find(i => i.productoId === prod.id && i.estado === 'pendiente')
           return (
