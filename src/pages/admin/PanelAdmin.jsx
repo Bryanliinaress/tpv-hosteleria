@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { useStore } from '../../store/useStore'
 
-const emptyForm = { nombre: '', precio: '', categoria: '', descripcion: '' }
+const emptyForm = { nombre: '', precioPiruleta: '', precioVienesa: '', categoria: '', descripcion: '' }
+const precioDesde = (prod) => Math.min(prod.precios?.piruleta ?? 0, prod.precios?.vienesa ?? 0)
 
 export default function PanelAdmin() {
   const { carta, mesas, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos } = useStore()
@@ -21,7 +22,7 @@ export default function PanelAdmin() {
   }
   const empezarEdicion = (prod) => {
     setEditando(prod.id)
-    setForm({ nombre: prod.nombre, precio: String(prod.precio), categoria: prod.categoria, descripcion: prod.descripcion })
+    setForm({ nombre: prod.nombre, precioPiruleta: String(prod.precios?.piruleta ?? ''), precioVienesa: String(prod.precios?.vienesa ?? ''), categoria: prod.categoria, descripcion: prod.descripcion })
   }
   const cancelar = () => { setEditando(null); setForm(emptyForm) }
   const guardar = () => {
@@ -110,7 +111,9 @@ export default function PanelAdmin() {
                           </div>
                           <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>{prod.descripcion}</div>
                         </div>
-                        <div style={{ fontWeight: 700, color: '#f97316', fontSize: '0.9rem', margin: '0 0.75rem', whiteSpace: 'nowrap' }}>{prod.precio.toFixed(2)} €</div>
+                        <div style={{ fontWeight: 700, color: '#f97316', fontSize: '0.85rem', margin: '0 0.75rem', whiteSpace: 'nowrap', textAlign: 'right' }}>
+                          {(prod.precios?.piruleta ?? 0).toFixed(2)} €<br />{(prod.precios?.vienesa ?? 0).toFixed(2)} €
+                        </div>
                         <div style={{ display: 'flex', gap: '0.25rem' }}>
                           <button onClick={() => toggleDisponible(prod.id)} title={prod.disponible ? 'Marcar agotado' : 'Marcar disponible'} style={iconBtn}>{prod.disponible ? '🟢' : '⚪'}</button>
                           <button onClick={() => empezarEdicion(prod)} title="Editar" style={iconBtn}>✏️</button>
@@ -191,7 +194,8 @@ function FormProducto({ carta, form, setForm, onGuardar, onCancelar, titulo }) {
       <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#f97316' }}>{titulo}</div>
       <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap' }}>
         <input value={form.nombre} onChange={set('nombre')} placeholder="Nombre" style={{ ...inputStyle, flex: '2 1 180px' }} />
-        <input value={form.precio} onChange={set('precio')} placeholder="Precio €" type="number" step="0.10" style={{ ...inputStyle, flex: '1 1 90px' }} />
+        <input value={form.precioPiruleta} onChange={set('precioPiruleta')} placeholder="€ Piruleta" type="number" step="0.10" style={{ ...inputStyle, flex: '1 1 90px' }} />
+        <input value={form.precioVienesa} onChange={set('precioVienesa')} placeholder="€ Vienesa" type="number" step="0.10" style={{ ...inputStyle, flex: '1 1 90px' }} />
         <select value={form.categoria} onChange={set('categoria')} style={{ ...inputStyle, flex: '1 1 140px' }}>
           {carta.categorias.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.nombre}</option>)}
         </select>

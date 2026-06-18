@@ -2,6 +2,8 @@
 
 Aplicación de TPV (Terminal Punto de Venta) para hostelería construida con **React + Vite + Zustand + Tailwind CSS**. Permite gestionar el flujo completo de un bar/restaurante con varias vistas según el rol.
 
+> Carta actual: **Casa Loli — Desayunos** (montaditos). Cada plato se personaliza eligiendo el **pan** (formato Piruleta/Vienesa + tipo de pan con suplemento) y **añadiendo/quitando condimentos**.
+
 ## Roles / pantallas
 
 | Ruta | Pantalla | Descripción |
