@@ -66,9 +66,14 @@ export default function PantallaKDS() {
                         <span style={{ fontSize: '0.7rem', background: est.color + '22', color: est.color, borderRadius: '4px', padding: '0.15rem 0.5rem', fontWeight: 700 }}>{est.label}</span>
                       </div>
                     </div>
-                    <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: '0.75rem' }}>
+                    <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: p.nota ? '0.4rem' : '0.75rem' }}>
                       <span style={{ color: '#f59e0b' }}>{p.cantidad}×</span> {p.nombre}
                     </div>
+                    {p.nota && (
+                      <div style={{ fontSize: '0.85rem', color: '#fde68a', background: '#3f2d00', border: '1px solid #78531a', borderRadius: '0.375rem', padding: '0.3rem 0.55rem', marginBottom: '0.75rem' }}>
+                        📝 {p.nota}
+                      </div>
+                    )}
                     {est.next && (
                       <button
                         onClick={() => actualizarEstadoCocina(p.id, est.next)}

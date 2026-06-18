@@ -21,6 +21,14 @@ El estado se mantiene en un store de **Zustand** (`src/store/useStore.js`) con *
 - **Carta editable:** añadir, editar, borrar productos y marcarlos como agotados/disponibles.
 - **QR Codes:** generación de códigos QR reales por mesa (`qrcode.react`) listos para imprimir.
 
+### Flujo del cliente
+- **Identificación por nombre:** cada cliente escanea el QR y entra con su nombre (un móvil por persona).
+- **Mesa compartida:** quien escanea el mismo QR se suma como comensal a la misma cuenta.
+- **Pedidos por nombre:** cada pedido queda registrado a la mesa + cliente; puedes pedir para otro comensal.
+- **Notas al pedido:** nota por plato (ej. "sin cebolla") que llega a cocina/barra.
+- **Dividir un plato:** reparte el coste de un plato a partes iguales entre los comensales elegidos.
+- **Pago por persona + propina:** cada uno paga su parte (con propina opcional); cuando la cuenta llega a 0, la mesa se reinicia sola. Se mantiene el cobro tradicional del camarero.
+
 ## Estructura
 
 ```
@@ -54,6 +62,8 @@ npm run lint     # ESLint
 - [x] Sincronización en vivo entre pantallas del mismo navegador
 - [x] Edición de carta en el Panel Admin
 - [x] Generación de QR reales por mesa
+- [x] Identificación del cliente por nombre y mesa compartida
+- [x] Notas al pedido, dividir platos y pago por persona con propina
 - [ ] Backend (Supabase) para sincronización multi-dispositivo en tiempo real
 - [ ] Autenticación de personal (roles)
 

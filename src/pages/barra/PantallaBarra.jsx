@@ -61,9 +61,14 @@ export default function PantallaBarra() {
                         {urgente ? '⚠️ ' : ''}{tiempoTranscurrido(p.horaEntrada)}
                       </span>
                     </div>
-                    <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: '0.75rem' }}>
+                    <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: p.nota ? '0.4rem' : '0.75rem' }}>
                       <span style={{ color: '#f59e0b' }}>{p.cantidad}×</span> {p.nombre}
                     </div>
+                    {p.nota && (
+                      <div style={{ fontSize: '0.85rem', color: '#fecdd3', background: '#3f0d1a', border: '1px solid #7a1f33', borderRadius: '0.375rem', padding: '0.3rem 0.55rem', marginBottom: '0.75rem' }}>
+                        📝 {p.nota}
+                      </div>
+                    )}
                     {est.next && (
                       <button
                         onClick={() => actualizarEstadoBarra(p.id, est.next)}

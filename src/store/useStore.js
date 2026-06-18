@@ -98,6 +98,8 @@ export const useStore = create(persist((set, get) => ({
             tipo: producto.tipo,
             cantidad: 1,
             estado: 'pendiente',
+            nota: '',
+            compartidoCon: [], // ids de otros comensales que comparten el plato
           }]
         })(),
       }),
@@ -132,6 +134,7 @@ export const useStore = create(persist((set, get) => ({
           personaNombre: persona.nombre,
           nombre: item.nombre,
           cantidad: item.cantidad,
+          nota: item.nota || '',
           estado: 'recibido',
           horaEntrada: new Date().toISOString(),
         }
@@ -169,10 +172,10 @@ export const useStore = create(persist((set, get) => ({
   // Pago por persona: marca a un comensal como pagado. Cuando TODOS los
   // comensales de la mesa han pagado (la cuenta llega a 0), la sesión de la
   // mesa se reinicia automáticamente y queda libre para el siguiente grupo.
-  pagarParte: (mesaId, personaId) => set(state => {
+  pagarParte: (mesaId, personaId, propina = 0) => set(state => {
     const mesas = state.mesas.map(m => m.id !== mesaId ? m : {
       ...m,
-      personas: m.personas.map(p => p.id === personaId ? { ...p, pagado: true } : p),
+      personas: m.personas.map(p => p.id === personaId ? { ...p, pagado: true, propina: Number(propina) || 0 } : p),
     })
     const mesa = mesas.find(m => m.id === mesaId)
     const todosPagados = mesa.personas.length > 0 && mesa.personas.every(p => p.pagado)
@@ -188,6 +191,37 @@ export const useStore = create(persist((set, get) => ({
     }
     return { mesas }
   }),
+
+  // Nota para un ítem pendiente (ej. "sin cebolla", "poco hecho")
+  setNota: (mesaId, personaId, productoId, nota) => set(state => ({
+    mesas: state.mesas.map(m => m.id !== mesaId ? m : {
+      ...m,
+      personas: m.personas.map(p => p.id !== personaId ? p : {
+        ...p,
+        items: p.items.map(i => (i.productoId === productoId && i.estado === 'pendiente') ? { ...i, nota } : i),
+      }),
+    }),
+  })),
+
+  // Compartir un plato entre comensales: alterna a 'sharerId' en la lista de
+  // quienes comparten el ítem (además del dueño). El coste se reparte a partes
+  // iguales al calcular lo que debe cada persona.
+  toggleCompartir: (mesaId, ownerId, productoId, estado, sharerId) => set(state => ({
+    mesas: state.mesas.map(m => m.id !== mesaId ? m : {
+      ...m,
+      personas: m.personas.map(p => p.id !== ownerId ? p : {
+        ...p,
+        items: p.items.map(i => {
+          if (i.productoId !== productoId || i.estado !== estado) return i
+          const actual = i.compartidoCon || []
+          const compartidoCon = actual.includes(sharerId)
+            ? actual.filter(id => id !== sharerId)
+            : [...actual, sharerId]
+          return { ...i, compartidoCon }
+        }),
+      }),
+    }),
+  })),
 
   // ── GESTIÓN DE CARTA (admin) ───────────────────────────
   addProducto: (producto) => set(state => {
@@ -248,6 +282,22 @@ export const useStore = create(persist((set, get) => ({
     pedidosBarra: state.pedidosBarra,
   }),
 }))
+
+// Calcula lo que debe cada comensal, repartiendo a partes iguales el coste de
+// los platos compartidos. Devuelve un objeto { [personaId]: importe }.
+export function owedPorPersona(mesa) {
+  const res = {}
+  mesa.personas.forEach(p => { res[p.id] = 0 })
+  mesa.personas.forEach(owner => {
+    owner.items.forEach(item => {
+      const sharers = [owner.id, ...(item.compartidoCon || [])].filter(id => id in res)
+      const importe = item.precio * item.cantidad
+      const cuota = importe / (sharers.length || 1)
+      sharers.forEach(id => { res[id] += cuota })
+    })
+  })
+  return res
+}
 
 // ── Sincronización en vivo entre pestañas/pantallas ──────
 // Cuando otra pestaña (cliente, cocina, barra, camarero...) modifica el

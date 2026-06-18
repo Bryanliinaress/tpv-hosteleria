@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { useStore } from '../../store/useStore'
+import { useStore, owedPorPersona } from '../../store/useStore'
 
 export default function CartaCliente() {
   const { mesaId } = useParams()
-  const { carta, mesas, unirseAMesa, addItem, removeItem, confirmarPedido, pedirCuenta, pagarParte } = useStore()
+  const { carta, mesas, unirseAMesa, addItem, removeItem, confirmarPedido, pedirCuenta, pagarParte, setNota, toggleCompartir } = useStore()
   const mesa = mesas.find(m => m.id === mesaId)
 
   const [miPersonaId, setMiPersonaId] = useState(() => localStorage.getItem(`tpv-yo-${mesaId}`))
@@ -13,6 +13,9 @@ export default function CartaCliente() {
   const [pidiendoPara, setPidiendoPara] = useState(null) // personaId; null = yo
   const [vista, setVista] = useState('carta') // carta | pedido | cuenta
   const [cerrada, setCerrada] = useState(false)
+  const [pagando, setPagando] = useState(null) // personaId con el selector de propina abierto
+  const [propinaPct, setPropinaPct] = useState(0)
+  const [dividiendo, setDividiendo] = useState(null) // clave del ítem con el selector de reparto abierto
 
   // ¿Mi comensal sigue en la mesa? (si la mesa se reinició, ya no estará)
   const yo = mesa?.personas.find(p => p.id === miPersonaId)
@@ -88,8 +91,23 @@ export default function CartaCliente() {
   const itemsEnviados = personaActiva.items.filter(i => i.estado === 'enviado')
   const totalPendiente = itemsPendientes.reduce((s, i) => s + i.precio * i.cantidad, 0)
   const totalMesa = mesa.personas.reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0)
-  const totalPendienteMesa = mesa.personas.filter(p => !p.pagado).reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0)
+  const owed = owedPorPersona(mesa)
+  const totalPendienteMesa = mesa.personas.filter(p => !p.pagado).reduce((s, p) => s + owed[p.id], 0)
   const pedirParaOtro = personaActiva.id !== yo.id
+
+  // Líneas que componen lo que debe una persona (sus platos + su parte de los compartidos)
+  const lineasDe = (persona) => {
+    const lineas = []
+    mesa.personas.forEach(owner => {
+      owner.items.forEach(item => {
+        const sharers = [owner.id, ...(item.compartidoCon || [])]
+        if (!sharers.includes(persona.id)) return
+        const importe = item.precio * item.cantidad
+        lineas.push({ owner, item, sharers, cuota: importe / sharers.length, esPropio: owner.id === persona.id })
+      })
+    })
+    return lineas
+  }
 
   // ── Vista CUENTA ──────────────────────────────────────
   if (vista === 'cuenta') {
@@ -100,29 +118,81 @@ export default function CartaCliente() {
           <h2 style={{ fontWeight: 700, fontSize: '1.25rem' }}>Cuenta — Mesa {mesa.numero}</h2>
         </div>
         {mesa.personas.map(p => {
-          const total = p.items.reduce((s, i) => s + i.precio * i.cantidad, 0)
+          const totalP = owed[p.id]
           const esYo = p.id === yo.id
+          const lineas = lineasDe(p)
           return (
             <div key={p.id} style={{ ...cardStyle, marginBottom: '0.75rem', borderColor: p.pagado ? '#10b981' : 'var(--color-border)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                 <div style={{ fontWeight: 700, color: '#f97316' }}>{p.nombre}{esYo && <span style={{ color: 'var(--color-muted)', fontWeight: 400 }}> (tú)</span>}</div>
-                {p.pagado && <span style={{ fontSize: '0.7rem', background: '#052e16', color: '#10b981', borderRadius: '9999px', padding: '0.15rem 0.6rem', fontWeight: 700 }}>✓ Pagado</span>}
+                {p.pagado && <span style={{ fontSize: '0.7rem', background: '#052e16', color: '#10b981', borderRadius: '9999px', padding: '0.15rem 0.6rem', fontWeight: 700 }}>✓ Pagado{p.propina > 0 ? ` · +${p.propina.toFixed(2)} €` : ''}</span>}
               </div>
-              {p.items.length === 0
+
+              {lineas.length === 0
                 ? <p style={{ color: 'var(--color-muted)', fontSize: '0.85rem' }}>Sin pedidos</p>
-                : p.items.map((item, idx) => (
-                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', padding: '0.25rem 0' }}>
-                    <span style={{ color: 'var(--color-muted)' }}>{item.cantidad}× {item.nombre}</span>
-                    <span style={{ fontWeight: 600 }}>{(item.precio * item.cantidad).toFixed(2)} €</span>
-                  </div>
-                ))
+                : lineas.map(({ owner, item, sharers, cuota, esPropio }, idx) => {
+                  const compartido = sharers.length > 1
+                  const claveItem = `${owner.id}:${item.productoId}:${item.estado}`
+                  return (
+                    <div key={idx} style={{ padding: '0.3rem 0', borderBottom: idx < lineas.length - 1 ? '1px solid var(--color-border)' : 'none' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', gap: '0.5rem' }}>
+                        <span style={{ color: 'var(--color-muted)' }}>
+                          {esPropio ? `${item.cantidad}× ${item.nombre}` : item.nombre}
+                          {!esPropio && <span style={{ fontSize: '0.7rem' }}> (de {owner.nombre})</span>}
+                          {compartido && <span style={{ fontSize: '0.7rem', color: '#a78bfa' }}> · compartido ×{sharers.length}</span>}
+                        </span>
+                        <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{cuota.toFixed(2)} €</span>
+                      </div>
+                      {esPropio && !p.pagado && (
+                        <div style={{ marginTop: '0.25rem' }}>
+                          <button onClick={() => setDividiendo(dividiendo === claveItem ? null : claveItem)} style={{ background: 'none', border: 'none', color: '#a78bfa', cursor: 'pointer', fontSize: '0.72rem', padding: 0 }}>
+                            👥 {compartido ? 'Editar reparto' : 'Dividir este plato'}
+                          </button>
+                          {dividiendo === claveItem && (
+                            <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', marginTop: '0.35rem' }}>
+                              {mesa.personas.filter(x => x.id !== p.id).map(x => {
+                                const activo = (item.compartidoCon || []).includes(x.id)
+                                return (
+                                  <button key={x.id} onClick={() => toggleCompartir(mesaId, p.id, item.productoId, item.estado, x.id)} style={btnStyle(activo ? '#7c3aed' : '#334155', { fontSize: '0.72rem', padding: '0.2rem 0.55rem' })}>
+                                    {activo ? '✓ ' : ''}{x.nombre}
+                                  </button>
+                                )
+                              })}
+                              {mesa.personas.length === 1 && <span style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>No hay nadie más en la mesa</span>}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })
               }
-              <div style={{ borderTop: '1px solid var(--color-border)', marginTop: '0.5rem', paddingTop: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: 700 }}>{total.toFixed(2)} €</span>
-                {!p.pagado && (
-                  <button onClick={() => pagarParte(mesaId, p.id)} style={btnStyle('#10b981', { padding: '0.4rem 0.9rem', fontSize: '0.8rem' })}>
-                    {esYo ? 'Pagar mi parte' : `Pagar parte de ${p.nombre}`}
-                  </button>
+
+              <div style={{ borderTop: '2px solid var(--color-border)', marginTop: '0.5rem', paddingTop: '0.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 700 }}>{totalP.toFixed(2)} €</span>
+                  {!p.pagado && pagando !== p.id && (
+                    <button onClick={() => { setPagando(p.id); setPropinaPct(0) }} style={btnStyle('#10b981', { padding: '0.4rem 0.9rem', fontSize: '0.8rem' })}>
+                      {esYo ? 'Pagar mi parte' : `Pagar parte de ${p.nombre}`}
+                    </button>
+                  )}
+                </div>
+
+                {!p.pagado && pagando === p.id && (
+                  <div style={{ marginTop: '0.6rem' }}>
+                    <p style={{ fontSize: '0.72rem', color: 'var(--color-muted)', marginBottom: '0.35rem' }}>¿Añadir propina?</p>
+                    <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+                      {[0, 5, 10, 15].map(pct => (
+                        <button key={pct} onClick={() => setPropinaPct(pct)} style={btnStyle(propinaPct === pct ? '#f97316' : '#334155', { fontSize: '0.75rem', padding: '0.3rem 0.6rem' })}>
+                          {pct === 0 ? 'Sin propina' : `${pct}%`}
+                        </button>
+                      ))}
+                    </div>
+                    <button onClick={() => { pagarParte(mesaId, p.id, totalP * propinaPct / 100); setPagando(null); setPropinaPct(0) }} style={btnStyle('#10b981', { width: '100%', padding: '0.6rem', fontSize: '0.85rem' })}>
+                      Pagar {(totalP * (1 + propinaPct / 100)).toFixed(2)} €{propinaPct > 0 ? ` (incl. ${(totalP * propinaPct / 100).toFixed(2)} € propina)` : ''}
+                    </button>
+                    <button onClick={() => setPagando(null)} style={{ background: 'none', border: 'none', color: 'var(--color-muted)', cursor: 'pointer', fontSize: '0.75rem', marginTop: '0.4rem', width: '100%' }}>Cancelar</button>
+                  </div>
                 )}
               </div>
             </div>
@@ -178,17 +248,25 @@ export default function CartaCliente() {
           <>
             <p style={labelMini}>Por enviar</p>
             {itemsPendientes.map((item, idx) => (
-              <div key={idx} style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{item.nombre}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>{item.precio.toFixed(2)} € / ud</div>
+              <div key={idx} style={{ ...cardStyle, marginBottom: '0.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{item.nombre}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>{item.precio.toFixed(2)} € / ud</div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <button onClick={() => removeItem(mesaId, personaActiva.id, item.productoId)} style={btnStyle('#334155', { padding: '0.25rem 0.625rem', fontSize: '1rem' })}>−</button>
+                    <span style={{ fontWeight: 700, minWidth: '1.5rem', textAlign: 'center' }}>{item.cantidad}</span>
+                    <button onClick={() => addItem(mesaId, personaActiva.id, carta.productos.find(p => p.id === item.productoId))} style={btnStyle('#334155', { padding: '0.25rem 0.625rem', fontSize: '1rem' })}>+</button>
+                    <span style={{ fontWeight: 700, minWidth: '3rem', textAlign: 'right' }}>{(item.precio * item.cantidad).toFixed(2)} €</span>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <button onClick={() => removeItem(mesaId, personaActiva.id, item.productoId)} style={btnStyle('#334155', { padding: '0.25rem 0.625rem', fontSize: '1rem' })}>−</button>
-                  <span style={{ fontWeight: 700, minWidth: '1.5rem', textAlign: 'center' }}>{item.cantidad}</span>
-                  <button onClick={() => addItem(mesaId, personaActiva.id, carta.productos.find(p => p.id === item.productoId))} style={btnStyle('#334155', { padding: '0.25rem 0.625rem', fontSize: '1rem' })}>+</button>
-                  <span style={{ fontWeight: 700, minWidth: '3rem', textAlign: 'right' }}>{(item.precio * item.cantidad).toFixed(2)} €</span>
-                </div>
+                <input
+                  value={item.nota || ''}
+                  onChange={e => setNota(mesaId, personaActiva.id, item.productoId, e.target.value)}
+                  placeholder="📝 Nota para cocina (ej. sin cebolla, poco hecho…)"
+                  style={{ ...inputStyle, marginTop: '0.6rem', fontSize: '0.8rem', padding: '0.45rem 0.65rem' }}
+                />
               </div>
             ))}
             <div style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', fontWeight: 700, marginBottom: '1rem', borderColor: '#f97316' }}>
