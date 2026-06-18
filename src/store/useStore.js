@@ -15,6 +15,8 @@ export const useStore = create(persist((set, get) => ({
   carta: {
     categorias: [
       { id: 'desayunos', nombre: 'Desayunos', tipo: 'comida', emoji: '🥪' },
+      { id: 'cafes', nombre: 'Cafés', tipo: 'bebida', emoji: '☕' },
+      { id: 'bebidas', nombre: 'Bebidas', tipo: 'bebida', emoji: '🥤' },
     ],
     // Formato de pan = las dos columnas de precio de la carta
     formatos: [
@@ -57,7 +59,47 @@ export const useStore = create(persist((set, get) => ({
       { id: 'cl22', nombre: 'Pavo', precios: { pitufo: 2.00, viena: 3.00 }, ingredientes: ['Pavo'] },
       { id: 'cl23', nombre: 'Salchichón', precios: { pitufo: 2.00, viena: 3.00 }, ingredientes: ['Salchichón'] },
       { id: 'cl24', nombre: 'York pata', precios: { pitufo: 2.60, viena: 4.50 }, ingredientes: ['Jamón york pata'] },
-    ].map(p => ({ ...p, categoria: 'desayunos', tipo: 'comida', descripcion: p.ingredientes.join(', '), disponible: true })),
+    ].map(p => ({ ...p, categoria: 'desayunos', tipo: 'comida', descripcion: p.ingredientes.join(', '), disponible: true })).concat(
+      // ── CAFÉS (Santa Cristina) — precio único ──
+      [
+        { id: 'cf1', nombre: 'Solo', precio: 1.30, descripcion: 'Café solo (espresso)' },
+        { id: 'cf2', nombre: 'Largo', precio: 1.30, descripcion: 'Café solo con más agua' },
+        { id: 'cf3', nombre: 'Semilargo', precio: 1.30, descripcion: 'Entre solo y largo' },
+        { id: 'cf4', nombre: 'Mitad', precio: 1.40, descripcion: 'Mitad café, mitad leche' },
+        { id: 'cf5', nombre: 'Entre corto', precio: 1.40, descripcion: 'Un poco menos de leche que el corto' },
+        { id: 'cf6', nombre: 'Corto', precio: 1.40, descripcion: 'Café con un poco de leche' },
+        { id: 'cf7', nombre: 'Sombra', precio: 1.40, descripcion: 'Leche con un toque de café' },
+        { id: 'cf8', nombre: 'Nube', precio: 1.40, descripcion: 'Leche con una nube de café' },
+      ].map(p => ({ ...p, categoria: 'cafes', tipo: 'bebida', disponible: true })),
+      // ── BEBIDAS (cafetería/bar) — precio único ──
+      [
+        { id: 'be1', nombre: 'Coca-Cola', precio: 2.00, descripcion: 'Lata/botellín 33cl' },
+        { id: 'be2', nombre: 'Coca-Cola Zero', precio: 2.00, descripcion: 'Lata/botellín 33cl' },
+        { id: 'be3', nombre: 'Fanta Naranja', precio: 2.00, descripcion: 'Lata/botellín 33cl' },
+        { id: 'be4', nombre: 'Fanta Limón', precio: 2.00, descripcion: 'Lata/botellín 33cl' },
+        { id: 'be5', nombre: 'Sprite', precio: 2.00, descripcion: 'Lata/botellín 33cl' },
+        { id: 'be6', nombre: 'Nestea', precio: 2.20, descripcion: 'Té con limón' },
+        { id: 'be7', nombre: 'Aquarius', precio: 2.20, descripcion: 'Naranja o limón' },
+        { id: 'be8', nombre: 'Tónica', precio: 2.00, descripcion: 'Schweppes 20cl' },
+        { id: 'be9', nombre: 'Bitter Kas', precio: 2.20, descripcion: 'Sin alcohol' },
+        { id: 'be10', nombre: 'Agua mineral', precio: 1.30, descripcion: 'Botella 50cl' },
+        { id: 'be11', nombre: 'Agua con gas', precio: 1.60, descripcion: 'Botella 50cl' },
+        { id: 'be12', nombre: 'Zumo de naranja natural', precio: 2.50, descripcion: 'Recién exprimido' },
+        { id: 'be13', nombre: 'Zumo', precio: 2.00, descripcion: 'Piña, melocotón o tomate' },
+        { id: 'be14', nombre: 'Caña', precio: 1.50, descripcion: 'Cerveza de barril 20cl' },
+        { id: 'be15', nombre: 'Doble', precio: 2.20, descripcion: 'Cerveza de barril 40cl' },
+        { id: 'be16', nombre: 'Tercio', precio: 2.50, descripcion: 'Botellín 33cl' },
+        { id: 'be17', nombre: 'Botellín', precio: 2.00, descripcion: 'Cerveza 25cl' },
+        { id: 'be18', nombre: 'Cerveza sin alcohol', precio: 2.00, descripcion: 'Botellín 25cl' },
+        { id: 'be19', nombre: 'Copa de vino tinto', precio: 1.80, descripcion: 'D.O. de la casa' },
+        { id: 'be20', nombre: 'Copa de vino blanco', precio: 1.80, descripcion: 'D.O. de la casa' },
+        { id: 'be21', nombre: 'Vermut', precio: 2.50, descripcion: 'Rojo o blanco, con sifón' },
+        { id: 'be22', nombre: 'Té / Infusión', precio: 1.40, descripcion: 'Variedades a elegir' },
+        { id: 'be23', nombre: 'Cola Cao', precio: 1.60, descripcion: 'Caliente o frío' },
+        { id: 'be24', nombre: 'Chocolate caliente', precio: 2.00, descripcion: 'A la taza' },
+        { id: 'be25', nombre: 'Vaso de leche', precio: 1.30, descripcion: 'Caliente o fría' },
+      ].map(p => ({ ...p, categoria: 'bebidas', tipo: 'bebida', disponible: true })),
+    ),
   },
 
   // ── MESAS ──────────────────────────────────────────────
@@ -339,7 +381,7 @@ export const useStore = create(persist((set, get) => ({
   },
 }), {
   name: 'tpv-hosteleria',
-  version: 3,
+  version: 4,
   migrate: () => undefined, // si cambia el formato de carta, descarta lo viejo y usa el por defecto
   partialize: (state) => ({
     carta: state.carta,

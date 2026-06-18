@@ -9,6 +9,7 @@ export default function CartaCliente() {
 
   const [miPersonaId, setMiPersonaId] = useState(() => localStorage.getItem(`tpv-yo-${mesaId}`))
   const [nombre, setNombre] = useState('')
+  const [categoriaActiva, setCategoriaActiva] = useState(carta.categorias[0].id)
   const [pidiendoPara, setPidiendoPara] = useState(null) // personaId; null = yo
   const [vista, setVista] = useState('carta') // carta | pedido | cuenta
   const [cerrada, setCerrada] = useState(false)
@@ -76,7 +77,7 @@ export default function CartaCliente() {
   const q = busqueda.trim().toLowerCase()
   const productosFiltrados = q
     ? carta.productos.filter(p => p.disponible && (p.nombre.toLowerCase().includes(q) || p.descripcion.toLowerCase().includes(q)))
-    : carta.productos.filter(p => p.categoria === carta.categorias[0].id && p.disponible)
+    : carta.productos.filter(p => p.categoria === categoriaActiva && p.disponible)
   const itemsPendientes = personaActiva.items.filter(i => i.estado === 'pendiente')
   const itemsEnviados = personaActiva.items.filter(i => i.estado === 'enviado')
   const totalPendiente = itemsPendientes.reduce((s, i) => s + i.precio * i.cantidad, 0)
@@ -369,24 +370,45 @@ export default function CartaCliente() {
         {q && <div style={{ fontSize: '0.78rem', color: 'var(--color-muted)', marginTop: '0.5rem' }}>{productosFiltrados.length} resultado(s) para «{busqueda}»</div>}
       </div>
 
+      {/* Categorías (ocultas al buscar) */}
+      {!q && (
+        <div style={{ display: 'flex', gap: '0.5rem', padding: '0.75rem 1.25rem', overflowX: 'auto', background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' }}>
+          {carta.categorias.map(cat => (
+            <button key={cat.id} onClick={() => setCategoriaActiva(cat.id)} style={btnStyle(categoriaActiva === cat.id ? '#f97316' : '#1e293b', { whiteSpace: 'nowrap', fontSize: '0.85rem', padding: '0.4rem 0.85rem' })}>
+              {cat.emoji} {cat.nombre}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Productos */}
       <div style={{ flex: 1, padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         {productosFiltrados.length === 0 && (
           <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-muted)' }}>
             <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🔍</div>
-            <p>No hay platos que coincidan con «{busqueda}»</p>
+            <p>No hay nada que coincida con «{busqueda}»</p>
           </div>
         )}
-        {productosFiltrados.map(prod => (
-          <div key={prod.id} style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ flex: 1, marginRight: '1rem' }}>
-              <div style={{ fontWeight: 700, marginBottom: '0.2rem' }}>{prod.nombre}</div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)', marginBottom: '0.25rem' }}>{prod.descripcion}</div>
-              <div style={{ fontWeight: 700, color: '#f97316' }}>desde {minPrecio(prod).toFixed(2)} €</div>
+        {productosFiltrados.map(prod => {
+          const esMontadito = !!prod.precios
+          return (
+            <div key={prod.id} style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ flex: 1, marginRight: '1rem' }}>
+                <div style={{ fontWeight: 700, marginBottom: '0.2rem' }}>{prod.nombre}</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)', marginBottom: '0.25rem' }}>{prod.descripcion}</div>
+                <div style={{ fontWeight: 700, color: '#f97316' }}>{esMontadito ? `desde ${minPrecio(prod).toFixed(2)} €` : `${prod.precio.toFixed(2)} €`}</div>
+              </div>
+              <button
+                onClick={() => esMontadito
+                  ? setPers({ producto: prod, formato: 'pitufo', tipo: 'normal', quitados: [], anadidos: [], nota: '' })
+                  : agregarItem(mesaId, personaActiva.id, { productoId: prod.id, nombre: prod.nombre, precio: prod.precio, tipo: prod.tipo })}
+                style={btnStyle('#f97316', { padding: '0.5rem 0.9rem', whiteSpace: 'nowrap' })}
+              >
+                {esMontadito ? 'Añadir' : '+ Añadir'}
+              </button>
             </div>
-            <button onClick={() => setPers({ producto: prod, formato: 'pitufo', tipo: 'normal', quitados: [], anadidos: [], nota: '' })} style={btnStyle('#f97316', { padding: '0.5rem 0.9rem', whiteSpace: 'nowrap' })}>Añadir</button>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Bottom bar */}

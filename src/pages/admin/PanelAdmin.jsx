@@ -112,7 +112,9 @@ export default function PanelAdmin() {
                           <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>{prod.descripcion}</div>
                         </div>
                         <div style={{ fontWeight: 700, color: '#f97316', fontSize: '0.85rem', margin: '0 0.75rem', whiteSpace: 'nowrap', textAlign: 'right' }}>
-                          {(prod.precios?.pitufo ?? 0).toFixed(2)} €<br />{(prod.precios?.viena ?? 0).toFixed(2)} €
+                          {prod.precios
+                            ? <>{prod.precios.pitufo.toFixed(2)} €<br />{prod.precios.viena.toFixed(2)} €</>
+                            : <>{(prod.precio ?? 0).toFixed(2)} €</>}
                         </div>
                         <div style={{ display: 'flex', gap: '0.25rem' }}>
                           <button onClick={() => toggleDisponible(prod.id)} title={prod.disponible ? 'Marcar agotado' : 'Marcar disponible'} style={iconBtn}>{prod.disponible ? '🟢' : '⚪'}</button>
