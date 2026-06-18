@@ -45,18 +45,31 @@ export const useStore = create(persist((set, get) => ({
   pedidosBarra: [],
 
   // ── ACCIONES ───────────────────────────────────────────
-  ocuparMesa: (mesaId, numPersonas) => set(state => ({
-    mesas: state.mesas.map(m => m.id !== mesaId ? m : {
-      ...m,
-      estado: 'ocupada',
-      abiertaDesde: new Date().toISOString(),
-      personas: Array.from({ length: numPersonas }, (_, i) => ({
-        id: `p${i + 1}`,
-        nombre: `Persona ${i + 1}`,
-        items: [],
-      })),
-    }),
-  })),
+  // Un cliente se une a la mesa por su nombre. Si la mesa está libre, la
+  // abre (primer comensal). Si ya está ocupada, se suma como una persona más.
+  // Devuelve el id de la persona creada para que el dispositivo lo recuerde.
+  unirseAMesa: (mesaId, nombre) => {
+    const nuevoId = `p${Date.now()}`
+    set(state => ({
+      mesas: state.mesas.map(m => {
+        if (m.id !== mesaId) return m
+        const libre = m.estado === 'libre'
+        const personas = libre ? [] : m.personas
+        return {
+          ...m,
+          estado: 'ocupada',
+          abiertaDesde: libre ? new Date().toISOString() : m.abiertaDesde,
+          personas: [...personas, {
+            id: nuevoId,
+            nombre: (nombre || '').trim() || `Persona ${personas.length + 1}`,
+            items: [],
+            pagado: false,
+          }],
+        }
+      }),
+    }))
+    return nuevoId
+  },
 
   liberarMesa: (mesaId) => set(state => ({
     mesas: state.mesas.map(m => m.id !== mesaId ? m : {
@@ -71,6 +84,7 @@ export const useStore = create(persist((set, get) => ({
       ...m,
       personas: m.personas.map(p => p.id !== personaId ? p : {
         ...p,
+        pagado: false,
         items: (() => {
           const existe = p.items.find(i => i.productoId === producto.id && i.estado === 'pendiente')
           if (existe) return p.items.map(i =>
@@ -151,6 +165,29 @@ export const useStore = create(persist((set, get) => ({
   pedirCuenta: (mesaId) => set(state => ({
     mesas: state.mesas.map(m => m.id !== mesaId ? m : { ...m, estado: 'esperando_cobro' }),
   })),
+
+  // Pago por persona: marca a un comensal como pagado. Cuando TODOS los
+  // comensales de la mesa han pagado (la cuenta llega a 0), la sesión de la
+  // mesa se reinicia automáticamente y queda libre para el siguiente grupo.
+  pagarParte: (mesaId, personaId) => set(state => {
+    const mesas = state.mesas.map(m => m.id !== mesaId ? m : {
+      ...m,
+      personas: m.personas.map(p => p.id === personaId ? { ...p, pagado: true } : p),
+    })
+    const mesa = mesas.find(m => m.id === mesaId)
+    const todosPagados = mesa.personas.length > 0 && mesa.personas.every(p => p.pagado)
+
+    if (todosPagados) {
+      return {
+        mesas: mesas.map(m => m.id !== mesaId ? m : {
+          ...m, estado: 'libre', personas: [], abiertaDesde: null,
+        }),
+        pedidosCocina: state.pedidosCocina.filter(p => p.mesaId !== mesaId),
+        pedidosBarra: state.pedidosBarra.filter(p => p.mesaId !== mesaId),
+      }
+    }
+    return { mesas }
+  }),
 
   // ── GESTIÓN DE CARTA (admin) ───────────────────────────
   addProducto: (producto) => set(state => {
