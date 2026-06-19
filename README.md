@@ -75,6 +75,8 @@ npm run lint     # ESLint
 - [x] Notas al pedido, dividir platos y pago por persona con propina
 - [x] Backend (Supabase) para sincronización multi-dispositivo en tiempo real
 - [x] Despliegue público en GitHub Pages
+- [x] Pago online con Stripe (tarjeta/Bizum) vía Edge Function de Supabase
+- [ ] Webhook de Stripe para confirmar el pago de forma segura (en vez de en el retorno)
 - [ ] Sincronizar también la carta (admin) y bloquear escritura con RLS por rol
 - [ ] Autenticación de personal (roles)
 

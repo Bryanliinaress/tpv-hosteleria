@@ -14,6 +14,12 @@ const ROW_ID = 1
 let aplicandoRemoto = false
 let writeTimer = null
 
+// Se resuelve cuando la carga inicial del estado remoto ha terminado, para que
+// acciones que dependen del estado (p. ej. marcar pagado al volver de Stripe)
+// no se ejecuten antes y acaben sobrescritas.
+let resolverListo
+export const syncListo = new Promise(r => { resolverListo = r })
+
 const sliceEstado = (s) => ({
   mesas: s.mesas,
   pedidosCocina: s.pedidosCocina,
@@ -44,6 +50,7 @@ async function empujarEstado() {
 export async function initSync() {
   if (!supabase) {
     console.info('[sync] Supabase no configurado: modo local (localStorage).')
+    resolverListo()
     return
   }
 
@@ -58,6 +65,7 @@ export async function initSync() {
     // No había estado remoto: sembramos con el estado local actual
     empujarEstado()
   }
+  resolverListo() // la carga inicial ha terminado
 
   // 2) Realtime: aplica cambios de otros dispositivos
   supabase

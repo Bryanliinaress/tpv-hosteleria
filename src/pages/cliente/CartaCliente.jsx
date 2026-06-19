@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { useStore, owedPorPersona } from '../../store/useStore'
+import { iniciarPagoOnline, leerResultadoPago, limpiarUrlPago, pagoOnlineDisponible } from '../../lib/pagos'
+import { syncListo } from '../../lib/sync'
 
 export default function CartaCliente() {
   const { mesaId } = useParams()
@@ -27,6 +29,21 @@ export default function CartaCliente() {
   useEffect(() => {
     if (miPersonaId && mesa && !yo && mesa.estado === 'libre') setCerrada(true)
   }, [miPersonaId, mesa, yo])
+
+  // Al volver de Stripe Checkout: si el pago fue OK, marca esa parte como pagada.
+  // Espera a que Supabase cargue el estado para no ser sobrescrito por la sync.
+  useEffect(() => {
+    const r = leerResultadoPago()
+    if (!r.estado) return
+    syncListo.then(() => {
+      if (r.estado === 'ok' && r.mesaId === mesaId && r.personaId) {
+        pagarParte(mesaId, r.personaId, r.propina)
+        localStorage.removeItem(`tpv-pago-${mesaId}-${r.personaId}`)
+      }
+      limpiarUrlPago(mesaId)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   if (!mesa) return <div style={{ padding: '2rem', color: 'var(--color-muted)' }}>Mesa no encontrada</div>
 
@@ -117,6 +134,16 @@ export default function CartaCliente() {
     return lineas
   }
 
+  const pagarOnline = async (p) => {
+    const total = owed[p.id]
+    const propina = total * propinaPct / 100
+    try {
+      await iniciarPagoOnline({ mesaId, personaId: p.id, importe: total + propina, propina, descripcion: `Mesa ${mesa.numero} · ${p.nombre}` })
+    } catch (e) {
+      alert('No se pudo iniciar el pago: ' + e.message)
+    }
+  }
+
   // ── Vista CUENTA ──────────────────────────────────────
   if (vista === 'cuenta') {
     return (
@@ -193,8 +220,13 @@ export default function CartaCliente() {
                         </button>
                       ))}
                     </div>
+                    {pagoOnlineDisponible && (
+                      <button onClick={() => pagarOnline(p)} style={btnStyle('#635bff', { width: '100%', padding: '0.7rem', fontSize: '0.9rem', marginBottom: '0.4rem' })}>
+                        💳 Pagar {(totalP * (1 + propinaPct / 100)).toFixed(2)} € con tarjeta/Bizum
+                      </button>
+                    )}
                     <button onClick={() => { pagarParte(mesaId, p.id, totalP * propinaPct / 100); setPagando(null); setPropinaPct(0) }} style={btnStyle('#10b981', { width: '100%', padding: '0.6rem', fontSize: '0.85rem' })}>
-                      Pagar {(totalP * (1 + propinaPct / 100)).toFixed(2)} €{propinaPct > 0 ? ` (incl. ${(totalP * propinaPct / 100).toFixed(2)} € propina)` : ''}
+                      Marcar pagado (efectivo) · {(totalP * (1 + propinaPct / 100)).toFixed(2)} €
                     </button>
                     <button onClick={() => setPagando(null)} style={{ background: 'none', border: 'none', color: 'var(--color-muted)', cursor: 'pointer', fontSize: '0.75rem', marginTop: '0.4rem', width: '100%' }}>Cancelar</button>
                   </div>
