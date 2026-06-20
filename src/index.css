@@ -20,3 +20,18 @@ body {
   font-family: system-ui, -apple-system, sans-serif;
   min-height: 100vh;
 }
+
+/* Impresión: solo se imprime el ticket */
+@media print {
+  body * { visibility: hidden; }
+  .ticket-print, .ticket-print * { visibility: visible; }
+  .ticket-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+  .no-print { display: none !important; }
+}

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useStore, owedPorPersona } from '../../store/useStore'
+import Ticket from '../../components/Ticket'
 
 const ESTADO = {
   libre: { label: 'Libre', color: '#10b981', bg: '#052e16' },
@@ -10,6 +11,7 @@ const ESTADO = {
 export default function PanelCamarero() {
   const { mesas, carta, pedidosCocina, pedidosBarra, avisos, liberarMesa, confirmarPedido, atenderAviso, pagarParte } = useStore()
   const [mesaSeleccionada, setMesaSeleccionada] = useState(null)
+  const [ticket, setTicket] = useState(null) // { tipo, persona }
 
   const mesa = mesas.find(m => m.id === mesaSeleccionada)
   const owed = mesa && mesa.estado !== 'libre' ? owedPorPersona(mesa) : {}
@@ -126,11 +128,12 @@ export default function PanelCamarero() {
                       }
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
                         <span style={{ fontWeight: 700, fontSize: '0.875rem', color: '#f97316' }}>{aPagar.toFixed(2)} €</span>
-                        {!p.pagado && (
-                          <button onClick={() => pagarParte(mesa.id, p.id)} style={btn('#10b981', { fontSize: '0.78rem', padding: '0.35rem 0.75rem' })}>
-                            Cobrar
-                          </button>
-                        )}
+                        <div style={{ display: 'flex', gap: '0.4rem' }}>
+                          <button onClick={() => setTicket({ tipo: 'persona', persona: p })} title="Ticket de este cliente" style={btn('#1e293b', { fontSize: '0.78rem', padding: '0.35rem 0.6rem' })}>🧾</button>
+                          {!p.pagado && (
+                            <button onClick={() => pagarParte(mesa.id, p.id)} style={btn('#10b981', { fontSize: '0.78rem', padding: '0.35rem 0.75rem' })}>Cobrar</button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )
@@ -154,6 +157,12 @@ export default function PanelCamarero() {
                   </div>
                 )}
 
+                {/* Tickets de mesa */}
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button onClick={() => setTicket({ tipo: 'comanda' })} style={btn('#1e293b', { flex: 1, fontSize: '0.85rem' })}>🧾 Comanda</button>
+                  <button onClick={() => setTicket({ tipo: 'cuenta' })} style={btn('#1e293b', { flex: 1, fontSize: '0.85rem' })}>💶 Cuenta</button>
+                </div>
+
                 {/* Acciones */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   {mesa.estado === 'esperando_cobro' && (
@@ -170,6 +179,10 @@ export default function PanelCamarero() {
           </div>
         )}
       </div>
+
+      {ticket && mesa && (
+        <Ticket tipo={ticket.tipo} mesa={mesa} persona={ticket.persona} onClose={() => setTicket(null)} />
+      )}
     </div>
   )
 }
