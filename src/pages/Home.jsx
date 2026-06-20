@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 const roles = [
   { label: 'Mesa 1 (cliente demo)', path: '/mesa/mesa-1', emoji: '📱', color: '#3b82f6', desc: 'Vista del cliente con QR' },
   { label: 'Panel Camarero', path: '/camarero', emoji: '👨‍🍳', color: '#f59e0b', desc: 'Gestión de mesas y cobros' },
+  { label: 'PDA Camarero', path: '/pda', emoji: '📟', color: '#06b6d4', desc: 'Móvil de mano: avisos y mesas' },
   { label: 'Pantalla Cocina', path: '/cocina', emoji: '🍳', color: '#10b981', desc: 'KDS — pedidos de comida' },
   { label: 'Pantalla Barra', path: '/barra', emoji: '🍺', color: '#f43f5e', desc: 'KDS — pedidos de bebida' },
   { label: 'Panel Admin', path: '/admin', emoji: '🛠', color: '#8b5cf6', desc: 'Carta, mesas y estadísticas' },
