@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useStore } from '../../store/useStore'
+import { useStore, owedPorPersona } from '../../store/useStore'
 
 const ESTADO = {
   libre: { label: 'Libre', color: '#10b981', bg: '#052e16' },
@@ -8,10 +8,11 @@ const ESTADO = {
 }
 
 export default function PanelCamarero() {
-  const { mesas, carta, pedidosCocina, pedidosBarra, avisos, liberarMesa, confirmarPedido, atenderAviso } = useStore()
+  const { mesas, carta, pedidosCocina, pedidosBarra, avisos, liberarMesa, confirmarPedido, atenderAviso, pagarParte } = useStore()
   const [mesaSeleccionada, setMesaSeleccionada] = useState(null)
 
   const mesa = mesas.find(m => m.id === mesaSeleccionada)
+  const owed = mesa && mesa.estado !== 'libre' ? owedPorPersona(mesa) : {}
 
   const totalCocina = pedidosCocina.filter(p => p.estado === 'listo').length
   const totalBarra = pedidosBarra.filter(p => p.estado === 'listo').length
@@ -104,10 +105,13 @@ export default function PanelCamarero() {
               <>
                 {/* Pedidos por persona */}
                 {mesa.personas.map(p => {
-                  const total = p.items.reduce((s, i) => s + i.precio * i.cantidad, 0)
+                  const aPagar = owed[p.id] ?? p.items.reduce((s, i) => s + i.precio * i.cantidad, 0)
                   return (
-                    <div key={p.id} style={{ background: '#0f172a', borderRadius: '0.625rem', padding: '0.875rem' }}>
-                      <div style={{ fontWeight: 700, color: '#f97316', marginBottom: '0.5rem', fontSize: '0.9rem' }}>{p.nombre}</div>
+                    <div key={p.id} style={{ background: '#0f172a', borderRadius: '0.625rem', padding: '0.875rem', border: p.pagado ? '1px solid #10b981' : '1px solid transparent' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                        <span style={{ fontWeight: 700, color: '#f97316', fontSize: '0.9rem' }}>{p.nombre}</span>
+                        {p.pagado && <span style={{ fontSize: '0.7rem', background: '#052e16', color: '#10b981', borderRadius: '9999px', padding: '0.15rem 0.6rem', fontWeight: 700 }}>✓ Pagado{p.propina > 0 ? ` · +${p.propina.toFixed(2)} €` : ''}</span>}
+                      </div>
                       {p.items.length === 0
                         ? <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>Sin pedidos aún</p>
                         : p.items.map((item, idx) => (
@@ -120,9 +124,13 @@ export default function PanelCamarero() {
                           </div>
                         ))
                       }
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, marginTop: '0.375rem', fontSize: '0.875rem' }}>
-                        <span>Subtotal</span>
-                        <span style={{ color: '#f97316' }}>{total.toFixed(2)} €</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
+                        <span style={{ fontWeight: 700, fontSize: '0.875rem', color: '#f97316' }}>{aPagar.toFixed(2)} €</span>
+                        {!p.pagado && (
+                          <button onClick={() => pagarParte(mesa.id, p.id)} style={btn('#10b981', { fontSize: '0.78rem', padding: '0.35rem 0.75rem' })}>
+                            Cobrar
+                          </button>
+                        )}
                       </div>
                     </div>
                   )

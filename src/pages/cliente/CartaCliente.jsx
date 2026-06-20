@@ -15,6 +15,7 @@ export default function CartaCliente() {
   const [pidiendoPara, setPidiendoPara] = useState(null) // personaId; null = yo
   const [vista, setVista] = useState('carta') // carta | pedido | cuenta
   const [cerrada, setCerrada] = useState(false)
+  const [yoVisto, setYoVisto] = useState(false) // ¿hemos estado activos en la mesa?
   const [pagando, setPagando] = useState(null)
   const [propinaPct, setPropinaPct] = useState(0)
   const [dividiendo, setDividiendo] = useState(null)
@@ -26,9 +27,13 @@ export default function CartaCliente() {
 
   const yo = mesa?.personas.find(p => p.id === miPersonaId)
 
+  useEffect(() => { if (yo) setYoVisto(true) }, [yo])
+
+  // Pantalla de "cuenta pagada": solo si estuvimos activos y la mesa se reinició
+  // (evita el falso positivo del estado por defecto antes de cargar Supabase).
   useEffect(() => {
-    if (miPersonaId && mesa && !yo && mesa.estado === 'libre') setCerrada(true)
-  }, [miPersonaId, mesa, yo])
+    if (yoVisto && miPersonaId && mesa && !yo && mesa.estado === 'libre') setCerrada(true)
+  }, [yoVisto, miPersonaId, mesa, yo])
 
   // Al volver de Stripe Checkout: si el pago fue OK, marca esa parte como pagada.
   // Espera a que Supabase cargue el estado para no ser sobrescrito por la sync.
@@ -204,9 +209,9 @@ export default function CartaCliente() {
               <div style={{ borderTop: '2px solid var(--color-border)', marginTop: '0.5rem', paddingTop: '0.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontWeight: 700 }}>{totalP.toFixed(2)} €</span>
-                  {!p.pagado && pagando !== p.id && (
-                    <button onClick={() => { setPagando(p.id); setPropinaPct(0) }} style={btnStyle('#10b981', { padding: '0.4rem 0.9rem', fontSize: '0.8rem' })}>
-                      {esYo ? 'Pagar mi parte' : `Pagar parte de ${p.nombre}`}
+                  {!p.pagado && pagoOnlineDisponible && pagando !== p.id && (
+                    <button onClick={() => { setPagando(p.id); setPropinaPct(0) }} style={btnStyle('#635bff', { padding: '0.4rem 0.9rem', fontSize: '0.8rem' })}>
+                      💳 {esYo ? 'Pagar mi parte' : `Pagar parte de ${p.nombre}`}
                     </button>
                   )}
                 </div>
@@ -220,13 +225,8 @@ export default function CartaCliente() {
                         </button>
                       ))}
                     </div>
-                    {pagoOnlineDisponible && (
-                      <button onClick={() => pagarOnline(p)} style={btnStyle('#635bff', { width: '100%', padding: '0.7rem', fontSize: '0.9rem', marginBottom: '0.4rem' })}>
-                        💳 Pagar {(totalP * (1 + propinaPct / 100)).toFixed(2)} € con tarjeta/Bizum
-                      </button>
-                    )}
-                    <button onClick={() => { pagarParte(mesaId, p.id, totalP * propinaPct / 100); setPagando(null); setPropinaPct(0) }} style={btnStyle('#10b981', { width: '100%', padding: '0.6rem', fontSize: '0.85rem' })}>
-                      Marcar pagado (efectivo) · {(totalP * (1 + propinaPct / 100)).toFixed(2)} €
+                    <button onClick={() => pagarOnline(p)} style={btnStyle('#635bff', { width: '100%', padding: '0.7rem', fontSize: '0.9rem' })}>
+                      💳 Pagar {(totalP * (1 + propinaPct / 100)).toFixed(2)} € con tarjeta/Bizum
                     </button>
                     <button onClick={() => setPagando(null)} style={{ background: 'none', border: 'none', color: 'var(--color-muted)', cursor: 'pointer', fontSize: '0.75rem', marginTop: '0.4rem', width: '100%' }}>Cancelar</button>
                   </div>
