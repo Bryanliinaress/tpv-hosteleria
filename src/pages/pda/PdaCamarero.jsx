@@ -24,7 +24,7 @@ function haceCuanto(iso) {
 }
 
 export default function PdaCamarero() {
-  const { mesas, pedidosCocina, pedidosBarra, avisos, atenderAviso, pagarParte, liberarMesa, unirseAMesa, servirMesa } = useStore()
+  const { carta, mesas, pedidosCocina, pedidosBarra, avisos, atenderAviso, pagarParte, liberarMesa, unirseAMesa, servirMesa, anularItem, toggleDisponible } = useStore()
   const [sonido, setSonido] = useState(true)
   const prevIds = useRef(null)
   const [vista, setVista] = useState('avisos') // avisos | mesas
@@ -97,9 +97,10 @@ export default function PdaCamarero() {
                 </div>
                 {p.items.length === 0
                   ? <div style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>Sin pedidos</div>
-                  : p.items.map((it, i) => (
-                    <div key={i} style={{ fontSize: '0.82rem', color: 'var(--color-muted)', padding: '0.1rem 0' }}>
-                      {it.cantidad}× {it.nombre}{it.estado === 'pendiente' && ' ●'}
+                  : p.items.map(it => (
+                    <div key={it.uid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.82rem', color: 'var(--color-muted)', padding: '0.1rem 0' }}>
+                      <span>{it.cantidad}× {it.nombre}{it.estado === 'pendiente' && ' ●'}</span>
+                      <button onClick={() => { if (confirm(`¿Anular ${it.cantidad}× ${it.nombre}?`)) anularItem(mesa.id, p.id, it.uid) }} title="Anular" style={{ background: 'none', border: 'none', color: '#f43f5e', cursor: 'pointer', fontSize: '0.9rem', padding: '0 0.25rem' }}>✕</button>
                     </div>
                   ))}
                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem' }}>
@@ -193,9 +194,30 @@ export default function PdaCamarero() {
         </div>
       )}
 
+      {vista === 'carta' && (
+        <div style={{ padding: '0.875rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <p style={{ fontSize: '0.78rem', color: 'var(--color-muted)' }}>Marca un producto como agotado y desaparece al instante de la carta del cliente.</p>
+          {carta.categorias.map(cat => (
+            <div key={cat.id}>
+              <div style={{ fontWeight: 700, marginBottom: '0.5rem', color: 'var(--color-muted)' }}>{cat.emoji} {cat.nombre}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                {carta.productos.filter(p => p.categoria === cat.id).map(prod => (
+                  <div key={prod.id} style={{ ...card, display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: prod.disponible ? 1 : 0.55 }}>
+                    <span style={{ fontSize: '0.88rem', fontWeight: 600 }}>{prod.nombre}</span>
+                    <button onClick={() => toggleDisponible(prod.id)} style={btn(prod.disponible ? '#10b981' : '#7f1d1d', { fontSize: '0.78rem', padding: '0.3rem 0.7rem' })}>
+                      {prod.disponible ? 'Disponible' : '⛔ Agotado'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Navegación inferior */}
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, display: 'flex', background: 'var(--color-surface)', borderTop: '1px solid var(--color-border)', maxWidth: '520px', margin: '0 auto' }}>
-        {[{ id: 'avisos', label: 'Avisos', emoji: '🔔', n: eventos.length }, { id: 'mesas', label: 'Mesas', emoji: '🍽', n: ocupadas.length }].map(t => (
+        {[{ id: 'avisos', label: 'Avisos', emoji: '🔔', n: eventos.length }, { id: 'mesas', label: 'Mesas', emoji: '🍽', n: ocupadas.length }, { id: 'carta', label: 'Carta', emoji: '📋', n: carta.productos.filter(p => !p.disponible).length }].map(t => (
           <button key={t.id} onClick={() => setVista(t.id)} style={{ flex: 1, background: 'none', border: 'none', padding: '0.75rem', cursor: 'pointer', color: vista === t.id ? '#f97316' : 'var(--color-muted)', fontWeight: vista === t.id ? 700 : 400, fontSize: '0.8rem' }}>
             <div style={{ fontSize: '1.3rem', position: 'relative', display: 'inline-block' }}>
               {t.emoji}

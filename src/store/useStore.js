@@ -189,6 +189,19 @@ export const useStore = create(persist((set, get) => ({
     }),
   })),
 
+  // Anula una línea (pendiente o ya enviada) y retira su comanda de cocina/barra.
+  anularItem: (mesaId, personaId, uid) => set(state => {
+    const entryId = `${mesaId}-${personaId}-${uid}`
+    return {
+      mesas: state.mesas.map(m => m.id !== mesaId ? m : {
+        ...m,
+        personas: m.personas.map(p => p.id !== personaId ? p : { ...p, items: p.items.filter(i => i.uid !== uid) }),
+      }),
+      pedidosCocina: state.pedidosCocina.filter(p => p.id !== entryId),
+      pedidosBarra: state.pedidosBarra.filter(p => p.id !== entryId),
+    }
+  }),
+
   // Cambia la cantidad de una línea pendiente (delta +1/-1). Si llega a 0, se elimina.
   cambiarCantidad: (mesaId, personaId, uid, delta) => set(state => ({
     mesas: state.mesas.map(m => m.id !== mesaId ? m : {
