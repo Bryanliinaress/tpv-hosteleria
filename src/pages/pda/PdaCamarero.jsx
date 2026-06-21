@@ -15,6 +15,12 @@ function alerta() {
   navigator.vibrate?.([120, 60, 120])
 }
 
+const ZONAS = [
+  { id: 'terraza', nombre: '🌳 Terraza', test: n => n <= 4 },
+  { id: 'interior', nombre: '🪟 Interior', test: n => n >= 5 && n <= 8 },
+  { id: 'salon', nombre: '🍽 Salón', test: n => n >= 9 },
+]
+
 function haceCuanto(iso) {
   if (!iso) return ''
   const min = Math.floor((Date.now() - new Date(iso)) / 60000)
@@ -169,28 +175,35 @@ export default function PdaCamarero() {
       )}
 
       {vista === 'mesas' && (
-        <div style={{ padding: '0.875rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.625rem' }}>
-          {mesas.map(m => {
-            const libre = m.estado === 'libre'
-            const total = m.personas.reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0)
-            const col = libre ? '#10b981' : m.estado === 'esperando_cobro' ? '#f43f5e' : '#f59e0b'
-            const etiqueta = libre ? 'Libre' : m.estado === 'esperando_cobro' ? 'Pide cuenta' : 'Ocupada'
-            return (
-              <button key={m.id} onClick={() => setMesaId(m.id)} style={{ ...card, textAlign: 'left', cursor: 'pointer', borderColor: col + '66', background: libre ? 'var(--color-surface)' : col + '14' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontWeight: 800, fontSize: '1.1rem' }}>M{m.numero}</span>
-                  <span style={{ fontSize: '0.66rem', color: col, fontWeight: 700, background: col + '22', borderRadius: '9999px', padding: '0.1rem 0.5rem' }}>{etiqueta}</span>
-                </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{m.capacidad} plazas</div>
-                {libre
-                  ? <div style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '0.25rem', fontWeight: 600 }}>Toca para abrir ▶</div>
-                  : <>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{m.personas.length} comensales</div>
-                      <div style={{ fontWeight: 700, color: '#f97316', marginTop: '0.25rem' }}>{total.toFixed(2)} €</div>
-                    </>}
-              </button>
-            )
-          })}
+        <div style={{ padding: '0.875rem', display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+          {ZONAS.map(z => (
+            <div key={z.id}>
+              <div style={{ fontWeight: 700, color: 'var(--color-muted)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>{z.nombre}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.625rem' }}>
+                {mesas.filter(m => z.test(m.numero)).map(m => {
+                  const libre = m.estado === 'libre'
+                  const total = m.personas.reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0)
+                  const col = libre ? '#10b981' : m.estado === 'esperando_cobro' ? '#f43f5e' : '#f59e0b'
+                  const etiqueta = libre ? 'Libre' : m.estado === 'esperando_cobro' ? 'Pide cuenta' : 'Ocupada'
+                  return (
+                    <button key={m.id} onClick={() => setMesaId(m.id)} style={{ ...card, textAlign: 'left', cursor: 'pointer', borderColor: col + '66', background: libre ? 'var(--color-surface)' : col + '14' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontWeight: 800, fontSize: '1.1rem' }}>M{m.numero}</span>
+                        <span style={{ fontSize: '0.66rem', color: col, fontWeight: 700, background: col + '22', borderRadius: '9999px', padding: '0.1rem 0.5rem' }}>{etiqueta}</span>
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{m.capacidad} plazas</div>
+                      {libre
+                        ? <div style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '0.25rem', fontWeight: 600 }}>Toca para abrir ▶</div>
+                        : <>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{m.personas.length} comensales · ⏱ {haceCuanto(m.abiertaDesde)}</div>
+                            <div style={{ fontWeight: 700, color: '#f97316', marginTop: '0.25rem' }}>{total.toFixed(2)} €</div>
+                          </>}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
