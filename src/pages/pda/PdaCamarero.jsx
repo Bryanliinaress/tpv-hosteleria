@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useStore, owedPorPersona } from '../../store/useStore'
 import Ticket from '../../components/Ticket'
 import PedirPda from './PedirPda'
+import CobroMesa from './CobroMesa'
 
 // Pitido + vibración para avisar de eventos nuevos
 function alerta() {
@@ -37,6 +38,7 @@ export default function PdaCamarero() {
   const [mesaId, setMesaId] = useState(null)
   const [ticket, setTicket] = useState(null)
   const [pidiendo, setPidiendo] = useState(false)
+  const [cobrando, setCobrando] = useState(false)
 
   const mesa = mesas.find(m => m.id === mesaId)
   const ocupadas = mesas.filter(m => m.estado !== 'libre')
@@ -120,6 +122,7 @@ export default function PdaCamarero() {
           {mesa.estado !== 'libre' && (
             <>
               <button onClick={() => setPidiendo(true)} style={btn('#f97316', { width: '100%', padding: '0.75rem', fontSize: '0.95rem' })}>➕ Añadir pedido</button>
+              <button onClick={() => setCobrando(true)} style={btn('#10b981', { width: '100%', padding: '0.75rem', fontSize: '0.95rem' })}>💶 Cobrar mesa</button>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button onClick={() => setTicket({ tipo: 'comanda' })} style={btn('#1e293b', { flex: 1 })}>🧾 Comanda</button>
                 <button onClick={() => setTicket({ tipo: 'cuenta' })} style={btn('#1e293b', { flex: 1 })}>💶 Cuenta</button>
@@ -131,6 +134,7 @@ export default function PdaCamarero() {
 
         {ticket && <Ticket tipo={ticket.tipo} mesa={mesa} persona={ticket.persona} onClose={() => setTicket(null)} />}
         {pidiendo && <PedirPda mesaId={mesa.id} onClose={() => setPidiendo(false)} />}
+        {cobrando && <CobroMesa mesa={mesa} onCerrar={() => setCobrando(false)} onCobrar={() => { liberarMesa(mesa.id); setCobrando(false); setMesaId(null) }} />}
       </div>
     )
   }
