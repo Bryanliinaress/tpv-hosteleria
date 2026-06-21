@@ -1,7 +1,19 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useStore, owedPorPersona } from '../../store/useStore'
 import Ticket from '../../components/Ticket'
 import PedirPda from './PedirPda'
+
+// Pitido + vibración para avisar de eventos nuevos
+function alerta() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const o = ctx.createOscillator(), g = ctx.createGain()
+    o.connect(g); g.connect(ctx.destination)
+    o.frequency.value = 880; g.gain.value = 0.08
+    o.start(); o.stop(ctx.currentTime + 0.18)
+  } catch { /* sin audio */ }
+  navigator.vibrate?.([120, 60, 120])
+}
 
 function haceCuanto(iso) {
   if (!iso) return ''
@@ -12,7 +24,9 @@ function haceCuanto(iso) {
 }
 
 export default function PdaCamarero() {
-  const { mesas, pedidosCocina, pedidosBarra, avisos, atenderAviso, pagarParte, liberarMesa, unirseAMesa } = useStore()
+  const { mesas, pedidosCocina, pedidosBarra, avisos, atenderAviso, pagarParte, liberarMesa, unirseAMesa, servirMesa } = useStore()
+  const [sonido, setSonido] = useState(true)
+  const prevIds = useRef(null)
   const [vista, setVista] = useState('avisos') // avisos | mesas
   const [mesaId, setMesaId] = useState(null)
   const [ticket, setTicket] = useState(null)
@@ -33,6 +47,17 @@ export default function PdaCamarero() {
   })
   mesas.filter(m => m.estado === 'esperando_cobro').forEach(m => eventos.push({ id: 'cuenta-' + m.id, prio: 2, tipo: 'cuenta', mesaId: m.id, mesaNumero: m.numero, texto: 'Pide la cuenta', hora: m.abiertaDesde }))
   eventos.sort((a, b) => a.prio - b.prio || new Date(a.hora) - new Date(b.hora))
+
+  // Aviso sonoro al entrar un evento nuevo
+  const idsActuales = eventos.map(e => e.id).sort().join('|')
+  useEffect(() => {
+    if (prevIds.current !== null && sonido) {
+      const antes = new Set(prevIds.current.split('|').filter(Boolean))
+      if (idsActuales.split('|').filter(Boolean).some(id => !antes.has(id))) alerta()
+    }
+    prevIds.current = idsActuales
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idsActuales])
 
   const EV = {
     llamada: { color: '#f59e0b', bg: '#2d1900', emoji: '🔔' },
@@ -108,7 +133,8 @@ export default function PdaCamarero() {
     <div style={{ minHeight: '100vh', maxWidth: '520px', margin: '0 auto', paddingBottom: '4.5rem' }}>
       <div style={cab}>
         <div style={{ fontWeight: 800, fontSize: '1.15rem' }}>📟 PDA Camarero</div>
-        <span style={{ marginLeft: 'auto', fontSize: '0.8rem', color: 'var(--color-muted)' }}>{ocupadas.length}/{mesas.length} mesas</span>
+        <button onClick={() => setSonido(s => !s)} title="Aviso sonoro" style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>{sonido ? '🔔' : '🔕'}</button>
+        <span style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>{ocupadas.length}/{mesas.length}</span>
       </div>
 
       {vista === 'avisos' && (
@@ -131,6 +157,9 @@ export default function PdaCamarero() {
                 </div>
                 {ev.tipo === 'llamada' && (
                   <button onClick={e2 => { e2.stopPropagation(); atenderAviso(ev.avisoId) }} style={btn('#10b981', { padding: '0.45rem 0.8rem' })}>✓ Atender</button>
+                )}
+                {ev.tipo === 'listo' && (
+                  <button onClick={e2 => { e2.stopPropagation(); servirMesa(ev.mesaId) }} style={btn('#10b981', { padding: '0.45rem 0.8rem' })}>✓ Servir</button>
                 )}
               </div>
             )

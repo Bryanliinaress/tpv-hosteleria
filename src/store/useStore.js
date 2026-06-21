@@ -280,6 +280,13 @@ export const useStore = create(persist((set, get) => ({
     avisos: state.avisos.filter(a => a.id !== avisoId),
   })),
 
+  // Marca como servidos (entregados) los platos listos de una mesa: salen de
+  // la cola de cocina/barra y del feed de avisos.
+  servirMesa: (mesaId) => set(state => ({
+    pedidosCocina: state.pedidosCocina.filter(p => !(p.mesaId === mesaId && p.estado === 'listo')),
+    pedidosBarra: state.pedidosBarra.filter(p => !(p.mesaId === mesaId && p.estado === 'listo')),
+  })),
+
   // Pago por persona: marca a un comensal como pagado. Cuando TODOS han pagado
   // (la cuenta llega a 0), la mesa se reinicia automáticamente.
   pagarParte: (mesaId, personaId, propina = 0) => set(state => {
