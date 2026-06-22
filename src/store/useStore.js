@@ -163,6 +163,11 @@ export const useStore = create(persist((set, get) => ({
     }
   }),
 
+  // Asigna el camarero que atiende la mesa (solo si aún no tiene uno).
+  asignarCamarero: (mesaId, nombre) => set(state => ({
+    mesas: state.mesas.map(m => (m.id === mesaId && !m.camarero && nombre) ? { ...m, camarero: nombre } : m),
+  })),
+
   // Mueve/junta una mesa en otra: las personas de 'origen' pasan a 'destino'
   // (si destino está libre, es un "mover"; si está ocupada, "juntar"), y origen
   // queda libre. Reetiqueta las comandas de cocina/barra.
@@ -473,7 +478,7 @@ function snapshotMesa(mesa) {
   if (!mesa || !mesa.personas?.some(p => p.items.length)) return null
   const total = mesa.personas.reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0)
   const propina = mesa.personas.reduce((s, p) => s + (p.propina || 0), 0)
-  return { id: `t${Date.now()}-${mesa.numero}`, mesaNumero: mesa.numero, cerradaEn: new Date().toISOString(), total, propina, personas: mesa.personas }
+  return { id: `t${Date.now()}-${mesa.numero}`, mesaNumero: mesa.numero, cerradaEn: new Date().toISOString(), total, propina, personas: mesa.personas, camarero: mesa.camarero || null }
 }
 
 // Lo que debe cada comensal, repartiendo a partes iguales los platos compartidos.

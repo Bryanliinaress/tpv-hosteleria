@@ -31,8 +31,11 @@ function haceCuanto(iso) {
 }
 
 export default function PdaCamarero() {
-  const { carta, mesas, pedidosCocina, pedidosBarra, avisos, atenderAviso, pagarParte, liberarMesa, unirseAMesa, servirMesa, anularItem, toggleDisponible, fusionarMesa, transferirComensal } = useStore()
+  const { carta, mesas, pedidosCocina, pedidosBarra, avisos, historial, atenderAviso, pagarParte, liberarMesa, unirseAMesa, servirMesa, anularItem, toggleDisponible, fusionarMesa, transferirComensal, asignarCamarero } = useStore()
   const [mover, setMover] = useState(null) // { tipo:'mesa'|'comensal', personaId? }
+  const [camarero, setCamarero] = useState(() => localStorage.getItem('tpv-pda-camarero') || '')
+  const [nombreLogin, setNombreLogin] = useState('')
+  const [soloMias, setSoloMias] = useState(false)
   const [sonido, setSonido] = useState(true)
   const prevIds = useRef(null)
   const [vista, setVista] = useState('avisos') // avisos | mesas
@@ -43,6 +46,12 @@ export default function PdaCamarero() {
 
   const mesa = mesas.find(m => m.id === mesaId)
   const ocupadas = mesas.filter(m => m.estado !== 'libre')
+
+  // Resumen del turno de este camarero (tickets de hoy atendidos por él)
+  const hoyStr = new Date().toDateString()
+  const misTickets = historial.filter(r => r.camarero === camarero && new Date(r.cerradaEn).toDateString() === hoyStr)
+  const ventasTurno = misTickets.reduce((s, r) => s + r.total, 0)
+  const propinasTurno = misTickets.reduce((s, r) => s + (r.propina || 0), 0)
 
   // ── Feed de eventos ───────────────────────────────────
   const eventos = []
@@ -68,6 +77,20 @@ export default function PdaCamarero() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idsActuales])
 
+  // ── Login del camarero ────────────────────────────────
+  if (!camarero) {
+    const entrar = () => { const n = nombreLogin.trim(); if (!n) return; localStorage.setItem('tpv-pda-camarero', n); setCamarero(n) }
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', gap: '1.25rem', maxWidth: '520px', margin: '0 auto' }}>
+        <div style={{ fontSize: '3.5rem' }}>📟</div>
+        <h1 style={{ fontWeight: 800, fontSize: '1.5rem' }}>PDA Camarero</h1>
+        <p style={{ color: 'var(--color-muted)', textAlign: 'center' }}>Identifícate para empezar tu turno.</p>
+        <input value={nombreLogin} onChange={e => setNombreLogin(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') entrar() }} placeholder="Tu nombre" autoFocus style={{ background: '#0f172a', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.8rem 1rem', color: 'var(--color-text)', width: '100%', maxWidth: '300px', textAlign: 'center', fontSize: '1rem' }} />
+        <button onClick={entrar} disabled={!nombreLogin.trim()} style={btn(nombreLogin.trim() ? '#f97316' : '#334155', { width: '100%', maxWidth: '300px', padding: '0.875rem', fontSize: '1rem', cursor: nombreLogin.trim() ? 'pointer' : 'not-allowed' })}>Entrar</button>
+      </div>
+    )
+  }
+
   const EV = {
     llamada: { color: '#f59e0b', bg: '#2d1900', emoji: '🔔' },
     listo: { color: '#10b981', bg: '#052e16', emoji: '✅' },
@@ -91,7 +114,7 @@ export default function PdaCamarero() {
             <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--color-muted)' }}>
               <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>🪑</div>
               <p style={{ marginBottom: '1.25rem' }}>Mesa libre · {mesa.capacidad} plazas</p>
-              <button onClick={() => { const n = prompt('Nombre del primer comensal (opcional):') ?? ''; unirseAMesa(mesa.id, n) }} style={btn('#10b981', { padding: '0.8rem 1.5rem', fontSize: '0.95rem' })}>▶ Abrir mesa</button>
+              <button onClick={() => { const n = prompt('Nombre del primer comensal (opcional):') ?? ''; unirseAMesa(mesa.id, n); asignarCamarero(mesa.id, camarero) }} style={btn('#10b981', { padding: '0.8rem 1.5rem', fontSize: '0.95rem' })}>▶ Abrir mesa</button>
             </div>
           )}
           {mesa.personas.map(p => {
@@ -123,8 +146,8 @@ export default function PdaCamarero() {
 
           {mesa.estado !== 'libre' && (
             <>
-              <button onClick={() => setPidiendo(true)} style={btn('#f97316', { width: '100%', padding: '0.75rem', fontSize: '0.95rem' })}>➕ Añadir pedido</button>
-              <button onClick={() => setCobrando(true)} style={btn('#10b981', { width: '100%', padding: '0.75rem', fontSize: '0.95rem' })}>💶 Cobrar mesa</button>
+              <button onClick={() => { asignarCamarero(mesa.id, camarero); setPidiendo(true) }} style={btn('#f97316', { width: '100%', padding: '0.75rem', fontSize: '0.95rem' })}>➕ Añadir pedido</button>
+              <button onClick={() => { asignarCamarero(mesa.id, camarero); setCobrando(true) }} style={btn('#10b981', { width: '100%', padding: '0.75rem', fontSize: '0.95rem' })}>💶 Cobrar mesa</button>
               <button onClick={() => setMover({ tipo: 'mesa' })} style={btn('#1e293b', { width: '100%', fontSize: '0.9rem' })}>🔀 Mover / Juntar mesa</button>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button onClick={() => setTicket({ tipo: 'comanda' })} style={btn('#1e293b', { flex: 1 })}>🧾 Comanda</button>
@@ -172,9 +195,12 @@ export default function PdaCamarero() {
   return (
     <div style={{ minHeight: '100vh', maxWidth: '520px', margin: '0 auto', paddingBottom: '4.5rem' }}>
       <div style={cab}>
-        <div style={{ fontWeight: 800, fontSize: '1.15rem' }}>📟 PDA Camarero</div>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: '1.05rem' }}>📟 {camarero}</div>
+          <div style={{ fontSize: '0.68rem', color: 'var(--color-muted)' }}>{ocupadas.length}/{mesas.length} mesas ocupadas</div>
+        </div>
         <button onClick={() => setSonido(s => !s)} title="Aviso sonoro" style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>{sonido ? '🔔' : '🔕'}</button>
-        <span style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>{ocupadas.length}/{mesas.length}</span>
+        <button onClick={() => { localStorage.removeItem('tpv-pda-camarero'); setCamarero('') }} title="Cerrar sesión" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem', color: 'var(--color-muted)' }}>⎋</button>
       </div>
 
       {vista === 'avisos' && (
@@ -209,11 +235,18 @@ export default function PdaCamarero() {
 
       {vista === 'mesas' && (
         <div style={{ padding: '0.875rem', display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
-          {ZONAS.map(z => (
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button onClick={() => setSoloMias(false)} style={btn(!soloMias ? '#f97316' : '#1e293b', { flex: 1, fontSize: '0.82rem' })}>Todas</button>
+            <button onClick={() => setSoloMias(true)} style={btn(soloMias ? '#f97316' : '#1e293b', { flex: 1, fontSize: '0.82rem' })}>👤 Mis mesas</button>
+          </div>
+          {ZONAS.map(z => {
+            const ms = mesas.filter(m => z.test(m.numero) && (!soloMias || m.camarero === camarero))
+            if (ms.length === 0) return null
+            return (
             <div key={z.id}>
               <div style={{ fontWeight: 700, color: 'var(--color-muted)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>{z.nombre}</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.625rem' }}>
-                {mesas.filter(m => z.test(m.numero)).map(m => {
+                {ms.map(m => {
                   const libre = m.estado === 'libre'
                   const total = m.personas.reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0)
                   const col = libre ? '#10b981' : m.estado === 'esperando_cobro' ? '#f43f5e' : '#f59e0b'
@@ -236,7 +269,8 @@ export default function PdaCamarero() {
                 })}
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
@@ -261,9 +295,30 @@ export default function PdaCamarero() {
         </div>
       )}
 
+      {vista === 'turno' && (
+        <div style={{ padding: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+          <div style={{ ...card, textAlign: 'center', padding: '1.25rem' }}>
+            <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>Tu turno · {camarero}</div>
+            <div style={{ fontWeight: 800, fontSize: '2rem', color: '#f97316', marginTop: '0.25rem' }}>{ventasTurno.toFixed(2)} €</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>facturado hoy</div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.625rem' }}>
+            <div style={{ ...card, textAlign: 'center' }}>
+              <div style={{ fontWeight: 800, fontSize: '1.4rem', color: '#3b82f6' }}>{misTickets.length}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>mesas cobradas</div>
+            </div>
+            <div style={{ ...card, textAlign: 'center' }}>
+              <div style={{ fontWeight: 800, fontSize: '1.4rem', color: '#10b981' }}>{propinasTurno.toFixed(2)} €</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>en propinas</div>
+            </div>
+          </div>
+          <p style={{ fontSize: '0.78rem', color: 'var(--color-muted)' }}>Aquí se cuentan las mesas que has abierto/cobrado tú hoy. Tus mesas activas: <strong>{mesas.filter(m => m.camarero === camarero && m.estado !== 'libre').length}</strong>.</p>
+        </div>
+      )}
+
       {/* Navegación inferior */}
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, display: 'flex', background: 'var(--color-surface)', borderTop: '1px solid var(--color-border)', maxWidth: '520px', margin: '0 auto' }}>
-        {[{ id: 'avisos', label: 'Avisos', emoji: '🔔', n: eventos.length }, { id: 'mesas', label: 'Mesas', emoji: '🍽', n: ocupadas.length }, { id: 'carta', label: 'Carta', emoji: '📋', n: carta.productos.filter(p => !p.disponible).length }].map(t => (
+        {[{ id: 'avisos', label: 'Avisos', emoji: '🔔', n: eventos.length }, { id: 'mesas', label: 'Mesas', emoji: '🍽', n: ocupadas.length }, { id: 'carta', label: 'Carta', emoji: '📋', n: carta.productos.filter(p => !p.disponible).length }, { id: 'turno', label: 'Turno', emoji: '👤', n: 0 }].map(t => (
           <button key={t.id} onClick={() => setVista(t.id)} style={{ flex: 1, background: 'none', border: 'none', padding: '0.75rem', cursor: 'pointer', color: vista === t.id ? '#f97316' : 'var(--color-muted)', fontWeight: vista === t.id ? 700 : 400, fontSize: '0.8rem' }}>
             <div style={{ fontSize: '1.3rem', position: 'relative', display: 'inline-block' }}>
               {t.emoji}
