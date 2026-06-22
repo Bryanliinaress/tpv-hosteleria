@@ -80,6 +80,12 @@ npm run lint     # ESLint
 - [ ] Sincronizar también la carta (admin) y bloquear escritura con RLS por rol
 - [ ] Autenticación de personal (roles)
 
+### Para la versión final (pendiente)
+- [ ] Mover el **historial de tickets** a su propia tabla en Supabase (con paginación), en vez de la fila de estado compartida
+- [ ] **Exportar/descargar** los tickets del mes (CSV / PDF)
+- [ ] **Filtrar por rango de fechas** en el historial de tickets
+- [ ] Login de camarero (ventas y propinas por camarero), juntar/mover mesas, PWA instalable con notificaciones push
+
 ## Estado del proyecto
 
 `v0.1.0` · En desarrollo.
