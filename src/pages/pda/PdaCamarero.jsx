@@ -16,12 +16,6 @@ function alerta() {
   navigator.vibrate?.([120, 60, 120])
 }
 
-const ZONAS = [
-  { id: 'terraza', nombre: '🌳 Terraza', test: n => n <= 4 },
-  { id: 'interior', nombre: '🪟 Interior', test: n => n >= 5 && n <= 8 },
-  { id: 'salon', nombre: '🍽 Salón', test: n => n >= 9 },
-]
-
 function haceCuanto(iso) {
   if (!iso) return ''
   const min = Math.floor((Date.now() - new Date(iso)) / 60000)
@@ -46,6 +40,7 @@ export default function PdaCamarero() {
 
   const mesa = mesas.find(m => m.id === mesaId)
   const ocupadas = mesas.filter(m => m.estado !== 'libre')
+  const zonasSala = [...new Set(mesas.map(m => m.zona || 'Sala'))]
 
   // Resumen del turno de este camarero (tickets de hoy atendidos por él)
   const hoyStr = new Date().toDateString()
@@ -248,12 +243,12 @@ export default function PdaCamarero() {
             <button onClick={() => setSoloMias(false)} style={btn(!soloMias ? '#f97316' : '#1e293b', { flex: 1, fontSize: '0.82rem' })}>Todas</button>
             <button onClick={() => setSoloMias(true)} style={btn(soloMias ? '#f97316' : '#1e293b', { flex: 1, fontSize: '0.82rem' })}>👤 Mis mesas</button>
           </div>
-          {ZONAS.map(z => {
-            const ms = mesas.filter(m => z.test(m.numero) && (!soloMias || m.camarero === camarero))
+          {zonasSala.map(z => {
+            const ms = mesas.filter(m => (m.zona || 'Sala') === z && (!soloMias || m.camarero === camarero))
             if (ms.length === 0) return null
             return (
-            <div key={z.id}>
-              <div style={{ fontWeight: 700, color: 'var(--color-muted)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>{z.nombre}</div>
+            <div key={z}>
+              <div style={{ fontWeight: 700, color: 'var(--color-muted)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>{z}</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.625rem' }}>
                 {ms.map(m => {
                   const libre = m.estado === 'libre'

@@ -7,11 +7,14 @@ const emptyForm = { nombre: '', precioPitufo: '', precioViena: '', categoria: ''
 const precioDesde = (prod) => Math.min(prod.precios?.pitufo ?? 0, prod.precios?.viena ?? 0)
 
 export default function PanelAdmin() {
-  const { carta, mesas, historial, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos } = useStore()
+  const { carta, mesas, historial, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, addCategoria, removeCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan } = useStore()
   const [tab, setTab] = useState('carta')
   const [editando, setEditando] = useState(null) // productoId en edición
   const [form, setForm] = useState(emptyForm)
   const [ticket, setTicket] = useState(null)
+  const [nuevaCat, setNuevaCat] = useState({ nombre: '', tipo: 'comida' })
+  const [nuevoExtra, setNuevoExtra] = useState('')
+  const [nuevoPan, setNuevoPan] = useState({ nombre: '', sup: '' })
 
   // Tickets del mes en curso, agrupados por día (más reciente primero)
   const ahora = new Date()
@@ -76,6 +79,7 @@ export default function PanelAdmin() {
         {[
           { id: 'carta', label: '📋 Carta' },
           { id: 'mesas', label: '🍽 Mesas' },
+          { id: 'ajustes', label: '⚙️ Ajustes' },
           { id: 'tickets', label: '🧾 Tickets' },
           { id: 'qr', label: '📱 QR Codes' },
         ].map(t => (
@@ -142,29 +146,90 @@ export default function PanelAdmin() {
           </div>
         )}
 
-        {/* Tab Mesas */}
+        {/* Tab Mesas (configuración de sala) */}
         {tab === 'mesas' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.875rem' }}>
-            {mesas.map(m => {
-              const total = m.personas.reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0)
-              return (
-                <div key={m.id} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.875rem', padding: '1.25rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                    <span style={{ fontWeight: 800, fontSize: '1.1rem' }}>Mesa {m.numero}</span>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: m.estado === 'libre' ? '#10b981' : m.estado === 'esperando_cobro' ? '#f43f5e' : '#f59e0b' }}>
-                      {m.estado === 'libre' ? 'Libre' : m.estado === 'esperando_cobro' ? 'Pide cuenta' : 'Ocupada'}
-                    </span>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <p style={{ color: 'var(--color-muted)', fontSize: '0.85rem' }}>Configura las mesas: capacidad, zona, añadir o quitar. (Solo se pueden borrar mesas libres.)</p>
+              <button onClick={addMesa} style={{ background: '#f97316', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 0.9rem', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap' }}>+ Añadir mesa</button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.875rem' }}>
+              {mesas.map(m => {
+                const libre = m.estado === 'libre'
+                return (
+                  <div key={m.id} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.875rem', padding: '1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.625rem' }}>
+                      <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>Mesa {m.numero}</span>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 700, color: libre ? '#10b981' : '#f59e0b' }}>{libre ? 'Libre' : 'Ocupada'}</span>
+                    </div>
+                    <label style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Zona</label>
+                    <input value={m.zona || ''} onChange={e => updateMesa(m.id, { zona: e.target.value })} list="zonas-list" placeholder="Zona" style={{ ...inputStyle, marginBottom: '0.5rem' }} />
+                    <label style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Capacidad</label>
+                    <input value={m.capacidad} onChange={e => updateMesa(m.id, { capacidad: e.target.value })} type="number" min="1" style={{ ...inputStyle, marginBottom: '0.625rem' }} />
+                    <button onClick={() => { if (libre && confirm(`¿Borrar la mesa ${m.numero}?`)) removeMesa(m.id) }} disabled={!libre} style={{ width: '100%', background: libre ? '#7f1d1d' : '#1e293b', color: libre ? '#fff' : '#64748b', border: 'none', borderRadius: '0.5rem', padding: '0.4rem', cursor: libre ? 'pointer' : 'not-allowed', fontSize: '0.78rem' }}>{libre ? '🗑️ Borrar mesa' : 'Ocupada'}</button>
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>Capacidad: {m.capacidad} personas</div>
-                  {m.estado !== 'libre' && (
-                    <>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>{m.personas.length} comensales</div>
-                      <div style={{ fontWeight: 700, color: '#f97316', fontSize: '0.9rem', marginTop: '0.25rem' }}>{total.toFixed(2)} €</div>
-                    </>
-                  )}
+                )
+              })}
+            </div>
+            <datalist id="zonas-list">
+              {[...new Set(mesas.map(m => m.zona).filter(Boolean))].map(z => <option key={z} value={z} />)}
+            </datalist>
+          </div>
+        )}
+
+        {/* Tab Ajustes de carta */}
+        {tab === 'ajustes' && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', alignItems: 'start' }}>
+            {/* Categorías */}
+            <div style={ajusteCard}>
+              <h3 style={ajusteTitulo}>Categorías</h3>
+              {carta.categorias.map(c => (
+                <div key={c.id} style={ajusteFila}>
+                  <span>{c.emoji} {c.nombre} <span style={{ fontSize: '0.7rem', color: 'var(--color-muted)' }}>({c.tipo})</span></span>
+                  <button onClick={() => { if (confirm(`¿Borrar "${c.nombre}" y sus productos?`)) removeCategoria(c.id) }} style={iconBtn}>🗑️</button>
                 </div>
-              )
-            })}
+              ))}
+              <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
+                <input value={nuevaCat.nombre} onChange={e => setNuevaCat(s => ({ ...s, nombre: e.target.value }))} placeholder="Nueva categoría" style={{ ...inputStyle, flex: '1 1 120px' }} />
+                <select value={nuevaCat.tipo} onChange={e => setNuevaCat(s => ({ ...s, tipo: e.target.value }))} style={{ ...inputStyle, flex: '0 1 110px' }}>
+                  <option value="comida">comida</option>
+                  <option value="bebida">bebida</option>
+                </select>
+                <button onClick={() => { if (nuevaCat.nombre.trim()) { addCategoria(nuevaCat.nombre, nuevaCat.tipo); setNuevaCat({ nombre: '', tipo: 'comida' }) } }} style={addBtn}>Añadir</button>
+              </div>
+            </div>
+
+            {/* Tipos de pan */}
+            <div style={ajusteCard}>
+              <h3 style={ajusteTitulo}>Tipos de pan</h3>
+              {carta.tiposPan.map(t => (
+                <div key={t.id} style={ajusteFila}>
+                  <span>{t.nombre} {t.sup > 0 && <span style={{ fontSize: '0.72rem', color: '#f97316' }}>+{t.sup.toFixed(2)}€</span>}</span>
+                  <button onClick={() => removeTipoPan(t.id)} style={iconBtn}>🗑️</button>
+                </div>
+              ))}
+              <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
+                <input value={nuevoPan.nombre} onChange={e => setNuevoPan(s => ({ ...s, nombre: e.target.value }))} placeholder="Nombre" style={{ ...inputStyle, flex: '1 1 110px' }} />
+                <input value={nuevoPan.sup} onChange={e => setNuevoPan(s => ({ ...s, sup: e.target.value }))} type="number" step="0.10" placeholder="+€" style={{ ...inputStyle, flex: '0 1 70px' }} />
+                <button onClick={() => { if (nuevoPan.nombre.trim()) { addTipoPan(nuevoPan.nombre, nuevoPan.sup); setNuevoPan({ nombre: '', sup: '' }) } }} style={addBtn}>Añadir</button>
+              </div>
+            </div>
+
+            {/* Extras / condimentos */}
+            <div style={ajusteCard}>
+              <h3 style={ajusteTitulo}>Extras (condimentos)</h3>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                {carta.extras.map(ex => (
+                  <span key={ex} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: '#0f172a', border: '1px solid var(--color-border)', borderRadius: '9999px', padding: '0.2rem 0.5rem 0.2rem 0.7rem', fontSize: '0.8rem' }}>
+                    {ex}<button onClick={() => removeExtra(ex)} style={{ background: 'none', border: 'none', color: '#f43f5e', cursor: 'pointer', fontSize: '0.85rem' }}>✕</button>
+                  </span>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.6rem' }}>
+                <input value={nuevoExtra} onChange={e => setNuevoExtra(e.target.value)} placeholder="Nuevo extra" style={{ ...inputStyle, flex: 1 }} />
+                <button onClick={() => { if (nuevoExtra.trim()) { addExtra(nuevoExtra); setNuevoExtra('') } }} style={addBtn}>Añadir</button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -281,3 +346,8 @@ const iconBtn = {
   padding: '0.25rem',
   lineHeight: 1,
 }
+
+const ajusteCard = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.875rem', padding: '1.1rem' }
+const ajusteTitulo = { fontWeight: 700, fontSize: '1rem', marginBottom: '0.75rem' }
+const ajusteFila = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.35rem 0', borderBottom: '1px solid var(--color-border)', fontSize: '0.875rem' }
+const addBtn = { background: '#f97316', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 0.85rem', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, whiteSpace: 'nowrap' }

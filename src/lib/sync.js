@@ -21,6 +21,7 @@ let resolverListo
 export const syncListo = new Promise(r => { resolverListo = r })
 
 const sliceEstado = (s) => ({
+  carta: s.carta,
   mesas: s.mesas,
   pedidosCocina: s.pedidosCocina,
   pedidosBarra: s.pedidosBarra,
@@ -32,6 +33,7 @@ function aplicarRemoto(data) {
   if (!data || !data.mesas) return
   aplicandoRemoto = true
   useStore.setState({
+    ...(data.carta ? { carta: data.carta } : {}),
     mesas: data.mesas,
     pedidosCocina: data.pedidosCocina || [],
     pedidosBarra: data.pedidosBarra || [],
@@ -79,7 +81,7 @@ export async function initSync() {
   // 3) Empuja los cambios locales (con debounce, ignorando los recibidos)
   useStore.subscribe((state, prev) => {
     if (aplicandoRemoto) return
-    if (state.mesas === prev.mesas && state.pedidosCocina === prev.pedidosCocina && state.pedidosBarra === prev.pedidosBarra && state.avisos === prev.avisos && state.historial === prev.historial) return
+    if (state.carta === prev.carta && state.mesas === prev.mesas && state.pedidosCocina === prev.pedidosCocina && state.pedidosBarra === prev.pedidosBarra && state.avisos === prev.avisos && state.historial === prev.historial) return
     clearTimeout(writeTimer)
     writeTimer = setTimeout(empujarEstado, 150)
   })

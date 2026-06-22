@@ -107,6 +107,7 @@ export const useStore = create(persist((set, get) => ({
     id: `mesa-${i + 1}`,
     numero: i + 1,
     capacidad: i < 4 ? 2 : i < 8 ? 4 : 6,
+    zona: i < 4 ? 'Terraza' : i < 8 ? 'Interior' : 'Salón',
     estado: 'libre', // libre | ocupada | esperando_cobro
     personas: [],
     abiertaDesde: null,
@@ -401,6 +402,25 @@ export const useStore = create(persist((set, get) => ({
     }),
   })),
 
+  // ── GESTIÓN DE SALA (admin) ────────────────────────────
+  addMesa: () => set(state => {
+    const maxNum = state.mesas.reduce((mx, x) => Math.max(mx, x.numero), 0)
+    const ultZona = state.mesas[state.mesas.length - 1]?.zona || 'Sala'
+    return { mesas: [...state.mesas, { id: `mesa-${Date.now()}`, numero: maxNum + 1, capacidad: 4, zona: ultZona, estado: 'libre', personas: [], abiertaDesde: null }] }
+  }),
+
+  removeMesa: (mesaId) => set(state => ({
+    mesas: state.mesas.filter(m => !(m.id === mesaId && m.estado === 'libre')),
+  })),
+
+  updateMesa: (mesaId, cambios) => set(state => ({
+    mesas: state.mesas.map(m => m.id !== mesaId ? m : {
+      ...m,
+      ...(cambios.capacidad !== undefined ? { capacidad: Math.max(1, Number(cambios.capacidad) || 1) } : {}),
+      ...(cambios.zona !== undefined ? { zona: cambios.zona.trim() || 'Sala' } : {}),
+    }),
+  })),
+
   // ── GESTIÓN DE CARTA (admin) ───────────────────────────
   addProducto: (producto) => set(state => {
     const id = `p${Date.now()}`
@@ -454,6 +474,24 @@ export const useStore = create(persist((set, get) => ({
     carta: { ...state.carta, productos: state.carta.productos.map(p => p.id !== productoId ? p : { ...p, disponible: !p.disponible }) },
   })),
 
+  // ── CONFIG DE CARTA (categorías, panes, extras) ────────
+  addCategoria: (nombre, tipo) => set(state => ({
+    carta: { ...state.carta, categorias: [...state.carta.categorias, { id: `cat${Date.now()}`, nombre: (nombre || '').trim() || 'Nueva', tipo: tipo || 'comida', emoji: tipo === 'bebida' ? '🥤' : '🍽' }] },
+  })),
+  removeCategoria: (id) => set(state => ({
+    carta: { ...state.carta, categorias: state.carta.categorias.filter(c => c.id !== id), productos: state.carta.productos.filter(p => p.categoria !== id) },
+  })),
+  addExtra: (nombre) => set(state => {
+    const n = (nombre || '').trim()
+    if (!n || state.carta.extras.includes(n)) return {}
+    return { carta: { ...state.carta, extras: [...state.carta.extras, n] } }
+  }),
+  removeExtra: (nombre) => set(state => ({ carta: { ...state.carta, extras: state.carta.extras.filter(e => e !== nombre) } })),
+  addTipoPan: (nombre, sup) => set(state => ({
+    carta: { ...state.carta, tiposPan: [...state.carta.tiposPan, { id: `tp${Date.now()}`, nombre: (nombre || '').trim() || 'Pan', sup: Number(sup) || 0 }] },
+  })),
+  removeTipoPan: (id) => set(state => ({ carta: { ...state.carta, tiposPan: state.carta.tiposPan.filter(t => t.id !== id) } })),
+
   // ── UTILIDAD ───────────────────────────────────────────
   resetDatos: () => {
     localStorage.removeItem('tpv-hosteleria')
@@ -461,7 +499,7 @@ export const useStore = create(persist((set, get) => ({
   },
 }), {
   name: 'tpv-hosteleria',
-  version: 4,
+  version: 5,
   migrate: () => undefined, // si cambia el formato de carta, descarta lo viejo y usa el por defecto
   partialize: (state) => ({
     carta: state.carta,
