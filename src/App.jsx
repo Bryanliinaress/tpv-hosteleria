@@ -5,6 +5,7 @@ import PdaCamarero from './pages/pda/PdaCamarero'
 import PantallaKDS from './pages/cocina/PantallaKDS'
 import PantallaBarra from './pages/barra/PantallaBarra'
 import PanelAdmin from './pages/admin/PanelAdmin'
+import PrintStation from './pages/print/PrintStation'
 import Home from './pages/Home'
 
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
         <Route path="/cocina" element={<PantallaKDS />} />
         <Route path="/barra" element={<PantallaBarra />} />
         <Route path="/admin" element={<PanelAdmin />} />
+        <Route path="/print" element={<PrintStation />} />
         <Route path="*" element={<Navigate to="/" /> } />
       </Routes>
     </HashRouter>
