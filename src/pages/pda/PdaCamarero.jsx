@@ -31,7 +31,8 @@ function haceCuanto(iso) {
 }
 
 export default function PdaCamarero() {
-  const { carta, mesas, pedidosCocina, pedidosBarra, avisos, atenderAviso, pagarParte, liberarMesa, unirseAMesa, servirMesa, anularItem, toggleDisponible } = useStore()
+  const { carta, mesas, pedidosCocina, pedidosBarra, avisos, atenderAviso, pagarParte, liberarMesa, unirseAMesa, servirMesa, anularItem, toggleDisponible, fusionarMesa, transferirComensal } = useStore()
+  const [mover, setMover] = useState(null) // { tipo:'mesa'|'comensal', personaId? }
   const [sonido, setSonido] = useState(true)
   const prevIds = useRef(null)
   const [vista, setVista] = useState('avisos') // avisos | mesas
@@ -113,6 +114,7 @@ export default function PdaCamarero() {
                   ))}
                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem' }}>
                   <button onClick={() => setTicket({ tipo: 'persona', persona: p })} style={btn('#1e293b', { flex: 1 })}>🧾 Ticket</button>
+                  <button onClick={() => setMover({ tipo: 'comensal', personaId: p.id })} title="Mover a otra mesa" style={btn('#1e293b', { padding: '0.55rem 0.7rem' })}>⇄</button>
                   {!p.pagado && <button onClick={() => pagarParte(mesa.id, p.id)} style={btn('#10b981', { flex: 1 })}>Cobrar</button>}
                 </div>
               </div>
@@ -123,6 +125,7 @@ export default function PdaCamarero() {
             <>
               <button onClick={() => setPidiendo(true)} style={btn('#f97316', { width: '100%', padding: '0.75rem', fontSize: '0.95rem' })}>➕ Añadir pedido</button>
               <button onClick={() => setCobrando(true)} style={btn('#10b981', { width: '100%', padding: '0.75rem', fontSize: '0.95rem' })}>💶 Cobrar mesa</button>
+              <button onClick={() => setMover({ tipo: 'mesa' })} style={btn('#1e293b', { width: '100%', fontSize: '0.9rem' })}>🔀 Mover / Juntar mesa</button>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button onClick={() => setTicket({ tipo: 'comanda' })} style={btn('#1e293b', { flex: 1 })}>🧾 Comanda</button>
                 <button onClick={() => setTicket({ tipo: 'cuenta' })} style={btn('#1e293b', { flex: 1 })}>💶 Cuenta</button>
@@ -135,6 +138,32 @@ export default function PdaCamarero() {
         {ticket && <Ticket tipo={ticket.tipo} mesa={mesa} persona={ticket.persona} onClose={() => setTicket(null)} />}
         {pidiendo && <PedirPda mesaId={mesa.id} onClose={() => setPidiendo(false)} />}
         {cobrando && <CobroMesa mesa={mesa} onCerrar={() => setCobrando(false)} onCobrar={() => { liberarMesa(mesa.id); setCobrando(false); setMesaId(null) }} />}
+
+        {mover && (
+          <div onClick={() => setMover(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 80 }}>
+            <div onClick={e => e.stopPropagation()} style={{ background: 'var(--color-surface)', borderTopLeftRadius: '1rem', borderTopRightRadius: '1rem', padding: '1.15rem', width: '100%', maxWidth: '520px', maxHeight: '80vh', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                <h3 style={{ fontWeight: 800, fontSize: '1.05rem' }}>{mover.tipo === 'mesa' ? 'Mover / juntar a…' : 'Mover comensal a…'}</h3>
+                <button onClick={() => setMover(null)} style={btn('#334155', { padding: '0.25rem 0.6rem' })}>✕</button>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                {mesas.filter(m => m.id !== mesa.id).map(m => {
+                  const libre = m.estado === 'libre'
+                  return (
+                    <button key={m.id} onClick={() => {
+                      if (mover.tipo === 'mesa') { fusionarMesa(mesa.id, m.id); setMesaId(null) }
+                      else { transferirComensal(mesa.id, mover.personaId, m.id) }
+                      setMover(null)
+                    }} style={{ ...card, textAlign: 'left', cursor: 'pointer', borderColor: (libre ? '#10b981' : '#f59e0b') + '66' }}>
+                      <div style={{ fontWeight: 800 }}>M{m.numero}</div>
+                      <div style={{ fontSize: '0.72rem', color: libre ? '#10b981' : '#f59e0b' }}>{libre ? 'Libre · mover aquí' : `Juntar (${m.personas.length})`}</div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }

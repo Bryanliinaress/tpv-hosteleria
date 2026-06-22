@@ -163,6 +163,51 @@ export const useStore = create(persist((set, get) => ({
     }
   }),
 
+  // Mueve/junta una mesa en otra: las personas de 'origen' pasan a 'destino'
+  // (si destino está libre, es un "mover"; si está ocupada, "juntar"), y origen
+  // queda libre. Reetiqueta las comandas de cocina/barra.
+  fusionarMesa: (origenId, destinoId) => set(state => {
+    if (origenId === destinoId) return {}
+    const origen = state.mesas.find(m => m.id === origenId)
+    const destino = state.mesas.find(m => m.id === destinoId)
+    if (!origen || !destino) return {}
+    const destinoLibre = destino.estado === 'libre'
+    const retag = (arr) => arr.map(p => p.mesaId === origenId ? { ...p, mesaId: destinoId, mesaNumero: destino.numero } : p)
+    return {
+      mesas: state.mesas.map(m => {
+        if (m.id === destinoId) return { ...m, estado: 'ocupada', abiertaDesde: destinoLibre ? origen.abiertaDesde : m.abiertaDesde, personas: [...(destinoLibre ? [] : m.personas), ...origen.personas], camarero: m.camarero || origen.camarero }
+        if (m.id === origenId) return { ...m, estado: 'libre', personas: [], abiertaDesde: null, camarero: null }
+        return m
+      }),
+      pedidosCocina: retag(state.pedidosCocina),
+      pedidosBarra: retag(state.pedidosBarra),
+      avisos: state.avisos.filter(a => a.mesaId !== origenId),
+    }
+  }),
+
+  // Transfiere un comensal (con sus pedidos) de una mesa a otra.
+  transferirComensal: (origenId, personaId, destinoId) => set(state => {
+    if (origenId === destinoId) return {}
+    const origen = state.mesas.find(m => m.id === origenId)
+    const destino = state.mesas.find(m => m.id === destinoId)
+    const persona = origen?.personas.find(p => p.id === personaId)
+    if (!persona || !destino) return {}
+    const destinoLibre = destino.estado === 'libre'
+    const retag = (arr) => arr.map(p => (p.mesaId === origenId && p.personaId === personaId) ? { ...p, mesaId: destinoId, mesaNumero: destino.numero } : p)
+    return {
+      mesas: state.mesas.map(m => {
+        if (m.id === origenId) {
+          const restantes = m.personas.filter(p => p.id !== personaId)
+          return restantes.length === 0 ? { ...m, estado: 'libre', personas: [], abiertaDesde: null, camarero: null } : { ...m, personas: restantes }
+        }
+        if (m.id === destinoId) return { ...m, estado: 'ocupada', abiertaDesde: destinoLibre ? new Date().toISOString() : m.abiertaDesde, personas: [...(destinoLibre ? [] : m.personas), persona] }
+        return m
+      }),
+      pedidosCocina: retag(state.pedidosCocina),
+      pedidosBarra: retag(state.pedidosBarra),
+    }
+  }),
+
   // Añade una línea de pedido personalizada (pan + condimentos). Si ya existe
   // una línea pendiente idéntica, incrementa su cantidad.
   agregarItem: (mesaId, personaId, config) => set(state => ({
