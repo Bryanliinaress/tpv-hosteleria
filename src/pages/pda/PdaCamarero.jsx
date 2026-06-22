@@ -61,7 +61,8 @@ export default function PdaCamarero() {
   listos.forEach(p => { (porMesa[p.mesaId] ||= []).push(p) })
   Object.entries(porMesa).forEach(([mid, arr]) => {
     const m = mesas.find(x => x.id === mid)
-    eventos.push({ id: 'listo-' + mid, prio: 1, tipo: 'listo', mesaId: mid, mesaNumero: m?.numero ?? arr[0].mesaNumero, texto: `${arr.reduce((s, x) => s + x.cantidad, 0)} listo(s) para servir`, hora: arr[0].horaEntrada, items: arr })
+    const pendientes = [...pedidosCocina, ...pedidosBarra].filter(p => p.mesaId === mid && p.estado !== 'listo')
+    eventos.push({ id: 'listo-' + mid, prio: 1, tipo: 'listo', mesaId: mid, mesaNumero: m?.numero ?? arr[0].mesaNumero, texto: `${arr.reduce((s, x) => s + x.cantidad, 0)} listo(s) para servir`, hora: arr[0].horaEntrada, items: arr, pendientes })
   })
   mesas.filter(m => m.estado === 'esperando_cobro').forEach(m => eventos.push({ id: 'cuenta-' + m.id, prio: 2, tipo: 'cuenta', mesaId: m.id, mesaNumero: m.numero, texto: 'Pide la cuenta', hora: m.abiertaDesde }))
   eventos.sort((a, b) => a.prio - b.prio || new Date(a.hora) - new Date(b.hora))
@@ -219,6 +220,14 @@ export default function PdaCamarero() {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 800, color: e.color }}>Mesa {ev.mesaNumero}</div>
                   <div style={{ fontSize: '0.85rem' }}>{ev.texto}</div>
+                  {ev.tipo === 'listo' && (
+                    <>
+                      <div style={{ fontSize: '0.75rem', color: '#10b981' }}>{ev.items.map(i => `${i.cantidad}× ${i.nombre}`).join(', ')}</div>
+                      {ev.pendientes.length > 0
+                        ? <div style={{ fontSize: '0.75rem', color: '#f59e0b', marginTop: '0.15rem' }}>⏳ Faltan {ev.pendientes.reduce((s, p) => s + p.cantidad, 0)}: {ev.pendientes.map(p => `${p.cantidad}× ${p.nombre} (${p.estado === 'preparando' ? 'preparándose' : 'en cola'})`).join(', ')}</div>
+                        : <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)', marginTop: '0.15rem' }}>✅ No queda nada más — puedes llevarlo todo</div>}
+                    </>
+                  )}
                   <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{haceCuanto(ev.hora)}</div>
                 </div>
                 {ev.tipo === 'llamada' && (
