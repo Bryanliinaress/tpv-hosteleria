@@ -1,15 +1,26 @@
 import { useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { useStore } from '../../store/useStore'
+import Ticket from '../../components/Ticket'
 
 const emptyForm = { nombre: '', precioPitufo: '', precioViena: '', categoria: '', descripcion: '' }
 const precioDesde = (prod) => Math.min(prod.precios?.pitufo ?? 0, prod.precios?.viena ?? 0)
 
 export default function PanelAdmin() {
-  const { carta, mesas, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos } = useStore()
+  const { carta, mesas, historial, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos } = useStore()
   const [tab, setTab] = useState('carta')
   const [editando, setEditando] = useState(null) // productoId en edición
   const [form, setForm] = useState(emptyForm)
+  const [ticket, setTicket] = useState(null)
+
+  // Tickets del mes en curso, agrupados por día (más reciente primero)
+  const ahora = new Date()
+  const delMes = historial.filter(r => { const d = new Date(r.cerradaEn); return d.getMonth() === ahora.getMonth() && d.getFullYear() === ahora.getFullYear() })
+  const totalMes = delMes.reduce((s, r) => s + r.total, 0)
+  const propinasMes = delMes.reduce((s, r) => s + (r.propina || 0), 0)
+  const porDia = {}
+  delMes.forEach(r => { const k = new Date(r.cerradaEn).toLocaleDateString('es-ES'); (porDia[k] ||= []).push(r) })
+  const dias = Object.keys(porDia).sort((a, b) => b.localeCompare(a))
 
   const totalVentas = mesas.reduce((s, m) =>
     s + m.personas.reduce((ss, p) =>
@@ -65,6 +76,7 @@ export default function PanelAdmin() {
         {[
           { id: 'carta', label: '📋 Carta' },
           { id: 'mesas', label: '🍽 Mesas' },
+          { id: 'tickets', label: '🧾 Tickets' },
           { id: 'qr', label: '📱 QR Codes' },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
@@ -156,6 +168,44 @@ export default function PanelAdmin() {
           </div>
         )}
 
+        {/* Tab Tickets del mes */}
+        {tab === 'tickets' && (
+          <div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+              {[
+                { label: `Tickets de ${ahora.toLocaleDateString('es-ES', { month: 'long' })}`, value: delMes.length, color: '#3b82f6' },
+                { label: 'Facturado (mes)', value: `${totalMes.toFixed(2)} €`, color: '#f97316' },
+                { label: 'Propinas (mes)', value: `${propinasMes.toFixed(2)} €`, color: '#10b981' },
+              ].map(s => (
+                <div key={s.label} style={{ background: 'var(--color-surface)', borderRadius: '0.75rem', padding: '1rem', border: '1px solid var(--color-border)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)', marginBottom: '0.25rem', textTransform: 'capitalize' }}>{s.label}</div>
+                  <div style={{ fontWeight: 800, fontSize: '1.4rem', color: s.color }}>{s.value}</div>
+                </div>
+              ))}
+            </div>
+            {dias.length === 0 && <p style={{ color: 'var(--color-muted)', fontSize: '0.9rem' }}>Aún no hay tickets este mes. Se guardan automáticamente al cerrar una mesa.</p>}
+            {dias.map(dia => (
+              <div key={dia} style={{ marginBottom: '1.5rem' }}>
+                <div style={{ fontWeight: 700, marginBottom: '0.625rem', display: 'flex', justifyContent: 'space-between' }}>
+                  <span>{dia}</span>
+                  <span style={{ color: '#f97316' }}>{porDia[dia].reduce((s, r) => s + r.total, 0).toFixed(2)} €</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.5rem' }}>
+                  {porDia[dia].slice().reverse().map(r => (
+                    <div key={r.id} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.625rem', padding: '0.75rem 0.875rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Mesa {r.mesaNumero}</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{new Date(r.cerradaEn).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} · {r.total.toFixed(2)} €</div>
+                      </div>
+                      <button onClick={() => setTicket({ numero: r.mesaNumero, personas: r.personas })} style={{ background: '#f97316', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.4rem 0.7rem', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>Ver</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Tab QR */}
         {tab === 'qr' && (
           <div>
@@ -185,6 +235,8 @@ export default function PanelAdmin() {
           </div>
         )}
       </div>
+
+      {ticket && <Ticket tipo="cuenta" mesa={ticket} onClose={() => setTicket(null)} />}
     </div>
   )
 }

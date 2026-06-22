@@ -9,9 +9,13 @@ const ESTADO = {
 }
 
 export default function PanelCamarero() {
-  const { mesas, carta, pedidosCocina, pedidosBarra, avisos, liberarMesa, confirmarPedido, atenderAviso, pagarParte } = useStore()
+  const { mesas, carta, pedidosCocina, pedidosBarra, avisos, historial, liberarMesa, confirmarPedido, atenderAviso, pagarParte } = useStore()
   const [mesaSeleccionada, setMesaSeleccionada] = useState(null)
-  const [ticket, setTicket] = useState(null) // { tipo, persona }
+  const [ticket, setTicket] = useState(null) // { tipo, persona, mesa? }
+  const [verHistorial, setVerHistorial] = useState(false)
+
+  const hoy = new Date().toDateString()
+  const cerradasHoy = historial.filter(r => new Date(r.cerradaEn).toDateString() === hoy).slice().reverse()
 
   const mesa = mesas.find(m => m.id === mesaSeleccionada)
   const owed = mesa && mesa.estado !== 'libre' ? owedPorPersona(mesa) : {}
@@ -27,9 +31,12 @@ export default function PanelCamarero() {
           <h1 style={{ fontWeight: 800, fontSize: '1.25rem' }}>👨‍🍳 Panel Camarero</h1>
           <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>{mesas.filter(m => m.estado !== 'libre').length} mesas ocupadas de {mesas.length}</p>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           {totalCocina > 0 && <div style={{ background: '#052e16', color: '#10b981', borderRadius: '0.5rem', padding: '0.375rem 0.75rem', fontSize: '0.8rem', fontWeight: 700 }}>🍳 {totalCocina} listo(s)</div>}
           {totalBarra > 0 && <div style={{ background: '#2d0a14', color: '#f43f5e', borderRadius: '0.5rem', padding: '0.375rem 0.75rem', fontSize: '0.8rem', fontWeight: 700 }}>🍺 {totalBarra} listo(s)</div>}
+          <button onClick={() => setVerHistorial(true)} style={{ background: '#1e293b', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.45rem 0.85rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
+            🧾 Cerradas hoy{cerradasHoy.length > 0 ? ` (${cerradasHoy.length})` : ''}
+          </button>
         </div>
       </div>
 
@@ -180,8 +187,33 @@ export default function PanelCamarero() {
         )}
       </div>
 
-      {ticket && mesa && (
-        <Ticket tipo={ticket.tipo} mesa={mesa} persona={ticket.persona} onClose={() => setTicket(null)} />
+      {ticket && (ticket.mesa || mesa) && (
+        <Ticket tipo={ticket.tipo} mesa={ticket.mesa || mesa} persona={ticket.persona} onClose={() => setTicket(null)} />
+      )}
+
+      {verHistorial && (
+        <div onClick={() => setVerHistorial(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'flex-end', zIndex: 90 }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '380px', maxWidth: '92vw', background: 'var(--color-surface)', height: '100%', overflowY: 'auto', padding: '1.25rem', borderLeft: '1px solid var(--color-border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h2 style={{ fontWeight: 800, fontSize: '1.1rem' }}>🧾 Cerradas hoy</h2>
+              <button onClick={() => setVerHistorial(false)} style={btn('#1e293b')}>✕</button>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.75rem', color: 'var(--color-muted)' }}>
+              <span>{cerradasHoy.length} ticket(s)</span>
+              <span>Total: <strong style={{ color: '#f97316' }}>{cerradasHoy.reduce((s, r) => s + r.total, 0).toFixed(2)} €</strong></span>
+            </div>
+            {cerradasHoy.length === 0 && <p style={{ color: 'var(--color-muted)', fontSize: '0.85rem' }}>Aún no se ha cerrado ninguna mesa hoy.</p>}
+            {cerradasHoy.map(r => (
+              <div key={r.id} style={{ background: '#0f172a', borderRadius: '0.625rem', padding: '0.75rem 0.875rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontWeight: 700 }}>Mesa {r.mesaNumero}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>{new Date(r.cerradaEn).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} · {r.total.toFixed(2)} €</div>
+                </div>
+                <button onClick={() => setTicket({ tipo: 'cuenta', mesa: { numero: r.mesaNumero, personas: r.personas } })} style={btn('#f97316', { fontSize: '0.78rem', padding: '0.4rem 0.7rem' })}>Ver ticket</button>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   )

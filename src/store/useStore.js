@@ -119,6 +119,9 @@ export const useStore = create(persist((set, get) => ({
   // ── AVISOS AL CAMARERO ─────────────────────────────────
   avisos: [], // { id, mesaId, mesaNumero, personaNombre, hora }
 
+  // ── HISTORIAL DE TICKETS (mesas cerradas) ──────────────
+  historial: [], // { id, mesaNumero, cerradaEn, total, propina, personas }
+
   // ── ACCIONES ───────────────────────────────────────────
   // Un cliente se une a la mesa por su nombre. Si la mesa está libre, la
   // abre (primer comensal). Si ya está ocupada, se suma como una persona más.
@@ -146,14 +149,19 @@ export const useStore = create(persist((set, get) => ({
     return nuevoId
   },
 
-  liberarMesa: (mesaId) => set(state => ({
-    mesas: state.mesas.map(m => m.id !== mesaId ? m : {
-      ...m, estado: 'libre', personas: [], abiertaDesde: null,
-    }),
-    pedidosCocina: state.pedidosCocina.filter(p => p.mesaId !== mesaId),
-    pedidosBarra: state.pedidosBarra.filter(p => p.mesaId !== mesaId),
-    avisos: state.avisos.filter(a => a.mesaId !== mesaId),
-  })),
+  liberarMesa: (mesaId) => set(state => {
+    const mesa = state.mesas.find(m => m.id === mesaId)
+    const rec = snapshotMesa(mesa)
+    return {
+      mesas: state.mesas.map(m => m.id !== mesaId ? m : {
+        ...m, estado: 'libre', personas: [], abiertaDesde: null,
+      }),
+      pedidosCocina: state.pedidosCocina.filter(p => p.mesaId !== mesaId),
+      pedidosBarra: state.pedidosBarra.filter(p => p.mesaId !== mesaId),
+      avisos: state.avisos.filter(a => a.mesaId !== mesaId),
+      historial: rec ? [...state.historial, rec] : state.historial,
+    }
+  }),
 
   // Añade una línea de pedido personalizada (pan + condimentos). Si ya existe
   // una línea pendiente idéntica, incrementa su cantidad.
@@ -311,6 +319,7 @@ export const useStore = create(persist((set, get) => ({
     const todosPagados = mesa.personas.length > 0 && mesa.personas.every(p => p.pagado)
 
     if (todosPagados) {
+      const rec = snapshotMesa(mesa)
       return {
         mesas: mesas.map(m => m.id !== mesaId ? m : {
           ...m, estado: 'libre', personas: [], abiertaDesde: null,
@@ -318,6 +327,7 @@ export const useStore = create(persist((set, get) => ({
         pedidosCocina: state.pedidosCocina.filter(p => p.mesaId !== mesaId),
         pedidosBarra: state.pedidosBarra.filter(p => p.mesaId !== mesaId),
         avisos: state.avisos.filter(a => a.mesaId !== mesaId),
+        historial: rec ? [...state.historial, rec] : state.historial,
       }
     }
     return { mesas }
@@ -409,8 +419,17 @@ export const useStore = create(persist((set, get) => ({
     pedidosCocina: state.pedidosCocina,
     pedidosBarra: state.pedidosBarra,
     avisos: state.avisos,
+    historial: state.historial,
   }),
 }))
+
+// Crea el registro de ticket de una mesa al cerrarse (null si no consumió nada).
+function snapshotMesa(mesa) {
+  if (!mesa || !mesa.personas?.some(p => p.items.length)) return null
+  const total = mesa.personas.reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0)
+  const propina = mesa.personas.reduce((s, p) => s + (p.propina || 0), 0)
+  return { id: `t${Date.now()}-${mesa.numero}`, mesaNumero: mesa.numero, cerradaEn: new Date().toISOString(), total, propina, personas: mesa.personas }
+}
 
 // Lo que debe cada comensal, repartiendo a partes iguales los platos compartidos.
 export function owedPorPersona(mesa) {
