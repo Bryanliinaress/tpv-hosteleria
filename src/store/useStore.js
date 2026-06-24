@@ -1,6 +1,15 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
+// Métodos de pago disponibles al cobrar (configurable para cualquier local)
+export const METODOS_PAGO = [
+  { id: 'efectivo', label: 'Efectivo', emoji: '💵' },
+  { id: 'tarjeta', label: 'Tarjeta', emoji: '💳' },
+  { id: 'bizum', label: 'Bizum', emoji: '📲' },
+]
+export const METODO_LABEL = { ...Object.fromEntries(METODOS_PAGO.map(m => [m.id, m.label])), sincobrar: 'Sin cobrar' }
+export const METODO_EMOJI = { ...Object.fromEntries(METODOS_PAGO.map(m => [m.id, m.emoji])), sincobrar: '🚫' }
+
 // Firma de una línea de pedido (para fusionar ítems idénticos al añadir)
 const firma = (c) => [
   c.productoId,
@@ -121,7 +130,16 @@ export const useStore = create(persist((set, get) => ({
   avisos: [], // { id, mesaId, mesaNumero, personaNombre, hora }
 
   // ── HISTORIAL DE TICKETS (mesas cerradas) ──────────────
-  historial: [], // { id, mesaNumero, cerradaEn, total, propina, personas }
+  historial: [], // { id, mesaNumero, cerradaEn, total, propina, pagos, personas, camarero, cobradoPor }
+
+  // ── CIERRES DE CAJA (arqueos Z) ────────────────────────
+  cierres: [], // { id, desde, hasta, total, propinas, pagos, nTickets, contado, descuadre }
+
+  // ── AGENDA DE RESERVAS (reservas online del cliente) ───
+  // Reserva tipo CoverManager: el cliente pide fecha/hora/personas/zona y el
+  // local la gestiona (asigna mesa, sienta, cancela). Distinto del estado
+  // 'reservada' de una mesa, que es el "bloqueo" puntual de una mesa concreta.
+  reservas: [], // { id, fecha, hora, personas, nombre, telefono, zona, notas, estado, mesaId, creada }
 
   // ── ACCIONES ───────────────────────────────────────────
   // Un cliente se une a la mesa por su nombre. Si la mesa está libre, la
@@ -296,6 +314,7 @@ export const useStore = create(persist((set, get) => ({
           mesaNumero: mesa.numero,
           personaId: persona.id,
           personaNombre: persona.nombre,
+          camarero: mesa.camarero || null,
           nombre: item.nombre,
           cantidad: item.cantidad,
           nota: componerNota(item),
@@ -359,12 +378,16 @@ export const useStore = create(persist((set, get) => ({
     pedidosBarra: state.pedidosBarra.filter(p => !(p.mesaId === mesaId && p.estado === 'listo')),
   })),
 
-  // Pago por persona: marca a un comensal como pagado. Cuando TODOS han pagado
-  // (la cuenta llega a 0), la mesa se reinicia automáticamente.
-  pagarParte: (mesaId, personaId, propina = 0) => set(state => {
+  // Pago por persona: marca a un comensal como pagado con su método de pago.
+  // Cuando TODOS han pagado, la mesa se reinicia automáticamente.
+  // `opts` admite { propina, metodo, cobradoPor }. Por compatibilidad, si se
+  // pasa un número se interpreta como la propina.
+  pagarParte: (mesaId, personaId, opts = {}) => set(state => {
+    const o = typeof opts === 'number' ? { propina: opts } : opts
+    const { propina = 0, metodo = 'efectivo', cobradoPor = null } = o
     const mesas = state.mesas.map(m => m.id !== mesaId ? m : {
       ...m,
-      personas: m.personas.map(p => p.id === personaId ? { ...p, pagado: true, propina: Number(propina) || 0 } : p),
+      personas: m.personas.map(p => p.id === personaId ? { ...p, pagado: true, propina: Number(propina) || 0, metodoPago: metodo, cobradoPor } : p),
     })
     const mesa = mesas.find(m => m.id === mesaId)
     const todosPagados = mesa.personas.length > 0 && mesa.personas.every(p => p.pagado)
@@ -384,6 +407,27 @@ export const useStore = create(persist((set, get) => ({
     return { mesas }
   }),
 
+  // Cobra de una vez todo lo pendiente de la mesa con un único método de pago
+  // y la cierra (los ya pagados conservan su método).
+  cobrarMesa: (mesaId, opts = {}) => set(state => {
+    const { metodo = 'efectivo', cobradoPor = null } = opts
+    const mesas = state.mesas.map(m => m.id !== mesaId ? m : {
+      ...m,
+      personas: m.personas.map(p => p.pagado ? p : { ...p, pagado: true, metodoPago: metodo, cobradoPor }),
+    })
+    const mesa = mesas.find(m => m.id === mesaId)
+    const rec = snapshotMesa(mesa)
+    return {
+      mesas: mesas.map(m => m.id !== mesaId ? m : {
+        ...m, estado: 'libre', personas: [], abiertaDesde: null, camarero: null, reserva: null,
+      }),
+      pedidosCocina: state.pedidosCocina.filter(p => p.mesaId !== mesaId),
+      pedidosBarra: state.pedidosBarra.filter(p => p.mesaId !== mesaId),
+      avisos: state.avisos.filter(a => a.mesaId !== mesaId),
+      historial: rec ? [...state.historial, rec] : state.historial,
+    }
+  }),
+
   // Compartir un plato entre comensales (se identifica por uid de la línea).
   toggleCompartir: (mesaId, ownerId, uid, sharerId) => set(state => ({
     mesas: state.mesas.map(m => m.id !== mesaId ? m : {
@@ -401,6 +445,112 @@ export const useStore = create(persist((set, get) => ({
       }),
     }),
   })),
+
+  // ── RESERVAS DE MESA ───────────────────────────────────
+  // Marca una mesa libre como reservada (nombre, hora y nº de personas).
+  reservarMesa: (mesaId, datos) => set(state => ({
+    mesas: state.mesas.map(m => (m.id === mesaId && m.estado === 'libre') ? {
+      ...m,
+      estado: 'reservada',
+      reserva: {
+        nombre: (datos.nombre || '').trim() || 'Reserva',
+        hora: datos.hora || '',
+        personas: Math.max(1, Number(datos.personas) || 2),
+        telefono: (datos.telefono || '').trim(),
+        creada: new Date().toISOString(),
+      },
+    } : m),
+  })),
+
+  cancelarReserva: (mesaId) => set(state => ({
+    mesas: state.mesas.map(m => m.id !== mesaId ? m : { ...m, estado: 'libre', reserva: null }),
+  })),
+
+  // Sienta la reserva: abre la mesa con el primer comensal y limpia la reserva.
+  sentarReserva: (mesaId, nombre) => {
+    set(state => ({ mesas: state.mesas.map(m => m.id !== mesaId ? m : { ...m, estado: 'libre', reserva: null }) }))
+    return get().unirseAMesa(mesaId, nombre)
+  },
+
+  // ── AGENDA DE RESERVAS (online) ────────────────────────
+  // Crea una reserva del cliente (queda confirmada al instante).
+  crearReserva: (datos) => {
+    const id = `rv${Date.now()}`
+    set(state => ({
+      reservas: [...state.reservas, {
+        id,
+        fecha: datos.fecha,                 // 'YYYY-MM-DD'
+        hora: datos.hora || '',             // 'HH:MM'
+        personas: Math.max(1, Number(datos.personas) || 2),
+        nombre: (datos.nombre || '').trim() || 'Cliente',
+        telefono: (datos.telefono || '').trim(),
+        zona: datos.zona || '',             // preferencia; '' = sin preferencia
+        notas: (datos.notas || '').trim(),
+        estado: 'confirmada',               // confirmada | sentada | cancelada | no_show
+        mesaId: null,
+        creada: new Date().toISOString(),
+      }],
+    }))
+    return id
+  },
+
+  // Asigna (o reasigna) una mesa a la reserva y la marca como 'reservada'.
+  asignarReservaMesa: (id, mesaId) => set(state => {
+    const r = state.reservas.find(x => x.id === id)
+    if (!r) return {}
+    return {
+      reservas: state.reservas.map(x => x.id === id ? { ...x, mesaId } : x),
+      mesas: state.mesas.map(m => {
+        if (m.id === r.mesaId && m.id !== mesaId && m.estado === 'reservada') return { ...m, estado: 'libre', reserva: null }
+        if (m.id === mesaId && m.estado === 'libre') return { ...m, estado: 'reservada', reserva: { nombre: r.nombre, hora: r.hora, personas: r.personas, telefono: r.telefono, reservaId: r.id } }
+        return m
+      }),
+    }
+  }),
+
+  // Sienta la reserva: abre su mesa asignada y la marca 'sentada'.
+  sentarReservaAgenda: (id) => {
+    const r = get().reservas.find(x => x.id === id)
+    if (!r || !r.mesaId) return null
+    set(state => ({ mesas: state.mesas.map(m => m.id !== r.mesaId ? m : { ...m, estado: 'libre', reserva: null }) }))
+    const pid = get().unirseAMesa(r.mesaId, r.nombre)
+    set(state => ({ reservas: state.reservas.map(x => x.id === id ? { ...x, estado: 'sentada' } : x) }))
+    return pid
+  },
+
+  // Cancela / marca no-show: libera la mesa si la tenía reservada.
+  cambiarEstadoReserva: (id, estado) => set(state => {
+    const r = state.reservas.find(x => x.id === id)
+    return {
+      reservas: state.reservas.map(x => x.id === id ? { ...x, estado } : x),
+      mesas: state.mesas.map(m => (r && m.id === r.mesaId && m.estado === 'reservada') ? { ...m, estado: 'libre', reserva: null } : m),
+    }
+  }),
+
+  // ── CIERRE DE CAJA (arqueo Z) ──────────────────────────
+  // Cierra la caja desde el último cierre hasta ahora: agrega ventas, propinas
+  // y desglose por método. `contado` (efectivo real en cajón) calcula descuadre.
+  cerrarCaja: (contado) => set(state => {
+    const desde = state.cierres.length ? state.cierres[state.cierres.length - 1].hasta : null
+    const tickets = state.historial.filter(r => !desde || new Date(r.cerradaEn) > new Date(desde))
+    const total = tickets.reduce((s, r) => s + r.total, 0)
+    const propinas = tickets.reduce((s, r) => s + (r.propina || 0), 0)
+    const pagos = {}
+    tickets.forEach(r => Object.entries(r.pagos || {}).forEach(([k, v]) => { pagos[k] = (pagos[k] || 0) + v }))
+    const cont = contado === '' || contado == null ? null : Number(contado) || 0
+    const descuadre = cont == null ? null : cont - (pagos.efectivo || 0)
+    return {
+      cierres: [...state.cierres, {
+        id: `z${Date.now()}`,
+        desde,
+        hasta: new Date().toISOString(),
+        total, propinas, pagos,
+        nTickets: tickets.length,
+        contado: cont,
+        descuadre,
+      }],
+    }
+  }),
 
   // ── GESTIÓN DE SALA (admin) ────────────────────────────
   addMesa: () => set(state => {
@@ -499,7 +649,7 @@ export const useStore = create(persist((set, get) => ({
   },
 }), {
   name: 'tpv-hosteleria',
-  version: 5,
+  version: 6,
   migrate: () => undefined, // si cambia el formato de carta, descarta lo viejo y usa el por defecto
   partialize: (state) => ({
     carta: state.carta,
@@ -508,6 +658,8 @@ export const useStore = create(persist((set, get) => ({
     pedidosBarra: state.pedidosBarra,
     avisos: state.avisos,
     historial: state.historial,
+    cierres: state.cierres,
+    reservas: state.reservas,
   }),
 }))
 
@@ -516,7 +668,16 @@ function snapshotMesa(mesa) {
   if (!mesa || !mesa.personas?.some(p => p.items.length)) return null
   const total = mesa.personas.reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0)
   const propina = mesa.personas.reduce((s, p) => s + (p.propina || 0), 0)
-  return { id: `t${Date.now()}-${mesa.numero}`, mesaNumero: mesa.numero, cerradaEn: new Date().toISOString(), total, propina, personas: mesa.personas, camarero: mesa.camarero || null }
+  // Desglose del total por método de pago (lo no cobrado se marca 'sincobrar')
+  const pagos = {}
+  mesa.personas.forEach(p => {
+    const sub = p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0)
+    if (sub <= 0) return
+    const m = p.pagado ? (p.metodoPago || 'efectivo') : 'sincobrar'
+    pagos[m] = (pagos[m] || 0) + sub
+  })
+  const cobradoPor = mesa.personas.find(p => p.cobradoPor)?.cobradoPor || mesa.camarero || null
+  return { id: `t${Date.now()}-${mesa.numero}`, mesaNumero: mesa.numero, cerradaEn: new Date().toISOString(), total, propina, pagos, personas: mesa.personas, camarero: mesa.camarero || null, cobradoPor }
 }
 
 // Lo que debe cada comensal, repartiendo a partes iguales los platos compartidos.

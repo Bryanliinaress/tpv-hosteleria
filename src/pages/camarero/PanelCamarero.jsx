@@ -1,21 +1,30 @@
 import { useState } from 'react'
 import { useStore, owedPorPersona } from '../../store/useStore'
 import Ticket from '../../components/Ticket'
+import MetodoPago from '../../components/MetodoPago'
+import ReservasManager from '../../components/ReservasManager'
 
 const ESTADO = {
   libre: { label: 'Libre', color: '#10b981', bg: '#052e16' },
   ocupada: { label: 'Ocupada', color: '#f59e0b', bg: '#2d1900' },
   esperando_cobro: { label: 'Pide cuenta', color: '#f43f5e', bg: '#2d0a14' },
+  reservada: { label: 'Reservada', color: '#3b82f6', bg: '#0c1e3a' },
 }
 
 export default function PanelCamarero() {
-  const { mesas, carta, pedidosCocina, pedidosBarra, avisos, historial, liberarMesa, confirmarPedido, atenderAviso, pagarParte } = useStore()
+  const { mesas, carta, pedidosCocina, pedidosBarra, avisos, historial, reservas, liberarMesa, confirmarPedido, atenderAviso, pagarParte, cobrarMesa, reservarMesa, cancelarReserva, sentarReserva } = useStore()
   const [mesaSeleccionada, setMesaSeleccionada] = useState(null)
   const [ticket, setTicket] = useState(null) // { tipo, persona, mesa? }
   const [verHistorial, setVerHistorial] = useState(false)
+  const [verReservas, setVerReservas] = useState(false)
+  const [cobro, setCobro] = useState(null) // { tipo:'persona'|'mesa', personaId?, importe }
+  const [reservando, setReservando] = useState(false)
+  const [reservaForm, setReservaForm] = useState({ nombre: '', hora: '', personas: 2 })
 
   const hoy = new Date().toDateString()
   const cerradasHoy = historial.filter(r => new Date(r.cerradaEn).toDateString() === hoy).slice().reverse()
+  const hoyISO = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
+  const reservasHoyN = reservas.filter(r => r.fecha === hoyISO && r.estado === 'confirmada').length
 
   const mesa = mesas.find(m => m.id === mesaSeleccionada)
   const owed = mesa && mesa.estado !== 'libre' ? owedPorPersona(mesa) : {}
@@ -34,6 +43,9 @@ export default function PanelCamarero() {
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           {totalCocina > 0 && <div style={{ background: '#052e16', color: '#10b981', borderRadius: '0.5rem', padding: '0.375rem 0.75rem', fontSize: '0.8rem', fontWeight: 700 }}>🍳 {totalCocina} listo(s)</div>}
           {totalBarra > 0 && <div style={{ background: '#2d0a14', color: '#f43f5e', borderRadius: '0.5rem', padding: '0.375rem 0.75rem', fontSize: '0.8rem', fontWeight: 700 }}>🍺 {totalBarra} listo(s)</div>}
+          <button onClick={() => setVerReservas(true)} style={{ background: reservasHoyN ? '#0c1e3a' : '#1e293b', color: reservasHoyN ? '#60a5fa' : 'var(--color-text)', border: `1px solid ${reservasHoyN ? '#3b82f6' : 'var(--color-border)'}`, borderRadius: '0.5rem', padding: '0.45rem 0.85rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
+            📅 Reservas{reservasHoyN > 0 ? ` (${reservasHoyN})` : ''}
+          </button>
           <button onClick={() => setVerHistorial(true)} style={{ background: '#1e293b', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.45rem 0.85rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
             🧾 Cerradas hoy{cerradasHoy.length > 0 ? ` (${cerradasHoy.length})` : ''}
           </button>
@@ -66,7 +78,7 @@ export default function PanelCamarero() {
               return (
                 <button
                   key={m.id}
-                  onClick={() => setMesaSeleccionada(mesaSeleccionada === m.id ? null : m.id)}
+                  onClick={() => { setReservando(false); setMesaSeleccionada(mesaSeleccionada === m.id ? null : m.id) }}
                   style={{
                     background: mesaSeleccionada === m.id ? est.bg : 'var(--color-surface)',
                     border: `2px solid ${mesaSeleccionada === m.id ? est.color : m.estado === 'libre' ? 'var(--color-border)' : est.color + '66'}`,
@@ -108,8 +120,39 @@ export default function PanelCamarero() {
               <button onClick={() => setMesaSeleccionada(null)} style={btn('#1e293b')}>✕</button>
             </div>
 
-            {mesa.estado === 'libre' ? (
-              <p style={{ color: 'var(--color-muted)', fontSize: '0.875rem' }}>Mesa libre — sin pedidos</p>
+            {mesa.estado === 'reservada' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ background: '#0c1e3a', border: '1px solid #3b82f6', borderRadius: '0.625rem', padding: '0.875rem' }}>
+                  <div style={{ fontWeight: 800, color: '#60a5fa', marginBottom: '0.35rem' }}>📅 Reservada</div>
+                  <div style={{ fontSize: '0.9rem' }}>{mesa.reserva?.nombre}</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>
+                    {mesa.reserva?.hora && `🕐 ${mesa.reserva.hora} · `}{mesa.reserva?.personas} pers.
+                    {mesa.reserva?.telefono && ` · ☎ ${mesa.reserva.telefono}`}
+                  </div>
+                </div>
+                <button onClick={() => { sentarReserva(mesa.id, mesa.reserva?.nombre || '') }} style={btn('#10b981', { width: '100%' })}>▶ Sentar (abrir mesa)</button>
+                <button onClick={() => cancelarReserva(mesa.id)} style={btn('#334155', { width: '100%', fontSize: '0.8rem' })}>Cancelar reserva</button>
+              </div>
+            ) : mesa.estado === 'libre' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <p style={{ color: 'var(--color-muted)', fontSize: '0.875rem' }}>Mesa libre — sin pedidos</p>
+                {!reservando ? (
+                  <button onClick={() => { setReservaForm({ nombre: '', hora: '', personas: mesa.capacidad }); setReservando(true) }} style={btn('#3b82f6', { width: '100%' })}>📅 Reservar mesa</button>
+                ) : (
+                  <div style={{ background: '#0f172a', borderRadius: '0.625rem', padding: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', border: '1px solid #3b82f6' }}>
+                    <div style={{ fontWeight: 700, color: '#60a5fa', fontSize: '0.9rem' }}>Nueva reserva</div>
+                    <input value={reservaForm.nombre} onChange={e => setReservaForm(s => ({ ...s, nombre: e.target.value }))} placeholder="Nombre" style={inp} autoFocus />
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <input value={reservaForm.hora} onChange={e => setReservaForm(s => ({ ...s, hora: e.target.value }))} type="time" style={{ ...inp, flex: 1 }} />
+                      <input value={reservaForm.personas} onChange={e => setReservaForm(s => ({ ...s, personas: e.target.value }))} type="number" min="1" placeholder="Pers." style={{ ...inp, width: '80px' }} />
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button onClick={() => setReservando(false)} style={btn('#334155', { flex: 1, fontSize: '0.8rem' })}>Cancelar</button>
+                      <button onClick={() => { reservarMesa(mesa.id, reservaForm); setReservando(false) }} disabled={!reservaForm.nombre.trim()} style={btn(reservaForm.nombre.trim() ? '#3b82f6' : '#334155', { flex: 1, fontSize: '0.8rem' })}>Guardar</button>
+                    </div>
+                  </div>
+                )}
+              </div>
             ) : (
               <>
                 {/* Pedidos por persona */}
@@ -138,7 +181,7 @@ export default function PanelCamarero() {
                         <div style={{ display: 'flex', gap: '0.4rem' }}>
                           <button onClick={() => setTicket({ tipo: 'persona', persona: p })} title="Ticket de este cliente" style={btn('#1e293b', { fontSize: '0.78rem', padding: '0.35rem 0.6rem' })}>🧾</button>
                           {!p.pagado && (
-                            <button onClick={() => pagarParte(mesa.id, p.id)} style={btn('#10b981', { fontSize: '0.78rem', padding: '0.35rem 0.75rem' })}>Cobrar</button>
+                            <button onClick={() => setCobro({ tipo: 'persona', personaId: p.id, importe: aPagar })} style={btn('#10b981', { fontSize: '0.78rem', padding: '0.35rem 0.75rem' })}>Cobrar</button>
                           )}
                         </div>
                       </div>
@@ -172,9 +215,9 @@ export default function PanelCamarero() {
 
                 {/* Acciones */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {mesa.estado === 'esperando_cobro' && (
-                    <button onClick={() => liberarMesa(mesa.id)} style={btn('#10b981', { width: '100%' })}>
-                      ✅ Cobrado — liberar mesa
+                  {mesa.personas.some(p => !p.pagado) && (
+                    <button onClick={() => setCobro({ tipo: 'mesa', importe: mesa.personas.filter(p => !p.pagado).reduce((s, p) => s + (owed[p.id] || 0), 0) })} style={btn('#10b981', { width: '100%' })}>
+                      💶 Cobrar mesa — elegir método
                     </button>
                   )}
                   <button onClick={() => liberarMesa(mesa.id)} style={btn('#334155', { width: '100%', fontSize: '0.8rem' })}>
@@ -189,6 +232,31 @@ export default function PanelCamarero() {
 
       {ticket && (ticket.mesa || mesa) && (
         <Ticket tipo={ticket.tipo} mesa={ticket.mesa || mesa} persona={ticket.persona} onClose={() => setTicket(null)} />
+      )}
+
+      {cobro && mesa && (
+        <MetodoPago
+          titulo={cobro.tipo === 'mesa' ? `Cobrar Mesa ${mesa.numero}` : 'Cobrar cliente'}
+          importe={cobro.importe}
+          onCerrar={() => setCobro(null)}
+          onElegir={(metodo) => {
+            if (cobro.tipo === 'mesa') cobrarMesa(mesa.id, { metodo, cobradoPor: 'Mostrador' })
+            else pagarParte(mesa.id, cobro.personaId, { metodo, cobradoPor: 'Mostrador' })
+            setCobro(null)
+          }}
+        />
+      )}
+
+      {verReservas && (
+        <div onClick={() => setVerReservas(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'flex-end', zIndex: 90 }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '420px', maxWidth: '94vw', background: 'var(--color-surface)', height: '100%', overflowY: 'auto', padding: '1.25rem', borderLeft: '1px solid var(--color-border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h2 style={{ fontWeight: 800, fontSize: '1.1rem' }}>📅 Reservas</h2>
+              <button onClick={() => setVerReservas(false)} style={btn('#1e293b')}>✕</button>
+            </div>
+            <ReservasManager onSentada={(mesaId) => { setVerReservas(false); if (mesaId) setMesaSeleccionada(mesaId) }} />
+          </div>
+        </div>
       )}
 
       {verHistorial && (
@@ -230,3 +298,5 @@ const btn = (bg, extra = {}) => ({
   fontSize: '0.875rem',
   ...extra,
 })
+
+const inp = { background: '#0f172a', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.7rem', color: 'var(--color-text)', fontSize: '0.85rem', width: '100%' }
