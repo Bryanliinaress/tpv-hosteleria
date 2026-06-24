@@ -1,13 +1,16 @@
 import { useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
-import { useStore } from '../../store/useStore'
+import { useStore, METODO_LABEL, METODO_EMOJI } from '../../store/useStore'
 import Ticket from '../../components/Ticket'
+import ReservasManager from '../../components/ReservasManager'
 
 const emptyForm = { nombre: '', precioPitufo: '', precioViena: '', categoria: '', descripcion: '' }
 const precioDesde = (prod) => Math.min(prod.precios?.pitufo ?? 0, prod.precios?.viena ?? 0)
 
 export default function PanelAdmin() {
-  const { carta, mesas, historial, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, addCategoria, removeCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan } = useStore()
+  const { carta, mesas, historial, cierres, reservas, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, addCategoria, removeCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan } = useStore()
+  const hoyStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
+  const reservasHoy = reservas.filter(r => r.fecha === hoyStr && r.estado === 'confirmada').length
   const [tab, setTab] = useState('carta')
   const [editando, setEditando] = useState(null) // productoId en edición
   const [form, setForm] = useState(emptyForm)
@@ -15,6 +18,7 @@ export default function PanelAdmin() {
   const [nuevaCat, setNuevaCat] = useState({ nombre: '', tipo: 'comida' })
   const [nuevoExtra, setNuevoExtra] = useState('')
   const [nuevoPan, setNuevoPan] = useState({ nombre: '', sup: '' })
+  const [contado, setContado] = useState('')
 
   // Tickets del mes en curso, agrupados por día (más reciente primero)
   const ahora = new Date()
@@ -29,6 +33,25 @@ export default function PanelAdmin() {
     s + m.personas.reduce((ss, p) =>
       ss + p.items.reduce((sss, i) => sss + i.precio * i.cantidad, 0), 0), 0)
   const mesasOcupadas = mesas.filter(m => m.estado !== 'libre').length
+
+  // ── Arqueo de caja: tickets desde el último cierre ──
+  const ultimoCierre = cierres.length ? cierres[cierres.length - 1] : null
+  const desdeCaja = ultimoCierre?.hasta || null
+  const ticketsCaja = historial.filter(r => !desdeCaja || new Date(r.cerradaEn) > new Date(desdeCaja))
+  const cajaTotal = ticketsCaja.reduce((s, r) => s + r.total, 0)
+  const cajaPropinas = ticketsCaja.reduce((s, r) => s + (r.propina || 0), 0)
+  const cajaPagos = {}
+  ticketsCaja.forEach(r => Object.entries(r.pagos || {}).forEach(([k, v]) => { cajaPagos[k] = (cajaPagos[k] || 0) + v }))
+  const cajaPorCamarero = {}
+  ticketsCaja.forEach(r => { const c = r.cobradoPor || r.camarero || '—'; cajaPorCamarero[c] = (cajaPorCamarero[c] || 0) + r.total })
+  const efectivoEsperado = cajaPagos.efectivo || 0
+  const descuadre = contado === '' ? null : (Number(contado) || 0) - efectivoEsperado
+  const hacerCierre = () => {
+    if (ticketsCaja.length === 0) return
+    if (!confirm(`¿Cerrar caja con ${ticketsCaja.length} ticket(s) y ${cajaTotal.toFixed(2)} €?`)) return
+    cerrarCaja(contado)
+    setContado('')
+  }
 
   const empezarNuevo = (categoriaId) => {
     setEditando('nuevo')
@@ -79,6 +102,8 @@ export default function PanelAdmin() {
         {[
           { id: 'carta', label: '📋 Carta' },
           { id: 'mesas', label: '🍽 Mesas' },
+          { id: 'reservas', label: `📅 Reservas${reservasHoy ? ` (${reservasHoy})` : ''}` },
+          { id: 'caja', label: '💰 Caja' },
           { id: 'ajustes', label: '⚙️ Ajustes' },
           { id: 'tickets', label: '🧾 Tickets' },
           { id: 'qr', label: '📱 QR Codes' },
@@ -174,6 +199,107 @@ export default function PanelAdmin() {
             <datalist id="zonas-list">
               {[...new Set(mesas.map(m => m.zona).filter(Boolean))].map(z => <option key={z} value={z} />)}
             </datalist>
+          </div>
+        )}
+
+        {/* Tab Reservas (agenda) */}
+        {tab === 'reservas' && (
+          <div style={{ maxWidth: '640px' }}>
+            <p style={{ color: 'var(--color-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+              Reservas online de los clientes. Asigna una mesa y siéntalos cuando lleguen. Las reservas entran desde la página pública <code style={{ color: '#60a5fa' }}>/reservar</code>.
+            </p>
+            <ReservasManager />
+          </div>
+        )}
+
+        {/* Tab Caja (arqueo / cierre) */}
+        {tab === 'caja' && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem', alignItems: 'start' }}>
+            {/* Arqueo de la caja abierta */}
+            <div style={ajusteCard}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.75rem' }}>
+                <h3 style={ajusteTitulo}>Caja abierta</h3>
+                <span style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>
+                  desde {ultimoCierre ? new Date(ultimoCierre.hasta).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : 'el inicio'}
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.625rem', marginBottom: '1rem' }}>
+                <div style={{ background: '#0f172a', borderRadius: '0.625rem', padding: '0.75rem' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Ventas</div>
+                  <div style={{ fontWeight: 800, fontSize: '1.3rem', color: '#f97316' }}>{cajaTotal.toFixed(2)} €</div>
+                </div>
+                <div style={{ background: '#0f172a', borderRadius: '0.625rem', padding: '0.75rem' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Tickets</div>
+                  <div style={{ fontWeight: 800, fontSize: '1.3rem', color: '#3b82f6' }}>{ticketsCaja.length}</div>
+                </div>
+                <div style={{ background: '#0f172a', borderRadius: '0.625rem', padding: '0.75rem' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Propinas</div>
+                  <div style={{ fontWeight: 800, fontSize: '1.3rem', color: '#10b981' }}>{cajaPropinas.toFixed(2)} €</div>
+                </div>
+                <div style={{ background: '#0f172a', borderRadius: '0.625rem', padding: '0.75rem' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Ticket medio</div>
+                  <div style={{ fontWeight: 800, fontSize: '1.3rem', color: '#8b5cf6' }}>{(ticketsCaja.length ? cajaTotal / ticketsCaja.length : 0).toFixed(2)} €</div>
+                </div>
+              </div>
+
+              <h4 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--color-muted)' }}>Desglose por método</h4>
+              {['efectivo', 'tarjeta', 'bizum', 'sincobrar'].filter(k => cajaPagos[k]).length === 0
+                ? <p style={{ fontSize: '0.82rem', color: 'var(--color-muted)' }}>Sin cobros todavía.</p>
+                : ['efectivo', 'tarjeta', 'bizum', 'sincobrar'].filter(k => cajaPagos[k]).map(k => (
+                  <div key={k} style={ajusteFila}>
+                    <span>{METODO_EMOJI[k]} {METODO_LABEL[k]}</span>
+                    <strong>{cajaPagos[k].toFixed(2)} €</strong>
+                  </div>
+                ))}
+
+              <h4 style={{ fontSize: '0.85rem', fontWeight: 700, margin: '1rem 0 0.5rem', color: 'var(--color-muted)' }}>Por camarero</h4>
+              {Object.keys(cajaPorCamarero).length === 0
+                ? <p style={{ fontSize: '0.82rem', color: 'var(--color-muted)' }}>—</p>
+                : Object.entries(cajaPorCamarero).sort((a, b) => b[1] - a[1]).map(([c, v]) => (
+                  <div key={c} style={ajusteFila}>
+                    <span>👤 {c}</span><strong>{v.toFixed(2)} €</strong>
+                  </div>
+                ))}
+            </div>
+
+            {/* Cierre de caja (Z) */}
+            <div style={ajusteCard}>
+              <h3 style={ajusteTitulo}>Cerrar caja (Z)</h3>
+              <p style={{ fontSize: '0.82rem', color: 'var(--color-muted)', marginBottom: '0.75rem' }}>
+                Cuenta el efectivo del cajón y ciérrala. Quedará registrado el arqueo y empezará una caja nueva.
+              </p>
+              <label style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Efectivo contado (opcional)</label>
+              <input value={contado} onChange={e => setContado(e.target.value)} inputMode="decimal" placeholder="€ en el cajón" style={{ ...inputStyle, marginTop: '0.25rem', marginBottom: '0.5rem' }} />
+              <div style={ajusteFila}><span>Efectivo esperado</span><strong>{efectivoEsperado.toFixed(2)} €</strong></div>
+              {descuadre != null && (
+                <div style={{ ...ajusteFila, color: Math.abs(descuadre) < 0.005 ? '#10b981' : '#f43f5e' }}>
+                  <span>Descuadre</span><strong>{descuadre >= 0 ? '+' : ''}{descuadre.toFixed(2)} €</strong>
+                </div>
+              )}
+              <button onClick={hacerCierre} disabled={ticketsCaja.length === 0} style={{ width: '100%', marginTop: '0.875rem', background: ticketsCaja.length ? '#f97316' : '#334155', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.8rem', cursor: ticketsCaja.length ? 'pointer' : 'not-allowed', fontWeight: 700 }}>
+                🔒 Cerrar caja
+              </button>
+
+              {cierres.length > 0 && (
+                <>
+                  <h4 style={{ fontSize: '0.85rem', fontWeight: 700, margin: '1.25rem 0 0.5rem', color: 'var(--color-muted)' }}>Cierres anteriores</h4>
+                  {cierres.slice().reverse().map(z => (
+                    <div key={z.id} style={{ background: '#0f172a', borderRadius: '0.5rem', padding: '0.6rem 0.75rem', marginBottom: '0.4rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '0.85rem' }}>
+                        <span>{new Date(z.hasta).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                        <span style={{ color: '#f97316' }}>{z.total.toFixed(2)} €</span>
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>
+                        {z.nTickets} ticket(s)
+                        {['efectivo', 'tarjeta', 'bizum'].filter(k => z.pagos?.[k]).map(k => ` · ${METODO_EMOJI[k]} ${z.pagos[k].toFixed(2)}`).join('')}
+                        {z.descuadre != null && Math.abs(z.descuadre) >= 0.005 && <span style={{ color: '#f43f5e' }}> · descuadre {z.descuadre >= 0 ? '+' : ''}{z.descuadre.toFixed(2)} €</span>}
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
           </div>
         )}
 

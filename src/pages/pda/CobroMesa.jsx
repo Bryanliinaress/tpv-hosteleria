@@ -1,14 +1,15 @@
 import { useState } from 'react'
-import { owedPorPersona } from '../../store/useStore'
+import { owedPorPersona, METODOS_PAGO } from '../../store/useStore'
 
-// Cobro de la mesa desde la PDA: descuento/invitación, dividir a partes
-// iguales y cálculo de cambio en efectivo. Al cobrar, cierra la mesa.
+// Cobro de la mesa desde la PDA: método de pago, descuento/invitación, dividir
+// a partes iguales y cálculo de cambio en efectivo. Al cobrar, cierra la mesa.
 export default function CobroMesa({ mesa, onCobrar, onCerrar }) {
   const owed = owedPorPersona(mesa)
   const totalBruto = mesa.personas.filter(p => !p.pagado).reduce((s, p) => s + owed[p.id], 0)
   const [dtoPct, setDtoPct] = useState(0)
   const [n, setN] = useState(mesa.personas.length || 1)
   const [efectivo, setEfectivo] = useState('')
+  const [metodo, setMetodo] = useState('efectivo')
 
   const descuento = totalBruto * dtoPct / 100
   const aCobrar = Math.max(0, totalBruto - descuento)
@@ -40,6 +41,14 @@ export default function CobroMesa({ mesa, onCobrar, onCerrar }) {
           <span>A cobrar</span><span style={{ color: '#f97316' }}>{aCobrar.toFixed(2)} €</span>
         </div>
 
+        {/* Método de pago */}
+        <p style={lbl}>Método de pago</p>
+        <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.7rem' }}>
+          {METODOS_PAGO.map(m => (
+            <button key={m.id} onClick={() => setMetodo(m.id)} style={btn(metodo === m.id ? '#10b981' : '#334155', { flex: 1, fontSize: '0.82rem', padding: '0.55rem 0.4rem' })}>{m.emoji} {m.label}</button>
+          ))}
+        </div>
+
         {/* Dividir a partes iguales */}
         <p style={lbl}>Dividir a partes iguales</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.7rem' }}>
@@ -49,19 +58,23 @@ export default function CobroMesa({ mesa, onCobrar, onCerrar }) {
           <span style={{ marginLeft: 'auto', fontSize: '0.9rem' }}><strong style={{ color: '#f97316' }}>{porPersona.toFixed(2)} €</strong> / persona</span>
         </div>
 
-        {/* Efectivo y cambio */}
-        <p style={lbl}>Pago en efectivo</p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem' }}>
-          <input value={efectivo} onChange={e => setEfectivo(e.target.value)} inputMode="decimal" placeholder="Pagan con… €" style={{ flex: 1, background: '#0f172a', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.6rem 0.8rem', color: 'var(--color-text)', fontSize: '0.95rem' }} />
-          {[10, 20, 50].map(b => <button key={b} onClick={() => setEfectivo(String(b))} style={btn('#1e293b', { fontSize: '0.78rem', padding: '0.4rem 0.5rem' })}>{b}</button>)}
-        </div>
-        {dado > 0 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, marginBottom: '0.8rem', color: cambio >= 0 ? '#10b981' : '#f43f5e' }}>
-            <span>Cambio</span><span>{cambio >= 0 ? cambio.toFixed(2) + ' €' : 'Falta ' + (-cambio).toFixed(2) + ' €'}</span>
-          </div>
+        {/* Efectivo y cambio (solo si se cobra en efectivo) */}
+        {metodo === 'efectivo' && (
+          <>
+            <p style={lbl}>Pago en efectivo</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem' }}>
+              <input value={efectivo} onChange={e => setEfectivo(e.target.value)} inputMode="decimal" placeholder="Pagan con… €" style={{ flex: 1, background: '#0f172a', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.6rem 0.8rem', color: 'var(--color-text)', fontSize: '0.95rem' }} />
+              {[10, 20, 50].map(b => <button key={b} onClick={() => setEfectivo(String(b))} style={btn('#1e293b', { fontSize: '0.78rem', padding: '0.4rem 0.5rem' })}>{b}</button>)}
+            </div>
+            {dado > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, marginBottom: '0.8rem', color: cambio >= 0 ? '#10b981' : '#f43f5e' }}>
+                <span>Cambio</span><span>{cambio >= 0 ? cambio.toFixed(2) + ' €' : 'Falta ' + (-cambio).toFixed(2) + ' €'}</span>
+              </div>
+            )}
+          </>
         )}
 
-        <button onClick={onCobrar} style={btn('#10b981', { width: '100%', padding: '0.85rem', fontSize: '1rem' })}>✓ Cobrado · cerrar mesa</button>
+        <button onClick={() => onCobrar(metodo)} style={btn('#10b981', { width: '100%', padding: '0.85rem', fontSize: '1rem' })}>✓ Cobrado · cerrar mesa</button>
       </div>
     </div>
   )
