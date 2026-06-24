@@ -1,61 +1,82 @@
 # TPV Hostelería
 
-Aplicación de TPV (Terminal Punto de Venta) para hostelería construida con **React + Vite + Zustand + Tailwind CSS**. Permite gestionar el flujo completo de un bar/restaurante con varias vistas según el rol.
+![version](https://img.shields.io/badge/version-0.2.0-blue)
+![license](https://img.shields.io/badge/license-Proprietary-red)
+![stack](https://img.shields.io/badge/React%2019-Vite-646cff)
+[![demo](https://img.shields.io/badge/demo-online-brightgreen)](https://bryanliinaress.github.io/tpv-hosteleria/)
 
-> Carta actual: **Casa Loli** con tres apartados — **Desayunos** (montaditos, personalizables con pan Pitufo/Viena + tipo de pan y condimentos), **Cafés** (Solo, Largo, Semilargo, Mitad, Entre corto, Corto, Sombra, Nube) y **Bebidas** típicas de bar. Cafés y bebidas son de precio único y van a la pantalla de Barra.
+**TPV (Terminal Punto de Venta) genérico para hostelería**, configurable para cualquier
+bar o restaurante. Cubre el flujo completo —carta, sala, comandas, cobro, caja y
+reservas— con una vista distinta por rol y **sincronización en tiempo real entre
+dispositivos**.
 
-## Roles / pantallas
+🔗 **Demo en vivo:** https://bryanliinaress.github.io/tpv-hosteleria/
+
+> Es una **demo**: usa la carta de ejemplo **"Casa Loli"** (desayunos/montaditos,
+> cafés y bebidas) solo como datos realistas de referencia. La carta, la sala y el
+> resto de ajustes son **editables** desde el Panel Admin para adaptarlo a cualquier local.
+
+---
+
+## ✨ Funcionalidades
+
+**Operativa de sala**
+- Carta y sala (mesas, zonas, capacidades) **editables y sincronizadas**.
+- Comandas a **cocina (KDS)** y **barra** con estados (recibido → preparando → listo).
+- Mover/juntar mesas y transferir comensales.
+- **Estación de impresión** automática de comandas (Chrome `--kiosk-printing`).
+
+**Cliente (QR por mesa)**
+- Se identifica por nombre; varios móviles = varios comensales en la misma cuenta.
+- Pide por persona, personaliza platos (quitar/añadir, notas), **divide platos** y
+  **paga su parte** con propina; seguimiento en vivo del estado de cada plato.
+
+**Cobro y caja** · *(v0.2.0)*
+- **Métodos de pago** al cobrar: efectivo / tarjeta / Bizum (por comensal o mesa entera).
+- **Cierre de caja / arqueo (Z)**: ventas del día, desglose por método y por camarero,
+  efectivo contado y **descuadre**.
+- Cada comanda y cobro queda **asociado al camarero** que lo hizo.
+
+**Reservas online** · *(v0.2.0)*
+- Página pública **`/reservar`** estilo CoverManager: día, hora, nº de personas y
+  **zona preferida**, con confirmación inmediata.
+- **Gestión** desde Admin y Camarero: asignar mesa, sentar, cancelar y no-show.
+
+**Pagos online** *(modo prueba)*
+- Pago con tarjeta/Bizum vía **Stripe Checkout** (Edge Function de Supabase).
+
+## 🗺️ Roles / pantallas
 
 | Ruta | Pantalla | Descripción |
 |------|----------|-------------|
-| `/` | Home | Selector de rol para acceder a cada pantalla |
-| `/mesa/:mesaId` | Carta Cliente | Vista del cliente (QR por mesa): carta, pedido por persona y cuenta |
-| `/camarero` | Panel Camarero | Estado de mesas, detalle de pedidos y cobro/cierre |
-| `/cocina` | Pantalla KDS Cocina | Cola de pedidos de comida con estados (recibido → preparando → listo) |
-| `/barra` | Pantalla Barra | Cola de pedidos de bebida con estados |
-| `/admin` | Panel Admin | Carta, mesas, QR codes y estadísticas básicas |
+| `/` | Home | Selector de rol |
+| `/mesa/:mesaId` | Carta Cliente | Vista del cliente (QR): carta, pedido por persona y cuenta |
+| `/camarero` | Panel Camarero | Mesas, cobro con método, reservas y cierre |
+| `/pda` | PDA Camarero | Móvil de mano: avisos, mesas, cobro y reservas |
+| `/cocina` | KDS Cocina | Cola de pedidos de comida |
+| `/barra` | KDS Barra | Cola de pedidos de bebida |
+| `/admin` | Panel Admin | Carta, mesas, **caja/arqueo**, **reservas**, tickets y QR |
+| `/print` | Estación de impresión | Imprime comandas automáticamente |
+| `/reservar` | Reservas (cliente) | Reserva online pública estilo CoverManager |
 
-El estado se mantiene en un store de **Zustand** (`src/store/useStore.js`) con **persistencia en `localStorage`** y, sobre todo, **sincronización en tiempo real multi-dispositivo vía Supabase**. Un pedido hecho en el móvil de un cliente aparece al instante en Cocina/Barra/Camarero en **cualquier otro dispositivo**.
+## 🧱 Stack
+
+- **React 19** + **Vite** + **React Router** (HashRouter)
+- **Zustand** (estado global, persistencia en `localStorage`)
+- **Tailwind CSS**
+- **Supabase** (sincronización en tiempo real vía Realtime)
+- **Stripe** (pago online, modo prueba)
+- Despliegue: **GitHub Pages** vía GitHub Actions
 
 ### Sincronización (Supabase)
-- El estado compartido (mesas + colas de cocina/barra) se guarda en una fila JSONB en Supabase y se propaga con **Realtime** (`src/lib/sync.js`).
-- Configuración por variables de entorno (`.env`, ver `.env.example`): `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`.
-- Si no hay credenciales, la app funciona en **modo local** (solo `localStorage`).
-- La identidad de cada comensal se guarda por dispositivo (no se comparte), así cada móvil es una persona distinta.
+- El estado compartido se guarda en una fila JSONB y se propaga con **Realtime**
+  (`src/lib/sync.js`). Un pedido hecho en un móvil aparece al instante en
+  cocina/barra/camarero en cualquier otro dispositivo.
+- Se configura por variables de entorno (`.env`, ver `.env.example`):
+  `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`.
+- Sin credenciales, la app funciona en **modo local** (solo `localStorage`).
 
-### Funciones del Panel Admin
-- **Carta editable:** añadir, editar, borrar productos y marcarlos como agotados/disponibles.
-- **QR Codes:** generación de códigos QR reales por mesa (`qrcode.react`) listos para imprimir.
-
-### Flujo del cliente
-- **Identificación por nombre:** cada cliente escanea el QR y entra con su nombre (un móvil por persona).
-- **Mesa compartida:** quien escanea el mismo QR se suma como comensal a la misma cuenta.
-- **Pedidos por nombre:** cada pedido queda registrado a la mesa + cliente; puedes pedir para otro comensal.
-- **Notas al pedido:** nota por plato (ej. "sin cebolla") que llega a cocina/barra.
-- **Dividir un plato:** reparte el coste de un plato a partes iguales entre los comensales elegidos.
-- **Pago por persona + propina:** cada uno paga su parte (con propina opcional); cuando la cuenta llega a 0, la mesa se reinicia sola. Se mantiene el cobro tradicional del camarero.
-- **Seguimiento en vivo:** el cliente ve el estado de cada plato (en cola → preparándose → ¡listo!) y recibe un aviso cuando está listo.
-- **Llamar al camarero:** botón 🔔 que avisa al Panel Camarero en tiempo real.
-- **Buscador de carta** y **resumen de confirmación** antes de enviar el pedido a cocina.
-
-## Estructura
-
-```
-src/
-  App.jsx            # Rutas (react-router-dom)
-  main.jsx           # Punto de entrada
-  index.css          # Variables de tema + Tailwind
-  store/useStore.js  # Estado global (carta, mesas, pedidos)
-  pages/
-    Home.jsx
-    cliente/CartaCliente.jsx
-    camarero/PanelCamarero.jsx
-    cocina/PantallaKDS.jsx
-    barra/PantallaBarra.jsx
-    admin/PanelAdmin.jsx
-```
-
-## Desarrollo
+## 🚀 Desarrollo
 
 ```bash
 npm install
@@ -65,27 +86,58 @@ npm run preview  # previsualiza el build
 npm run lint     # ESLint
 ```
 
-## Roadmap
+## 📁 Estructura
 
-- [x] Persistencia local (`localStorage`)
-- [x] Sincronización en vivo entre pantallas del mismo navegador
-- [x] Edición de carta en el Panel Admin
-- [x] Generación de QR reales por mesa
-- [x] Identificación del cliente por nombre y mesa compartida
-- [x] Notas al pedido, dividir platos y pago por persona con propina
-- [x] Backend (Supabase) para sincronización multi-dispositivo en tiempo real
-- [x] Despliegue público en GitHub Pages
-- [x] Pago online con Stripe (tarjeta/Bizum) vía Edge Function de Supabase
-- [ ] Webhook de Stripe para confirmar el pago de forma segura (en vez de en el retorno)
-- [ ] Sincronizar también la carta (admin) y bloquear escritura con RLS por rol
-- [ ] Autenticación de personal (roles)
+```
+src/
+  App.jsx               # Rutas
+  main.jsx              # Punto de entrada + arranque de la sincronización
+  store/useStore.js     # Estado global (carta, mesas, pedidos, caja, reservas)
+  lib/
+    sync.js             # Sincronización Supabase Realtime
+    pagos.js            # Pago online con Stripe
+  components/
+    Ticket.jsx          # Tickets imprimibles (comanda / cuenta)
+    MetodoPago.jsx      # Selector de método de pago
+    ReservasManager.jsx # Agenda y gestión de reservas
+  pages/
+    Home.jsx
+    cliente/CartaCliente.jsx
+    camarero/PanelCamarero.jsx
+    pda/PdaCamarero.jsx
+    cocina/PantallaKDS.jsx
+    barra/PantallaBarra.jsx
+    admin/PanelAdmin.jsx
+    print/PrintStation.jsx
+    reservar/Reservar.jsx
+```
 
-### Para la versión final (pendiente)
-- [ ] Mover el **historial de tickets** a su propia tabla en Supabase (con paginación), en vez de la fila de estado compartida
-- [ ] **Exportar/descargar** los tickets del mes (CSV / PDF)
-- [ ] **Filtrar por rango de fechas** en el historial de tickets
-- [ ] Login de camarero (ventas y propinas por camarero), juntar/mover mesas, PWA instalable con notificaciones push
+## 🌳 Ramas y versiones
 
-## Estado del proyecto
+Modelo **GitFlow** + **SemVer**:
 
-`v0.1.0` · En desarrollo.
+- `main` — producción (cada push despliega la demo).
+- `develop` — integración del trabajo en curso.
+- `feature/*` — funcionalidades nuevas (salen de `develop`).
+- `release/*` — cierre de versión.
+
+Las versiones se etiquetan (`v0.1.0`, `v0.2.0`, …) y se documentan en
+[CHANGELOG.md](CHANGELOG.md).
+
+## 🛣️ Roadmap
+
+- [x] Métodos de pago, arqueo de caja y atribución por camarero *(v0.2.0)*
+- [x] Reservas online estilo CoverManager *(v0.2.0)*
+- [ ] Identidad del local configurable (nombre, IVA, CIF, pie de ticket)
+- [ ] Modelo de carta genérico (variantes/modificadores para cualquier tipo de bar)
+- [ ] Multi-tenant real (un local por negocio) con backend y autenticación serios
+- [ ] Webhook de Stripe para confirmar el pago de forma segura
+
+## 📄 Licencia
+
+**Propietaria — todos los derechos reservados.** Ver [LICENSE](LICENSE).
+El código se publica con fines de demostración y portafolio; no se concede licencia de uso.
+
+---
+
+© 2026 Bryan Linares · `v0.2.0`
