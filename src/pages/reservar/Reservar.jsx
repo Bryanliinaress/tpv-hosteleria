@@ -12,8 +12,12 @@ const minDe = (hhmm) => { const [h, m] = hhmm.split(':').map(Number); return h *
 // Reserva online del cliente (estilo CoverManager): elige día y personas, y se
 // le ofrecen solo las horas realmente disponibles según horarios y aforo.
 export default function Reservar() {
-  const { mesas, reservas, reservasConfig: cfg, crearReserva } = useStore()
+  const { mesas, reservas, reservasConfig: cfg, crearReserva, cambiarEstadoReserva } = useStore()
   const zonas = [...new Set(mesas.map(m => m.zona).filter(Boolean))]
+
+  // Reservas hechas desde este dispositivo que siguen activas (para cancelar)
+  const misIds = (() => { try { return JSON.parse(localStorage.getItem('tpv-mis-reservas') || '[]') } catch { return [] } })()
+  const misReservas = reservas.filter(r => misIds.includes(r.id) && r.estado === 'confirmada' && r.fecha >= hoyLocal())
 
   const [form, setForm] = useState({ fecha: hoyLocal(), hora: '', personas: 2, zona: '', nombre: '', telefono: '', notas: '' })
   const [hecha, setHecha] = useState(null)
@@ -84,6 +88,18 @@ export default function Reservar() {
         <h1 style={{ fontWeight: 800, fontSize: '1.6rem' }}>Reservar mesa</h1>
         <p style={{ color: 'var(--color-muted)', fontSize: '0.9rem' }}>Elige día y personas, y te mostramos las horas libres.</p>
       </div>
+
+      {misReservas.length > 0 && (
+        <div style={{ ...card, marginBottom: '1rem', borderColor: '#3b82f6' }}>
+          <p style={{ ...lbl, marginTop: 0 }}>Tus reservas</p>
+          {misReservas.map(r => (
+            <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', padding: '0.35rem 0' }}>
+              <span style={{ fontSize: '0.88rem' }}>📅 {fechaBonita(r.fecha)} · 🕐 {r.hora} · 👥 {r.personas}</span>
+              <button onClick={() => { if (confirm('¿Cancelar esta reserva?')) cambiarEstadoReserva(r.id, 'cancelada') }} style={btn('#7f1d1d', { fontSize: '0.78rem', padding: '0.35rem 0.7rem' })}>Cancelar</button>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div style={card}>
         <p style={lbl}>Día</p>

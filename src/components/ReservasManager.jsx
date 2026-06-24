@@ -7,6 +7,14 @@ const hoyLocal = () => {
 }
 const fechaBonita = (f) => { const [y, m, d] = f.split('-'); return `${d}/${m}/${y}` }
 
+// Enlace de WhatsApp con un mensaje de confirmación/recordatorio prerrellenado.
+const waLink = (r) => {
+  const tel = (r.telefono || '').replace(/\D/g, '')
+  const num = tel.length === 9 ? '34' + tel : tel // asume España si son 9 dígitos
+  const msg = `Hola ${r.nombre}! Te confirmamos tu reserva para el ${fechaBonita(r.fecha)} a las ${r.hora}, ${r.personas} personas. ¡Te esperamos!`
+  return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`
+}
+
 const EST = {
   confirmada: { label: 'Confirmada', color: '#3b82f6' },
   sentada: { label: 'Sentada', color: '#10b981' },
@@ -101,6 +109,7 @@ export default function ReservasManager({ onSentada }) {
                         ))}
                       </select>
                       <button onClick={() => sentar(r.id)} disabled={!r.mesaId} title={r.mesaId ? '' : 'Asigna una mesa primero'} style={btn(r.mesaId ? '#10b981' : '#334155', { fontSize: '0.8rem', cursor: r.mesaId ? 'pointer' : 'not-allowed' })}>▶ Sentar</button>
+                      {r.telefono && <button onClick={() => window.open(waLink(r), '_blank')} title="Enviar confirmación por WhatsApp" style={btn('#16a34a', { fontSize: '0.8rem' })}>📲 WhatsApp</button>}
                       <button onClick={() => cambiarEstadoReserva(r.id, 'no_show')} style={btn('#7f1d1d', { fontSize: '0.8rem' })}>No-show</button>
                       <button onClick={() => cambiarEstadoReserva(r.id, 'cancelada')} style={btn('#334155', { fontSize: '0.8rem' })}>Cancelar</button>
                     </div>
