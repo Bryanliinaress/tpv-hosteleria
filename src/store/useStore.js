@@ -720,19 +720,27 @@ export function aforoTotal(config, mesas) {
   return mesas.reduce((s, m) => s + (Number(m.capacidad) || 0), 0)
 }
 
+// Aforo de una zona concreta (suma de plazas de sus mesas). Sin zona = aforo total.
+export function aforoZona(config, mesas, zona) {
+  if (!zona) return aforoTotal(config, mesas)
+  return mesas.filter(m => m.zona === zona).reduce((s, m) => s + (Number(m.capacidad) || 0), 0)
+}
+
 // Comensales ya reservados que solapan [hora, hora+duración) en una fecha.
-export function ocupacionEn(reservas, config, fecha, hora, excluirId) {
+// Si se indica `zona`, solo cuenta las reservas de esa zona.
+export function ocupacionEn(reservas, config, fecha, hora, zona, excluirId) {
   const dur = config.duracionMin
   const ini = minDe(hora), fin = ini + dur
   return reservas
     .filter(r => r.id !== excluirId && r.fecha === fecha && (r.estado === 'confirmada' || r.estado === 'sentada'))
+    .filter(r => !zona || r.zona === zona)
     .filter(r => { const ri = minDe(r.hora), rf = ri + dur; return ri < fin && rf > ini })
     .reduce((s, r) => s + (Number(r.personas) || 0), 0)
 }
 
-// ¿Caben `personas` en ese slot sin superar el aforo?
-export function slotDisponible(config, mesas, reservas, fecha, hora, personas, excluirId) {
-  return ocupacionEn(reservas, config, fecha, hora, excluirId) + Number(personas || 0) <= aforoTotal(config, mesas)
+// ¿Caben `personas` en ese slot sin superar el aforo (de la zona si se indica)?
+export function slotDisponible(config, mesas, reservas, fecha, hora, personas, zona, excluirId) {
+  return ocupacionEn(reservas, config, fecha, hora, zona, excluirId) + Number(personas || 0) <= aforoZona(config, mesas, zona)
 }
 
 // ¿El día (YYYY-MM-DD) está cerrado según la config?
