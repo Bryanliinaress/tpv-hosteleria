@@ -3,6 +3,7 @@ import { QRCodeSVG } from 'qrcode.react'
 import { useStore, METODO_LABEL, METODO_EMOJI } from '../../store/useStore'
 import Ticket from '../../components/Ticket'
 import ReservasManager from '../../components/ReservasManager'
+import ReservasConfig from '../../components/ReservasConfig'
 
 const emptyForm = { nombre: '', precioPitufo: '', precioViena: '', categoria: '', descripcion: '' }
 const precioDesde = (prod) => Math.min(prod.precios?.pitufo ?? 0, prod.precios?.viena ?? 0)
@@ -208,6 +209,7 @@ export default function PanelAdmin() {
             <p style={{ color: 'var(--color-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
               Reservas online de los clientes. Asigna una mesa y siéntalos cuando lleguen. Las reservas entran desde la página pública <code style={{ color: '#60a5fa' }}>/reservar</code>.
             </p>
+            <ReservasConfig />
             <ReservasManager />
           </div>
         )}

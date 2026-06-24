@@ -141,6 +141,19 @@ export const useStore = create(persist((set, get) => ({
   // 'reservada' de una mesa, que es el "bloqueo" puntual de una mesa concreta.
   reservas: [], // { id, fecha, hora, personas, nombre, telefono, zona, notas, estado, mesaId, creada }
 
+  // Configuración de disponibilidad de reservas (horarios, aforo, políticas).
+  reservasConfig: {
+    turnos: [
+      { id: 'comida', nombre: 'Comida', inicio: '13:00', fin: '16:00' },
+      { id: 'cena', nombre: 'Cena', inicio: '20:00', fin: '23:30' },
+    ],
+    intervaloMin: 30,        // minutos entre slots de reserva
+    duracionMin: 90,         // duración estimada que ocupa una reserva
+    aforo: null,             // nº máx de comensales simultáneos; null = suma de plazas de las mesas
+    maxPersonasOnline: 10,   // grupos mayores: deben llamar al local
+    diasCerrados: [],        // días de la semana cerrados (0=domingo … 6=sábado)
+  },
+
   // ── ACCIONES ───────────────────────────────────────────
   // Un cliente se une a la mesa por su nombre. Si la mesa está libre, la
   // abre (primer comensal). Si ya está ocupada, se suma como una persona más.
@@ -527,6 +540,11 @@ export const useStore = create(persist((set, get) => ({
     }
   }),
 
+  // Actualiza la configuración de disponibilidad de reservas.
+  updateReservasConfig: (cambios) => set(state => ({
+    reservasConfig: { ...state.reservasConfig, ...cambios },
+  })),
+
   // ── CIERRE DE CAJA (arqueo Z) ──────────────────────────
   // Cierra la caja desde el último cierre hasta ahora: agrega ventas, propinas
   // y desglose por método. `contado` (efectivo real en cajón) calcula descuadre.
@@ -660,6 +678,7 @@ export const useStore = create(persist((set, get) => ({
     historial: state.historial,
     cierres: state.cierres,
     reservas: state.reservas,
+    reservasConfig: state.reservasConfig,
   }),
 }))
 
@@ -678,6 +697,48 @@ function snapshotMesa(mesa) {
   })
   const cobradoPor = mesa.personas.find(p => p.cobradoPor)?.cobradoPor || mesa.camarero || null
   return { id: `t${Date.now()}-${mesa.numero}`, mesaNumero: mesa.numero, cerradaEn: new Date().toISOString(), total, propina, pagos, personas: mesa.personas, camarero: mesa.camarero || null, cobradoPor }
+}
+
+// ── DISPONIBILIDAD DE RESERVAS ───────────────────────────
+const minDe = (hhmm) => { const [h, m] = (hhmm || '0:0').split(':').map(Number); return h * 60 + m }
+const hhmmDe = (min) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`
+
+// Genera los slots de reserva de un día según los turnos + intervalo.
+export function generarSlots(config) {
+  const slots = []
+  ;(config.turnos || []).forEach(t => {
+    for (let m = minDe(t.inicio); m < minDe(t.fin); m += config.intervaloMin) {
+      slots.push({ turno: t.id, turnoNombre: t.nombre, hora: hhmmDe(m) })
+    }
+  })
+  return slots
+}
+
+// Aforo total (comensales simultáneos): el configurado o la suma de plazas.
+export function aforoTotal(config, mesas) {
+  if (config.aforo != null && config.aforo !== '') return Number(config.aforo) || 0
+  return mesas.reduce((s, m) => s + (Number(m.capacidad) || 0), 0)
+}
+
+// Comensales ya reservados que solapan [hora, hora+duración) en una fecha.
+export function ocupacionEn(reservas, config, fecha, hora, excluirId) {
+  const dur = config.duracionMin
+  const ini = minDe(hora), fin = ini + dur
+  return reservas
+    .filter(r => r.id !== excluirId && r.fecha === fecha && (r.estado === 'confirmada' || r.estado === 'sentada'))
+    .filter(r => { const ri = minDe(r.hora), rf = ri + dur; return ri < fin && rf > ini })
+    .reduce((s, r) => s + (Number(r.personas) || 0), 0)
+}
+
+// ¿Caben `personas` en ese slot sin superar el aforo?
+export function slotDisponible(config, mesas, reservas, fecha, hora, personas, excluirId) {
+  return ocupacionEn(reservas, config, fecha, hora, excluirId) + Number(personas || 0) <= aforoTotal(config, mesas)
+}
+
+// ¿El día (YYYY-MM-DD) está cerrado según la config?
+export function diaCerrado(config, fecha) {
+  const dia = new Date(fecha + 'T12:00:00').getDay() // 0=domingo … 6=sábado
+  return (config.diasCerrados || []).includes(dia)
 }
 
 // Lo que debe cada comensal, repartiendo a partes iguales los platos compartidos.
