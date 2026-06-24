@@ -5,6 +5,13 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.3.1] - 2026-06-24
+
+### Cambiado
+- **Formulario de reserva rediseñado** como asistente guiado en 4 pasos (personas → día → hora → datos): botones grandes, mínimo texto a escribir y pensado para cualquier edad/móvil.
+- Selector de día visual (Hoy/Mañana + próximos días, días cerrados deshabilitados) y horas por turno.
+- Resumen editable (toca para volver a un paso), indicador de progreso, enlace «añadir a mi calendario» y gestión compacta de «mis reservas».
+
 ## [0.3.0] - 2026-06-24
 
 ### Añadido
@@ -30,6 +37,7 @@ y el versionado sigue [SemVer](https://semver.org/lang/es/).
 - Tickets imprimibles (comanda, cuenta de mesa y por persona) y estación de impresión automática.
 - Pago online con Stripe (modo prueba).
 
+[0.3.1]: https://github.com/Bryanliinaress/tpv-hosteleria/releases/tag/v0.3.1
 [0.3.0]: https://github.com/Bryanliinaress/tpv-hosteleria/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Bryanliinaress/tpv-hosteleria/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Bryanliinaress/tpv-hosteleria/releases/tag/v0.1.0
