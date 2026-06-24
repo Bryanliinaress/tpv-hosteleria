@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useStore, owedPorPersona } from '../../store/useStore'
 import Ticket from '../../components/Ticket'
+import MetodoPago from '../../components/MetodoPago'
 import PedirPda from './PedirPda'
 import CobroMesa from './CobroMesa'
 
@@ -25,7 +26,7 @@ function haceCuanto(iso) {
 }
 
 export default function PdaCamarero() {
-  const { carta, mesas, pedidosCocina, pedidosBarra, avisos, historial, atenderAviso, pagarParte, liberarMesa, unirseAMesa, servirMesa, anularItem, toggleDisponible, fusionarMesa, transferirComensal, asignarCamarero } = useStore()
+  const { carta, mesas, pedidosCocina, pedidosBarra, avisos, historial, atenderAviso, pagarParte, cobrarMesa, liberarMesa, unirseAMesa, servirMesa, anularItem, toggleDisponible, fusionarMesa, transferirComensal, asignarCamarero, reservarMesa, cancelarReserva, sentarReserva } = useStore()
   const [mover, setMover] = useState(null) // { tipo:'mesa'|'comensal', personaId? }
   const [camarero, setCamarero] = useState(() => localStorage.getItem('tpv-pda-camarero') || '')
   const [nombreLogin, setNombreLogin] = useState('')
@@ -37,6 +38,9 @@ export default function PdaCamarero() {
   const [ticket, setTicket] = useState(null)
   const [pidiendo, setPidiendo] = useState(false)
   const [cobrando, setCobrando] = useState(false)
+  const [cobroPersona, setCobroPersona] = useState(null) // { personaId, importe }
+  const [reservando, setReservando] = useState(false)
+  const [reservaForm, setReservaForm] = useState({ nombre: '', hora: '', personas: 2 })
 
   const mesa = mesas.find(m => m.id === mesaId)
   const ocupadas = mesas.filter(m => m.estado !== 'libre')
@@ -100,17 +104,44 @@ export default function PdaCamarero() {
     return (
       <div style={{ minHeight: '100vh', maxWidth: '520px', margin: '0 auto' }}>
         <div style={cab}>
-          <button onClick={() => setMesaId(null)} style={btn('#1e293b', { padding: '0.4rem 0.7rem' })}>←</button>
+          <button onClick={() => { setReservando(false); setMesaId(null) }} style={btn('#1e293b', { padding: '0.4rem 0.7rem' })}>←</button>
           <div style={{ fontWeight: 800, fontSize: '1.1rem' }}>Mesa {mesa.numero}</div>
           <span style={{ marginLeft: 'auto', fontWeight: 700, color: '#f97316' }}>{totalMesa.toFixed(2)} €</span>
         </div>
 
         <div style={{ padding: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {mesa.estado === 'libre' && (
-            <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--color-muted)' }}>
+            <div style={{ textAlign: 'center', padding: '1.5rem 1rem', color: 'var(--color-muted)' }}>
               <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>🪑</div>
               <p style={{ marginBottom: '1.25rem' }}>Mesa libre · {mesa.capacidad} plazas</p>
               <button onClick={() => { const n = prompt('Nombre del primer comensal (opcional):') ?? ''; unirseAMesa(mesa.id, n); asignarCamarero(mesa.id, camarero) }} style={btn('#10b981', { padding: '0.8rem 1.5rem', fontSize: '0.95rem' })}>▶ Abrir mesa</button>
+              {!reservando ? (
+                <button onClick={() => { setReservaForm({ nombre: '', hora: '', personas: mesa.capacidad }); setReservando(true) }} style={btn('#3b82f6', { padding: '0.8rem 1.5rem', fontSize: '0.95rem', marginLeft: '0.5rem' })}>📅 Reservar</button>
+              ) : (
+                <div style={{ ...card, marginTop: '1rem', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '0.5rem', borderColor: '#3b82f6' }}>
+                  <div style={{ fontWeight: 700, color: '#60a5fa' }}>Nueva reserva</div>
+                  <input value={reservaForm.nombre} onChange={e => setReservaForm(s => ({ ...s, nombre: e.target.value }))} placeholder="Nombre" style={inp} autoFocus />
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input value={reservaForm.hora} onChange={e => setReservaForm(s => ({ ...s, hora: e.target.value }))} type="time" style={{ ...inp, flex: 1 }} />
+                    <input value={reservaForm.personas} onChange={e => setReservaForm(s => ({ ...s, personas: e.target.value }))} type="number" min="1" style={{ ...inp, width: '80px' }} />
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button onClick={() => setReservando(false)} style={btn('#334155', { flex: 1 })}>Cancelar</button>
+                    <button onClick={() => { reservarMesa(mesa.id, reservaForm); setReservando(false) }} disabled={!reservaForm.nombre.trim()} style={btn(reservaForm.nombre.trim() ? '#3b82f6' : '#334155', { flex: 1 })}>Guardar</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          {mesa.estado === 'reservada' && (
+            <div style={{ ...card, borderColor: '#3b82f6', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div>
+                <div style={{ fontWeight: 800, color: '#60a5fa' }}>📅 Reservada</div>
+                <div style={{ fontSize: '0.95rem', marginTop: '0.25rem' }}>{mesa.reserva?.nombre}</div>
+                <div style={{ fontSize: '0.82rem', color: 'var(--color-muted)' }}>{mesa.reserva?.hora && `🕐 ${mesa.reserva.hora} · `}{mesa.reserva?.personas} pers.</div>
+              </div>
+              <button onClick={() => { sentarReserva(mesa.id, mesa.reserva?.nombre || ''); asignarCamarero(mesa.id, camarero) }} style={btn('#10b981', { width: '100%', padding: '0.75rem' })}>▶ Sentar (abrir mesa)</button>
+              <button onClick={() => cancelarReserva(mesa.id)} style={btn('#334155', { width: '100%', fontSize: '0.85rem' })}>Cancelar reserva</button>
             </div>
           )}
           {mesa.personas.map(p => {
@@ -134,13 +165,13 @@ export default function PdaCamarero() {
                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem' }}>
                   <button onClick={() => setTicket({ tipo: 'persona', persona: p })} style={btn('#1e293b', { flex: 1 })}>🧾 Ticket</button>
                   <button onClick={() => setMover({ tipo: 'comensal', personaId: p.id })} title="Mover a otra mesa" style={btn('#1e293b', { padding: '0.55rem 0.7rem' })}>⇄</button>
-                  {!p.pagado && <button onClick={() => pagarParte(mesa.id, p.id)} style={btn('#10b981', { flex: 1 })}>Cobrar</button>}
+                  {!p.pagado && <button onClick={() => setCobroPersona({ personaId: p.id, importe: aPagar })} style={btn('#10b981', { flex: 1 })}>Cobrar</button>}
                 </div>
               </div>
             )
           })}
 
-          {mesa.estado !== 'libre' && (
+          {(mesa.estado === 'ocupada' || mesa.estado === 'esperando_cobro') && (
             <>
               <button onClick={() => { asignarCamarero(mesa.id, camarero); setPidiendo(true) }} style={btn('#f97316', { width: '100%', padding: '0.75rem', fontSize: '0.95rem' })}>➕ Añadir pedido</button>
               <button onClick={() => { asignarCamarero(mesa.id, camarero); setCobrando(true) }} style={btn('#10b981', { width: '100%', padding: '0.75rem', fontSize: '0.95rem' })}>💶 Cobrar mesa</button>
@@ -156,7 +187,15 @@ export default function PdaCamarero() {
 
         {ticket && <Ticket tipo={ticket.tipo} mesa={mesa} persona={ticket.persona} onClose={() => setTicket(null)} />}
         {pidiendo && <PedirPda mesaId={mesa.id} onClose={() => setPidiendo(false)} />}
-        {cobrando && <CobroMesa mesa={mesa} onCerrar={() => setCobrando(false)} onCobrar={() => { liberarMesa(mesa.id); setCobrando(false); setMesaId(null) }} />}
+        {cobrando && <CobroMesa mesa={mesa} onCerrar={() => setCobrando(false)} onCobrar={(metodo) => { cobrarMesa(mesa.id, { metodo, cobradoPor: camarero }); setCobrando(false); setMesaId(null) }} />}
+        {cobroPersona && (
+          <MetodoPago
+            titulo="Cobrar cliente"
+            importe={cobroPersona.importe}
+            onCerrar={() => setCobroPersona(null)}
+            onElegir={(metodo) => { pagarParte(mesa.id, cobroPersona.personaId, { metodo, cobradoPor: camarero }); setCobroPersona(null) }}
+          />
+        )}
 
         {mover && (
           <div onClick={() => setMover(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 80 }}>
@@ -252,9 +291,10 @@ export default function PdaCamarero() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.625rem' }}>
                 {ms.map(m => {
                   const libre = m.estado === 'libre'
+                  const reservada = m.estado === 'reservada'
                   const total = m.personas.reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0)
-                  const col = libre ? '#10b981' : m.estado === 'esperando_cobro' ? '#f43f5e' : '#f59e0b'
-                  const etiqueta = libre ? 'Libre' : m.estado === 'esperando_cobro' ? 'Pide cuenta' : 'Ocupada'
+                  const col = libre ? '#10b981' : reservada ? '#3b82f6' : m.estado === 'esperando_cobro' ? '#f43f5e' : '#f59e0b'
+                  const etiqueta = libre ? 'Libre' : reservada ? 'Reservada' : m.estado === 'esperando_cobro' ? 'Pide cuenta' : 'Ocupada'
                   return (
                     <button key={m.id} onClick={() => setMesaId(m.id)} style={{ ...card, textAlign: 'left', cursor: 'pointer', borderColor: col + '66', background: libre ? 'var(--color-surface)' : col + '14' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -264,6 +304,8 @@ export default function PdaCamarero() {
                       <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{m.capacidad} plazas</div>
                       {libre
                         ? <div style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '0.25rem', fontWeight: 600 }}>Toca para abrir ▶</div>
+                        : reservada
+                        ? <div style={{ fontSize: '0.72rem', color: '#60a5fa', marginTop: '0.25rem' }}>📅 {m.reserva?.nombre}{m.reserva?.hora && ` · ${m.reserva.hora}`}</div>
                         : <>
                             <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{m.personas.length} comensales · ⏱ {haceCuanto(m.abiertaDesde)}</div>
                             <div style={{ fontWeight: 700, color: '#f97316', marginTop: '0.25rem' }}>{total.toFixed(2)} €</div>
@@ -338,4 +380,5 @@ export default function PdaCamarero() {
 
 const cab = { position: 'sticky', top: 0, zIndex: 10, background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', padding: '0.875rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }
 const card = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.75rem', padding: '0.875rem' }
+const inp = { background: '#0f172a', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.55rem 0.7rem', color: 'var(--color-text)', fontSize: '0.9rem', width: '100%' }
 const btn = (bg, extra = {}) => ({ background: bg, color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.55rem 0.9rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', ...extra })
