@@ -1,11 +1,19 @@
 import { useState } from 'react'
-import { useStore } from '../store/useStore'
+import { useStore, generarSlots, aforoTotal, ocupacionEn } from '../store/useStore'
 
 const hoyLocal = () => {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 const fechaBonita = (f) => { const [y, m, d] = f.split('-'); return `${d}/${m}/${y}` }
+
+// Enlace de WhatsApp con un mensaje de confirmación/recordatorio prerrellenado.
+const waLink = (r) => {
+  const tel = (r.telefono || '').replace(/\D/g, '')
+  const num = tel.length === 9 ? '34' + tel : tel // asume España si son 9 dígitos
+  const msg = `Hola ${r.nombre}! Te confirmamos tu reserva para el ${fechaBonita(r.fecha)} a las ${r.hora}, ${r.personas} personas. ¡Te esperamos!`
+  return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`
+}
 
 const EST = {
   confirmada: { label: 'Confirmada', color: '#3b82f6' },
@@ -18,9 +26,11 @@ const EST = {
 // Reutilizable en Admin (pestaña) y Camarero (drawer). `onSentada` se llama
 // con el mesaId tras sentar (para que el contenedor pueda navegar si quiere).
 export default function ReservasManager({ onSentada }) {
-  const { reservas, mesas, asignarReservaMesa, sentarReservaAgenda, cambiarEstadoReserva } = useStore()
+  const { reservas, mesas, reservasConfig: cfg, asignarReservaMesa, sentarReservaAgenda, cambiarEstadoReserva } = useStore()
   const hoy = hoyLocal()
   const [filtro, setFiltro] = useState('hoy') // hoy | proximas | todas
+  const [vista, setVista] = useState('agenda') // agenda | servicio
+  const [fechaSrv, setFechaSrv] = useState(hoy)
 
   const visibles = reservas
     .filter(r => {
@@ -54,6 +64,15 @@ export default function ReservasManager({ onSentada }) {
 
   return (
     <div>
+      <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1rem' }}>
+        {[{ id: 'agenda', t: '📋 Agenda' }, { id: 'servicio', t: '📊 Servicio' }].map(o => (
+          <button key={o.id} onClick={() => setVista(o.id)} style={btn(vista === o.id ? '#3b82f6' : '#1e293b', { flex: 1, fontSize: '0.82rem' })}>{o.t}</button>
+        ))}
+      </div>
+
+      {vista === 'servicio' && <Servicio cfg={cfg} mesas={mesas} reservas={reservas} fecha={fechaSrv} setFecha={setFechaSrv} />}
+
+      {vista === 'agenda' && (<>
       <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1rem' }}>
         {[{ id: 'hoy', t: `Hoy${pendientesHoy ? ` (${pendientesHoy})` : ''}` }, { id: 'proximas', t: 'Próximas' }, { id: 'todas', t: 'Todas' }].map(o => (
           <button key={o.id} onClick={() => setFiltro(o.id)} style={btn(filtro === o.id ? '#f97316' : '#1e293b', { flex: 1, fontSize: '0.82rem' })}>{o.t}</button>
@@ -101,6 +120,7 @@ export default function ReservasManager({ onSentada }) {
                         ))}
                       </select>
                       <button onClick={() => sentar(r.id)} disabled={!r.mesaId} title={r.mesaId ? '' : 'Asigna una mesa primero'} style={btn(r.mesaId ? '#10b981' : '#334155', { fontSize: '0.8rem', cursor: r.mesaId ? 'pointer' : 'not-allowed' })}>▶ Sentar</button>
+                      {r.telefono && <button onClick={() => window.open(waLink(r), '_blank')} title="Enviar confirmación por WhatsApp" style={btn('#16a34a', { fontSize: '0.8rem' })}>📲 WhatsApp</button>}
                       <button onClick={() => cambiarEstadoReserva(r.id, 'no_show')} style={btn('#7f1d1d', { fontSize: '0.8rem' })}>No-show</button>
                       <button onClick={() => cambiarEstadoReserva(r.id, 'cancelada')} style={btn('#334155', { fontSize: '0.8rem' })}>Cancelar</button>
                     </div>
@@ -109,6 +129,51 @@ export default function ReservasManager({ onSentada }) {
               )
             })}
           </div>
+        </div>
+      ))}
+      </>)}
+    </div>
+  )
+}
+
+// Vista de servicio: ocupación por franja horaria del día elegido.
+function Servicio({ cfg, mesas, reservas, fecha, setFecha }) {
+  const aforo = aforoTotal(cfg, mesas)
+  const slots = generarSlots(cfg)
+  const delDia = reservas.filter(r => r.fecha === fecha && (r.estado === 'confirmada' || r.estado === 'sentada'))
+  const coversDia = delDia.reduce((s, r) => s + r.personas, 0)
+
+  // Agrupa los slots por turno
+  const porTurno = {}
+  slots.forEach(s => { (porTurno[s.turnoNombre] ||= []).push(s) })
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+        <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} style={{ background: '#0f172a', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.45rem 0.6rem', color: 'var(--color-text)', fontSize: '0.85rem' }} />
+        <span style={{ fontSize: '0.82rem', color: 'var(--color-muted)' }}>{delDia.length} reserva(s) · <strong style={{ color: '#f97316' }}>{coversDia}</strong> comensales · aforo {aforo}</span>
+      </div>
+
+      {slots.length === 0 && <p style={{ color: 'var(--color-muted)', fontSize: '0.85rem' }}>No hay turnos configurados.</p>}
+
+      {Object.entries(porTurno).map(([turno, ss]) => (
+        <div key={turno} style={{ marginBottom: '1rem' }}>
+          <div style={{ fontWeight: 700, color: 'var(--color-muted)', fontSize: '0.85rem', marginBottom: '0.4rem' }}>{turno}</div>
+          {ss.map(s => {
+            const ocup = ocupacionEn(reservas, cfg, fecha, s.hora)
+            const pct = aforo ? Math.min(100, Math.round(ocup / aforo * 100)) : 0
+            const col = pct >= 100 ? '#f43f5e' : pct >= 70 ? '#f59e0b' : '#10b981'
+            const enSlot = delDia.filter(r => r.hora === s.hora)
+            return (
+              <div key={s.hora} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.3rem' }}>
+                <span style={{ width: '3rem', fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-text)' }}>{s.hora}</span>
+                <div style={{ flex: 1, background: '#0f172a', borderRadius: '9999px', height: '1.1rem', overflow: 'hidden', position: 'relative' }}>
+                  <div style={{ width: `${pct}%`, height: '100%', background: col, transition: 'width 0.2s' }} />
+                  <span style={{ position: 'absolute', left: '0.5rem', top: 0, lineHeight: '1.1rem', fontSize: '0.68rem', color: '#e2e8f0' }}>{ocup}/{aforo}{enSlot.length ? ` · ${enSlot.map(r => r.nombre.split(' ')[0]).join(', ')}` : ''}</span>
+                </div>
+              </div>
+            )
+          })}
         </div>
       ))}
     </div>

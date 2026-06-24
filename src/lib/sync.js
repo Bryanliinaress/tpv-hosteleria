@@ -29,6 +29,7 @@ const sliceEstado = (s) => ({
   historial: s.historial,
   cierres: s.cierres,
   reservas: s.reservas,
+  reservasConfig: s.reservasConfig,
 })
 
 function aplicarRemoto(data) {
@@ -36,6 +37,7 @@ function aplicarRemoto(data) {
   aplicandoRemoto = true
   useStore.setState({
     ...(data.carta ? { carta: data.carta } : {}),
+    ...(data.reservasConfig ? { reservasConfig: data.reservasConfig } : {}),
     mesas: data.mesas,
     pedidosCocina: data.pedidosCocina || [],
     pedidosBarra: data.pedidosBarra || [],
