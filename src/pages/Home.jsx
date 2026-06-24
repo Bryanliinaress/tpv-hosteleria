@@ -8,6 +8,7 @@ const roles = [
   { label: 'Pantalla Barra', path: '/barra', emoji: '🍺', color: '#f43f5e', desc: 'KDS — pedidos de bebida' },
   { label: 'Panel Admin', path: '/admin', emoji: '🛠', color: '#8b5cf6', desc: 'Carta, mesas y estadísticas' },
   { label: 'Estación de impresión', path: '/print', emoji: '🖨️', color: '#64748b', desc: 'Imprime comandas automáticamente' },
+  { label: 'Reservar mesa (cliente)', path: '/reservar', emoji: '📅', color: '#3b82f6', desc: 'Reserva online estilo CoverManager' },
 ]
 
 export default function Home() {
