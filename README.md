@@ -1,6 +1,6 @@
 # TPV Hostelería
 
-![version](https://img.shields.io/badge/version-0.3.3-blue)
+![version](https://img.shields.io/badge/version-0.3.4-blue)
 ![license](https://img.shields.io/badge/license-Proprietary-red)
 ![stack](https://img.shields.io/badge/React%2019-Vite-646cff)
 [![demo](https://img.shields.io/badge/demo-online-brightgreen)](https://bryanliinaress.github.io/tpv-hosteleria/)
@@ -140,4 +140,4 @@ El código se publica con fines de demostración y portafolio; no se concede lic
 
 ---
 
-© 2026 Bryan Linares · `v0.3.3`
+© 2026 Bryan Linares · `v0.3.4`
