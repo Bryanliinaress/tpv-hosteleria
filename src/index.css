@@ -1,28 +1,88 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 :root {
-  --color-bg: #0f172a;
-  --color-surface: #1e293b;
-  --color-border: #334155;
+  /* Paleta base — slate más profundo y con más contraste de superficies */
+  --color-bg: #0b1120;
+  --color-surface: #161f31;
+  --color-surface-2: #1e293b;
+  --color-border: #2c3a52;
+  --color-border-soft: #233148;
   --color-accent: #f97316;
+  --color-accent-2: #fb923c;
   --color-text: #f8fafc;
   --color-muted: #94a3b8;
+  --color-faint: #64748b;
   --color-success: #10b981;
   --color-danger: #f43f5e;
   --color-warning: #f59e0b;
+  --color-info: #3b82f6;
+
+  /* Radios y sombras reutilizables */
+  --radius: 0.85rem;
+  --radius-lg: 1.15rem;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.25);
+  --shadow: 0 6px 20px -6px rgba(0,0,0,0.45);
+  --shadow-lg: 0 18px 40px -12px rgba(0,0,0,0.6);
+  --ring: 0 0 0 3px rgba(249,115,22,0.35);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+html { -webkit-text-size-adjust: 100%; }
+
 body {
   background-color: var(--color-bg);
+  background-image:
+    radial-gradient(900px 600px at 12% -10%, rgba(249,115,22,0.10), transparent 60%),
+    radial-gradient(900px 700px at 105% 0%, rgba(59,130,246,0.10), transparent 55%);
+  background-attachment: fixed;
   color: var(--color-text);
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   min-height: 100vh;
+  letter-spacing: -0.01em;
 }
+
+/* Interacción uniforme en todos los botones (sin pisar sus estilos inline) */
+button { font-family: inherit; transition: transform 0.12s ease, filter 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease; }
+button:not(:disabled):hover { filter: brightness(1.08); }
+button:not(:disabled):active { transform: translateY(1px) scale(0.985); }
+button:disabled { opacity: 0.55; }
+
+/* Inputs con foco visible y agradable */
+input, select, textarea { font-family: inherit; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--color-accent) !important; box-shadow: var(--ring); }
+button:focus-visible { outline: none; box-shadow: var(--ring); }
+::placeholder { color: var(--color-faint); }
+
+/* Selección de texto en color de marca */
+::selection { background: rgba(249,115,22,0.35); color: #fff; }
+
+/* Scrollbar fina y discreta */
+* { scrollbar-width: thin; scrollbar-color: var(--color-border) transparent; }
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 9999px; border: 2px solid transparent; background-clip: content-box; }
+*::-webkit-scrollbar-thumb:hover { background: var(--color-faint); background-clip: content-box; }
+*::-webkit-scrollbar-track { background: transparent; }
+
+/* Animaciones reutilizables */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes pop { 0% { transform: scale(0.96); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes pulseRing { 0% { box-shadow: 0 0 0 0 rgba(244,63,94,0.45); } 70% { box-shadow: 0 0 0 10px rgba(244,63,94,0); } 100% { box-shadow: 0 0 0 0 rgba(244,63,94,0); } }
+@keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+
+.anim-fade { animation: fadeIn 0.3s ease both; }
+.anim-pop { animation: pop 0.18s ease both; }
+.anim-slide-up { animation: slideUp 0.25s cubic-bezier(0.16,1,0.3,1) both; }
+.pulse-attn { animation: pulseRing 1.8s ease-out infinite; }
 
 /* Impresión: solo se imprime el ticket */
 @media print {
+  body { background: #fff; }
   body * { visibility: hidden; }
   .ticket-print, .ticket-print * { visibility: visible; }
   .ticket-print {
