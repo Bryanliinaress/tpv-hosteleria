@@ -125,7 +125,7 @@ export default function ReservasManager({ onSentada }) {
                       <button onClick={() => sentar(r.id)} disabled={!r.mesaId} title={r.mesaId ? '' : 'Asigna una mesa primero'} style={btn(r.mesaId ? '#10b981' : '#334155', { fontSize: '0.8rem', cursor: r.mesaId ? 'pointer' : 'not-allowed' })}>▶ Sentar</button>
                       {r.email && <button onClick={() => enviarCorreo('confirmacion', r)} title={`Confirmación a ${r.email}`} style={btn('#16a34a', { fontSize: '0.8rem' })}>✉️ Confirmar</button>}
                       {r.email && <button onClick={() => enviarCorreo('recordatorio', r)} title={`Recordatorio a ${r.email}`} style={btn('#1d4ed8', { fontSize: '0.8rem' })}>🔔 Recordar</button>}
-                      <button onClick={() => cambiarEstadoReserva(r.id, 'cancelada')} style={btn('#334155', { fontSize: '0.8rem' })}>Cancelar</button>
+                      <button onClick={() => { if (confirm('¿Cancelar esta reserva? Se avisará al cliente por email.')) { cambiarEstadoReserva(r.id, 'cancelada'); if (r.email) enviarEmailReserva('cancelacion', r, { permitirMailto: false }).catch(() => {}) } }} style={btn('#334155', { fontSize: '0.8rem' })}>Cancelar</button>
                     </div>
                   )}
                 </div>
