@@ -109,7 +109,7 @@ export default function ReservasManager({ onSentada }) {
                     <span style={{ fontSize: '0.68rem', color: est.color, fontWeight: 700, background: est.color + '22', borderRadius: '9999px', padding: '0.15rem 0.6rem' }}>{est.label}</span>
                   </div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)', marginBottom: r.notas ? '0.25rem' : '0.5rem' }}>
-                    👥 {r.personas} pers.{r.zona && ` · 📍 ${r.zona}`}{r.email && ` · ✉️ ${r.email}`}
+                    👥 {r.personas} pers.{r.zona && ` · 📍 ${r.zona}`}{r.email && ` · ✉️ ${r.email}`}{r.telefono && ` · ☎ ${r.telefono}`}
                     {mesaAsignada && <span style={{ color: '#60a5fa' }}> · 🍽 Mesa {mesaAsignada.numero}</span>}
                   </div>
                   {r.notas && <div style={{ fontSize: '0.78rem', color: '#fbbf24', marginBottom: '0.5rem' }}>📝 {r.notas}</div>}

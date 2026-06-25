@@ -41,7 +41,7 @@ export default function Home() {
           </button>
         ))}
       </div>
-      <p style={{ marginTop: '3rem', fontSize: '0.75rem', color: '#475569' }}>v0.3.3 · En desarrollo</p>
+      <p style={{ marginTop: '3rem', fontSize: '0.75rem', color: '#475569' }}>v0.3.4 · En desarrollo</p>
     </div>
   )
 }

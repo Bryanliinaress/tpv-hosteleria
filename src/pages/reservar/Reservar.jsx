@@ -18,7 +18,7 @@ const gcalLink = (r, dur) => {
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Reserva de mesa')}&dates=${fmt(ini)}/${fmt(fin)}&details=${encodeURIComponent(`${r.personas} personas · a nombre de ${r.nombre}`)}`
 }
 
-const FORM0 = { fecha: '', hora: '', personas: 0, zona: '', nombre: '', email: '', notas: '' }
+const FORM0 = { fecha: '', hora: '', personas: 0, zona: '', nombre: '', email: '', telefono: '', notas: '' }
 const emailValido = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((e || '').trim())
 
 // Reserva online guiada: personas → zona → día → hora → datos. La zona se pide
@@ -205,6 +205,7 @@ export default function Reservar() {
           <Paso titulo="Tus datos" onAtras={atras}>
             <input value={form.nombre} onChange={e => set('nombre', e.target.value)} placeholder="Nombre y apellidos *" autoFocus style={{ ...inp, fontSize: '1rem' }} />
             <input value={form.email} onChange={e => set('email', e.target.value)} type="email" inputMode="email" placeholder="Email * (te enviamos la confirmación)" style={{ ...inp, fontSize: '1rem', borderColor: form.email && !emailValido(form.email) ? '#f43f5e' : 'var(--color-border)' }} />
+            <input value={form.telefono} onChange={e => set('telefono', e.target.value)} type="tel" inputMode="tel" placeholder="Teléfono (opcional)" style={inp} />
             <input value={form.notas} onChange={e => set('notas', e.target.value)} placeholder="Alergias, trona, celebración… (opcional)" style={{ ...inp, marginTop: '0.3rem' }} />
             {(() => {
               const listo = form.nombre.trim() && emailValido(form.email)
