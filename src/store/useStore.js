@@ -496,6 +496,7 @@ export const useStore = create(persist((set, get) => ({
         hora: datos.hora || '',             // 'HH:MM'
         personas: Math.max(1, Number(datos.personas) || 2),
         nombre: (datos.nombre || '').trim() || 'Cliente',
+        email: (datos.email || '').trim(),
         telefono: (datos.telefono || '').trim(),
         zona: datos.zona || '',             // preferencia; '' = sin preferencia
         notas: (datos.notas || '').trim(),
