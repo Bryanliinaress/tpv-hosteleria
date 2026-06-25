@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useStore, generarSlots, aforoTotal, ocupacionEn } from '../store/useStore'
+import { enviarEmailReserva } from '../lib/email'
 
 const hoyLocal = () => {
   const d = new Date()
@@ -7,12 +8,14 @@ const hoyLocal = () => {
 }
 const fechaBonita = (f) => { const [y, m, d] = f.split('-'); return `${d}/${m}/${y}` }
 
-// Enlace de WhatsApp con un mensaje de confirmación/recordatorio prerrellenado.
-const waLink = (r) => {
-  const tel = (r.telefono || '').replace(/\D/g, '')
-  const num = tel.length === 9 ? '34' + tel : tel // asume España si son 9 dígitos
-  const msg = `Hola ${r.nombre}! Te confirmamos tu reserva para el ${fechaBonita(r.fecha)} a las ${r.hora}, ${r.personas} personas. ¡Te esperamos!`
-  return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`
+// Envía un correo de confirmación o recordatorio de la reserva.
+const enviarCorreo = async (tipo, r) => {
+  try {
+    const { via } = await enviarEmailReserva(tipo, r)
+    if (via === 'emailjs') alert(`✅ Correo de ${tipo} enviado a ${r.email}`)
+  } catch (e) {
+    alert('No se pudo enviar el correo: ' + e.message)
+  }
 }
 
 const EST = {
@@ -106,7 +109,7 @@ export default function ReservasManager({ onSentada }) {
                     <span style={{ fontSize: '0.68rem', color: est.color, fontWeight: 700, background: est.color + '22', borderRadius: '9999px', padding: '0.15rem 0.6rem' }}>{est.label}</span>
                   </div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)', marginBottom: r.notas ? '0.25rem' : '0.5rem' }}>
-                    👥 {r.personas} pers.{r.zona && ` · 📍 ${r.zona}`}{r.telefono && ` · ☎ ${r.telefono}`}
+                    👥 {r.personas} pers.{r.zona && ` · 📍 ${r.zona}`}{r.email && ` · ✉️ ${r.email}`}
                     {mesaAsignada && <span style={{ color: '#60a5fa' }}> · 🍽 Mesa {mesaAsignada.numero}</span>}
                   </div>
                   {r.notas && <div style={{ fontSize: '0.78rem', color: '#fbbf24', marginBottom: '0.5rem' }}>📝 {r.notas}</div>}
@@ -120,7 +123,8 @@ export default function ReservasManager({ onSentada }) {
                         ))}
                       </select>
                       <button onClick={() => sentar(r.id)} disabled={!r.mesaId} title={r.mesaId ? '' : 'Asigna una mesa primero'} style={btn(r.mesaId ? '#10b981' : '#334155', { fontSize: '0.8rem', cursor: r.mesaId ? 'pointer' : 'not-allowed' })}>▶ Sentar</button>
-                      {r.telefono && <button onClick={() => window.open(waLink(r), '_blank')} title="Enviar confirmación por WhatsApp" style={btn('#16a34a', { fontSize: '0.8rem' })}>📲 WhatsApp</button>}
+                      {r.email && <button onClick={() => enviarCorreo('confirmacion', r)} title={`Confirmación a ${r.email}`} style={btn('#16a34a', { fontSize: '0.8rem' })}>✉️ Confirmar</button>}
+                      {r.email && <button onClick={() => enviarCorreo('recordatorio', r)} title={`Recordatorio a ${r.email}`} style={btn('#1d4ed8', { fontSize: '0.8rem' })}>🔔 Recordar</button>}
                       <button onClick={() => cambiarEstadoReserva(r.id, 'no_show')} style={btn('#7f1d1d', { fontSize: '0.8rem' })}>No-show</button>
                       <button onClick={() => cambiarEstadoReserva(r.id, 'cancelada')} style={btn('#334155', { fontSize: '0.8rem' })}>Cancelar</button>
                     </div>
