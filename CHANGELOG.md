@@ -5,6 +5,16 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.3.3] - 2026-06-24
+
+### Cambiado
+- En la reserva se pide **email** (obligatorio y validado) en lugar del teléfono.
+
+### Añadido
+- **Correo de confirmación automático** al reservar, vía **EmailJS** (sin backend). Si no está configurado, degrada con elegancia.
+- Botones de **confirmación y recordatorio por email** en la gestión de reservas (admin/camarero).
+- Variables `VITE_EMAILJS_*` documentadas en `.env.example`.
+
 ## [0.3.2] - 2026-06-24
 
 ### Cambiado
@@ -44,6 +54,7 @@ y el versionado sigue [SemVer](https://semver.org/lang/es/).
 - Tickets imprimibles (comanda, cuenta de mesa y por persona) y estación de impresión automática.
 - Pago online con Stripe (modo prueba).
 
+[0.3.3]: https://github.com/Bryanliinaress/tpv-hosteleria/releases/tag/v0.3.3
 [0.3.2]: https://github.com/Bryanliinaress/tpv-hosteleria/releases/tag/v0.3.2
 [0.3.1]: https://github.com/Bryanliinaress/tpv-hosteleria/releases/tag/v0.3.1
 [0.3.0]: https://github.com/Bryanliinaress/tpv-hosteleria/releases/tag/v0.3.0
