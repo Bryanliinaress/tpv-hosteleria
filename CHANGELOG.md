@@ -5,6 +5,13 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.4.0] - 2026-06-25
+
+### Añadido
+- **Gestión de la reserva por el cliente desde el email**: cada reserva lleva un enlace seguro (con token) para **cancelar o modificar** la reserva desde cualquier dispositivo.
+- **Email de cancelación** al cliente cuando se cancela la reserva (lo cancele él o el personal).
+- Modificar reabre el asistente con los datos rellenos y guarda los cambios sobre la misma reserva.
+
 ## [0.3.5] - 2026-06-25
 
 ### Cambiado
@@ -64,6 +71,7 @@ y el versionado sigue [SemVer](https://semver.org/lang/es/).
 - Tickets imprimibles (comanda, cuenta de mesa y por persona) y estación de impresión automática.
 - Pago online con Stripe (modo prueba).
 
+[0.4.0]: https://github.com/Bryanliinaress/tpv-hosteleria/releases/tag/v0.4.0
 [0.3.5]: https://github.com/Bryanliinaress/tpv-hosteleria/releases/tag/v0.3.5
 [0.3.4]: https://github.com/Bryanliinaress/tpv-hosteleria/releases/tag/v0.3.4
 [0.3.3]: https://github.com/Bryanliinaress/tpv-hosteleria/releases/tag/v0.3.3
