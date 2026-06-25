@@ -18,8 +18,9 @@ export default function CobroMesa({ mesa, onCobrar, onCerrar }) {
   const cambio = dado - aCobrar
 
   return (
-    <div onClick={onCerrar} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 80 }}>
+    <div onClick={onCerrar} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 80, animation: 'fadeIn 0.2s ease both' }}>
       <div onClick={e => e.stopPropagation()} style={hoja}>
+        <div style={{ width: '36px', height: '4px', borderRadius: '9999px', background: 'var(--color-border)', margin: '-0.25rem auto 0.85rem' }} />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
           <h3 style={{ fontWeight: 800, fontSize: '1.1rem' }}>Cobrar Mesa {mesa.numero}</h3>
           <button onClick={onCerrar} style={btn('#334155', { padding: '0.25rem 0.6rem' })}>✕</button>
@@ -80,6 +81,6 @@ export default function CobroMesa({ mesa, onCobrar, onCerrar }) {
   )
 }
 
-const hoja = { background: 'var(--color-surface)', borderTopLeftRadius: '1rem', borderTopRightRadius: '1rem', padding: '1.15rem', width: '100%', maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto' }
+const hoja = { background: 'var(--color-surface)', borderTopLeftRadius: 'var(--radius-lg)', borderTopRightRadius: 'var(--radius-lg)', padding: '1.15rem', width: '100%', maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto', borderTop: '1px solid var(--color-border)', boxShadow: '0 -22px 50px -20px rgba(0,0,0,0.8)', animation: 'slideUp 0.28s cubic-bezier(0.16,1,0.3,1) both' }
 const lbl = { fontSize: '0.72rem', color: 'var(--color-muted)', margin: '0.5rem 0 0.35rem', textTransform: 'uppercase', letterSpacing: '0.05em' }
 const btn = (bg, extra = {}) => ({ background: bg, color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 0.85rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', ...extra })

@@ -251,8 +251,8 @@ export default function PanelCamarero() {
       )}
 
       {verReservas && (
-        <div onClick={() => setVerReservas(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'flex-end', zIndex: 90 }}>
-          <div onClick={e => e.stopPropagation()} style={{ width: '420px', maxWidth: '94vw', background: 'var(--color-surface)', height: '100%', overflowY: 'auto', padding: '1.25rem', borderLeft: '1px solid var(--color-border)' }}>
+        <div onClick={() => setVerReservas(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', display: 'flex', justifyContent: 'flex-end', zIndex: 90, animation: 'fadeIn 0.2s ease both' }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '420px', maxWidth: '94vw', background: 'var(--color-surface)', height: '100%', overflowY: 'auto', padding: '1.25rem', borderLeft: '1px solid var(--color-border)', boxShadow: '-22px 0 50px -20px rgba(0,0,0,0.8)', animation: 'slideLeft 0.28s cubic-bezier(0.16,1,0.3,1) both' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h2 style={{ fontWeight: 800, fontSize: '1.1rem' }}>📅 Reservas</h2>
               <button onClick={() => setVerReservas(false)} style={btn('#1e293b')}>✕</button>
@@ -263,8 +263,8 @@ export default function PanelCamarero() {
       )}
 
       {verHistorial && (
-        <div onClick={() => setVerHistorial(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'flex-end', zIndex: 90 }}>
-          <div onClick={e => e.stopPropagation()} style={{ width: '380px', maxWidth: '92vw', background: 'var(--color-surface)', height: '100%', overflowY: 'auto', padding: '1.25rem', borderLeft: '1px solid var(--color-border)' }}>
+        <div onClick={() => setVerHistorial(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', display: 'flex', justifyContent: 'flex-end', zIndex: 90, animation: 'fadeIn 0.2s ease both' }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '380px', maxWidth: '92vw', background: 'var(--color-surface)', height: '100%', overflowY: 'auto', padding: '1.25rem', borderLeft: '1px solid var(--color-border)', boxShadow: '-22px 0 50px -20px rgba(0,0,0,0.8)', animation: 'slideLeft 0.28s cubic-bezier(0.16,1,0.3,1) both' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h2 style={{ fontWeight: 800, fontSize: '1.1rem' }}>🧾 Cerradas hoy</h2>
               <button onClick={() => setVerHistorial(false)} style={btn('#1e293b')}>✕</button>
