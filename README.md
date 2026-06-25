@@ -128,10 +128,14 @@ Las versiones se etiquetan (`v0.1.0`, `v0.2.0`, …) y se documentan en
 
 - [x] Métodos de pago, arqueo de caja y atribución por camarero *(v0.2.0)*
 - [x] Reservas online estilo CoverManager *(v0.2.0)*
+- [x] Disponibilidad de reservas: turnos, aforo y vista de servicio *(v0.3.0)*
+- [x] Confirmación de reservas por email (EmailJS) *(v0.3.3)*
+- [ ] Reservas: gestión de mesas por tiempo (auto-asignar, juntar mesas, table-fit)
 - [ ] Identidad del local configurable (nombre, IVA, CIF, pie de ticket)
 - [ ] Modelo de carta genérico (variantes/modificadores para cualquier tipo de bar)
 - [ ] Multi-tenant real (un local por negocio) con backend y autenticación serios
-- [ ] Webhook de Stripe para confirmar el pago de forma segura
+
+👉 Detalle completo de lo pendiente para la versión final en **[ROADMAP.md](ROADMAP.md)**.
 
 ## 📄 Licencia
 
