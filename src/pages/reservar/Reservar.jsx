@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useStore, generarSlots, slotDisponible, diaCerrado } from '../../store/useStore'
+import { enviarEmailReserva, emailConfigurado } from '../../lib/email'
 import MiniCalendario from '../../components/MiniCalendario'
 
 // ── utilidades de fecha ───────────────────────────────────
@@ -17,7 +18,8 @@ const gcalLink = (r, dur) => {
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Reserva de mesa')}&dates=${fmt(ini)}/${fmt(fin)}&details=${encodeURIComponent(`${r.personas} personas · a nombre de ${r.nombre}`)}`
 }
 
-const FORM0 = { fecha: '', hora: '', personas: 0, zona: '', nombre: '', telefono: '', notas: '' }
+const FORM0 = { fecha: '', hora: '', personas: 0, zona: '', nombre: '', email: '', notas: '' }
+const emailValido = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((e || '').trim())
 
 // Reserva online guiada: personas → zona → día → hora → datos. La zona se pide
 // antes que la hora porque condiciona la disponibilidad de cada franja.
@@ -58,6 +60,7 @@ export default function Reservar() {
   const confirmar = () => {
     const id = crearReserva(form)
     try { const m = JSON.parse(localStorage.getItem('tpv-mis-reservas') || '[]'); localStorage.setItem('tpv-mis-reservas', JSON.stringify([...m, id])) } catch { /* noop */ }
+    if (emailConfigurado) enviarEmailReserva('confirmacion', form, { permitirMailto: false }).catch(() => {})
     setHecha({ ...form, id })
   }
   const reiniciar = () => { setForm(FORM0); setIdx(0); setHecha(null) }
@@ -82,6 +85,9 @@ export default function Reservar() {
             <Fila k="👥 Personas" v={hecha.personas} />
             {hecha.zona && <Fila k="📍 Zona" v={hecha.zona} />}
           </div>
+          <p style={{ fontSize: '0.82rem', color: emailConfigurado ? '#10b981' : 'var(--color-muted)', marginTop: '0.875rem' }}>
+            {emailConfigurado ? `📧 Te hemos enviado la confirmación a ${hecha.email}` : `📧 Confirmación a ${hecha.email}`}
+          </p>
           <a href={gcalLink(hecha, cfg.duracionMin)} target="_blank" rel="noreferrer" style={btn('#1e293b', { display: 'block', marginTop: '0.875rem', padding: '0.75rem', textDecoration: 'none' })}>📆 Añadir a mi calendario</a>
           <button onClick={reiniciar} style={btn('#f97316', { marginTop: '0.6rem', width: '100%', padding: '0.85rem', fontSize: '1rem' })}>Hacer otra reserva</button>
         </div>
@@ -198,10 +204,15 @@ export default function Reservar() {
         {paso === 'datos' && (
           <Paso titulo="Tus datos" onAtras={atras}>
             <input value={form.nombre} onChange={e => set('nombre', e.target.value)} placeholder="Nombre y apellidos *" autoFocus style={{ ...inp, fontSize: '1rem' }} />
-            <input value={form.telefono} onChange={e => set('telefono', e.target.value)} inputMode="tel" placeholder="Teléfono (para avisarte)" style={inp} />
+            <input value={form.email} onChange={e => set('email', e.target.value)} type="email" inputMode="email" placeholder="Email * (te enviamos la confirmación)" style={{ ...inp, fontSize: '1rem', borderColor: form.email && !emailValido(form.email) ? '#f43f5e' : 'var(--color-border)' }} />
             <input value={form.notas} onChange={e => set('notas', e.target.value)} placeholder="Alergias, trona, celebración… (opcional)" style={{ ...inp, marginTop: '0.3rem' }} />
-            <button onClick={confirmar} disabled={!form.nombre.trim()} style={btn(form.nombre.trim() ? '#10b981' : '#334155', { width: '100%', padding: '0.95rem', fontSize: '1.05rem', marginTop: '0.9rem', cursor: form.nombre.trim() ? 'pointer' : 'not-allowed' })}>Confirmar reserva ✓</button>
-            {!form.nombre.trim() && <p style={{ fontSize: '0.75rem', color: 'var(--color-muted)', textAlign: 'center', marginTop: '0.5rem' }}>Escribe tu nombre para terminar.</p>}
+            {(() => {
+              const listo = form.nombre.trim() && emailValido(form.email)
+              return <>
+                <button onClick={confirmar} disabled={!listo} style={btn(listo ? '#10b981' : '#334155', { width: '100%', padding: '0.95rem', fontSize: '1.05rem', marginTop: '0.9rem', cursor: listo ? 'pointer' : 'not-allowed' })}>Confirmar reserva ✓</button>
+                {!listo && <p style={{ fontSize: '0.75rem', color: 'var(--color-muted)', textAlign: 'center', marginTop: '0.5rem' }}>{!form.nombre.trim() ? 'Escribe tu nombre' : 'Escribe un email válido'} para terminar.</p>}
+              </>
+            })()}
           </Paso>
         )}
       </div>
