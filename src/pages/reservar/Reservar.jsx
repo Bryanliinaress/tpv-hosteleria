@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useStore, generarSlots, slotDisponible, diaCerrado } from '../../store/useStore'
 import { enviarEmailReserva, emailConfigurado } from '../../lib/email'
+import { syncListo } from '../../lib/sync'
 import MiniCalendario from '../../components/MiniCalendario'
 
 // ── utilidades de fecha ───────────────────────────────────
@@ -21,49 +23,70 @@ const gcalLink = (r, dur) => {
 const FORM0 = { fecha: '', hora: '', personas: 0, zona: '', nombre: '', email: '', telefono: '', notas: '' }
 const emailValido = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((e || '').trim())
 
-// Reserva online guiada: personas → zona → día → hora → datos. La zona se pide
-// antes que la hora porque condiciona la disponibilidad de cada franja.
+// Reserva online guiada (personas → zona → día → hora → datos). Si se entra con
+// ?r=<id>&t=<token> (enlace del email), muestra el panel para cancelar/modificar.
 export default function Reservar() {
-  const { mesas, reservas, reservasConfig: cfg, crearReserva, cambiarEstadoReserva } = useStore()
+  const { mesas, reservas, reservasConfig: cfg, crearReserva, actualizarReserva, cambiarEstadoReserva } = useStore()
   const zonas = [...new Set(mesas.map(m => m.zona).filter(Boolean))]
 
-  // Pasos dinámicos (se omite 'zona' si el local no tiene zonas)
+  const location = useLocation()
+  const params = new URLSearchParams(location.search)
+  const gestId = params.get('r')
+  const gestTok = params.get('t')
+
+  const [listo, setListo] = useState(!gestId) // espera al sync solo si venimos por enlace
+  useEffect(() => { if (gestId) syncListo.then(() => setListo(true)) }, [gestId])
+  const reservaGestion = gestId ? reservas.find(x => x.id === gestId && x.token === gestTok) : null
+
+  const [pasoIdxRaw, setIdx] = useState(0)
+  const [form, setForm] = useState(FORM0)
+  const [hecha, setHecha] = useState(null)
+  const [verMias, setVerMias] = useState(false)
+  const [editandoId, setEditandoId] = useState(null)
+  const [cancelada, setCancelada] = useState(null) // reserva recién cancelada (pantalla de aviso)
+  const set = (campo, val) => setForm(s => ({ ...s, [campo]: val }))
+
   const pasos = ['personas', ...(zonas.length ? ['zona'] : []), 'dia', 'hora', 'datos']
-  const [idx, setIdx] = useState(0)
+  const idx = Math.min(pasoIdxRaw, pasos.length - 1)
   const paso = pasos[idx]
   const irA = (key) => setIdx(Math.max(0, pasos.indexOf(key)))
   const siguiente = () => setIdx(i => Math.min(pasos.length - 1, i + 1))
   const atras = () => setIdx(i => Math.max(0, i - 1))
 
-  const [form, setForm] = useState(FORM0)
-  const [hecha, setHecha] = useState(null)
-  const [verMias, setVerMias] = useState(false)
-  const set = (campo, val) => setForm(s => ({ ...s, [campo]: val }))
-
-  // Si cambian personas/zona/fecha, la hora elegida puede dejar de valer
   useEffect(() => { set('hora', '') }, [form.personas, form.zona, form.fecha]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const misIds = (() => { try { return JSON.parse(localStorage.getItem('tpv-mis-reservas') || '[]') } catch { return [] } })()
   const misReservas = reservas.filter(r => misIds.includes(r.id) && r.estado === 'confirmada' && r.fecha >= hoyLocal())
 
-  // Horas libres para el día + personas + zona elegidos
   const esHoy = form.fecha === hoyLocal()
   const ahoraMin = new Date().getHours() * 60 + new Date().getMinutes()
   const slots = (!form.fecha || !form.personas || diaCerrado(cfg, form.fecha))
     ? []
     : generarSlots(cfg).filter(s =>
         (!esHoy || minDe(s.hora) > ahoraMin) &&
-        slotDisponible(cfg, mesas, reservas, form.fecha, s.hora, form.personas, form.zona))
+        slotDisponible(cfg, mesas, reservas, form.fecha, s.hora, form.personas, form.zona, editandoId))
   const porTurno = {}
   slots.forEach(s => { (porTurno[s.turnoNombre] ||= []).push(s) })
 
+  const reiniciar = () => { window.location.hash = '#/reservar'; setForm(FORM0); setIdx(0); setHecha(null); setEditandoId(null); setCancelada(null) }
+
   const confirmar = () => {
-    const id = crearReserva(form)
-    try { const m = JSON.parse(localStorage.getItem('tpv-mis-reservas') || '[]'); localStorage.setItem('tpv-mis-reservas', JSON.stringify([...m, id])) } catch { /* noop */ }
-    if (emailConfigurado) enviarEmailReserva('confirmacion', form, { permitirMailto: false }).catch(() => {})
-    setHecha({ ...form, id })
+    let id
+    if (editandoId) { actualizarReserva(editandoId, form); id = editandoId }
+    else {
+      id = crearReserva(form)
+      try { const m = JSON.parse(localStorage.getItem('tpv-mis-reservas') || '[]'); localStorage.setItem('tpv-mis-reservas', JSON.stringify([...m, id])) } catch { /* noop */ }
+    }
+    const r = useStore.getState().reservas.find(x => x.id === id) || { ...form, id }
+    if (emailConfigurado && r.email) enviarEmailReserva('confirmacion', r, { permitirMailto: false }).catch(() => {})
+    setHecha({ ...r, modificada: !!editandoId })
+    setEditandoId(null)
   }
-  const reiniciar = () => { setForm(FORM0); setIdx(0); setHecha(null) }
+
+  const cancelarReservaCliente = (r) => {
+    cambiarEstadoReserva(r.id, 'cancelada')
+    if (emailConfigurado && r.email) enviarEmailReserva('cancelacion', r, { permitirMailto: false }).catch(() => {})
+  }
 
   const etiquetaDia = (f) => {
     if (f === hoyLocal()) return 'Hoy'
@@ -71,13 +94,27 @@ export default function Reservar() {
     return `${DIA_SEM[d.getDay()]} ${d.getDate()}`
   }
 
-  // ── Confirmación ──────────────────────────────────────
+  // ── Pantalla: reserva cancelada ───────────────────────
+  if (cancelada) {
+    return (
+      <div style={wrap}>
+        <div style={{ ...card, textAlign: 'center' }}>
+          <div style={{ fontSize: '3.5rem' }}>🗑️</div>
+          <h1 style={{ fontWeight: 800, fontSize: '1.4rem', margin: '0.5rem 0' }}>Reserva cancelada</h1>
+          <p style={{ color: 'var(--color-muted)' }}>Tu reserva del {fechaBonita(cancelada.fecha)} a las {cancelada.hora} se ha cancelado.{emailConfigurado && cancelada.email ? ' Te hemos enviado un correo de confirmación.' : ''}</p>
+          <button onClick={reiniciar} style={btn('#f97316', { marginTop: '1rem', width: '100%', padding: '0.85rem', fontSize: '1rem' })}>Hacer una nueva reserva</button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Pantalla: confirmación (nueva o modificada) ───────
   if (hecha) {
     return (
       <div style={wrap}>
         <div style={{ ...card, textAlign: 'center', borderColor: '#10b981' }}>
           <div style={{ fontSize: '3.5rem' }}>✅</div>
-          <h1 style={{ fontWeight: 800, fontSize: '1.5rem', margin: '0.5rem 0' }}>¡Reserva confirmada!</h1>
+          <h1 style={{ fontWeight: 800, fontSize: '1.5rem', margin: '0.5rem 0' }}>{hecha.modificada ? '¡Reserva modificada!' : '¡Reserva confirmada!'}</h1>
           <p style={{ color: 'var(--color-muted)', marginBottom: '1rem' }}>Te esperamos, {hecha.nombre}.</p>
           <div style={{ background: '#0f172a', borderRadius: '0.75rem', padding: '1rem', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
             <Fila k="📅 Día" v={fechaBonita(hecha.fecha)} />
@@ -95,7 +132,44 @@ export default function Reservar() {
     )
   }
 
-  // Resumen editable de lo ya elegido
+  // ── Modo gestión (entrando por el enlace del email) ───
+  if (gestId && !editandoId) {
+    if (!listo) return <div style={wrap}><div style={{ ...card, textAlign: 'center', color: 'var(--color-muted)' }}>Cargando tu reserva…</div></div>
+    if (!reservaGestion) {
+      return (
+        <div style={wrap}>
+          <div style={{ ...card, textAlign: 'center' }}>
+            <div style={{ fontSize: '2.5rem' }}>🤔</div>
+            <h1 style={{ fontWeight: 800, fontSize: '1.2rem', margin: '0.5rem 0' }}>No encontramos esa reserva</h1>
+            <p style={{ color: 'var(--color-muted)' }}>El enlace no es válido o la reserva ya estaba cancelada.</p>
+            <button onClick={reiniciar} style={btn('#f97316', { marginTop: '1rem', width: '100%', padding: '0.85rem', fontSize: '1rem' })}>Hacer una reserva</button>
+          </div>
+        </div>
+      )
+    }
+    const r = reservaGestion
+    return (
+      <div style={wrap}>
+        <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+          <div style={{ fontSize: '2.25rem' }}>📋</div>
+          <h1 style={{ fontWeight: 800, fontSize: '1.5rem' }}>Tu reserva</h1>
+        </div>
+        <div style={card}>
+          <div style={{ background: '#0f172a', borderRadius: '0.75rem', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
+            <Fila k="👤 Nombre" v={r.nombre} />
+            <Fila k="📅 Día" v={fechaBonita(r.fecha)} />
+            <Fila k="🕐 Hora" v={r.hora} />
+            <Fila k="👥 Personas" v={r.personas} />
+            {r.zona && <Fila k="📍 Zona" v={r.zona} />}
+          </div>
+          <button onClick={() => { setForm({ fecha: r.fecha, hora: r.hora, personas: r.personas, zona: r.zona || '', nombre: r.nombre, email: r.email || '', telefono: r.telefono || '', notas: r.notas || '' }); setEditandoId(r.id); setIdx(0) }} style={btn('#f97316', { width: '100%', padding: '0.85rem', fontSize: '1rem', marginBottom: '0.5rem' })}>✏️ Modificar reserva</button>
+          <button onClick={() => { if (confirm('¿Seguro que quieres cancelar tu reserva?')) { cancelarReservaCliente(r); setCancelada(r) } }} style={btn('#7f1d1d', { width: '100%', padding: '0.85rem', fontSize: '1rem' })}>🗑️ Cancelar reserva</button>
+        </div>
+      </div>
+    )
+  }
+
+  // Resumen editable
   const resumen = (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', justifyContent: 'center', marginBottom: '1rem' }}>
       {form.personas > 0 && <Chip onClick={() => irA('personas')}>👥 {form.personas}</Chip>}
@@ -109,7 +183,7 @@ export default function Reservar() {
     <div style={wrap}>
       <div style={{ textAlign: 'center', marginBottom: '0.75rem' }}>
         <div style={{ fontSize: '2.25rem' }}>📅</div>
-        <h1 style={{ fontWeight: 800, fontSize: '1.5rem' }}>Reservar mesa</h1>
+        <h1 style={{ fontWeight: 800, fontSize: '1.5rem' }}>{editandoId ? 'Modificar reserva' : 'Reservar mesa'}</h1>
         <div style={{ display: 'flex', justifyContent: 'center', gap: '0.4rem', marginTop: '0.6rem' }}>
           {pasos.map((_, n) => (
             <div key={n} style={{ width: idx === n ? '1.6rem' : '0.5rem', height: '0.5rem', borderRadius: '9999px', background: n <= idx ? '#f97316' : '#334155', transition: 'all 0.2s' }} />
@@ -117,7 +191,7 @@ export default function Reservar() {
         </div>
       </div>
 
-      {misReservas.length > 0 && (
+      {!editandoId && misReservas.length > 0 && (
         <div style={{ marginBottom: '0.75rem' }}>
           <button onClick={() => setVerMias(v => !v)} style={btn('#0c1e3a', { width: '100%', border: '1px solid #3b82f6', color: '#60a5fa', fontSize: '0.82rem' })}>
             🔔 Tienes {misReservas.length} reserva(s) · {verMias ? 'ocultar' : 'gestionar'}
@@ -127,7 +201,7 @@ export default function Reservar() {
               {misReservas.map(r => (
                 <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', padding: '0.3rem 0' }}>
                   <span style={{ fontSize: '0.85rem' }}>📅 {fechaBonita(r.fecha)} · 🕐 {r.hora} · 👥 {r.personas}</span>
-                  <button onClick={() => { if (confirm('¿Cancelar esta reserva?')) cambiarEstadoReserva(r.id, 'cancelada') }} style={btn('#7f1d1d', { fontSize: '0.75rem', padding: '0.3rem 0.6rem' })}>Cancelar</button>
+                  <button onClick={() => { if (confirm('¿Cancelar esta reserva?')) cancelarReservaCliente(r) }} style={btn('#7f1d1d', { fontSize: '0.75rem', padding: '0.3rem 0.6rem' })}>Cancelar</button>
                 </div>
               ))}
             </div>
@@ -138,9 +212,8 @@ export default function Reservar() {
       {idx > 0 && resumen}
 
       <div style={card}>
-        {/* Personas */}
         {paso === 'personas' && (
-          <Paso titulo="¿Cuántas personas?">
+          <Paso titulo="¿Cuántas personas?" onAtras={editandoId ? reiniciar : undefined}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
               {Array.from({ length: cfg.maxPersonasOnline }, (_, i) => i + 1).map(n => (
                 <button key={n} onClick={() => { set('personas', n); siguiente() }} style={opcion(form.personas === n, { fontSize: '1.25rem', padding: '0.9rem 0' })}>{n}</button>
@@ -150,7 +223,6 @@ export default function Reservar() {
           </Paso>
         )}
 
-        {/* Zona */}
         {paso === 'zona' && (
           <Paso titulo="¿Dónde prefieres sentarte?" onAtras={atras}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -162,7 +234,6 @@ export default function Reservar() {
           </Paso>
         )}
 
-        {/* Día (mini calendario) */}
         {paso === 'dia' && (
           <Paso titulo="¿Qué día?" onAtras={atras}>
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
@@ -175,7 +246,6 @@ export default function Reservar() {
           </Paso>
         )}
 
-        {/* Hora */}
         {paso === 'hora' && (
           <Paso titulo="¿A qué hora?" onAtras={atras}>
             <div style={{ fontSize: '0.78rem', color: 'var(--color-muted)', marginBottom: '0.6rem' }}>
@@ -200,7 +270,6 @@ export default function Reservar() {
           </Paso>
         )}
 
-        {/* Datos */}
         {paso === 'datos' && (
           <Paso titulo="Tus datos" onAtras={atras}>
             <input value={form.nombre} onChange={e => set('nombre', e.target.value)} placeholder="Nombre y apellidos *" autoFocus style={{ ...inp, fontSize: '1rem' }} />
@@ -208,10 +277,10 @@ export default function Reservar() {
             <input value={form.telefono} onChange={e => set('telefono', e.target.value)} type="tel" inputMode="tel" placeholder="Teléfono (opcional)" style={inp} />
             <input value={form.notas} onChange={e => set('notas', e.target.value)} placeholder="Alergias, trona, celebración… (opcional)" style={{ ...inp, marginTop: '0.3rem' }} />
             {(() => {
-              const listo = form.nombre.trim() && emailValido(form.email)
+              const ok = form.nombre.trim() && emailValido(form.email)
               return <>
-                <button onClick={confirmar} disabled={!listo} style={btn(listo ? '#10b981' : '#334155', { width: '100%', padding: '0.95rem', fontSize: '1.05rem', marginTop: '0.9rem', cursor: listo ? 'pointer' : 'not-allowed' })}>Confirmar reserva ✓</button>
-                {!listo && <p style={{ fontSize: '0.75rem', color: 'var(--color-muted)', textAlign: 'center', marginTop: '0.5rem' }}>{!form.nombre.trim() ? 'Escribe tu nombre' : 'Escribe un email válido'} para terminar.</p>}
+                <button onClick={confirmar} disabled={!ok} style={btn(ok ? '#10b981' : '#334155', { width: '100%', padding: '0.95rem', fontSize: '1.05rem', marginTop: '0.9rem', cursor: ok ? 'pointer' : 'not-allowed' })}>{editandoId ? 'Guardar cambios ✓' : 'Confirmar reserva ✓'}</button>
+                {!ok && <p style={{ fontSize: '0.75rem', color: 'var(--color-muted)', textAlign: 'center', marginTop: '0.5rem' }}>{!form.nombre.trim() ? 'Escribe tu nombre' : 'Escribe un email válido'} para terminar.</p>}
               </>
             })()}
           </Paso>

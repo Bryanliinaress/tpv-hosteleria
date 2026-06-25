@@ -492,6 +492,7 @@ export const useStore = create(persist((set, get) => ({
     set(state => ({
       reservas: [...state.reservas, {
         id,
+        token: Math.random().toString(36).slice(2, 10), // localizador para gestionar la reserva desde el email
         fecha: datos.fecha,                 // 'YYYY-MM-DD'
         hora: datos.hora || '',             // 'HH:MM'
         personas: Math.max(1, Number(datos.personas) || 2),
@@ -538,6 +539,28 @@ export const useStore = create(persist((set, get) => ({
     return {
       reservas: state.reservas.map(x => x.id === id ? { ...x, estado } : x),
       mesas: state.mesas.map(m => (r && m.id === r.mesaId && m.estado === 'reservada') ? { ...m, estado: 'libre', reserva: null } : m),
+    }
+  }),
+
+  // Modifica una reserva (fecha/hora/personas/zona/datos). Al cambiar la hora o
+  // la zona, la mesa asignada deja de valer: se libera y se quita la asignación.
+  actualizarReserva: (id, cambios) => set(state => {
+    const r = state.reservas.find(x => x.id === id)
+    if (!r) return {}
+    return {
+      reservas: state.reservas.map(x => x.id !== id ? x : {
+        ...x,
+        fecha: cambios.fecha ?? x.fecha,
+        hora: cambios.hora ?? x.hora,
+        personas: cambios.personas ?? x.personas,
+        zona: cambios.zona ?? x.zona,
+        nombre: (cambios.nombre ?? x.nombre),
+        email: (cambios.email ?? x.email),
+        telefono: (cambios.telefono ?? x.telefono),
+        notas: (cambios.notas ?? x.notas),
+        mesaId: null,
+      }),
+      mesas: state.mesas.map(m => (m.id === r.mesaId && m.estado === 'reservada') ? { ...m, estado: 'libre', reserva: null } : m),
     }
   }),
 
