@@ -35,7 +35,7 @@ export default function PanelCamarero() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <div style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 20, background: 'linear-gradient(180deg, var(--color-surface), var(--color-surface-2))', borderBottom: '1px solid var(--color-border)', boxShadow: '0 6px 18px -10px rgba(0,0,0,0.6)', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 style={{ fontWeight: 800, fontSize: '1.25rem' }}>👨‍🍳 Panel Camarero</h1>
           <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>{mesas.filter(m => m.estado !== 'libre').length} mesas ocupadas de {mesas.length}</p>
@@ -82,12 +82,15 @@ export default function PanelCamarero() {
                   style={{
                     background: mesaSeleccionada === m.id ? est.bg : 'var(--color-surface)',
                     border: `2px solid ${mesaSeleccionada === m.id ? est.color : m.estado === 'libre' ? 'var(--color-border)' : est.color + '66'}`,
-                    borderRadius: '0.875rem',
+                    borderRadius: 'var(--radius)',
                     padding: '1rem',
                     cursor: 'pointer',
                     textAlign: 'left',
-                    transition: 'all 0.15s',
+                    boxShadow: 'var(--shadow-sm)',
+                    transition: 'transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease',
                   }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = `0 14px 28px -14px ${est.color}aa` }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)' }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <span style={{ fontWeight: 800, fontSize: '1.1rem' }}>M{m.numero}</span>
@@ -291,11 +294,12 @@ const btn = (bg, extra = {}) => ({
   background: bg,
   color: 'white',
   border: 'none',
-  borderRadius: '0.5rem',
+  borderRadius: '0.55rem',
   padding: '0.5rem 1rem',
   cursor: 'pointer',
   fontWeight: 600,
   fontSize: '0.875rem',
+  boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
   ...extra,
 })
 
