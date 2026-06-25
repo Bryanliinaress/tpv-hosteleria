@@ -11,13 +11,30 @@ export const emailConfigurado = !!(SERVICE && TEMPLATE && PUBLIC_KEY)
 
 const fechaBonita = (f) => { const [y, m, d] = f.split('-'); return `${d}/${m}/${y}` }
 
+// Enlace público para que el cliente gestione (cancele o modifique) su reserva.
+export function enlaceGestion(r) {
+  return `${window.location.origin}${import.meta.env.BASE_URL}#/reservar?r=${r.id}&t=${r.token || ''}`
+}
+
 // Construye asunto + cuerpo según el tipo de correo.
 function contenido(tipo, r) {
+  if (tipo === 'cancelacion') {
+    return {
+      asunto: `Reserva cancelada · ${fechaBonita(r.fecha)} ${r.hora}`,
+      mensaje: [
+        `Hola ${r.nombre},`,
+        '',
+        `Tu reserva del ${fechaBonita(r.fecha)} a las ${r.hora} (${r.personas} personas) ha quedado cancelada.`,
+        '',
+        'Si ha sido un error o quieres volver a reservar, puedes hacerlo cuando quieras.',
+        '',
+        'Un saludo.',
+      ].join('\n'),
+    }
+  }
   const recordatorio = tipo === 'recordatorio'
   const asunto = `${recordatorio ? 'Recordatorio de tu reserva' : 'Reserva confirmada'} · ${fechaBonita(r.fecha)} ${r.hora}`
-  const intro = recordatorio
-    ? 'Te recordamos tu próxima reserva:'
-    : 'Tu reserva ha quedado confirmada:'
+  const intro = recordatorio ? 'Te recordamos tu próxima reserva:' : 'Tu reserva ha quedado confirmada:'
   const mensaje = [
     `Hola ${r.nombre},`,
     '',
@@ -26,6 +43,7 @@ function contenido(tipo, r) {
     `🕐 Hora: ${r.hora}`,
     `👥 Personas: ${r.personas}`,
     ...(r.zona ? [`📍 Zona: ${r.zona}`] : []),
+    ...(r.token ? ['', '¿Necesitas cancelar o modificar tu reserva?', enlaceGestion(r)] : []),
     '',
     '¡Te esperamos!',
   ].join('\n')
