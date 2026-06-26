@@ -5,6 +5,19 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.7.0] - 2026-06-26
+
+### Añadido
+- **Control de acceso por PIN** (nivel demo): cada empleado entra en las pantallas de personal con su PIN de 4 dígitos mediante un **teclado numérico**. Roles **administrador** y **camarero**.
+- **Pantallas protegidas**: PDA, Panel Camarero, Cocina, Barra e Impresión exigen un empleado **activo**; el Panel Admin exige rol **administrador**. La carta del cliente por QR sigue abierta.
+- **Gestión de personal** (Panel Admin · pestaña «Personal»): alta y baja de empleados, cambio de rol y de PIN, y activar/desactivar sin perder la ficha. El padrón se sincroniza entre dispositivos y una baja revoca el acceso al instante.
+- **Cerrar sesión** en todas las pantallas de personal (con el empleado conectado a la vista).
+
+### Cambiado
+- La PDA del camarero ya **no pide solo el nombre**: usa la sesión del empleado autenticado.
+
+> Nota: es control de acceso de **demostración** (vive en el estado, sin backend de autenticación ni cifrado). La autenticación real con backend, roles y datos aislados por local queda para la fase de producción (ver ROADMAP).
+
 ## [0.6.0] - 2026-06-26
 
 ### Añadido

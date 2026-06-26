@@ -4,12 +4,13 @@ import { useStore, METODO_LABEL, METODO_EMOJI } from '../../store/useStore'
 import Ticket from '../../components/Ticket'
 import ReservasManager from '../../components/ReservasManager'
 import ReservasConfig from '../../components/ReservasConfig'
+import BotonSalir from '../../components/BotonSalir'
 
 const emptyForm = { nombre: '', precioPitufo: '', precioViena: '', categoria: '', descripcion: '' }
 const precioDesde = (prod) => Math.min(prod.precios?.pitufo ?? 0, prod.precios?.viena ?? 0)
 
 export default function PanelAdmin() {
-  const { carta, mesas, historial, cierres, reservas, local, updateLocal, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, addCategoria, removeCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan } = useStore()
+  const { carta, mesas, historial, cierres, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, addCategoria, removeCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan } = useStore()
   const hoyStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
   const reservasHoy = reservas.filter(r => r.fecha === hoyStr && r.estado === 'confirmada').length
   const [tab, setTab] = useState('carta')
@@ -78,9 +79,12 @@ export default function PanelAdmin() {
           <h1 style={{ fontWeight: 800, fontSize: '1.25rem' }}>🛠 Panel Administración</h1>
           <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>{local.nombre || 'Gestión del local'}</p>
         </div>
-        <button onClick={resetDatos} title="Borra todos los datos guardados y recarga" style={{ background: '#1e293b', color: 'var(--color-muted)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.875rem', cursor: 'pointer', fontSize: '0.8rem' }}>
-          ↺ Reiniciar datos
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <button onClick={resetDatos} title="Borra todos los datos guardados y recarga" style={{ background: '#1e293b', color: 'var(--color-muted)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.875rem', cursor: 'pointer', fontSize: '0.8rem' }}>
+            ↺ Reiniciar datos
+          </button>
+          <BotonSalir />
+        </div>
       </div>
 
       {/* Stats rápidas */}
@@ -104,6 +108,7 @@ export default function PanelAdmin() {
         {[
           { id: 'carta', label: '📋 Carta' },
           { id: 'local', label: '🏪 Local' },
+          { id: 'personal', label: '👥 Personal' },
           { id: 'mesas', label: '🍽 Mesas' },
           { id: 'reservas', label: `📅 Reservas${reservasHoy ? ` (${reservasHoy})` : ''}` },
           { id: 'caja', label: '💰 Caja' },
@@ -418,6 +423,11 @@ export default function PanelAdmin() {
           </div>
         )}
 
+        {/* Tab Personal (empleados y accesos) */}
+        {tab === 'personal' && (
+          <PersonalTab empleados={empleados} addEmpleado={addEmpleado} updateEmpleado={updateEmpleado} removeEmpleado={removeEmpleado} />
+        )}
+
         {/* Tab Tickets del mes */}
         {tab === 'tickets' && (
           <div>
@@ -487,6 +497,84 @@ export default function PanelAdmin() {
       </div>
 
       {ticket && <Ticket tipo="cuenta" mesa={ticket} onClose={() => setTicket(null)} />}
+    </div>
+  )
+}
+
+function PersonalTab({ empleados, addEmpleado, updateEmpleado, removeEmpleado }) {
+  const [nuevo, setNuevo] = useState({ nombre: '', rol: 'camarero', pin: '' })
+  const [err, setErr] = useState('')
+  const [pinDraft, setPinDraft] = useState({}) // id -> PIN a medio escribir
+
+  const crear = () => {
+    const r = addEmpleado(nuevo)
+    if (!r.ok) return setErr(r.error)
+    setNuevo({ nombre: '', rol: 'camarero', pin: '' }); setErr('')
+  }
+  const onPin = (e, val) => {
+    if (!/^\d{0,4}$/.test(val)) return
+    setPinDraft(d => ({ ...d, [e.id]: val }))
+    if (val.length === 4) {
+      const r = updateEmpleado(e.id, { pin: val })
+      if (!r.ok) setErr(r.error)
+      else { setErr(''); setPinDraft(d => { const n = { ...d }; delete n[e.id]; return n }) }
+    }
+  }
+  const borrar = (e) => {
+    if (!confirm(`¿Eliminar a ${e.nombre}?`)) return
+    const r = removeEmpleado(e.id)
+    if (!r.ok) setErr(r.error)
+  }
+
+  return (
+    <div style={{ maxWidth: '760px' }}>
+      <p style={{ color: 'var(--color-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+        Da de alta al personal y asígnale un PIN. Cada empleado entra en las pantallas (PDA, cocina, barra, impresión y este panel) con su PIN. Los <strong>administradores</strong> además pueden entrar aquí. Desactiva a quien no esté de turno sin perder su ficha.
+      </p>
+      {err && <div style={{ background: '#2d0a14', border: '1px solid #f43f5e', color: '#fda4af', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.82rem', marginBottom: '0.75rem' }}>⚠️ {err}</div>}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+        {empleados.map(e => (
+          <div key={e.id} style={{ ...ajusteCard, display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', opacity: e.activo ? 1 : 0.55 }}>
+            <input value={e.nombre} onChange={ev => updateEmpleado(e.id, { nombre: ev.target.value })} style={{ ...inputStyle, flex: '2 1 140px' }} />
+            <select value={e.rol} onChange={ev => updateEmpleado(e.id, { rol: ev.target.value })} style={{ ...inputStyle, flex: '0 1 130px' }}>
+              <option value="camarero">Camarero</option>
+              <option value="admin">Administrador</option>
+            </select>
+            <div style={{ flex: '0 1 110px' }}>
+              <label style={lblCampo}>PIN</label>
+              <input value={pinDraft[e.id] ?? e.pin} onChange={ev => onPin(e, ev.target.value)} inputMode="numeric" maxLength={4} style={{ ...inputStyle, letterSpacing: '0.2em', fontWeight: 700 }} />
+            </div>
+            <button onClick={() => updateEmpleado(e.id, { activo: !e.activo })} style={{ background: e.activo ? '#052e16' : '#3f1d0a', color: e.activo ? '#10b981' : '#f59e0b', border: `1px solid ${e.activo ? '#10b981' : '#f59e0b'}66`, borderRadius: '9999px', padding: '0.3rem 0.7rem', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
+              {e.activo ? '🟢 Activo' : '⏸ Inactivo'}
+            </button>
+            <button onClick={() => borrar(e)} title="Eliminar" style={iconBtn}>🗑️</button>
+          </div>
+        ))}
+      </div>
+
+      {/* Alta de empleado */}
+      <div style={{ ...ajusteCard, borderColor: '#f97316' }}>
+        <h3 style={{ ...ajusteTitulo, marginBottom: '0.6rem' }}>Nuevo empleado</h3>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div style={{ flex: '2 1 160px' }}>
+            <label style={lblCampo}>Nombre</label>
+            <input value={nuevo.nombre} onChange={e => setNuevo(s => ({ ...s, nombre: e.target.value }))} placeholder="Nombre" style={inputStyle} />
+          </div>
+          <div style={{ flex: '1 1 120px' }}>
+            <label style={lblCampo}>Rol</label>
+            <select value={nuevo.rol} onChange={e => setNuevo(s => ({ ...s, rol: e.target.value }))} style={inputStyle}>
+              <option value="camarero">Camarero</option>
+              <option value="admin">Administrador</option>
+            </select>
+          </div>
+          <div style={{ flex: '0 1 100px' }}>
+            <label style={lblCampo}>PIN (4 díg.)</label>
+            <input value={nuevo.pin} onChange={e => { if (/^\d{0,4}$/.test(e.target.value)) setNuevo(s => ({ ...s, pin: e.target.value })) }} inputMode="numeric" maxLength={4} placeholder="0000" style={{ ...inputStyle, letterSpacing: '0.2em', fontWeight: 700 }} />
+          </div>
+          <button onClick={crear} style={addBtn}>+ Añadir</button>
+        </div>
+      </div>
     </div>
   )
 }
