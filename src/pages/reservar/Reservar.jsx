@@ -26,7 +26,7 @@ const emailValido = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((e || '').trim())
 // Reserva online guiada (personas → zona → día → hora → datos). Si se entra con
 // ?r=<id>&t=<token> (enlace del email), muestra el panel para cancelar/modificar.
 export default function Reservar() {
-  const { mesas, reservas, reservasConfig: cfg, crearReserva, actualizarReserva, cambiarEstadoReserva } = useStore()
+  const { local, mesas, reservas, reservasConfig: cfg, crearReserva, actualizarReserva, cambiarEstadoReserva } = useStore()
   const zonas = [...new Set(mesas.map(m => m.zona).filter(Boolean))]
 
   const location = useLocation()
@@ -183,6 +183,7 @@ export default function Reservar() {
     <div style={wrap}>
       <div style={{ textAlign: 'center', marginBottom: '0.75rem' }}>
         <div style={{ fontSize: '2.25rem' }}>📅</div>
+        {local?.nombre && <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f97316' }}>{local.nombre}</div>}
         <h1 style={{ fontWeight: 800, fontSize: '1.5rem' }}>{editandoId ? 'Modificar reserva' : 'Reservar mesa'}</h1>
         <div style={{ display: 'flex', justifyContent: 'center', gap: '0.4rem', marginTop: '0.6rem' }}>
           {pasos.map((_, n) => (
