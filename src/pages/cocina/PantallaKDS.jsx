@@ -1,4 +1,5 @@
 import { useStore } from '../../store/useStore'
+import BotonSalir from '../../components/BotonSalir'
 
 const ESTADO = {
   recibido: { label: 'Recibido', color: '#f59e0b', next: 'preparando', nextLabel: 'Preparar' },
@@ -28,8 +29,11 @@ export default function PantallaKDS() {
             <p style={{ fontSize: '0.8rem', color: '#6ee7b7' }}>{activos.length} en cola · {listos.length} listos</p>
           </div>
         </div>
-        <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#10b981', fontVariantNumeric: 'tabular-nums' }}>
-          {new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#10b981', fontVariantNumeric: 'tabular-nums' }}>
+            {new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+          </div>
+          <BotonSalir oscuro />
         </div>
       </div>
 

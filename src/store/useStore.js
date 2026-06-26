@@ -124,6 +124,16 @@ export const useStore = create(persist((set, get) => ({
     pieTicket: '¡Gracias por su visita!',
   },
 
+  // ── PERSONAL / ACCESO (control de acceso por PIN, nivel demo) ─
+  // El admin da de alta a los empleados; cada uno entra con su PIN. Es un
+  // control de acceso de demostración (vive en el estado sincronizado, no es
+  // seguridad real cifrada). Roles: 'admin' | 'camarero'.
+  empleados: [
+    { id: 'emp-admin', nombre: 'Encargado', pin: '1234', rol: 'admin', activo: true },
+    { id: 'emp-maria', nombre: 'María', pin: '1111', rol: 'camarero', activo: true },
+    { id: 'emp-juan', nombre: 'Juan', pin: '2222', rol: 'camarero', activo: true },
+  ],
+
   // ── MESAS ──────────────────────────────────────────────
   mesas: Array.from({ length: 12 }, (_, i) => ({
     id: `mesa-${i + 1}`,
@@ -582,6 +592,49 @@ export const useStore = create(persist((set, get) => ({
     reservasConfig: { ...state.reservasConfig, ...cambios },
   })),
 
+  // ── PERSONAL (gestión de empleados, solo admin) ────────
+  // Da de alta un empleado. Devuelve { ok, error }. El PIN debe ser de 4
+  // dígitos y único entre el personal activo.
+  addEmpleado: ({ nombre, pin, rol }) => {
+    const n = (nombre || '').trim()
+    const p = (pin || '').trim()
+    if (!n) return { ok: false, error: 'Escribe un nombre' }
+    if (!/^\d{4}$/.test(p)) return { ok: false, error: 'El PIN debe tener 4 dígitos' }
+    if (get().empleados.some(e => e.pin === p)) return { ok: false, error: 'Ese PIN ya está en uso' }
+    set(state => ({ empleados: [...state.empleados, { id: `emp${Date.now()}`, nombre: n, pin: p, rol: rol === 'admin' ? 'admin' : 'camarero', activo: true }] }))
+    return { ok: true }
+  },
+
+  // Modifica un empleado (nombre, rol, pin, activo). Valida PIN si cambia.
+  updateEmpleado: (id, cambios) => {
+    if (cambios.pin !== undefined) {
+      const p = (cambios.pin || '').trim()
+      if (!/^\d{4}$/.test(p)) return { ok: false, error: 'El PIN debe tener 4 dígitos' }
+      if (get().empleados.some(e => e.id !== id && e.pin === p)) return { ok: false, error: 'Ese PIN ya está en uso' }
+    }
+    set(state => ({
+      empleados: state.empleados.map(e => e.id !== id ? e : {
+        ...e,
+        ...(cambios.nombre !== undefined ? { nombre: (cambios.nombre || '').trim() || e.nombre } : {}),
+        ...(cambios.rol !== undefined ? { rol: cambios.rol === 'admin' ? 'admin' : 'camarero' } : {}),
+        ...(cambios.pin !== undefined ? { pin: (cambios.pin || '').trim() } : {}),
+        ...(cambios.activo !== undefined ? { activo: !!cambios.activo } : {}),
+      }),
+    }))
+    return { ok: true }
+  },
+
+  // Elimina un empleado. No deja borrar el último admin activo.
+  removeEmpleado: (id) => {
+    const emps = get().empleados
+    const e = emps.find(x => x.id === id)
+    if (e?.rol === 'admin' && emps.filter(x => x.rol === 'admin' && x.activo && x.id !== id).length === 0) {
+      return { ok: false, error: 'Debe quedar al menos un administrador' }
+    }
+    set(state => ({ empleados: state.empleados.filter(x => x.id !== id) }))
+    return { ok: true }
+  },
+
   // ── IDENTIDAD DEL LOCAL ────────────────────────────────
   // Actualiza los datos del negocio (nombre, IVA, moneda, pie de ticket…).
   updateLocal: (cambios) => set(state => {
@@ -717,6 +770,7 @@ export const useStore = create(persist((set, get) => ({
   migrate: () => undefined, // si cambia el formato de carta, descarta lo viejo y usa el por defecto
   partialize: (state) => ({
     local: state.local,
+    empleados: state.empleados,
     carta: state.carta,
     mesas: state.mesas,
     pedidosCocina: state.pedidosCocina,
@@ -794,6 +848,15 @@ export function slotDisponible(config, mesas, reservas, fecha, hora, personas, z
 export function diaCerrado(config, fecha) {
   const dia = new Date(fecha + 'T12:00:00').getDay() // 0=domingo … 6=sábado
   return (config.diasCerrados || []).includes(dia)
+}
+
+// Busca un empleado activo por PIN (control de acceso por PIN). Si se pide
+// `soloAdmin`, solo valida administradores. Devuelve el empleado o null.
+export function empleadoPorPin(empleados, pin, soloAdmin = false) {
+  const e = (empleados || []).find(x => x.activo && x.pin === pin)
+  if (!e) return null
+  if (soloAdmin && e.rol !== 'admin') return null
+  return e
 }
 
 // Lo que debe cada comensal, repartiendo a partes iguales los platos compartidos.

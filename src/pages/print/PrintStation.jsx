@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../../store/useStore'
+import BotonSalir from '../../components/BotonSalir'
 
 // Estación de impresión automática. Pensada para un PC en cocina/barra con la
 // impresora térmica como predeterminada y Chrome en modo "kiosk-printing"
@@ -59,7 +60,10 @@ export default function PrintStation() {
   return (
     <div style={{ minHeight: '100vh' }}>
       <div className="no-print" style={{ maxWidth: '640px', margin: '0 auto', padding: '1.25rem' }}>
-        <h1 style={{ fontWeight: 800, fontSize: '1.35rem', marginBottom: '0.25rem' }}>🖨️ Estación de impresión</h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
+          <h1 style={{ fontWeight: 800, fontSize: '1.35rem', marginBottom: '0.25rem' }}>🖨️ Estación de impresión</h1>
+          <BotonSalir />
+        </div>
         <p style={{ color: 'var(--color-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>Imprime las comandas automáticamente al entrar pedidos nuevos.</p>
 
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
