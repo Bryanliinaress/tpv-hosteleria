@@ -20,12 +20,15 @@ export default function PantallaKDS() {
   return (
     <div style={{ minHeight: '100vh', background: '#030712', color: '#f8fafc' }}>
       {/* Header */}
-      <div style={{ background: '#052e16', borderBottom: '1px solid #14532d', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h1 style={{ fontWeight: 900, fontSize: '1.5rem', color: '#10b981' }}>🍳 COCINA</h1>
-          <p style={{ fontSize: '0.8rem', color: '#6ee7b7' }}>{activos.length} en cola · {listos.length} listos</p>
+      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'linear-gradient(180deg, #06351a, #052e16)', borderBottom: '1px solid #14532d', boxShadow: '0 8px 24px -12px rgba(0,0,0,0.7)', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          <div style={{ width: '4px', height: '2.5rem', borderRadius: '9999px', background: '#10b981', boxShadow: '0 0 14px #10b981' }} />
+          <div>
+            <h1 style={{ fontWeight: 900, fontSize: '1.5rem', color: '#10b981', letterSpacing: '0.02em' }}>🍳 COCINA</h1>
+            <p style={{ fontSize: '0.8rem', color: '#6ee7b7' }}>{activos.length} en cola · {listos.length} listos</p>
+          </div>
         </div>
-        <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#10b981' }}>
+        <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#10b981', fontVariantNumeric: 'tabular-nums' }}>
           {new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
         </div>
       </div>
@@ -47,12 +50,13 @@ export default function PantallaKDS() {
                 const est = ESTADO[p.estado]
                 const urgente = (Date.now() - new Date(p.horaEntrada)) > 10 * 60 * 1000
                 return (
-                  <div key={p.id} style={{
-                    background: '#0f172a',
+                  <div key={p.id} className={urgente ? 'anim-fade pulse-attn' : 'anim-fade'} style={{
+                    background: 'linear-gradient(180deg, #131c2e, #0f172a)',
                     border: `2px solid ${urgente ? '#f43f5e' : est.color + '44'}`,
-                    borderRadius: '0.875rem',
+                    borderRadius: 'var(--radius)',
                     padding: '1rem',
-                    borderLeft: `4px solid ${est.color}`,
+                    borderLeft: `5px solid ${est.color}`,
+                    boxShadow: 'var(--shadow)',
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                       <div>

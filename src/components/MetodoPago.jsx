@@ -3,8 +3,8 @@ import { METODOS_PAGO } from '../store/useStore'
 // Modal para elegir el método de pago al cobrar. Llama a onElegir(metodoId).
 export default function MetodoPago({ titulo = 'Método de pago', importe, onElegir, onCerrar }) {
   return (
-    <div onClick={onCerrar} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 120, padding: '1rem' }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--color-surface)', borderRadius: '1rem', padding: '1.25rem', width: '100%', maxWidth: '360px', border: '1px solid var(--color-border)' }}>
+    <div onClick={onCerrar} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 120, padding: '1rem', animation: 'fadeIn 0.2s ease both' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', padding: '1.25rem', width: '100%', maxWidth: '360px', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-lg)', animation: 'pop 0.18s ease both' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
           <h3 style={{ fontWeight: 800, fontSize: '1.05rem' }}>{titulo}</h3>
           <button onClick={onCerrar} style={btn('#334155', { padding: '0.25rem 0.6rem' })}>✕</button>

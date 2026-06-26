@@ -112,8 +112,8 @@ export default function Reservar() {
   if (hecha) {
     return (
       <div style={wrap}>
-        <div style={{ ...card, textAlign: 'center', borderColor: '#10b981' }}>
-          <div style={{ fontSize: '3.5rem' }}>✅</div>
+        <div style={{ ...card, textAlign: 'center', borderColor: '#10b981', boxShadow: '0 18px 50px -18px rgba(16,185,129,0.5)' }}>
+          <div className="anim-pop" style={{ fontSize: '3.5rem' }}>✅</div>
           <h1 style={{ fontWeight: 800, fontSize: '1.5rem', margin: '0.5rem 0' }}>{hecha.modificada ? '¡Reserva modificada!' : '¡Reserva confirmada!'}</h1>
           <p style={{ color: 'var(--color-muted)', marginBottom: '1rem' }}>Te esperamos, {hecha.nombre}.</p>
           <div style={{ background: '#0f172a', borderRadius: '0.75rem', padding: '1rem', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
@@ -313,8 +313,8 @@ const Aviso = ({ children }) => (
 )
 
 const wrap = { maxWidth: '460px', margin: '0 auto', minHeight: '100vh', padding: '1.5rem 1.25rem' }
-const card = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.875rem', padding: '1.25rem' }
+const card = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: '1.25rem', boxShadow: 'var(--shadow)', animation: 'fadeIn 0.3s ease both' }
 const inp = { background: '#0f172a', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.7rem 0.85rem', color: 'var(--color-text)', fontSize: '0.95rem', width: '100%', marginBottom: '0.4rem' }
 const enlace = { color: '#fbbf24', textDecoration: 'underline', cursor: 'pointer' }
-const btn = (bg, extra = {}) => ({ background: bg, color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 0.85rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', textAlign: 'center', ...extra })
-const opcion = (sel, extra = {}) => ({ background: sel ? '#f97316' : '#1e293b', color: '#fff', border: `1px solid ${sel ? '#f97316' : 'var(--color-border)'}`, borderRadius: '0.6rem', cursor: 'pointer', fontWeight: 600, ...extra })
+const btn = (bg, extra = {}) => ({ background: bg, color: '#fff', border: 'none', borderRadius: '0.55rem', padding: '0.5rem 0.85rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.2)', ...extra })
+const opcion = (sel, extra = {}) => ({ background: sel ? '#f97316' : '#1e293b', color: '#fff', border: `1px solid ${sel ? '#f97316' : 'var(--color-border)'}`, borderRadius: '0.65rem', cursor: 'pointer', fontWeight: 600, boxShadow: sel ? '0 6px 16px -8px rgba(249,115,22,0.8)' : 'var(--shadow-sm)', transition: 'transform 0.12s ease, box-shadow 0.15s ease, background 0.15s ease', ...extra })

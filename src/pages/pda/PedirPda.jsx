@@ -94,8 +94,9 @@ export default function PedirPda({ mesaId, onClose }) {
 
       {/* Personalización */}
       {pers && (
-        <div onClick={() => setPers(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 70 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--color-surface)', borderTopLeftRadius: '1rem', borderTopRightRadius: '1rem', padding: '1.1rem', width: '100%', maxWidth: '520px', maxHeight: '88vh', overflowY: 'auto' }}>
+        <div onClick={() => setPers(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 70, animation: 'fadeIn 0.2s ease both' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--color-surface)', borderTopLeftRadius: 'var(--radius-lg)', borderTopRightRadius: 'var(--radius-lg)', padding: '1.1rem', width: '100%', maxWidth: '520px', maxHeight: '88vh', overflowY: 'auto', borderTop: '1px solid var(--color-border)', boxShadow: '0 -22px 50px -20px rgba(0,0,0,0.8)', animation: 'slideUp 0.28s cubic-bezier(0.16,1,0.3,1) both' }}>
+            <div style={{ width: '36px', height: '4px', borderRadius: '9999px', background: 'var(--color-border)', margin: '-0.15rem auto 0.7rem' }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
               <h3 style={{ fontWeight: 800, fontSize: '1.1rem' }}>{pers.producto.nombre}</h3>
               <button onClick={() => setPers(null)} style={btn('#334155', { padding: '0.25rem 0.6rem' })}>✕</button>
@@ -138,6 +139,6 @@ export default function PedirPda({ mesaId, onClose }) {
   )
 }
 
-const card = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.6rem', padding: '0.7rem' }
+const card = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.7rem', boxShadow: 'var(--shadow-sm)' }
 const lbl = { fontSize: '0.72rem', color: 'var(--color-muted)', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.05em' }
 const btn = (bg, extra = {}) => ({ background: bg, color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 0.85rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', ...extra })

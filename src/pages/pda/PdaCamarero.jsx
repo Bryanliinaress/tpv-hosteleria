@@ -198,8 +198,9 @@ export default function PdaCamarero() {
         )}
 
         {mover && (
-          <div onClick={() => setMover(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 80 }}>
-            <div onClick={e => e.stopPropagation()} style={{ background: 'var(--color-surface)', borderTopLeftRadius: '1rem', borderTopRightRadius: '1rem', padding: '1.15rem', width: '100%', maxWidth: '520px', maxHeight: '80vh', overflowY: 'auto' }}>
+          <div onClick={() => setMover(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 80, animation: 'fadeIn 0.2s ease both' }}>
+            <div onClick={e => e.stopPropagation()} style={{ background: 'var(--color-surface)', borderTopLeftRadius: 'var(--radius-lg)', borderTopRightRadius: 'var(--radius-lg)', padding: '1.15rem', width: '100%', maxWidth: '520px', maxHeight: '80vh', overflowY: 'auto', borderTop: '1px solid var(--color-border)', boxShadow: '0 -22px 50px -20px rgba(0,0,0,0.8)', animation: 'slideUp 0.28s cubic-bezier(0.16,1,0.3,1) both' }}>
+              <div style={{ width: '36px', height: '4px', borderRadius: '9999px', background: 'var(--color-border)', margin: '-0.15rem auto 0.7rem' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
                 <h3 style={{ fontWeight: 800, fontSize: '1.05rem' }}>{mover.tipo === 'mesa' ? 'Mover / juntar a…' : 'Mover comensal a…'}</h3>
                 <button onClick={() => setMover(null)} style={btn('#334155', { padding: '0.25rem 0.6rem' })}>✕</button>
@@ -363,7 +364,7 @@ export default function PdaCamarero() {
       )}
 
       {/* Navegación inferior */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, display: 'flex', background: 'var(--color-surface)', borderTop: '1px solid var(--color-border)', maxWidth: '520px', margin: '0 auto' }}>
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, display: 'flex', background: 'rgba(22,31,49,0.9)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', borderTop: '1px solid var(--color-border)', boxShadow: '0 -8px 24px -12px rgba(0,0,0,0.7)', maxWidth: '520px', margin: '0 auto' }}>
         {[{ id: 'avisos', label: 'Avisos', emoji: '🔔', n: eventos.length }, { id: 'mesas', label: 'Mesas', emoji: '🍽', n: ocupadas.length }, { id: 'carta', label: 'Carta', emoji: '📋', n: carta.productos.filter(p => !p.disponible).length }, { id: 'turno', label: 'Turno', emoji: '👤', n: 0 }].map(t => (
           <button key={t.id} onClick={() => setVista(t.id)} style={{ flex: 1, background: 'none', border: 'none', padding: '0.75rem', cursor: 'pointer', color: vista === t.id ? '#f97316' : 'var(--color-muted)', fontWeight: vista === t.id ? 700 : 400, fontSize: '0.8rem' }}>
             <div style={{ fontSize: '1.3rem', position: 'relative', display: 'inline-block' }}>
@@ -378,7 +379,7 @@ export default function PdaCamarero() {
   )
 }
 
-const cab = { position: 'sticky', top: 0, zIndex: 10, background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', padding: '0.875rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }
-const card = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.75rem', padding: '0.875rem' }
+const cab = { position: 'sticky', top: 0, zIndex: 10, background: 'rgba(22,31,49,0.85)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', borderBottom: '1px solid var(--color-border)', boxShadow: '0 6px 18px -10px rgba(0,0,0,0.6)', padding: '0.875rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }
+const card = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.875rem', boxShadow: 'var(--shadow-sm)' }
 const inp = { background: '#0f172a', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.55rem 0.7rem', color: 'var(--color-text)', fontSize: '0.9rem', width: '100%' }
-const btn = (bg, extra = {}) => ({ background: bg, color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.55rem 0.9rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', ...extra })
+const btn = (bg, extra = {}) => ({ background: bg, color: '#fff', border: 'none', borderRadius: '0.55rem', padding: '0.55rem 0.9rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', boxShadow: '0 1px 2px rgba(0,0,0,0.2)', ...extra })

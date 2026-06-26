@@ -90,8 +90,8 @@ function Cuenta({ mesa, persona }) {
 
 export default function Ticket({ tipo, mesa, persona, onClose }) {
   return (
-    <div onClick={onClose} className="no-print" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '1rem' }}>
-      <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', maxHeight: '92vh' }}>
+    <div onClick={onClose} className="no-print" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '1rem', animation: 'fadeIn 0.2s ease both' }}>
+      <div onClick={e => e.stopPropagation()} className="anim-pop" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', maxHeight: '92vh' }}>
         <div className="ticket-print" style={st.papel}>
           {tipo === 'comanda' ? <Comanda mesa={mesa} /> : <Cuenta mesa={mesa} persona={tipo === 'persona' ? persona : null} />}
         </div>
@@ -105,7 +105,7 @@ export default function Ticket({ tipo, mesa, persona, onClose }) {
 }
 
 const st = {
-  papel: { background: '#fff', color: '#111', width: '300px', maxWidth: '80vw', padding: '1rem 1.1rem', fontFamily: '"Courier New", monospace', fontSize: '0.82rem', lineHeight: 1.45, overflowY: 'auto', borderRadius: '0.25rem' },
+  papel: { background: '#fff', color: '#111', width: '300px', maxWidth: '80vw', padding: '1rem 1.1rem', fontFamily: '"Courier New", monospace', fontSize: '0.82rem', lineHeight: 1.45, overflowY: 'auto', borderRadius: '0.25rem', boxShadow: '0 20px 60px -15px rgba(0,0,0,0.7)' },
   titulo: { textAlign: 'center', fontWeight: 800, fontSize: '1.3rem', letterSpacing: '0.05em' },
   sub: { textAlign: 'center', fontSize: '0.78rem', color: '#444' },
   h2: { fontWeight: 800, marginTop: '0.3rem', marginBottom: '0.2rem' },
