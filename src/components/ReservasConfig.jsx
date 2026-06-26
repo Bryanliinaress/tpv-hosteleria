@@ -22,7 +22,7 @@ export default function ReservasConfig() {
   }
 
   return (
-    <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.875rem', marginBottom: '1.25rem', overflow: 'hidden' }}>
+    <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', marginBottom: '1.25rem', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
       <button onClick={() => setAbierto(a => !a)} style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'none', border: 'none', color: 'var(--color-text)', cursor: 'pointer', padding: '1rem 1.1rem', fontSize: '0.95rem', fontWeight: 700 }}>
         <span>⚙️ Horarios y aforo</span>
         <span style={{ color: 'var(--color-muted)', fontWeight: 400, fontSize: '0.8rem' }}>{cfg.turnos.length} turno(s) · aforo {aforoTotal(cfg, mesas)} · {abierto ? '▲' : '▼'}</span>

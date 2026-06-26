@@ -100,7 +100,7 @@ export default function ReservasManager({ onSentada }) {
               const mesaAsignada = mesas.find(m => m.id === r.mesaId)
               const activa = r.estado === 'confirmada'
               return (
-                <div key={r.id} style={{ background: 'var(--color-surface)', border: `1px solid ${est.color}55`, borderRadius: '0.75rem', padding: '0.875rem' }}>
+                <div key={r.id} style={{ background: 'var(--color-surface)', border: `1px solid ${est.color}55`, borderRadius: 'var(--radius)', padding: '0.875rem', boxShadow: 'var(--shadow-sm)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
                       <span style={{ fontWeight: 800, fontSize: '1.1rem' }}>🕐 {r.hora}</span>

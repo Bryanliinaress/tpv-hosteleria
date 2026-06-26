@@ -73,7 +73,7 @@ export default function PanelAdmin() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <div style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 20, background: 'linear-gradient(180deg, var(--color-surface), var(--color-surface-2))', borderBottom: '1px solid var(--color-border)', boxShadow: '0 6px 18px -10px rgba(0,0,0,0.6)', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 style={{ fontWeight: 800, fontSize: '1.25rem' }}>🛠 Panel Administración</h1>
           <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>Gestión del local</p>
@@ -91,7 +91,8 @@ export default function PanelAdmin() {
           { label: 'Categorías', value: carta.categorias.length, color: '#8b5cf6' },
           { label: 'Consumo activo', value: `${totalVentas.toFixed(2)} €`, color: '#f97316' },
         ].map(s => (
-          <div key={s.label} style={{ background: 'var(--color-surface)', borderRadius: '0.75rem', padding: '1rem', border: '1px solid var(--color-border)' }}>
+          <div key={s.label} style={{ position: 'relative', overflow: 'hidden', background: 'var(--color-surface)', borderRadius: 'var(--radius)', padding: '1rem', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, width: '3px', height: '100%', background: s.color }} />
             <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)', marginBottom: '0.25rem' }}>{s.label}</div>
             <div style={{ fontWeight: 800, fontSize: '1.4rem', color: s.color }}>{s.value}</div>
           </div>
