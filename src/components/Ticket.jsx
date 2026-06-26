@@ -1,4 +1,4 @@
-import { owedPorPersona } from '../store/useStore'
+import { useStore } from '../store/useStore'
 
 // Modificadores de una línea (pan, sin/con, nota) en una sola cadena
 const descr = (item) => {
@@ -10,7 +10,6 @@ const descr = (item) => {
   return p.join(' · ')
 }
 
-const IVA = 0.10 // hostelería (incluido en el precio)
 
 // Ticket de comanda (cocina/barra): qué preparar, sin precios
 function Comanda({ mesa }) {
@@ -53,16 +52,21 @@ function lineasPersona(p) {
 }
 
 // Ticket de cuenta (mesa completa o una persona)
-function Cuenta({ mesa, persona }) {
+function Cuenta({ mesa, persona, local }) {
   const personas = persona ? [persona] : mesa.personas
   const total = personas.reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0)
   const propina = personas.reduce((s, p) => s + (p.propina || 0), 0)
-  const base = total / (1 + IVA)
+  const ivaPct = local?.ivaPct ?? 10
+  const iva = ivaPct / 100
+  const mon = local?.moneda || '€'
+  const base = total / (1 + iva)
   const cuotaIva = total - base
   return (
     <>
-      <div style={st.titulo}>CASA LOLI</div>
-      <div style={st.sub}>Restaurante · Desayunos</div>
+      <div style={st.titulo}>{(local?.nombre || 'Mi Local').toUpperCase()}</div>
+      {local?.subtitulo && <div style={st.sub}>{local.subtitulo}</div>}
+      {local?.direccion && <div style={st.sub}>{local.direccion}</div>}
+      {local?.cif && <div style={st.sub}>CIF: {local.cif}</div>}
       <div style={st.hr} />
       <div style={st.linea}><span>Mesa {mesa.numero}</span><span>{new Date().toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}</span></div>
       {persona && <div style={st.linea}><span>Cliente</span><span>{persona.nombre}</span></div>}
@@ -78,22 +82,23 @@ function Cuenta({ mesa, persona }) {
         )
       })}
       <div style={st.hr} />
-      <div style={{ ...st.linea, fontWeight: 800, fontSize: '1.05rem' }}><span>TOTAL</span><span>{total.toFixed(2)} €</span></div>
-      <div style={st.linea}><span style={st.fine}>Base imponible</span><span style={st.fine}>{base.toFixed(2)} €</span></div>
-      <div style={st.linea}><span style={st.fine}>IVA (10%) incluido</span><span style={st.fine}>{cuotaIva.toFixed(2)} €</span></div>
-      {propina > 0 && <div style={st.linea}><span style={st.fine}>Propina</span><span style={st.fine}>{propina.toFixed(2)} €</span></div>}
+      <div style={{ ...st.linea, fontWeight: 800, fontSize: '1.05rem' }}><span>TOTAL</span><span>{total.toFixed(2)} {mon}</span></div>
+      <div style={st.linea}><span style={st.fine}>Base imponible</span><span style={st.fine}>{base.toFixed(2)} {mon}</span></div>
+      <div style={st.linea}><span style={st.fine}>IVA ({ivaPct}%) incluido</span><span style={st.fine}>{cuotaIva.toFixed(2)} {mon}</span></div>
+      {propina > 0 && <div style={st.linea}><span style={st.fine}>Propina</span><span style={st.fine}>{propina.toFixed(2)} {mon}</span></div>}
       <div style={st.hr} />
-      <div style={{ textAlign: 'center', fontSize: '0.8rem', marginTop: '0.4rem' }}>¡Gracias por su visita!</div>
+      <div style={{ textAlign: 'center', fontSize: '0.8rem', marginTop: '0.4rem' }}>{local?.pieTicket || '¡Gracias por su visita!'}</div>
     </>
   )
 }
 
 export default function Ticket({ tipo, mesa, persona, onClose }) {
+  const local = useStore(s => s.local)
   return (
     <div onClick={onClose} className="no-print" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '1rem', animation: 'fadeIn 0.2s ease both' }}>
       <div onClick={e => e.stopPropagation()} className="anim-pop" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', maxHeight: '92vh' }}>
         <div className="ticket-print" style={st.papel}>
-          {tipo === 'comanda' ? <Comanda mesa={mesa} /> : <Cuenta mesa={mesa} persona={tipo === 'persona' ? persona : null} />}
+          {tipo === 'comanda' ? <Comanda mesa={mesa} /> : <Cuenta mesa={mesa} persona={tipo === 'persona' ? persona : null} local={local} />}
         </div>
         <div className="no-print" style={{ display: 'flex', gap: '0.5rem' }}>
           <button onClick={() => window.print()} style={st.btn('#f97316')}>🖨️ Imprimir</button>

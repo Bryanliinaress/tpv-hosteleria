@@ -5,6 +5,15 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.6.0] - 2026-06-26
+
+### Añadido
+- **Identidad del local configurable** (Panel Admin · pestaña «Local»): nombre, subtítulo, dirección, teléfono, CIF, **% de IVA**, **moneda** y **pie de ticket**, con vista previa en vivo del encabezado del ticket. Los datos se guardan y se sincronizan entre dispositivos.
+- El nombre del local aparece ahora en la pantalla de identificación del cliente, en la página de reservas y en la cabecera de Admin.
+
+### Cambiado
+- El **ticket** usa los datos configurables del local; se elimina el «CASA LOLI» y el IVA del 10 % que estaban fijos en el código. Primer paso hacia una carta/ticket válidos para cualquier bar.
+
 ## [0.5.1] - 2026-06-26
 
 ### Mantenimiento

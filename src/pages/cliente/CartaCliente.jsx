@@ -6,7 +6,7 @@ import { syncListo } from '../../lib/sync'
 
 export default function CartaCliente() {
   const { mesaId } = useParams()
-  const { carta, mesas, pedidosCocina, pedidosBarra, avisos, unirseAMesa, agregarItem, cambiarCantidad, confirmarPedido, pedirCuenta, pagarParte, toggleCompartir, llamarCamarero } = useStore()
+  const { local, carta, mesas, pedidosCocina, pedidosBarra, avisos, unirseAMesa, agregarItem, cambiarCantidad, confirmarPedido, pedirCuenta, pagarParte, toggleCompartir, llamarCamarero } = useStore()
   const mesa = mesas.find(m => m.id === mesaId)
 
   const [miPersonaId, setMiPersonaId] = useState(() => localStorage.getItem(`tpv-yo-${mesaId}`))
@@ -80,6 +80,7 @@ export default function CartaCliente() {
     return (
       <div style={centerScreen}>
         <div style={{ fontSize: '3.5rem' }}>🥪</div>
+        {local?.nombre && <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#f97316', letterSpacing: '0.01em' }}>{local.nombre}</div>}
         <h1 style={{ fontSize: '1.6rem', fontWeight: 800 }}>Mesa {mesa.numero}</h1>
         {ocupada ? (
           <p style={{ color: 'var(--color-muted)', textAlign: 'center' }}>Ya están en la mesa: <strong style={{ color: 'var(--color-text)' }}>{mesa.personas.map(p => p.nombre).join(', ')}</strong>.<br />Únete escribiendo tu nombre.</p>
