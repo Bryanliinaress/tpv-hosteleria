@@ -9,7 +9,7 @@ const emptyForm = { nombre: '', precioPitufo: '', precioViena: '', categoria: ''
 const precioDesde = (prod) => Math.min(prod.precios?.pitufo ?? 0, prod.precios?.viena ?? 0)
 
 export default function PanelAdmin() {
-  const { carta, mesas, historial, cierres, reservas, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, addCategoria, removeCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan } = useStore()
+  const { carta, mesas, historial, cierres, reservas, local, updateLocal, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, addCategoria, removeCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan } = useStore()
   const hoyStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
   const reservasHoy = reservas.filter(r => r.fecha === hoyStr && r.estado === 'confirmada').length
   const [tab, setTab] = useState('carta')
@@ -76,7 +76,7 @@ export default function PanelAdmin() {
       <div style={{ position: 'sticky', top: 0, zIndex: 20, background: 'linear-gradient(180deg, var(--color-surface), var(--color-surface-2))', borderBottom: '1px solid var(--color-border)', boxShadow: '0 6px 18px -10px rgba(0,0,0,0.6)', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 style={{ fontWeight: 800, fontSize: '1.25rem' }}>🛠 Panel Administración</h1>
-          <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>Gestión del local</p>
+          <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>{local.nombre || 'Gestión del local'}</p>
         </div>
         <button onClick={resetDatos} title="Borra todos los datos guardados y recarga" style={{ background: '#1e293b', color: 'var(--color-muted)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.875rem', cursor: 'pointer', fontSize: '0.8rem' }}>
           ↺ Reiniciar datos
@@ -103,6 +103,7 @@ export default function PanelAdmin() {
       <div style={{ display: 'flex', gap: '0', borderBottom: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
         {[
           { id: 'carta', label: '📋 Carta' },
+          { id: 'local', label: '🏪 Local' },
           { id: 'mesas', label: '🍽 Mesas' },
           { id: 'reservas', label: `📅 Reservas${reservasHoy ? ` (${reservasHoy})` : ''}` },
           { id: 'caja', label: '💰 Caja' },
@@ -362,6 +363,61 @@ export default function PanelAdmin() {
           </div>
         )}
 
+        {/* Tab Local (identidad del negocio) */}
+        {tab === 'local' && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', alignItems: 'start' }}>
+            <div style={ajusteCard}>
+              <h3 style={ajusteTitulo}>Datos del local</h3>
+              <p style={{ fontSize: '0.8rem', color: 'var(--color-muted)', marginBottom: '0.9rem' }}>Aparecen en los tickets, las cabeceras y la página de reservas.</p>
+              <label style={lblCampo}>Nombre del local</label>
+              <input value={local.nombre} onChange={e => updateLocal({ nombre: e.target.value })} placeholder="Mi Bar" style={{ ...inputStyle, marginBottom: '0.7rem' }} />
+              <label style={lblCampo}>Subtítulo</label>
+              <input value={local.subtitulo} onChange={e => updateLocal({ subtitulo: e.target.value })} placeholder="Bar · Cafetería" style={{ ...inputStyle, marginBottom: '0.7rem' }} />
+              <label style={lblCampo}>Dirección</label>
+              <input value={local.direccion} onChange={e => updateLocal({ direccion: e.target.value })} placeholder="Calle, número, ciudad" style={{ ...inputStyle, marginBottom: '0.7rem' }} />
+              <div style={{ display: 'flex', gap: '0.6rem' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={lblCampo}>Teléfono</label>
+                  <input value={local.telefono} onChange={e => updateLocal({ telefono: e.target.value })} placeholder="600 000 000" style={inputStyle} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={lblCampo}>CIF / NIF</label>
+                  <input value={local.cif} onChange={e => updateLocal({ cif: e.target.value })} placeholder="B12345678" style={inputStyle} />
+                </div>
+              </div>
+            </div>
+
+            <div style={ajusteCard}>
+              <h3 style={ajusteTitulo}>Facturación y ticket</h3>
+              <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '0.7rem' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={lblCampo}>IVA incluido (%)</label>
+                  <input value={local.ivaPct} onChange={e => updateLocal({ ivaPct: e.target.value })} type="number" min="0" step="1" style={inputStyle} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={lblCampo}>Moneda</label>
+                  <input value={local.moneda} onChange={e => updateLocal({ moneda: e.target.value })} placeholder="€" style={inputStyle} />
+                </div>
+              </div>
+              <label style={lblCampo}>Pie del ticket</label>
+              <input value={local.pieTicket} onChange={e => updateLocal({ pieTicket: e.target.value })} placeholder="¡Gracias por su visita!" style={{ ...inputStyle, marginBottom: '1rem' }} />
+
+              {/* Vista previa del encabezado del ticket */}
+              <div style={{ background: '#fff', color: '#111', borderRadius: '0.4rem', padding: '0.9rem', fontFamily: '"Courier New", monospace', textAlign: 'center', boxShadow: 'var(--shadow-sm)' }}>
+                <div style={{ fontWeight: 800, fontSize: '1.1rem', letterSpacing: '0.05em' }}>{(local.nombre || 'Mi Local').toUpperCase()}</div>
+                {local.subtitulo && <div style={{ fontSize: '0.72rem', color: '#444' }}>{local.subtitulo}</div>}
+                {local.direccion && <div style={{ fontSize: '0.72rem', color: '#444' }}>{local.direccion}</div>}
+                {local.cif && <div style={{ fontSize: '0.72rem', color: '#444' }}>CIF: {local.cif}</div>}
+                <div style={{ borderTop: '1px dashed #999', margin: '0.5rem 0' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700 }}><span>TOTAL</span><span>10,00 {local.moneda || '€'}</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#555' }}><span>IVA ({local.ivaPct || 0}%) incluido</span><span>{(10 - 10 / (1 + (Number(local.ivaPct) || 0) / 100)).toFixed(2)} {local.moneda || '€'}</span></div>
+                <div style={{ borderTop: '1px dashed #999', margin: '0.5rem 0' }} />
+                <div style={{ fontSize: '0.72rem' }}>{local.pieTicket || '¡Gracias por su visita!'}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Tab Tickets del mes */}
         {tab === 'tickets' && (
           <div>
@@ -476,6 +532,7 @@ const iconBtn = {
   lineHeight: 1,
 }
 
+const lblCampo = { display: 'block', fontSize: '0.72rem', color: 'var(--color-muted)', marginBottom: '0.25rem' }
 const ajusteCard = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.875rem', padding: '1.1rem' }
 const ajusteTitulo = { fontWeight: 700, fontSize: '1rem', marginBottom: '0.75rem' }
 const ajusteFila = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.35rem 0', borderBottom: '1px solid var(--color-border)', fontSize: '0.875rem' }

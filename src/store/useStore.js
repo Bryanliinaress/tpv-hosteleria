@@ -111,6 +111,19 @@ export const useStore = create(persist((set, get) => ({
     ),
   },
 
+  // ── IDENTIDAD DEL LOCAL (configurable para cualquier bar) ─
+  // Datos del negocio que aparecen en tickets, cabeceras y reservas.
+  local: {
+    nombre: 'Mi Local',
+    subtitulo: 'Bar · Cafetería',
+    direccion: '',
+    telefono: '',
+    cif: '',
+    ivaPct: 10,        // % de IVA incluido en el precio
+    moneda: '€',
+    pieTicket: '¡Gracias por su visita!',
+  },
+
   // ── MESAS ──────────────────────────────────────────────
   mesas: Array.from({ length: 12 }, (_, i) => ({
     id: `mesa-${i + 1}`,
@@ -569,6 +582,15 @@ export const useStore = create(persist((set, get) => ({
     reservasConfig: { ...state.reservasConfig, ...cambios },
   })),
 
+  // ── IDENTIDAD DEL LOCAL ────────────────────────────────
+  // Actualiza los datos del negocio (nombre, IVA, moneda, pie de ticket…).
+  updateLocal: (cambios) => set(state => {
+    const next = { ...cambios }
+    if (next.ivaPct !== undefined) next.ivaPct = Math.max(0, Number(next.ivaPct) || 0)
+    if (next.moneda !== undefined) next.moneda = (next.moneda || '').trim() || '€'
+    return { local: { ...state.local, ...next } }
+  }),
+
   // ── CIERRE DE CAJA (arqueo Z) ──────────────────────────
   // Cierra la caja desde el último cierre hasta ahora: agrega ventas, propinas
   // y desglose por método. `contado` (efectivo real en cajón) calcula descuadre.
@@ -694,6 +716,7 @@ export const useStore = create(persist((set, get) => ({
   version: 6,
   migrate: () => undefined, // si cambia el formato de carta, descarta lo viejo y usa el por defecto
   partialize: (state) => ({
+    local: state.local,
     carta: state.carta,
     mesas: state.mesas,
     pedidosCocina: state.pedidosCocina,
