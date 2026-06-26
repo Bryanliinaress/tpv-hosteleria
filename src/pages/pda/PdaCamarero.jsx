@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useStore, owedPorPersona } from '../../store/useStore'
+import { useEmpleadoActual, clearSesion } from '../../lib/sesion'
 import Ticket from '../../components/Ticket'
 import MetodoPago from '../../components/MetodoPago'
 import PedirPda from './PedirPda'
@@ -28,8 +29,8 @@ function haceCuanto(iso) {
 export default function PdaCamarero() {
   const { carta, mesas, pedidosCocina, pedidosBarra, avisos, historial, atenderAviso, pagarParte, cobrarMesa, liberarMesa, unirseAMesa, servirMesa, anularItem, toggleDisponible, fusionarMesa, transferirComensal, asignarCamarero, reservarMesa, cancelarReserva, sentarReserva } = useStore()
   const [mover, setMover] = useState(null) // { tipo:'mesa'|'comensal', personaId? }
-  const [camarero, setCamarero] = useState(() => localStorage.getItem('tpv-pda-camarero') || '')
-  const [nombreLogin, setNombreLogin] = useState('')
+  const empleado = useEmpleadoActual()
+  const camarero = empleado?.nombre || ''
   const [soloMias, setSoloMias] = useState(false)
   const [sonido, setSonido] = useState(true)
   const prevIds = useRef(null)
@@ -76,20 +77,6 @@ export default function PdaCamarero() {
     prevIds.current = idsActuales
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idsActuales])
-
-  // ── Login del camarero ────────────────────────────────
-  if (!camarero) {
-    const entrar = () => { const n = nombreLogin.trim(); if (!n) return; localStorage.setItem('tpv-pda-camarero', n); setCamarero(n) }
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', gap: '1.25rem', maxWidth: '520px', margin: '0 auto' }}>
-        <div style={{ fontSize: '3.5rem' }}>📟</div>
-        <h1 style={{ fontWeight: 800, fontSize: '1.5rem' }}>PDA Camarero</h1>
-        <p style={{ color: 'var(--color-muted)', textAlign: 'center' }}>Identifícate para empezar tu turno.</p>
-        <input value={nombreLogin} onChange={e => setNombreLogin(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') entrar() }} placeholder="Tu nombre" autoFocus style={{ background: '#0f172a', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.8rem 1rem', color: 'var(--color-text)', width: '100%', maxWidth: '300px', textAlign: 'center', fontSize: '1rem' }} />
-        <button onClick={entrar} disabled={!nombreLogin.trim()} style={btn(nombreLogin.trim() ? '#f97316' : '#334155', { width: '100%', maxWidth: '300px', padding: '0.875rem', fontSize: '1rem', cursor: nombreLogin.trim() ? 'pointer' : 'not-allowed' })}>Entrar</button>
-      </div>
-    )
-  }
 
   const EV = {
     llamada: { color: '#f59e0b', bg: '#2d1900', emoji: '🔔' },
@@ -236,7 +223,7 @@ export default function PdaCamarero() {
           <div style={{ fontSize: '0.68rem', color: 'var(--color-muted)' }}>{ocupadas.length}/{mesas.length} mesas ocupadas</div>
         </div>
         <button onClick={() => setSonido(s => !s)} title="Aviso sonoro" style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>{sonido ? '🔔' : '🔕'}</button>
-        <button onClick={() => { localStorage.removeItem('tpv-pda-camarero'); setCamarero('') }} title="Cerrar sesión" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem', color: 'var(--color-muted)' }}>⎋</button>
+        <button onClick={clearSesion} title="Cerrar sesión" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem', color: 'var(--color-muted)' }}>⎋</button>
       </div>
 
       {vista === 'avisos' && (

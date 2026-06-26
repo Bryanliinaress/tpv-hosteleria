@@ -3,6 +3,7 @@ import { useStore, owedPorPersona } from '../../store/useStore'
 import Ticket from '../../components/Ticket'
 import MetodoPago from '../../components/MetodoPago'
 import ReservasManager from '../../components/ReservasManager'
+import BotonSalir from '../../components/BotonSalir'
 
 const ESTADO = {
   libre: { label: 'Libre', color: '#10b981', bg: '#052e16' },
@@ -49,6 +50,7 @@ export default function PanelCamarero() {
           <button onClick={() => setVerHistorial(true)} style={{ background: '#1e293b', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.45rem 0.85rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
             🧾 Cerradas hoy{cerradasHoy.length > 0 ? ` (${cerradasHoy.length})` : ''}
           </button>
+          <BotonSalir />
         </div>
       </div>
 

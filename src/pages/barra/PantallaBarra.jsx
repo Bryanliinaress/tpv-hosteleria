@@ -1,4 +1,5 @@
 import { useStore } from '../../store/useStore'
+import BotonSalir from '../../components/BotonSalir'
 
 const ESTADO = {
   recibido: { label: 'Recibido', color: '#f59e0b', next: 'preparando', nextLabel: 'Preparar' },
@@ -27,8 +28,11 @@ export default function PantallaBarra() {
             <p style={{ fontSize: '0.8rem', color: '#fda4af' }}>{activos.length} en cola · {listos.length} listos</p>
           </div>
         </div>
-        <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#f43f5e', fontVariantNumeric: 'tabular-nums' }}>
-          {new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#f43f5e', fontVariantNumeric: 'tabular-nums' }}>
+            {new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+          </div>
+          <BotonSalir oscuro />
         </div>
       </div>
 
