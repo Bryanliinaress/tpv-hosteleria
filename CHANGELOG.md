@@ -5,6 +5,11 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.5.1] - 2026-06-26
+
+### Mantenimiento
+- **CI/CD**: las acciones del workflow de despliegue a GitHub Pages se actualizan a las versiones que corren sobre **Node 24**, eliminando el aviso de deprecación de Node 20 (`actions/checkout` v7, `actions/setup-node` v6, `actions/configure-pages` v6, `actions/upload-pages-artifact` v5, `actions/deploy-pages` v5). Sin cambios funcionales en la aplicación.
+
 ## [0.5.0] - 2026-06-26
 
 ### Cambiado
