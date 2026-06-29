@@ -7,7 +7,7 @@ import { toast } from '../../store/useUI'
 
 export default function CartaCliente() {
   const { mesaId } = useParams()
-  const { local, carta, mesas, pedidosCocina, pedidosBarra, avisos, unirseAMesa, agregarItem, cambiarCantidad, confirmarPedido, pedirCuenta, pagarParte, toggleCompartir, llamarCamarero } = useStore()
+  const { local, carta, mesas, pedidosCocina, pedidosBarra, avisos, unirseAMesa, agregarItem, cambiarCantidad, confirmarPedido, pedirCuenta, pagarParte, pagarTodo, toggleCompartir, llamarCamarero } = useStore()
   const mesa = mesas.find(m => m.id === mesaId)
 
   const [miPersonaId, setMiPersonaId] = useState(() => localStorage.getItem(`tpv-yo-${mesaId}`))
@@ -19,6 +19,8 @@ export default function CartaCliente() {
   const [yoVisto, setYoVisto] = useState(false) // ¿hemos estado activos en la mesa?
   const [pagando, setPagando] = useState(null)
   const [propinaPct, setPropinaPct] = useState(0)
+  const [pagandoTodo, setPagandoTodo] = useState(false)
+  const [propinaTodoPct, setPropinaTodoPct] = useState(0)
   const [dividiendo, setDividiendo] = useState(null)
   const [busqueda, setBusqueda] = useState('')
   const [mostrarResumen, setMostrarResumen] = useState(false)
@@ -43,7 +45,8 @@ export default function CartaCliente() {
     if (!r.estado) return
     syncListo.then(() => {
       if (r.estado === 'ok' && r.mesaId === mesaId && r.personaId) {
-        pagarParte(mesaId, r.personaId, r.propina)
+        if (r.personaId === '__todo__') pagarTodo(mesaId, { propina: r.propina, metodo: 'tarjeta', cobradoPor: 'Cliente' })
+        else pagarParte(mesaId, r.personaId, r.propina)
         localStorage.removeItem(`tpv-pago-${mesaId}-${r.personaId}`)
       }
       limpiarUrlPago(mesaId)
@@ -151,6 +154,17 @@ export default function CartaCliente() {
     }
   }
 
+  // Paga la cuenta completa de la mesa (un comensal por todos)
+  const pagarTodoOnline = async () => {
+    const total = totalPendienteMesa
+    const propina = total * propinaTodoPct / 100
+    try {
+      await iniciarPagoOnline({ mesaId, personaId: '__todo__', importe: total + propina, propina, descripcion: `Mesa ${mesa.numero} · cuenta completa` })
+    } catch (e) {
+      toast('No se pudo iniciar el pago: ' + e.message, 'error')
+    }
+  }
+
   // ── Vista CUENTA ──────────────────────────────────────
   if (vista === 'cuenta') {
     return (
@@ -246,6 +260,35 @@ export default function CartaCliente() {
             <span>Total mesa</span><span>{totalMesa.toFixed(2)} €</span>
           </div>
         </div>
+
+        {/* Pagar la cuenta completa (un comensal por todos) */}
+        {pagoOnlineDisponible && totalPendienteMesa > 0 && (
+          <div style={{ ...cardStyle, marginBottom: '1rem' }}>
+            {!pagandoTodo ? (
+              <button onClick={() => { setPagandoTodo(true); setPropinaTodoPct(0); setPagando(null) }} style={btnStyle('#635bff', { width: '100%', padding: '0.875rem', fontSize: '0.95rem' })}>
+                💳 Pagar toda la cuenta · {totalPendienteMesa.toFixed(2)} €
+              </button>
+            ) : (
+              <>
+                <p style={{ fontSize: '0.82rem', marginBottom: '0.5rem' }}>
+                  Pagas la cuenta <strong>completa</strong> de la mesa{mesa.personas.filter(p => !p.pagado).length > 1 ? ` · ${mesa.personas.filter(p => !p.pagado).length} comensales` : ''}.
+                </p>
+                <p style={{ fontSize: '0.72rem', color: 'var(--color-muted)', marginBottom: '0.35rem' }}>¿Añadir propina?</p>
+                <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', marginBottom: '0.6rem' }}>
+                  {[0, 5, 10, 15].map(pct => (
+                    <button key={pct} onClick={() => setPropinaTodoPct(pct)} style={btnStyle(propinaTodoPct === pct ? '#f97316' : '#334155', { fontSize: '0.75rem', padding: '0.3rem 0.6rem' })}>
+                      {pct === 0 ? 'Sin propina' : `${pct}%`}
+                    </button>
+                  ))}
+                </div>
+                <button onClick={pagarTodoOnline} style={btnStyle('#635bff', { width: '100%', padding: '0.8rem', fontSize: '0.95rem' })}>
+                  💳 Pagar {(totalPendienteMesa * (1 + propinaTodoPct / 100)).toFixed(2)} € con tarjeta/Bizum
+                </button>
+                <button onClick={() => setPagandoTodo(false)} style={{ background: 'none', border: 'none', color: 'var(--color-muted)', cursor: 'pointer', fontSize: '0.75rem', marginTop: '0.4rem', width: '100%' }}>Cancelar</button>
+              </>
+            )}
+          </div>
+        )}
 
         {mesa.estado !== 'esperando_cobro' ? (
           <button onClick={() => pedirCuenta(mesaId)} style={btnStyle('#1e293b', { width: '100%', padding: '0.875rem', fontSize: '0.95rem' })}>🧑‍🍳 Que cobre el camarero (efectivo/tarjeta)</button>
