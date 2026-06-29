@@ -12,7 +12,7 @@ const grupos = [
     titulo: 'Personal de sala',
     roles: [
       { label: 'PDA Camarero', path: '/pda', emoji: '📟', color: '#06b6d4', desc: 'Móvil de mano: avisos y mesas' },
-      { label: 'Panel Camarero', path: '/camarero', emoji: '🧑‍🍳', color: '#f59e0b', desc: 'Mapa de sala y cobros' },
+      { label: 'Mostrador · TPV', path: '/camarero', emoji: '🧑‍🍳', color: '#f59e0b', desc: 'Terminal fijo: sala, pedidos y cobro' },
     ],
   },
   {
@@ -96,7 +96,7 @@ export default function Home() {
           ))}
         </div>
 
-        <p style={{ marginTop: '2.75rem', fontSize: '0.75rem', color: 'var(--color-faint)', textAlign: 'center' }}>v0.8.0 · Demo en desarrollo</p>
+        <p style={{ marginTop: '2.75rem', fontSize: '0.75rem', color: 'var(--color-faint)', textAlign: 'center' }}>v0.9.0 · Demo en desarrollo</p>
       </div>
     </div>
   )
