@@ -500,6 +500,33 @@ export const useStore = create(persist((set, get) => ({
     }
   }),
 
+  // Paga la cuenta COMPLETA de la mesa de una vez (un comensal paga por todos),
+  // aunque haya varios comensales. Marca a todos los no pagados como pagados con
+  // el método dado, añade la propina (al conjunto) y cierra la mesa/grupo.
+  pagarTodo: (mesaId, opts = {}) => set(state => {
+    const { propina = 0, metodo = 'tarjeta', cobradoPor = null } = opts
+    let primero = true
+    const mesas = state.mesas.map(m => m.id !== mesaId ? m : {
+      ...m,
+      personas: m.personas.map(p => {
+        if (p.pagado) return p
+        const prop = primero ? (Number(propina) || 0) : 0 // la propina total se registra una vez
+        primero = false
+        return { ...p, pagado: true, propina: prop, metodoPago: metodo, cobradoPor }
+      }),
+    })
+    const mesa = mesas.find(m => m.id === mesaId)
+    const rec = snapshotMesa(mesa)
+    const grupo = idsGrupo(mesa)
+    return {
+      mesas: mesas.map(m => grupo.includes(m.id) ? { ...m, ...CAMPOS_LIBRE } : m),
+      pedidosCocina: state.pedidosCocina.filter(p => !grupo.includes(p.mesaId)),
+      pedidosBarra: state.pedidosBarra.filter(p => !grupo.includes(p.mesaId)),
+      avisos: state.avisos.filter(a => !grupo.includes(a.mesaId)),
+      historial: rec ? [...state.historial, rec] : state.historial,
+    }
+  }),
+
   // Compartir un plato entre comensales (se identifica por uid de la línea).
   toggleCompartir: (mesaId, ownerId, uid, sharerId) => set(state => ({
     mesas: state.mesas.map(m => m.id !== mesaId ? m : {
