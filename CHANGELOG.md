@@ -5,6 +5,11 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.10.0] - 2026-06-26
+
+### Cambiado
+- **Mapa de sala del Mostrador más vistoso y organizado**: las mesas se agrupan por **zona** (con contador de ocupadas por zona) y hay una **leyenda de estados** con su recuento. Las fichas de mesa se rediseñan con franja de color de estado, degradado sutil, plazas, comensales, tiempo ocupada, total y avisos de platos listos, con anillo de selección y realce al pasar el ratón.
+
 ## [0.9.0] - 2026-06-26
 
 ### Cambiado
