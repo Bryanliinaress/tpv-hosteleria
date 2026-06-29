@@ -15,6 +15,15 @@ const ESTADO = {
   esperando_cobro: { label: 'Pide cuenta', color: '#f43f5e', bg: '#2d0a14' },
   reservada: { label: 'Reservada', color: '#3b82f6', bg: '#0c1e3a' },
 }
+const ORDEN_ESTADO = ['esperando_cobro', 'ocupada', 'reservada', 'libre']
+
+function haceCuanto(iso) {
+  if (!iso) return ''
+  const min = Math.floor((Date.now() - new Date(iso)) / 60000)
+  if (min < 1) return 'ahora'
+  if (min < 60) return `${min} min`
+  return `${Math.floor(min / 60)} h ${min % 60} min`
+}
 
 export default function PanelCamarero() {
   const { mesas, pedidosCocina, pedidosBarra, avisos, historial, reservas, liberarMesa, atenderAviso, pagarParte, cobrarMesa, reservarMesa, cancelarReserva, sentarReserva, unirseAMesa, asignarCamarero, fusionarMesa } = useStore()
@@ -85,52 +94,91 @@ export default function PanelCamarero() {
       )}
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        {/* Grid mesas */}
-        <div style={{ flex: 1, padding: '1.5rem', overflowY: 'auto' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '0.875rem' }}>
-            {mesas.map(m => {
-              const est = ESTADO[m.estado]
-              const listoCocina = pedidosCocina.filter(p => p.mesaId === m.id && p.estado === 'listo').length
-              const listoBarra = pedidosBarra.filter(p => p.mesaId === m.id && p.estado === 'listo').length
-              const totalMesa = m.personas.reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0)
+        {/* Mapa de sala por zonas */}
+        <div style={{ flex: 1, padding: '1.25rem 1.5rem', overflowY: 'auto' }}>
+          {/* Leyenda de estados */}
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.4rem' }}>
+            {ORDEN_ESTADO.map(k => {
+              const e = ESTADO[k]
+              const n = mesas.filter(m => m.estado === k).length
               return (
-                <button
-                  key={m.id}
-                  onClick={() => { setReservando(false); setMesaSeleccionada(mesaSeleccionada === m.id ? null : m.id) }}
-                  style={{
-                    background: mesaSeleccionada === m.id ? est.bg : 'var(--color-surface)',
-                    border: `2px solid ${mesaSeleccionada === m.id ? est.color : m.estado === 'libre' ? 'var(--color-border)' : est.color + '66'}`,
-                    borderRadius: 'var(--radius)',
-                    padding: '1rem',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    boxShadow: 'var(--shadow-sm)',
-                    transition: 'transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = `0 14px 28px -14px ${est.color}aa` }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)' }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                    <span style={{ fontWeight: 800, fontSize: '1.1rem' }}>M{m.numero}</span>
-                    <span style={{ fontSize: '0.7rem', background: est.bg, color: est.color, borderRadius: '9999px', padding: '0.15rem 0.5rem', fontWeight: 700 }}>{est.label}</span>
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>{m.capacidad} plazas</div>
-                  {m.estado !== 'libre' && (
-                    <>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>{m.personas.length} personas</div>
-                      <div style={{ fontWeight: 700, color: '#f97316', fontSize: '0.875rem', marginTop: '0.25rem' }}>{totalMesa.toFixed(2)} €</div>
-                    </>
-                  )}
-                  {(listoCocina > 0 || listoBarra > 0) && (
-                    <div style={{ display: 'flex', gap: '0.25rem', marginTop: '0.375rem' }}>
-                      {listoCocina > 0 && <span style={{ fontSize: '0.7rem', background: '#052e16', color: '#10b981', borderRadius: '4px', padding: '0 4px', fontWeight: 700 }}>🍳{listoCocina}</span>}
-                      {listoBarra > 0 && <span style={{ fontSize: '0.7rem', background: '#2d0a14', color: '#f43f5e', borderRadius: '4px', padding: '0 4px', fontWeight: 700 }}>🍺{listoBarra}</span>}
-                    </div>
-                  )}
-                </button>
+                <span key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '9999px', padding: '0.3rem 0.7rem', fontSize: '0.78rem', boxShadow: 'var(--shadow-sm)' }}>
+                  <span style={{ width: '0.6rem', height: '0.6rem', borderRadius: '9999px', background: e.color }} />
+                  <span style={{ color: 'var(--color-muted)' }}>{e.label}</span>
+                  <strong>{n}</strong>
+                </span>
               )
             })}
           </div>
+
+          {[...new Set(mesas.map(m => m.zona || 'Sala'))].map(zona => {
+            const ms = mesas.filter(m => (m.zona || 'Sala') === zona)
+            const ocup = ms.filter(m => m.estado !== 'libre').length
+            return (
+              <div key={zona} style={{ marginBottom: '1.9rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.85rem' }}>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-faint)' }}>📍 {zona}</span>
+                  <span style={{ flex: 1, height: '1px', background: 'var(--color-border-soft)' }} />
+                  <span style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{ocup}/{ms.length} ocupadas</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(155px, 1fr))', gap: '0.875rem' }}>
+                  {ms.map(m => {
+                    const est = ESTADO[m.estado]
+                    const sel = mesaSeleccionada === m.id
+                    const listo = [...pedidosCocina, ...pedidosBarra].filter(p => p.mesaId === m.id && p.estado === 'listo').length
+                    const listoCocina = pedidosCocina.filter(p => p.mesaId === m.id && p.estado === 'listo').length
+                    const listoBarra = pedidosBarra.filter(p => p.mesaId === m.id && p.estado === 'listo').length
+                    const totalMesa = m.personas.reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0)
+                    return (
+                      <button
+                        key={m.id}
+                        onClick={() => { setReservando(false); setMesaSeleccionada(sel ? null : m.id) }}
+                        style={{
+                          position: 'relative', overflow: 'hidden',
+                          background: m.estado === 'libre' ? 'var(--color-surface)' : `linear-gradient(160deg, ${est.color}1f, var(--color-surface) 70%)`,
+                          border: `1.5px solid ${sel ? est.color : m.estado === 'libre' ? 'var(--color-border)' : est.color + '66'}`,
+                          borderRadius: 'var(--radius)', padding: '0.85rem 0.9rem', cursor: 'pointer', textAlign: 'left',
+                          boxShadow: sel ? `0 0 0 3px ${est.color}55, var(--shadow)` : 'var(--shadow-sm)',
+                          minHeight: '6.6rem', display: 'flex', flexDirection: 'column',
+                          transition: 'transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = `0 14px 28px -14px ${est.color}aa` }}
+                        onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = sel ? `0 0 0 3px ${est.color}55, var(--shadow)` : 'var(--shadow-sm)' }}
+                      >
+                        {/* franja de estado */}
+                        <span style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '3px', background: est.color }} />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                          <span style={{ fontWeight: 800, fontSize: '1.25rem' }}>M{m.numero}</span>
+                          <span style={{ fontSize: '0.62rem', background: est.color + '22', color: est.color, borderRadius: '9999px', padding: '0.15rem 0.5rem', fontWeight: 700 }}>{est.label}</span>
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{'👤'.repeat(Math.min(m.capacidad, 6))} <span style={{ opacity: 0.7 }}>{m.capacidad}p</span></div>
+
+                        <div style={{ marginTop: 'auto', paddingTop: '0.4rem' }}>
+                          {m.estado === 'libre' && <div style={{ fontSize: '0.74rem', color: '#10b981', fontWeight: 600 }}>Toca para abrir ▶</div>}
+                          {m.estado === 'reservada' && <div style={{ fontSize: '0.72rem', color: '#60a5fa' }}>📅 {m.reserva?.nombre}{m.reserva?.hora ? ` · ${m.reserva.hora}` : ''}</div>}
+                          {(m.estado === 'ocupada' || m.estado === 'esperando_cobro') && (
+                            <>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                <span style={{ fontSize: '0.7rem', color: 'var(--color-muted)' }}>👥 {m.personas.length} · ⏱ {haceCuanto(m.abiertaDesde)}</span>
+                              </div>
+                              <div style={{ fontWeight: 800, color: '#f97316', fontSize: '1rem' }}>{totalMesa.toFixed(2)} €</div>
+                            </>
+                          )}
+                        </div>
+
+                        {listo > 0 && (
+                          <div style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', display: 'flex', gap: '0.2rem' }}>
+                            {listoCocina > 0 && <span style={{ fontSize: '0.62rem', background: '#052e16', color: '#10b981', borderRadius: '4px', padding: '0 4px', fontWeight: 700 }}>🍳{listoCocina}</span>}
+                            {listoBarra > 0 && <span style={{ fontSize: '0.62rem', background: '#2d0a14', color: '#f43f5e', borderRadius: '4px', padding: '0 4px', fontWeight: 700 }}>🍺{listoBarra}</span>}
+                          </div>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
         </div>
 
         {/* Panel derecho - detalle mesa */}
