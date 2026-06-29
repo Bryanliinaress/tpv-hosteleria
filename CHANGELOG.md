@@ -5,6 +5,11 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.11.0] - 2026-06-26
+
+### Añadido
+- **Unir mesas arrastrando** en el mapa de sala del Mostrador: arrastra una mesa con comensales y suéltala sobre otra para **juntarlas** (o moverlas si la destino está libre). Pide confirmación y avisa con un toast. La mesa destino se resalta al pasar por encima.
+
 ## [0.10.0] - 2026-06-26
 
 ### Cambiado
