@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useStore, owedPorPersona } from '../../store/useStore'
 import { useEmpleadoActual, clearSesion } from '../../lib/sesion'
+import { confirmar, pedirTexto, toast } from '../../store/useUI'
 import Ticket from '../../components/Ticket'
 import MetodoPago from '../../components/MetodoPago'
 import PedirPda from './PedirPda'
@@ -101,7 +102,7 @@ export default function PdaCamarero() {
             <div style={{ textAlign: 'center', padding: '1.5rem 1rem', color: 'var(--color-muted)' }}>
               <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>🪑</div>
               <p style={{ marginBottom: '1.25rem' }}>Mesa libre · {mesa.capacidad} plazas</p>
-              <button onClick={() => { const n = prompt('Nombre del primer comensal (opcional):') ?? ''; unirseAMesa(mesa.id, n); asignarCamarero(mesa.id, camarero) }} style={btn('#10b981', { padding: '0.8rem 1.5rem', fontSize: '0.95rem' })}>▶ Abrir mesa</button>
+              <button onClick={async () => { const n = await pedirTexto({ titulo: 'Abrir mesa', mensaje: 'Nombre del primer comensal (opcional)', placeholder: 'Nombre', confirmar: 'Abrir mesa' }); if (n === null) return; unirseAMesa(mesa.id, n); asignarCamarero(mesa.id, camarero) }} style={btn('#10b981', { padding: '0.8rem 1.5rem', fontSize: '0.95rem' })}>▶ Abrir mesa</button>
               {!reservando ? (
                 <button onClick={() => { setReservaForm({ nombre: '', hora: '', personas: mesa.capacidad }); setReservando(true) }} style={btn('#3b82f6', { padding: '0.8rem 1.5rem', fontSize: '0.95rem', marginLeft: '0.5rem' })}>📅 Reservar</button>
               ) : (
@@ -146,7 +147,7 @@ export default function PdaCamarero() {
                   : p.items.map(it => (
                     <div key={it.uid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.82rem', color: 'var(--color-muted)', padding: '0.1rem 0' }}>
                       <span>{it.cantidad}× {it.nombre}{it.estado === 'pendiente' && ' ●'}</span>
-                      <button onClick={() => { if (confirm(`¿Anular ${it.cantidad}× ${it.nombre}?`)) anularItem(mesa.id, p.id, it.uid) }} title="Anular" style={{ background: 'none', border: 'none', color: '#f43f5e', cursor: 'pointer', fontSize: '0.9rem', padding: '0 0.25rem' }}>✕</button>
+                      <button onClick={async () => { if (await confirmar({ titulo: 'Anular línea', mensaje: `¿Anular ${it.cantidad}× ${it.nombre}?`, peligro: true, confirmar: 'Anular' })) { anularItem(mesa.id, p.id, it.uid); toast('Línea anulada', 'success') } }} title="Anular" style={{ background: 'none', border: 'none', color: '#f43f5e', cursor: 'pointer', fontSize: '0.9rem', padding: '0 0.25rem' }}>✕</button>
                     </div>
                   ))}
                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem' }}>

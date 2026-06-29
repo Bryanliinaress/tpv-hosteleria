@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useStore, generarSlots, aforoTotal, ocupacionEn } from '../store/useStore'
 import { enviarEmailReserva } from '../lib/email'
+import { confirmar, toast } from '../store/useUI'
 
 const hoyLocal = () => {
   const d = new Date()
@@ -12,9 +13,9 @@ const fechaBonita = (f) => { const [y, m, d] = f.split('-'); return `${d}/${m}/$
 const enviarCorreo = async (tipo, r) => {
   try {
     const { via } = await enviarEmailReserva(tipo, r)
-    if (via === 'emailjs') alert(`✅ Correo de ${tipo} enviado a ${r.email}`)
+    if (via === 'emailjs') toast(`Correo de ${tipo} enviado a ${r.email}`, 'success')
   } catch (e) {
-    alert('No se pudo enviar el correo: ' + e.message)
+    toast('No se pudo enviar el correo: ' + e.message, 'error')
   }
 }
 
@@ -125,7 +126,7 @@ export default function ReservasManager({ onSentada }) {
                       <button onClick={() => sentar(r.id)} disabled={!r.mesaId} title={r.mesaId ? '' : 'Asigna una mesa primero'} style={btn(r.mesaId ? '#10b981' : '#334155', { fontSize: '0.8rem', cursor: r.mesaId ? 'pointer' : 'not-allowed' })}>▶ Sentar</button>
                       {r.email && <button onClick={() => enviarCorreo('confirmacion', r)} title={`Confirmación a ${r.email}`} style={btn('#16a34a', { fontSize: '0.8rem' })}>✉️ Confirmar</button>}
                       {r.email && <button onClick={() => enviarCorreo('recordatorio', r)} title={`Recordatorio a ${r.email}`} style={btn('#1d4ed8', { fontSize: '0.8rem' })}>🔔 Recordar</button>}
-                      <button onClick={() => { if (confirm('¿Cancelar esta reserva? Se avisará al cliente por email.')) { cambiarEstadoReserva(r.id, 'cancelada'); if (r.email) enviarEmailReserva('cancelacion', r, { permitirMailto: false }).catch(() => {}) } }} style={btn('#334155', { fontSize: '0.8rem' })}>Cancelar</button>
+                      <button onClick={async () => { if (await confirmar({ titulo: 'Cancelar reserva', mensaje: 'Se avisará al cliente por email. ¿Continuar?', peligro: true, confirmar: 'Cancelar reserva', cancelar: 'Volver' })) { cambiarEstadoReserva(r.id, 'cancelada'); if (r.email) enviarEmailReserva('cancelacion', r, { permitirMailto: false }).catch(() => {}); toast('Reserva cancelada', 'success') } }} style={btn('#334155', { fontSize: '0.8rem' })}>Cancelar</button>
                     </div>
                   )}
                 </div>

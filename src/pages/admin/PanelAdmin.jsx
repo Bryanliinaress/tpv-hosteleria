@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { useStore, METODO_LABEL, METODO_EMOJI } from '../../store/useStore'
+import { confirmar, toast } from '../../store/useUI'
 import Ticket from '../../components/Ticket'
 import ReservasManager from '../../components/ReservasManager'
 import ReservasConfig from '../../components/ReservasConfig'
@@ -48,11 +49,12 @@ export default function PanelAdmin() {
   ticketsCaja.forEach(r => { const c = r.cobradoPor || r.camarero || '—'; cajaPorCamarero[c] = (cajaPorCamarero[c] || 0) + r.total })
   const efectivoEsperado = cajaPagos.efectivo || 0
   const descuadre = contado === '' ? null : (Number(contado) || 0) - efectivoEsperado
-  const hacerCierre = () => {
+  const hacerCierre = async () => {
     if (ticketsCaja.length === 0) return
-    if (!confirm(`¿Cerrar caja con ${ticketsCaja.length} ticket(s) y ${cajaTotal.toFixed(2)} €?`)) return
+    if (!(await confirmar({ titulo: 'Cerrar caja', mensaje: `¿Cerrar caja con ${ticketsCaja.length} ticket(s) y ${cajaTotal.toFixed(2)} €?`, confirmar: 'Cerrar caja' }))) return
     cerrarCaja(contado)
     setContado('')
+    toast('Caja cerrada correctamente', 'success')
   }
 
   const empezarNuevo = (categoriaId) => {
@@ -168,7 +170,7 @@ export default function PanelAdmin() {
                         <div style={{ display: 'flex', gap: '0.25rem' }}>
                           <button onClick={() => toggleDisponible(prod.id)} title={prod.disponible ? 'Marcar agotado' : 'Marcar disponible'} style={iconBtn}>{prod.disponible ? '🟢' : '⚪'}</button>
                           <button onClick={() => empezarEdicion(prod)} title="Editar" style={iconBtn}>✏️</button>
-                          <button onClick={() => { if (confirm(`¿Borrar "${prod.nombre}"?`)) deleteProducto(prod.id) }} title="Borrar" style={iconBtn}>🗑️</button>
+                          <button onClick={async () => { if (await confirmar({ titulo: 'Borrar producto', mensaje: `¿Borrar "${prod.nombre}" de la carta?`, peligro: true, confirmar: 'Borrar' })) { deleteProducto(prod.id); toast('Producto borrado', 'success') } }} title="Borrar" style={iconBtn}>🗑️</button>
                         </div>
                       </div>
                     )
@@ -199,7 +201,7 @@ export default function PanelAdmin() {
                     <input value={m.zona || ''} onChange={e => updateMesa(m.id, { zona: e.target.value })} list="zonas-list" placeholder="Zona" style={{ ...inputStyle, marginBottom: '0.5rem' }} />
                     <label style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Capacidad</label>
                     <input value={m.capacidad} onChange={e => updateMesa(m.id, { capacidad: e.target.value })} type="number" min="1" style={{ ...inputStyle, marginBottom: '0.625rem' }} />
-                    <button onClick={() => { if (libre && confirm(`¿Borrar la mesa ${m.numero}?`)) removeMesa(m.id) }} disabled={!libre} style={{ width: '100%', background: libre ? '#7f1d1d' : '#1e293b', color: libre ? '#fff' : '#64748b', border: 'none', borderRadius: '0.5rem', padding: '0.4rem', cursor: libre ? 'pointer' : 'not-allowed', fontSize: '0.78rem' }}>{libre ? '🗑️ Borrar mesa' : 'Ocupada'}</button>
+                    <button onClick={async () => { if (libre && await confirmar({ titulo: 'Borrar mesa', mensaje: `¿Borrar la mesa ${m.numero}?`, peligro: true, confirmar: 'Borrar' })) { removeMesa(m.id); toast('Mesa borrada', 'success') } }} disabled={!libre} style={{ width: '100%', background: libre ? '#7f1d1d' : '#1e293b', color: libre ? '#fff' : '#64748b', border: 'none', borderRadius: '0.5rem', padding: '0.4rem', cursor: libre ? 'pointer' : 'not-allowed', fontSize: '0.78rem' }}>{libre ? '🗑️ Borrar mesa' : 'Ocupada'}</button>
                   </div>
                 )
               })}
@@ -321,7 +323,7 @@ export default function PanelAdmin() {
               {carta.categorias.map(c => (
                 <div key={c.id} style={ajusteFila}>
                   <span>{c.emoji} {c.nombre} <span style={{ fontSize: '0.7rem', color: 'var(--color-muted)' }}>({c.tipo})</span></span>
-                  <button onClick={() => { if (confirm(`¿Borrar "${c.nombre}" y sus productos?`)) removeCategoria(c.id) }} style={iconBtn}>🗑️</button>
+                  <button onClick={async () => { if (await confirmar({ titulo: 'Borrar categoría', mensaje: `¿Borrar "${c.nombre}" y todos sus productos?`, peligro: true, confirmar: 'Borrar' })) { removeCategoria(c.id); toast('Categoría borrada', 'success') } }} style={iconBtn}>🗑️</button>
                 </div>
               ))}
               <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
@@ -508,7 +510,8 @@ function PersonalTab({ empleados, addEmpleado, updateEmpleado, removeEmpleado })
 
   const crear = () => {
     const r = addEmpleado(nuevo)
-    if (!r.ok) return setErr(r.error)
+    if (!r.ok) { setErr(r.error); toast(r.error, 'error'); return }
+    toast(`${nuevo.nombre.trim()} dado de alta`, 'success')
     setNuevo({ nombre: '', rol: 'camarero', pin: '' }); setErr('')
   }
   const onPin = (e, val) => {
@@ -520,10 +523,11 @@ function PersonalTab({ empleados, addEmpleado, updateEmpleado, removeEmpleado })
       else { setErr(''); setPinDraft(d => { const n = { ...d }; delete n[e.id]; return n }) }
     }
   }
-  const borrar = (e) => {
-    if (!confirm(`¿Eliminar a ${e.nombre}?`)) return
+  const borrar = async (e) => {
+    if (!(await confirmar({ titulo: 'Eliminar empleado', mensaje: `¿Eliminar a ${e.nombre}? Perderá el acceso.`, peligro: true, confirmar: 'Eliminar' }))) return
     const r = removeEmpleado(e.id)
-    if (!r.ok) setErr(r.error)
+    if (!r.ok) { setErr(r.error); toast(r.error, 'error') }
+    else toast(`${e.nombre} eliminado`, 'success')
   }
 
   return (

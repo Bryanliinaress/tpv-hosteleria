@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '../../store/useStore'
+import { pedirTexto } from '../../store/useUI'
 
 // Toma de pedidos desde la PDA del camarero, para un comensal de la mesa.
 export default function PedirPda({ mesaId, onClose }) {
@@ -15,8 +16,9 @@ export default function PedirPda({ mesaId, onClose }) {
   const pendientes = persona?.items.filter(i => i.estado === 'pendiente') || []
   const totalPend = pendientes.reduce((s, i) => s + i.precio * i.cantidad, 0)
 
-  const nuevoComensal = () => {
-    const nombre = prompt('Nombre del comensal (o vacío):') ?? ''
+  const nuevoComensal = async () => {
+    const nombre = await pedirTexto({ titulo: 'Nuevo comensal', placeholder: 'Nombre (opcional)', confirmar: 'Añadir' })
+    if (nombre === null) return
     const id = unirseAMesa(mesaId, nombre)
     setPersonaId(id)
   }
