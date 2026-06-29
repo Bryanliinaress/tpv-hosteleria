@@ -5,6 +5,11 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.13.0] - 2026-06-26
+
+### Añadido
+- **Pagar la cuenta completa** (un comensal paga por todos) aunque haya varios comensales en la mesa: en la vista de cuenta del cliente hay un botón **"Pagar toda la cuenta"** con selector de propina y pago online, además del pago por persona. Se cierra la mesa con un **único ticket**. (El personal ya podía cobrar la mesa entera desde el Mostrador.)
+
 ## [0.12.0] - 2026-06-26
 
 ### Añadido
