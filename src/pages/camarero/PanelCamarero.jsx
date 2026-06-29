@@ -1,9 +1,13 @@
 import { useState } from 'react'
 import { useStore, owedPorPersona } from '../../store/useStore'
+import { useEmpleadoActual } from '../../lib/sesion'
+import { pedirTexto } from '../../store/useUI'
 import Ticket from '../../components/Ticket'
 import MetodoPago from '../../components/MetodoPago'
 import ReservasManager from '../../components/ReservasManager'
 import BotonSalir from '../../components/BotonSalir'
+import PedirPda from '../pda/PedirPda'
+import CobroMesa from '../pda/CobroMesa'
 
 const ESTADO = {
   libre: { label: 'Libre', color: '#10b981', bg: '#052e16' },
@@ -13,14 +17,26 @@ const ESTADO = {
 }
 
 export default function PanelCamarero() {
-  const { mesas, carta, pedidosCocina, pedidosBarra, avisos, historial, reservas, liberarMesa, confirmarPedido, atenderAviso, pagarParte, cobrarMesa, reservarMesa, cancelarReserva, sentarReserva } = useStore()
+  const { mesas, pedidosCocina, pedidosBarra, avisos, historial, reservas, liberarMesa, atenderAviso, pagarParte, cobrarMesa, reservarMesa, cancelarReserva, sentarReserva, unirseAMesa, asignarCamarero, fusionarMesa } = useStore()
+  const empleado = useEmpleadoActual()
+  const yo = empleado?.nombre || 'Mostrador'
   const [mesaSeleccionada, setMesaSeleccionada] = useState(null)
   const [ticket, setTicket] = useState(null) // { tipo, persona, mesa? }
   const [verHistorial, setVerHistorial] = useState(false)
   const [verReservas, setVerReservas] = useState(false)
   const [cobro, setCobro] = useState(null) // { tipo:'persona'|'mesa', personaId?, importe }
+  const [cobrandoMesa, setCobrandoMesa] = useState(false) // cobro completo (CobroMesa)
+  const [pidiendo, setPidiendo] = useState(false)         // toma de pedido (PedirPda)
+  const [mover, setMover] = useState(null)                // { tipo:'mesa'|'comensal', personaId? }
   const [reservando, setReservando] = useState(false)
   const [reservaForm, setReservaForm] = useState({ nombre: '', hora: '', personas: 2 })
+
+  const abrirMesa = async (m) => {
+    const n = await pedirTexto({ titulo: `Abrir Mesa ${m.numero}`, mensaje: 'Nombre del primer comensal (opcional)', placeholder: 'Nombre', confirmar: 'Abrir mesa' })
+    if (n === null) return
+    unirseAMesa(m.id, n)
+    asignarCamarero(m.id, yo)
+  }
 
   const hoy = new Date().toDateString()
   const cerradasHoy = historial.filter(r => new Date(r.cerradaEn).toDateString() === hoy).slice().reverse()
@@ -38,8 +54,8 @@ export default function PanelCamarero() {
       {/* Header */}
       <div style={{ position: 'sticky', top: 0, zIndex: 20, background: 'linear-gradient(180deg, var(--color-surface), var(--color-surface-2))', borderBottom: '1px solid var(--color-border)', boxShadow: '0 6px 18px -10px rgba(0,0,0,0.6)', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1 style={{ fontWeight: 800, fontSize: '1.25rem' }}>👨‍🍳 Panel Camarero</h1>
-          <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>{mesas.filter(m => m.estado !== 'libre').length} mesas ocupadas de {mesas.length}</p>
+          <h1 style={{ fontWeight: 800, fontSize: '1.25rem' }}>🧾 Mostrador · TPV</h1>
+          <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>{mesas.filter(m => m.estado !== 'libre').length} ocupadas de {mesas.length} · {empleado?.nombre || ''}</p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           {totalCocina > 0 && <div style={{ background: '#052e16', color: '#10b981', borderRadius: '0.5rem', padding: '0.375rem 0.75rem', fontSize: '0.8rem', fontWeight: 700 }}>🍳 {totalCocina} listo(s)</div>}
@@ -140,7 +156,8 @@ export default function PanelCamarero() {
               </div>
             ) : mesa.estado === 'libre' ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <p style={{ color: 'var(--color-muted)', fontSize: '0.875rem' }}>Mesa libre — sin pedidos</p>
+                <p style={{ color: 'var(--color-muted)', fontSize: '0.875rem' }}>Mesa libre · {mesa.capacidad} plazas</p>
+                <button onClick={() => abrirMesa(mesa)} style={btn('#10b981', { width: '100%', padding: '0.75rem' })}>▶ Abrir mesa y pedir</button>
                 {!reservando ? (
                   <button onClick={() => { setReservaForm({ nombre: '', hora: '', personas: mesa.capacidad }); setReservando(true) }} style={btn('#3b82f6', { width: '100%' })}>📅 Reservar mesa</button>
                 ) : (
@@ -212,23 +229,22 @@ export default function PanelCamarero() {
                   </div>
                 )}
 
+                {/* Acciones principales */}
+                <button onClick={() => { asignarCamarero(mesa.id, yo); setPidiendo(true) }} style={btn('#f97316', { width: '100%', padding: '0.8rem', fontSize: '0.95rem' })}>➕ Tomar pedido</button>
+                {mesa.personas.some(p => !p.pagado) && (
+                  <button onClick={() => { asignarCamarero(mesa.id, yo); setCobrandoMesa(true) }} style={btn('#10b981', { width: '100%', padding: '0.8rem', fontSize: '0.95rem' })}>💶 Cobrar mesa</button>
+                )}
+                <button onClick={() => setMover({ tipo: 'mesa' })} style={btn('#1e293b', { width: '100%', fontSize: '0.85rem' })}>🔀 Mover / Juntar mesa</button>
+
                 {/* Tickets de mesa */}
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <button onClick={() => setTicket({ tipo: 'comanda' })} style={btn('#1e293b', { flex: 1, fontSize: '0.85rem' })}>🧾 Comanda</button>
                   <button onClick={() => setTicket({ tipo: 'cuenta' })} style={btn('#1e293b', { flex: 1, fontSize: '0.85rem' })}>💶 Cuenta</button>
                 </div>
 
-                {/* Acciones */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {mesa.personas.some(p => !p.pagado) && (
-                    <button onClick={() => setCobro({ tipo: 'mesa', importe: mesa.personas.filter(p => !p.pagado).reduce((s, p) => s + (owed[p.id] || 0), 0) })} style={btn('#10b981', { width: '100%' })}>
-                      💶 Cobrar mesa — elegir método
-                    </button>
-                  )}
-                  <button onClick={() => liberarMesa(mesa.id)} style={btn('#334155', { width: '100%', fontSize: '0.8rem' })}>
-                    Cerrar mesa sin cobrar
-                  </button>
-                </div>
+                <button onClick={() => liberarMesa(mesa.id)} style={btn('#334155', { width: '100%', fontSize: '0.8rem' })}>
+                  Cerrar mesa sin cobrar
+                </button>
               </>
             )}
           </div>
@@ -245,11 +261,42 @@ export default function PanelCamarero() {
           importe={cobro.importe}
           onCerrar={() => setCobro(null)}
           onElegir={(metodo) => {
-            if (cobro.tipo === 'mesa') cobrarMesa(mesa.id, { metodo, cobradoPor: 'Mostrador' })
-            else pagarParte(mesa.id, cobro.personaId, { metodo, cobradoPor: 'Mostrador' })
+            if (cobro.tipo === 'mesa') cobrarMesa(mesa.id, { metodo, cobradoPor: yo })
+            else pagarParte(mesa.id, cobro.personaId, { metodo, cobradoPor: yo })
             setCobro(null)
           }}
         />
+      )}
+
+      {/* Toma de pedido (escritorio, reutiliza la carta de la PDA) */}
+      {pidiendo && mesa && <PedirPda mesaId={mesa.id} onClose={() => setPidiendo(false)} />}
+
+      {/* Cobro completo de mesa (descuento, dividir, efectivo) */}
+      {cobrandoMesa && mesa && (
+        <CobroMesa mesa={mesa} onCerrar={() => setCobrandoMesa(false)} onCobrar={(metodo) => { cobrarMesa(mesa.id, { metodo, cobradoPor: yo }); setCobrandoMesa(false); setMesaSeleccionada(null) }} />
+      )}
+
+      {/* Mover / juntar mesa */}
+      {mover && mesa && (
+        <div onClick={() => setMover(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 120, padding: '1rem', animation: 'fadeIn 0.2s ease both' }}>
+          <div onClick={e => e.stopPropagation()} className="anim-pop" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', padding: '1.25rem', width: '100%', maxWidth: '460px', maxHeight: '85vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+              <h3 style={{ fontWeight: 800, fontSize: '1.05rem' }}>Mover / juntar a…</h3>
+              <button onClick={() => setMover(null)} style={btn('#1e293b', { padding: '0.25rem 0.6rem' })}>✕</button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '0.5rem' }}>
+              {mesas.filter(m => m.id !== mesa.id).map(m => {
+                const libre = m.estado === 'libre'
+                return (
+                  <button key={m.id} onClick={() => { fusionarMesa(mesa.id, m.id); setMover(null); setMesaSeleccionada(null) }} style={{ background: 'var(--color-surface-2)', border: `1px solid ${(libre ? '#10b981' : '#f59e0b')}66`, borderRadius: 'var(--radius)', padding: '0.7rem', cursor: 'pointer', textAlign: 'left', color: 'var(--color-text)', boxShadow: 'var(--shadow-sm)' }}>
+                    <div style={{ fontWeight: 800 }}>M{m.numero}</div>
+                    <div style={{ fontSize: '0.7rem', color: libre ? '#10b981' : '#f59e0b' }}>{libre ? 'Libre · mover aquí' : `Juntar (${m.personas.length})`}</div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
       )}
 
       {verReservas && (

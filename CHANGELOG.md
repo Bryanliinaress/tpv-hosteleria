@@ -5,6 +5,16 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.9.0] - 2026-06-26
+
+### Cambiado
+- **El Panel Camarero pasa a ser el «Mostrador · TPV»**: el terminal fijo de escritorio que complementa a la PDA en lugar de duplicarla. Ahora permite:
+  - **Abrir mesa** desde el mapa de sala (con el primer comensal) asignándola al empleado conectado.
+  - **Tomar pedidos** con la carta a la vista.
+  - **Cobro completo de mesa** (descuento, dividir e importe en efectivo con cambio), además del cobro por persona.
+  - **Mover / juntar mesas** desde el propio panel.
+- El cobro/atención queda registrado a nombre del **empleado de la sesión** (antes "Mostrador").
+
 ## [0.8.0] - 2026-06-26
 
 ### Cambiado
