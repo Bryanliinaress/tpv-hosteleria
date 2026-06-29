@@ -5,6 +5,12 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.8.0] - 2026-06-26
+
+### Cambiado
+- **Avisos y diálogos propios** en lugar de los `alert`/`confirm`/`prompt` nativos del navegador: ahora son toasts (info/éxito/error) y ventanas de confirmar o pedir texto integradas en el estilo de la app (desenfoque, animación, color según el tipo). Las confirmaciones destructivas se muestran en rojo.
+- Sustituidos en: Admin (cerrar caja, borrar producto/mesa/categoría/empleado), PDA (abrir mesa, anular línea), toma de pedidos (nuevo comensal), reservas (cancelar y envío de correos) y cliente (error de pago).
+
 ## [0.7.0] - 2026-06-26
 
 ### Añadido

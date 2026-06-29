@@ -9,10 +9,12 @@ import PrintStation from './pages/print/PrintStation'
 import Reservar from './pages/reservar/Reservar'
 import Home from './pages/Home'
 import Protegido from './components/Protegido'
+import UIHost from './components/UIHost'
 
 export default function App() {
   return (
     <HashRouter>
+      <UIHost />
       <Routes>
         <Route path="/" element={<Home />} />
         {/* Cliente: carta por QR y reservas, sin login */}
