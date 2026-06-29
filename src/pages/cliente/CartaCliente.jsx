@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { useStore, owedPorPersona } from '../../store/useStore'
 import { iniciarPagoOnline, leerResultadoPago, limpiarUrlPago, pagoOnlineDisponible } from '../../lib/pagos'
 import { syncListo } from '../../lib/sync'
+import { toast } from '../../store/useUI'
 
 export default function CartaCliente() {
   const { mesaId } = useParams()
@@ -146,7 +147,7 @@ export default function CartaCliente() {
     try {
       await iniciarPagoOnline({ mesaId, personaId: p.id, importe: total + propina, propina, descripcion: `Mesa ${mesa.numero} · ${p.nombre}` })
     } catch (e) {
-      alert('No se pudo iniciar el pago: ' + e.message)
+      toast('No se pudo iniciar el pago: ' + e.message, 'error')
     }
   }
 
