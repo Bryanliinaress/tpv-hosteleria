@@ -207,13 +207,12 @@ export const useStore = create(persist((set, get) => ({
   liberarMesa: (mesaId) => set(state => {
     const mesa = state.mesas.find(m => m.id === mesaId)
     const rec = snapshotMesa(mesa)
+    const grupo = idsGrupo(mesa) // libera también las mesas unidas al grupo
     return {
-      mesas: state.mesas.map(m => m.id !== mesaId ? m : {
-        ...m, estado: 'libre', personas: [], abiertaDesde: null,
-      }),
-      pedidosCocina: state.pedidosCocina.filter(p => p.mesaId !== mesaId),
-      pedidosBarra: state.pedidosBarra.filter(p => p.mesaId !== mesaId),
-      avisos: state.avisos.filter(a => a.mesaId !== mesaId),
+      mesas: state.mesas.map(m => grupo.includes(m.id) ? { ...m, ...CAMPOS_LIBRE } : m),
+      pedidosCocina: state.pedidosCocina.filter(p => !grupo.includes(p.mesaId)),
+      pedidosBarra: state.pedidosBarra.filter(p => !grupo.includes(p.mesaId)),
+      avisos: state.avisos.filter(a => !grupo.includes(a.mesaId)),
       historial: rec ? [...state.historial, rec] : state.historial,
     }
   }),
@@ -242,6 +241,45 @@ export const useStore = create(persist((set, get) => ({
       pedidosCocina: retag(state.pedidosCocina),
       pedidosBarra: retag(state.pedidosBarra),
       avisos: state.avisos.filter(a => a.mesaId !== origenId),
+    }
+  }),
+
+  // Agrupa la mesa `secId` (y su grupo, si lo tuviera) dentro del grupo cuya
+  // cabeza es `principalId`. Las mesas quedan ocupadas y ENLAZADAS, compartiendo
+  // una sola cuenta (la de la principal). Al cobrar/cerrar se separan solas.
+  agruparMesas: (principalId, secId) => set(state => {
+    if (principalId === secId) return {}
+    const principal = state.mesas.find(m => m.id === principalId)
+    const sec = state.mesas.find(m => m.id === secId)
+    if (!principal || !sec || sec.unidaA || principal.unidaA) return {}
+    const miembrosSec = [secId, ...(sec.unidas || [])] // si la secundaria ya era cabeza, absorbe su grupo
+    const personasSec = state.mesas.filter(m => miembrosSec.includes(m.id)).flatMap(m => m.personas)
+    const retag = (arr) => arr.map(p => miembrosSec.includes(p.mesaId) ? { ...p, mesaId: principalId, mesaNumero: principal.numero } : p)
+    const ahora = new Date().toISOString()
+    const nuevasUnidas = [...new Set([...(principal.unidas || []), ...miembrosSec])]
+    return {
+      mesas: state.mesas.map(m => {
+        if (m.id === principalId) return { ...m, estado: 'ocupada', abiertaDesde: m.abiertaDesde || ahora, personas: [...m.personas, ...personasSec], unidas: nuevasUnidas, unidaA: null, camarero: m.camarero || sec.camarero }
+        if (miembrosSec.includes(m.id)) return { ...m, estado: 'ocupada', abiertaDesde: m.abiertaDesde || ahora, personas: [], unidas: [], unidaA: principalId, reserva: null }
+        return m
+      }),
+      pedidosCocina: retag(state.pedidosCocina),
+      pedidosBarra: retag(state.pedidosBarra),
+      avisos: state.avisos.filter(a => !miembrosSec.includes(a.mesaId)),
+    }
+  }),
+
+  // Separa el grupo: la cabeza conserva la cuenta; las mesas unidas se liberan.
+  separarMesas: (principalId) => set(state => {
+    const principal = state.mesas.find(m => m.id === principalId)
+    if (!principal) return {}
+    const miembros = principal.unidas || []
+    return {
+      mesas: state.mesas.map(m => {
+        if (m.id === principalId) return { ...m, unidas: [] }
+        if (miembros.includes(m.id)) return { ...m, ...CAMPOS_LIBRE }
+        return m
+      }),
     }
   }),
 
@@ -430,13 +468,12 @@ export const useStore = create(persist((set, get) => ({
 
     if (todosPagados) {
       const rec = snapshotMesa(mesa)
+      const grupo = idsGrupo(mesa)
       return {
-        mesas: mesas.map(m => m.id !== mesaId ? m : {
-          ...m, estado: 'libre', personas: [], abiertaDesde: null,
-        }),
-        pedidosCocina: state.pedidosCocina.filter(p => p.mesaId !== mesaId),
-        pedidosBarra: state.pedidosBarra.filter(p => p.mesaId !== mesaId),
-        avisos: state.avisos.filter(a => a.mesaId !== mesaId),
+        mesas: mesas.map(m => grupo.includes(m.id) ? { ...m, ...CAMPOS_LIBRE } : m),
+        pedidosCocina: state.pedidosCocina.filter(p => !grupo.includes(p.mesaId)),
+        pedidosBarra: state.pedidosBarra.filter(p => !grupo.includes(p.mesaId)),
+        avisos: state.avisos.filter(a => !grupo.includes(a.mesaId)),
         historial: rec ? [...state.historial, rec] : state.historial,
       }
     }
@@ -453,13 +490,12 @@ export const useStore = create(persist((set, get) => ({
     })
     const mesa = mesas.find(m => m.id === mesaId)
     const rec = snapshotMesa(mesa)
+    const grupo = idsGrupo(mesa)
     return {
-      mesas: mesas.map(m => m.id !== mesaId ? m : {
-        ...m, estado: 'libre', personas: [], abiertaDesde: null, camarero: null, reserva: null,
-      }),
-      pedidosCocina: state.pedidosCocina.filter(p => p.mesaId !== mesaId),
-      pedidosBarra: state.pedidosBarra.filter(p => p.mesaId !== mesaId),
-      avisos: state.avisos.filter(a => a.mesaId !== mesaId),
+      mesas: mesas.map(m => grupo.includes(m.id) ? { ...m, ...CAMPOS_LIBRE } : m),
+      pedidosCocina: state.pedidosCocina.filter(p => !grupo.includes(p.mesaId)),
+      pedidosBarra: state.pedidosBarra.filter(p => !grupo.includes(p.mesaId)),
+      avisos: state.avisos.filter(a => !grupo.includes(a.mesaId)),
       historial: rec ? [...state.historial, rec] : state.historial,
     }
   }),
@@ -782,6 +818,15 @@ export const useStore = create(persist((set, get) => ({
     reservasConfig: state.reservasConfig,
   }),
 }))
+
+// Estado al liberar una mesa (también limpia los enlaces de grupo).
+const CAMPOS_LIBRE = { estado: 'libre', personas: [], abiertaDesde: null, camarero: null, reserva: null, unidas: [], unidaA: null }
+
+// Ids de todas las mesas del grupo de `mesa` (ella + sus unidas).
+function idsGrupo(mesa) {
+  if (!mesa) return []
+  return [mesa.id, ...((mesa.unidas) || [])]
+}
 
 // Crea el registro de ticket de una mesa al cerrarse (null si no consumió nada).
 function snapshotMesa(mesa) {

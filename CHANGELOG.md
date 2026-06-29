@@ -5,6 +5,15 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.12.0] - 2026-06-26
+
+### Añadido
+- **Agrupar mesas con cuenta única**: para mesas grandes, varias mesas se pueden **unir en un grupo** que comparte **una sola cuenta**. Las mesas del grupo quedan ocupadas/bloqueadas (no se pueden abrir por separado) y sus **plazas se suman**. Al **cobrar o cerrar** el grupo, las mesas se **separan solas**.
+  - En el Mostrador: **arrastra una mesa sobre otra para unirlas**, o usa "🔗 Unir con otra mesa"; "✂️ Separar mesas" para deshacer el grupo. Las fichas muestran el grupo (🔗), las plazas sumadas y "Unida a M#".
+
+### Cambiado
+- El gesto de arrastrar mesas en el Mostrador ahora **une mesas** (antes movía comensales). Para mover un único comensal sigue estando la PDA.
+
 ## [0.11.0] - 2026-06-26
 
 ### Añadido
