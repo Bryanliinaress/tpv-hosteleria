@@ -26,7 +26,7 @@ function haceCuanto(iso) {
 }
 
 export default function PanelCamarero() {
-  const { mesas, pedidosCocina, pedidosBarra, avisos, historial, reservas, liberarMesa, atenderAviso, pagarParte, cobrarMesa, reservarMesa, cancelarReserva, sentarReserva, unirseAMesa, asignarCamarero, fusionarMesa } = useStore()
+  const { mesas, pedidosCocina, pedidosBarra, avisos, historial, reservas, liberarMesa, atenderAviso, pagarParte, cobrarMesa, reservarMesa, cancelarReserva, sentarReserva, unirseAMesa, asignarCamarero, agruparMesas, separarMesas } = useStore()
   const empleado = useEmpleadoActual()
   const yo = empleado?.nombre || 'Mostrador'
   const [mesaSeleccionada, setMesaSeleccionada] = useState(null)
@@ -53,22 +53,26 @@ export default function PanelCamarero() {
   const soltarSobre = async (destinoId) => {
     const origenId = arrastrando
     setArrastrando(null); setSobre(null)
-    if (!origenId || origenId === destinoId) return
+    if (!origenId) return
     const o = mesas.find(x => x.id === origenId)
-    const d = mesas.find(x => x.id === destinoId)
-    if (!o || !d) return
-    const destLibre = d.estado === 'libre'
+    // Si suelto sobre una mesa unida, el grupo lo manda su cabeza
+    const dRaw = mesas.find(x => x.id === destinoId)
+    const dm = dRaw?.unidaA ? mesas.find(x => x.id === dRaw.unidaA) : dRaw
+    if (!o || !dm || o.id === dm.id) return
+    // La cabeza del grupo es quien tenga cuenta; si no, la mesa destino
+    const tieneCuenta = m => m.personas.length > 0 || (m.unidas && m.unidas.length > 0)
+    const principal = (tieneCuenta(o) && !tieneCuenta(dm)) ? o : dm
+    const sec = principal.id === o.id ? dm : o
     const ok = await confirmar({
-      titulo: destLibre ? 'Mover mesa' : 'Juntar mesas',
-      mensaje: destLibre
-        ? `¿Mover los comensales de la Mesa ${o.numero} a la Mesa ${d.numero}?`
-        : `¿Juntar la Mesa ${o.numero} con la Mesa ${d.numero}? Quedarán todos en la Mesa ${d.numero}.`,
-      confirmar: destLibre ? 'Mover' : 'Juntar',
+      titulo: 'Unir mesas',
+      mensaje: `¿Unir la Mesa ${o.numero} y la Mesa ${dm.numero}? Se ocuparán juntas y compartirán una sola cuenta (en la Mesa ${principal.numero}).`,
+      confirmar: 'Unir mesas',
     })
     if (!ok) return
-    fusionarMesa(origenId, destinoId)
-    setMesaSeleccionada(destinoId)
-    toast(destLibre ? `Mesa ${o.numero} movida a la ${d.numero}` : `Mesas ${o.numero} y ${d.numero} unificadas`, 'success')
+    asignarCamarero(principal.id, yo)
+    agruparMesas(principal.id, sec.id)
+    setMesaSeleccionada(principal.id)
+    toast(`Mesas ${o.numero} y ${dm.numero} unidas`, 'success')
   }
 
   const hoy = new Date().toDateString()
@@ -133,7 +137,7 @@ export default function PanelCamarero() {
                 </span>
               )
             })}
-            <span style={{ marginLeft: 'auto', alignSelf: 'center', fontSize: '0.72rem', color: 'var(--color-faint)' }}>💡 Arrastra una mesa sobre otra para juntarlas</span>
+            <span style={{ marginLeft: 'auto', alignSelf: 'center', fontSize: '0.72rem', color: 'var(--color-faint)' }}>💡 Arrastra una mesa sobre otra para unirlas (una sola cuenta)</span>
           </div>
 
           {[...new Set(mesas.map(m => m.zona || 'Sala'))].map(zona => {
@@ -154,7 +158,11 @@ export default function PanelCamarero() {
                     const listoCocina = pedidosCocina.filter(p => p.mesaId === m.id && p.estado === 'listo').length
                     const listoBarra = pedidosBarra.filter(p => p.mesaId === m.id && p.estado === 'listo').length
                     const totalMesa = m.personas.reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0)
-                    const arrastrable = m.personas.length > 0
+                    const esSec = !!m.unidaA
+                    const principalNum = esSec ? mesas.find(x => x.id === m.unidaA)?.numero : null
+                    const enGrupo = m.unidas && m.unidas.length > 0
+                    const plazasGrupo = (m.capacidad || 0) + (m.unidas || []).reduce((s, id) => s + (mesas.find(x => x.id === id)?.capacidad || 0), 0)
+                    const arrastrable = m.estado !== 'reservada' && !esSec
                     const esObjetivo = !!arrastrando && arrastrando !== m.id && sobre === m.id
                     return (
                       <button
@@ -165,7 +173,7 @@ export default function PanelCamarero() {
                         onDragOver={e => { if (arrastrando && arrastrando !== m.id) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (sobre !== m.id) setSobre(m.id) } }}
                         onDragLeave={() => setSobre(s => (s === m.id ? null : s))}
                         onDrop={e => { e.preventDefault(); soltarSobre(m.id) }}
-                        onClick={() => { setReservando(false); setMesaSeleccionada(sel ? null : m.id) }}
+                        onClick={() => { setReservando(false); setMesaSeleccionada(esSec ? m.unidaA : (sel ? null : m.id)) }}
                         style={{
                           position: 'relative', overflow: 'hidden',
                           background: m.estado === 'libre' ? 'var(--color-surface)' : `linear-gradient(160deg, ${est.color}1f, var(--color-surface) 70%)`,
@@ -183,15 +191,16 @@ export default function PanelCamarero() {
                         {/* franja de estado */}
                         <span style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '3px', background: est.color }} />
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                          <span style={{ fontWeight: 800, fontSize: '1.25rem' }}>M{m.numero}</span>
-                          <span style={{ fontSize: '0.62rem', background: est.color + '22', color: est.color, borderRadius: '9999px', padding: '0.15rem 0.5rem', fontWeight: 700 }}>{est.label}</span>
+                          <span style={{ fontWeight: 800, fontSize: '1.25rem' }}>M{m.numero}{enGrupo && <span style={{ fontSize: '0.7rem', color: '#a78bfa', fontWeight: 700 }}> 🔗+{m.unidas.length}</span>}</span>
+                          <span style={{ fontSize: '0.62rem', background: est.color + '22', color: est.color, borderRadius: '9999px', padding: '0.15rem 0.5rem', fontWeight: 700 }}>{esSec ? 'Unida' : est.label}</span>
                         </div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{'👤'.repeat(Math.min(m.capacidad, 6))} <span style={{ opacity: 0.7 }}>{m.capacidad}p</span></div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{'👤'.repeat(Math.min(enGrupo ? plazasGrupo : m.capacidad, 8))} <span style={{ opacity: 0.7 }}>{enGrupo ? plazasGrupo : m.capacidad}p</span></div>
 
                         <div style={{ marginTop: 'auto', paddingTop: '0.4rem' }}>
-                          {m.estado === 'libre' && <div style={{ fontSize: '0.74rem', color: '#10b981', fontWeight: 600 }}>Toca para abrir ▶</div>}
-                          {m.estado === 'reservada' && <div style={{ fontSize: '0.72rem', color: '#60a5fa' }}>📅 {m.reserva?.nombre}{m.reserva?.hora ? ` · ${m.reserva.hora}` : ''}</div>}
-                          {(m.estado === 'ocupada' || m.estado === 'esperando_cobro') && (
+                          {esSec && <div style={{ fontSize: '0.74rem', color: '#a78bfa', fontWeight: 600 }}>🔗 Unida a M{principalNum}</div>}
+                          {!esSec && m.estado === 'libre' && <div style={{ fontSize: '0.74rem', color: '#10b981', fontWeight: 600 }}>Toca para abrir ▶</div>}
+                          {!esSec && m.estado === 'reservada' && <div style={{ fontSize: '0.72rem', color: '#60a5fa' }}>📅 {m.reserva?.nombre}{m.reserva?.hora ? ` · ${m.reserva.hora}` : ''}</div>}
+                          {!esSec && (m.estado === 'ocupada' || m.estado === 'esperando_cobro') && (
                             <>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                                 <span style={{ fontSize: '0.7rem', color: 'var(--color-muted)' }}>👥 {m.personas.length} · ⏱ {haceCuanto(m.abiertaDesde)}</span>
@@ -220,7 +229,10 @@ export default function PanelCamarero() {
         {mesa && (
           <div style={{ width: '340px', background: 'var(--color-surface)', borderLeft: '1px solid var(--color-border)', padding: '1.25rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontWeight: 800, fontSize: '1.1rem' }}>Mesa {mesa.numero}</h2>
+              <div>
+                <h2 style={{ fontWeight: 800, fontSize: '1.1rem' }}>Mesa {mesa.numero}</h2>
+                {mesa.unidas?.length > 0 && <div style={{ fontSize: '0.75rem', color: '#a78bfa', fontWeight: 600 }}>🔗 Unida con {mesa.unidas.map(id => 'M' + (mesas.find(x => x.id === id)?.numero)).join(' · ')} · cuenta única</div>}
+              </div>
               <button onClick={() => setMesaSeleccionada(null)} style={btn('#1e293b')}>✕</button>
             </div>
 
@@ -317,7 +329,10 @@ export default function PanelCamarero() {
                 {mesa.personas.some(p => !p.pagado) && (
                   <button onClick={() => { asignarCamarero(mesa.id, yo); setCobrandoMesa(true) }} style={btn('#10b981', { width: '100%', padding: '0.8rem', fontSize: '0.95rem' })}>💶 Cobrar mesa</button>
                 )}
-                <button onClick={() => setMover({ tipo: 'mesa' })} style={btn('#1e293b', { width: '100%', fontSize: '0.85rem' })}>🔀 Mover / Juntar mesa</button>
+                <button onClick={() => setMover({ tipo: 'mesa' })} style={btn('#1e293b', { width: '100%', fontSize: '0.85rem' })}>🔗 Unir con otra mesa</button>
+                {mesa.unidas?.length > 0 && (
+                  <button onClick={() => { separarMesas(mesa.id); toast('Mesas separadas', 'success') }} style={btn('#1e293b', { width: '100%', fontSize: '0.85rem' })}>✂️ Separar mesas ({mesa.unidas.length + 1})</button>
+                )}
 
                 {/* Tickets de mesa */}
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -363,17 +378,18 @@ export default function PanelCamarero() {
       {mover && mesa && (
         <div onClick={() => setMover(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 120, padding: '1rem', animation: 'fadeIn 0.2s ease both' }}>
           <div onClick={e => e.stopPropagation()} className="anim-pop" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', padding: '1.25rem', width: '100%', maxWidth: '460px', maxHeight: '85vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-              <h3 style={{ fontWeight: 800, fontSize: '1.05rem' }}>Mover / juntar a…</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+              <h3 style={{ fontWeight: 800, fontSize: '1.05rem' }}>Unir Mesa {mesa.numero} con…</h3>
               <button onClick={() => setMover(null)} style={btn('#1e293b', { padding: '0.25rem 0.6rem' })}>✕</button>
             </div>
+            <p style={{ fontSize: '0.78rem', color: 'var(--color-muted)', marginBottom: '0.75rem' }}>Compartirán una sola cuenta y se ocuparán juntas hasta que cobres.</p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '0.5rem' }}>
-              {mesas.filter(m => m.id !== mesa.id).map(m => {
+              {mesas.filter(m => m.id !== mesa.id && !m.unidaA && !(mesa.unidas || []).includes(m.id) && m.estado !== 'reservada').map(m => {
                 const libre = m.estado === 'libre'
                 return (
-                  <button key={m.id} onClick={() => { fusionarMesa(mesa.id, m.id); setMover(null); setMesaSeleccionada(null) }} style={{ background: 'var(--color-surface-2)', border: `1px solid ${(libre ? '#10b981' : '#f59e0b')}66`, borderRadius: 'var(--radius)', padding: '0.7rem', cursor: 'pointer', textAlign: 'left', color: 'var(--color-text)', boxShadow: 'var(--shadow-sm)' }}>
+                  <button key={m.id} onClick={() => { asignarCamarero(mesa.id, yo); agruparMesas(mesa.id, m.id); setMover(null); setMesaSeleccionada(mesa.id); toast(`Mesa ${m.numero} unida a la ${mesa.numero}`, 'success') }} style={{ background: 'var(--color-surface-2)', border: `1px solid ${(libre ? '#10b981' : '#f59e0b')}66`, borderRadius: 'var(--radius)', padding: '0.7rem', cursor: 'pointer', textAlign: 'left', color: 'var(--color-text)', boxShadow: 'var(--shadow-sm)' }}>
                     <div style={{ fontWeight: 800 }}>M{m.numero}</div>
-                    <div style={{ fontSize: '0.7rem', color: libre ? '#10b981' : '#f59e0b' }}>{libre ? 'Libre · mover aquí' : `Juntar (${m.personas.length})`}</div>
+                    <div style={{ fontSize: '0.7rem', color: libre ? '#10b981' : '#f59e0b' }}>{libre ? 'Libre' : `Ocupada (${m.personas.length})`}</div>
                   </button>
                 )
               })}
