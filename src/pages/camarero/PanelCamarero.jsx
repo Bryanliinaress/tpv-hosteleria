@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useStore, owedPorPersona } from '../../store/useStore'
 import { useEmpleadoActual } from '../../lib/sesion'
-import { pedirTexto } from '../../store/useUI'
+import { pedirTexto, confirmar, toast } from '../../store/useUI'
 import Ticket from '../../components/Ticket'
 import MetodoPago from '../../components/MetodoPago'
 import ReservasManager from '../../components/ReservasManager'
@@ -45,6 +45,30 @@ export default function PanelCamarero() {
     if (n === null) return
     unirseAMesa(m.id, n)
     asignarCamarero(m.id, yo)
+  }
+
+  // Unificar mesas arrastrando una sobre otra.
+  const [arrastrando, setArrastrando] = useState(null) // id de la mesa que se arrastra
+  const [sobre, setSobre] = useState(null)             // id de la mesa sobre la que se suelta
+  const soltarSobre = async (destinoId) => {
+    const origenId = arrastrando
+    setArrastrando(null); setSobre(null)
+    if (!origenId || origenId === destinoId) return
+    const o = mesas.find(x => x.id === origenId)
+    const d = mesas.find(x => x.id === destinoId)
+    if (!o || !d) return
+    const destLibre = d.estado === 'libre'
+    const ok = await confirmar({
+      titulo: destLibre ? 'Mover mesa' : 'Juntar mesas',
+      mensaje: destLibre
+        ? `¿Mover los comensales de la Mesa ${o.numero} a la Mesa ${d.numero}?`
+        : `¿Juntar la Mesa ${o.numero} con la Mesa ${d.numero}? Quedarán todos en la Mesa ${d.numero}.`,
+      confirmar: destLibre ? 'Mover' : 'Juntar',
+    })
+    if (!ok) return
+    fusionarMesa(origenId, destinoId)
+    setMesaSeleccionada(destinoId)
+    toast(destLibre ? `Mesa ${o.numero} movida a la ${d.numero}` : `Mesas ${o.numero} y ${d.numero} unificadas`, 'success')
   }
 
   const hoy = new Date().toDateString()
@@ -109,6 +133,7 @@ export default function PanelCamarero() {
                 </span>
               )
             })}
+            <span style={{ marginLeft: 'auto', alignSelf: 'center', fontSize: '0.72rem', color: 'var(--color-faint)' }}>💡 Arrastra una mesa sobre otra para juntarlas</span>
           </div>
 
           {[...new Set(mesas.map(m => m.zona || 'Sala'))].map(zona => {
@@ -129,21 +154,31 @@ export default function PanelCamarero() {
                     const listoCocina = pedidosCocina.filter(p => p.mesaId === m.id && p.estado === 'listo').length
                     const listoBarra = pedidosBarra.filter(p => p.mesaId === m.id && p.estado === 'listo').length
                     const totalMesa = m.personas.reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0)
+                    const arrastrable = m.personas.length > 0
+                    const esObjetivo = !!arrastrando && arrastrando !== m.id && sobre === m.id
                     return (
                       <button
                         key={m.id}
+                        draggable={arrastrable}
+                        onDragStart={e => { setArrastrando(m.id); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', m.id) } catch { /* noop */ } }}
+                        onDragEnd={() => { setArrastrando(null); setSobre(null) }}
+                        onDragOver={e => { if (arrastrando && arrastrando !== m.id) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (sobre !== m.id) setSobre(m.id) } }}
+                        onDragLeave={() => setSobre(s => (s === m.id ? null : s))}
+                        onDrop={e => { e.preventDefault(); soltarSobre(m.id) }}
                         onClick={() => { setReservando(false); setMesaSeleccionada(sel ? null : m.id) }}
                         style={{
                           position: 'relative', overflow: 'hidden',
                           background: m.estado === 'libre' ? 'var(--color-surface)' : `linear-gradient(160deg, ${est.color}1f, var(--color-surface) 70%)`,
-                          border: `1.5px solid ${sel ? est.color : m.estado === 'libre' ? 'var(--color-border)' : est.color + '66'}`,
-                          borderRadius: 'var(--radius)', padding: '0.85rem 0.9rem', cursor: 'pointer', textAlign: 'left',
-                          boxShadow: sel ? `0 0 0 3px ${est.color}55, var(--shadow)` : 'var(--shadow-sm)',
+                          border: esObjetivo ? '2px dashed #f97316' : `1.5px solid ${sel ? est.color : m.estado === 'libre' ? 'var(--color-border)' : est.color + '66'}`,
+                          borderRadius: 'var(--radius)', padding: '0.85rem 0.9rem', cursor: arrastrable ? 'grab' : 'pointer', textAlign: 'left',
+                          boxShadow: esObjetivo ? '0 0 0 4px rgba(249,115,22,0.35), var(--shadow-lg)' : sel ? `0 0 0 3px ${est.color}55, var(--shadow)` : 'var(--shadow-sm)',
                           minHeight: '6.6rem', display: 'flex', flexDirection: 'column',
-                          transition: 'transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease',
+                          opacity: arrastrando === m.id ? 0.4 : 1,
+                          transform: esObjetivo ? 'scale(1.04)' : 'none',
+                          transition: 'transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, opacity 0.15s ease',
                         }}
-                        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = `0 14px 28px -14px ${est.color}aa` }}
-                        onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = sel ? `0 0 0 3px ${est.color}55, var(--shadow)` : 'var(--shadow-sm)' }}
+                        onMouseEnter={e => { if (!arrastrando) { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = `0 14px 28px -14px ${est.color}aa` } }}
+                        onMouseLeave={e => { if (!arrastrando) { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = sel ? `0 0 0 3px ${est.color}55, var(--shadow)` : 'var(--shadow-sm)' } }}
                       >
                         {/* franja de estado */}
                         <span style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '3px', background: est.color }} />
