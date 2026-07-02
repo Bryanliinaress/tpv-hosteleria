@@ -5,6 +5,11 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.17.0] - 2026-06-26
+
+### Añadido
+- **Informes de ventas** (Panel Admin · pestaña «Informes»): KPIs del mes (facturado, tickets, ticket medio, comensales, propinas) y gráficas de ventas por día, top productos (unidades e importe), ventas por camarero, método de pago y ventas por hora. Sin librerías externas.
+
 ## [0.16.1] - 2026-06-26
 
 ### Mantenimiento
