@@ -283,6 +283,18 @@ export default function Reservar() {
               return <>
                 <button onClick={confirmar} disabled={!ok} style={btn(ok ? '#10b981' : '#334155', { width: '100%', padding: '0.95rem', fontSize: '1.05rem', marginTop: '0.9rem', cursor: ok ? 'pointer' : 'not-allowed' })}>{editandoId ? 'Guardar cambios ✓' : 'Confirmar reserva ✓'}</button>
                 {!ok && <p style={{ fontSize: '0.75rem', color: 'var(--color-muted)', textAlign: 'center', marginTop: '0.5rem' }}>{!form.nombre.trim() ? 'Escribe tu nombre' : 'Escribe un email válido'} para terminar.</p>}
+                {/* RGPD: información básica sobre el uso de los datos */}
+                <p style={{ fontSize: '0.68rem', color: 'var(--color-faint)', textAlign: 'center', marginTop: '0.7rem', lineHeight: 1.5 }}>
+                  Al confirmar aceptas que usemos estos datos <strong>solo para gestionar tu reserva</strong> (confirmación, cambios y recordatorio).
+                </p>
+                <details style={{ fontSize: '0.68rem', color: 'var(--color-faint)', marginTop: '0.3rem' }}>
+                  <summary style={{ cursor: 'pointer', textAlign: 'center' }}>Más información sobre tus datos</summary>
+                  <p style={{ marginTop: '0.4rem', lineHeight: 1.55 }}>
+                    Responsable: el establecimiento{local?.nombre ? ` (${local.nombre})` : ''}. Finalidad: gestionar la reserva.
+                    Conservación: los datos se eliminan automáticamente {cfg.retencionDias ?? 30} días después de la fecha de la reserva.
+                    No se ceden a terceros ni se usan para publicidad. Puedes cancelar o modificar la reserva (y tus datos) desde el enlace del email de confirmación.
+                  </p>
+                </details>
               </>
             })()}
           </Paso>

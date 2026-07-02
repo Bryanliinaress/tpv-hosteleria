@@ -61,6 +61,9 @@ export default function ReservasConfig() {
             <Campo label="Grupo máx. online">
               <input type="number" min="1" value={cfg.maxPersonasOnline} onChange={e => updateReservasConfig({ maxPersonasOnline: Number(e.target.value) || 10 })} style={inp} />
             </Campo>
+            <Campo label="RGPD: borrar tras (días)">
+              <input type="number" min="1" value={cfg.retencionDias ?? 30} onChange={e => updateReservasConfig({ retencionDias: Number(e.target.value) || 30 })} style={inp} />
+            </Campo>
           </div>
 
           {/* Días cerrados */}

@@ -80,6 +80,7 @@ export async function initSync() {
     empujarEstado()
   }
   resolverListo() // la carga inicial ha terminado
+  useStore.getState().purgarReservasAntiguas() // RGPD: retención de reservas
 
   // 2) Realtime: aplica cambios de otros dispositivos
   supabase
