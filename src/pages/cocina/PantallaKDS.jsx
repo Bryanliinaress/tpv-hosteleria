@@ -2,6 +2,7 @@ import { useStore } from '../../store/useStore'
 import BotonSalir from '../../components/BotonSalir'
 
 const ESTADO = {
+  espera: { label: '⏸ En espera', color: '#64748b', next: 'recibido', nextLabel: '▶ Marchar ya' },
   recibido: { label: 'Recibido', color: '#f59e0b', next: 'preparando', nextLabel: 'Preparar' },
   preparando: { label: 'Preparando...', color: '#3b82f6', next: 'listo', nextLabel: '✅ Listo' },
   listo: { label: 'Listo ✅', color: '#10b981', next: null, nextLabel: null },
@@ -52,7 +53,7 @@ export default function PantallaKDS() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {activos.map(p => {
                 const est = ESTADO[p.estado]
-                const urgente = (Date.now() - new Date(p.horaEntrada)) > 10 * 60 * 1000
+                const urgente = p.estado !== 'espera' && (Date.now() - new Date(p.horaEntrada)) > 10 * 60 * 1000
                 return (
                   <div key={p.id} className={urgente ? 'anim-fade pulse-attn' : 'anim-fade'} style={{
                     background: 'linear-gradient(180deg, #131c2e, #0f172a)',
@@ -74,8 +75,9 @@ export default function PantallaKDS() {
                         <span style={{ fontSize: '0.7rem', background: est.color + '22', color: est.color, borderRadius: '4px', padding: '0.15rem 0.5rem', fontWeight: 700 }}>{est.label}</span>
                       </div>
                     </div>
-                    <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: p.nota ? '0.4rem' : '0.75rem' }}>
+                    <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: p.nota ? '0.4rem' : '0.75rem', opacity: p.estado === 'espera' ? 0.65 : 1 }}>
                       <span style={{ color: '#f59e0b' }}>{p.cantidad}×</span> {p.nombre}
+                      {(p.tiempo || 1) > 1 && <span style={{ marginLeft: '0.5rem', fontSize: '0.72rem', background: '#3b0764', color: '#c4b5fd', borderRadius: '9999px', padding: '0.12rem 0.5rem', fontWeight: 700, verticalAlign: 'middle' }}>{p.tiempo === 3 ? '🍰 Postre' : '2º plato'}{p.estado === 'espera' ? ' · sin marchar' : ''}</span>}
                     </div>
                     {p.nota && (
                       <div style={{ fontSize: '0.85rem', color: '#fde68a', background: '#3f2d00', border: '1px solid #78531a', borderRadius: '0.375rem', padding: '0.3rem 0.55rem', marginBottom: '0.75rem' }}>

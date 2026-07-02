@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { useStore } from '../../store/useStore'
+import { useStore, TIEMPOS } from '../../store/useStore'
 import { pedirTexto } from '../../store/useUI'
 
 // Toma de pedidos desde la PDA del camarero, para un comensal de la mesa.
 export default function PedirPda({ mesaId, onClose }) {
-  const { carta, mesas, agregarItem, cambiarCantidad, confirmarPedido, unirseAMesa } = useStore()
+  const { carta, mesas, agregarItem, cambiarCantidad, confirmarPedido, unirseAMesa, setTiempoItem } = useStore()
   const mesa = mesas.find(m => m.id === mesaId)
   const [personaId, setPersonaId] = useState(mesa?.personas[0]?.id || null)
   const [cat, setCat] = useState(carta.categorias[0].id)
@@ -81,6 +81,13 @@ export default function PedirPda({ mesaId, onClose }) {
               <div key={it.uid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.25rem 0' }}>
                 <span style={{ fontSize: '0.82rem' }}>{it.cantidad}× {it.nombre}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  {it.tipo === 'comida' && (
+                    <button
+                      onClick={() => setTiempoItem(mesaId, persona.id, it.uid, ((it.tiempo || 1) % 3) + 1)}
+                      title={`Tiempo: ${TIEMPOS[it.tiempo || 1].largo} (toca para cambiar)`}
+                      style={btn((it.tiempo || 1) > 1 ? '#7c3aed' : '#1e293b', { padding: '0.15rem 0.5rem', fontSize: '0.72rem' })}
+                    >{TIEMPOS[it.tiempo || 1].label}</button>
+                  )}
                   <button onClick={() => cambiarCantidad(mesaId, persona.id, it.uid, -1)} style={btn('#334155', { padding: '0.15rem 0.5rem' })}>−</button>
                   <button onClick={() => cambiarCantidad(mesaId, persona.id, it.uid, 1)} style={btn('#334155', { padding: '0.15rem 0.5rem' })}>+</button>
                   <span style={{ fontWeight: 600, fontSize: '0.82rem', minWidth: '3rem', textAlign: 'right' }}>{(it.precio * it.cantidad).toFixed(2)} €</span>

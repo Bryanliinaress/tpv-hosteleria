@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { useStore, owedPorPersona } from '../../store/useStore'
+import { useStore, owedPorPersona, TIEMPOS } from '../../store/useStore'
 import { useEmpleadoActual } from '../../lib/sesion'
 import { pedirTexto, confirmar, toast } from '../../store/useUI'
 import Ticket from '../../components/Ticket'
@@ -26,7 +26,7 @@ function haceCuanto(iso) {
 }
 
 export default function PanelCamarero() {
-  const { mesas, pedidosCocina, pedidosBarra, avisos, historial, reservas, liberarMesa, atenderAviso, pagarParte, cobrarMesa, reservarMesa, cancelarReserva, sentarReserva, unirseAMesa, asignarCamarero, agruparMesas, separarMesas } = useStore()
+  const { mesas, pedidosCocina, pedidosBarra, avisos, historial, reservas, liberarMesa, atenderAviso, pagarParte, cobrarMesa, reservarMesa, cancelarReserva, sentarReserva, unirseAMesa, asignarCamarero, agruparMesas, separarMesas, marcharSiguiente } = useStore()
   const empleado = useEmpleadoActual()
   const yo = empleado?.nombre || 'Mostrador'
   const [mesaSeleccionada, setMesaSeleccionada] = useState(null)
@@ -349,6 +349,17 @@ export default function PanelCamarero() {
                 )}
 
                 {/* Acciones principales */}
+                {(() => {
+                  const enEspera = [...pedidosCocina, ...pedidosBarra].filter(p => p.mesaId === mesa.id && p.estado === 'espera')
+                  if (enEspera.length === 0) return null
+                  const t = Math.min(...enEspera.map(p => p.tiempo || 2))
+                  const n = enEspera.filter(p => (p.tiempo || 2) === t).reduce((s, p) => s + p.cantidad, 0)
+                  return (
+                    <button onClick={() => { marcharSiguiente(mesa.id); toast(`¡Marchando ${TIEMPOS[t]?.largo?.toLowerCase() || ''}!`, 'success') }} style={btn('#7c3aed', { width: '100%', padding: '0.8rem', fontSize: '0.95rem' })}>
+                      🔥 Marchar {TIEMPOS[t]?.largo?.toLowerCase()} ({n})
+                    </button>
+                  )
+                })()}
                 <button onClick={() => { asignarCamarero(mesa.id, yo); setPidiendo(true) }} style={btn('#f97316', { width: '100%', padding: '0.8rem', fontSize: '0.95rem' })}>➕ Tomar pedido</button>
                 {mesa.personas.some(p => !p.pagado) && (
                   <button onClick={() => { asignarCamarero(mesa.id, yo); setCobrandoMesa(true) }} style={btn('#10b981', { width: '100%', padding: '0.8rem', fontSize: '0.95rem' })}>💶 Cobrar mesa</button>
