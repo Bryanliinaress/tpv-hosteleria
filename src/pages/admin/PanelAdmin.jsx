@@ -6,6 +6,7 @@ import Ticket from '../../components/Ticket'
 import ReservasManager from '../../components/ReservasManager'
 import ReservasConfig from '../../components/ReservasConfig'
 import BotonSalir from '../../components/BotonSalir'
+import Informes from './Informes'
 
 const emptyForm = { nombre: '', precioPitufo: '', precioViena: '', categoria: '', descripcion: '', alergenos: [] }
 const precioDesde = (prod) => Math.min(prod.precios?.pitufo ?? 0, prod.precios?.viena ?? 0)
@@ -116,6 +117,7 @@ export default function PanelAdmin() {
           { id: 'caja', label: '💰 Caja' },
           { id: 'ajustes', label: '⚙️ Ajustes' },
           { id: 'tickets', label: '🧾 Tickets' },
+          { id: 'informes', label: '📊 Informes' },
           { id: 'qr', label: '📱 QR Codes' },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
@@ -427,6 +429,9 @@ export default function PanelAdmin() {
             </div>
           </div>
         )}
+
+        {/* Tab Informes */}
+        {tab === 'informes' && <Informes historial={historial} moneda={local.moneda || '€'} />}
 
         {/* Tab Personal (empleados y accesos) */}
         {tab === 'personal' && (
