@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
-import { useStore, METODO_LABEL, METODO_EMOJI } from '../../store/useStore'
+import { useStore, METODO_LABEL, METODO_EMOJI, ALERGENOS } from '../../store/useStore'
 import { confirmar, toast } from '../../store/useUI'
 import Ticket from '../../components/Ticket'
 import ReservasManager from '../../components/ReservasManager'
 import ReservasConfig from '../../components/ReservasConfig'
 import BotonSalir from '../../components/BotonSalir'
 
-const emptyForm = { nombre: '', precioPitufo: '', precioViena: '', categoria: '', descripcion: '' }
+const emptyForm = { nombre: '', precioPitufo: '', precioViena: '', categoria: '', descripcion: '', alergenos: [] }
 const precioDesde = (prod) => Math.min(prod.precios?.pitufo ?? 0, prod.precios?.viena ?? 0)
 
 export default function PanelAdmin() {
@@ -63,7 +63,7 @@ export default function PanelAdmin() {
   }
   const empezarEdicion = (prod) => {
     setEditando(prod.id)
-    setForm({ nombre: prod.nombre, precioPitufo: String(prod.precios?.pitufo ?? ''), precioViena: String(prod.precios?.viena ?? ''), categoria: prod.categoria, descripcion: prod.descripcion })
+    setForm({ nombre: prod.nombre, precioPitufo: String(prod.precios?.pitufo ?? ''), precioViena: String(prod.precios?.viena ?? ''), categoria: prod.categoria, descripcion: prod.descripcion, alergenos: prod.alergenos || [] })
   }
   const cancelar = () => { setEditando(null); setForm(emptyForm) }
   const guardar = () => {
@@ -160,7 +160,10 @@ export default function PanelAdmin() {
                             {prod.nombre}
                             {!prod.disponible && <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', color: '#f43f5e' }}>(agotado)</span>}
                           </div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>{prod.descripcion}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>
+                            {prod.descripcion}
+                            {(prod.alergenos || []).length > 0 && <span title={prod.alergenos.map(a => ALERGENOS.find(x => x.id === a)?.nombre || a).join(', ')} style={{ marginLeft: '0.4rem' }}>{prod.alergenos.map(a => ALERGENOS.find(x => x.id === a)?.emoji || '•').join('')}</span>}
+                          </div>
                         </div>
                         <div style={{ fontWeight: 700, color: '#f97316', fontSize: '0.85rem', margin: '0 0.75rem', whiteSpace: 'nowrap', textAlign: 'right' }}>
                           {prod.precios
@@ -597,6 +600,21 @@ function FormProducto({ carta, form, setForm, onGuardar, onCancelar, titulo }) {
         </select>
       </div>
       <input value={form.descripcion} onChange={set('descripcion')} placeholder="Descripción" style={inputStyle} />
+      {/* Alérgenos (14 UE) */}
+      <div>
+        <p style={{ fontSize: '0.72rem', color: 'var(--color-muted)', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Alérgenos</p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+          {ALERGENOS.map(a => {
+            const on = (form.alergenos || []).includes(a.id)
+            return (
+              <button key={a.id} type="button" onClick={() => setForm(f => ({ ...f, alergenos: on ? f.alergenos.filter(x => x !== a.id) : [...(f.alergenos || []), a.id] }))}
+                style={{ background: on ? '#7c2d12' : '#0f172a', color: on ? '#fdba74' : 'var(--color-muted)', border: `1px solid ${on ? '#f97316' : 'var(--color-border)'}`, borderRadius: '9999px', padding: '0.25rem 0.6rem', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}>
+                {a.emoji} {a.nombre}
+              </button>
+            )
+          })}
+        </div>
+      </div>
       <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
         <button onClick={onCancelar} style={{ background: '#334155', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer', fontSize: '0.85rem' }}>Cancelar</button>
         <button onClick={onGuardar} style={{ background: '#f97316', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1.25rem', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}>Guardar</button>

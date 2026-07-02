@@ -10,6 +10,39 @@ export const METODOS_PAGO = [
 export const METODO_LABEL = { ...Object.fromEntries(METODOS_PAGO.map(m => [m.id, m.label])), sincobrar: 'Sin cobrar' }
 export const METODO_EMOJI = { ...Object.fromEntries(METODOS_PAGO.map(m => [m.id, m.emoji])), sincobrar: '🚫' }
 
+// Los 14 alérgenos de declaración obligatoria en la UE (Reglamento 1169/2011)
+export const ALERGENOS = [
+  { id: 'gluten', nombre: 'Gluten', emoji: '🌾' },
+  { id: 'crustaceos', nombre: 'Crustáceos', emoji: '🦐' },
+  { id: 'huevos', nombre: 'Huevos', emoji: '🥚' },
+  { id: 'pescado', nombre: 'Pescado', emoji: '🐟' },
+  { id: 'cacahuetes', nombre: 'Cacahuetes', emoji: '🥜' },
+  { id: 'soja', nombre: 'Soja', emoji: '🫘' },
+  { id: 'lacteos', nombre: 'Lácteos', emoji: '🥛' },
+  { id: 'frutos_cascara', nombre: 'Frutos de cáscara', emoji: '🌰' },
+  { id: 'apio', nombre: 'Apio', emoji: '🥬' },
+  { id: 'mostaza', nombre: 'Mostaza', emoji: '🟡' },
+  { id: 'sesamo', nombre: 'Sésamo', emoji: '⚪' },
+  { id: 'sulfitos', nombre: 'Sulfitos', emoji: '🍷' },
+  { id: 'altramuces', nombre: 'Altramuces', emoji: '🌼' },
+  { id: 'moluscos', nombre: 'Moluscos', emoji: '🐚' },
+]
+export const ALERGENO_INFO = Object.fromEntries(ALERGENOS.map(a => [a.id, a]))
+
+// Deducción básica de alérgenos por texto (solo para sembrar la carta demo;
+// en un local real los fija el admin producto a producto).
+export function alergenosDe(texto) {
+  const t = (texto || '').toLowerCase()
+  const res = []
+  if (/queso|mantequilla|leche|nata/.test(t)) res.push('lacteos')
+  if (/huevo|tortilla|mayonesa/.test(t)) res.push('huevos')
+  if (/atún|pescado|anchoa|boquer/.test(t)) res.push('pescado')
+  if (/cerveza|caña|tercio/.test(t)) res.push('gluten')
+  if (/vino|vermut/.test(t)) res.push('sulfitos')
+  if (/cola cao|chocolate/.test(t)) res.push('lacteos', 'soja')
+  return [...new Set(res)]
+}
+
 // Firma de una línea de pedido (para fusionar ítems idénticos al añadir)
 const firma = (c) => [
   c.productoId,
@@ -68,7 +101,7 @@ export const useStore = create(persist((set, get) => ({
       { id: 'cl22', nombre: 'Pavo', precios: { pitufo: 2.00, viena: 3.00 }, ingredientes: ['Pavo'] },
       { id: 'cl23', nombre: 'Salchichón', precios: { pitufo: 2.00, viena: 3.00 }, ingredientes: ['Salchichón'] },
       { id: 'cl24', nombre: 'York pata', precios: { pitufo: 2.60, viena: 4.50 }, ingredientes: ['Jamón york pata'] },
-    ].map(p => ({ ...p, categoria: 'desayunos', tipo: 'comida', descripcion: p.ingredientes.join(', '), disponible: true })).concat(
+    ].map(p => ({ ...p, categoria: 'desayunos', tipo: 'comida', descripcion: p.ingredientes.join(', '), disponible: true, alergenos: [...new Set(['gluten', ...alergenosDe(p.ingredientes.join(' '))])] })).concat(
       // ── CAFÉS (Santa Cristina) — precio único ──
       [
         { id: 'cf1', nombre: 'Solo', precio: 1.30, descripcion: 'Café solo (espresso)' },
@@ -79,7 +112,7 @@ export const useStore = create(persist((set, get) => ({
         { id: 'cf6', nombre: 'Corto', precio: 1.40, descripcion: 'Café con un poco de leche' },
         { id: 'cf7', nombre: 'Sombra', precio: 1.40, descripcion: 'Leche con un toque de café' },
         { id: 'cf8', nombre: 'Nube', precio: 1.40, descripcion: 'Leche con una nube de café' },
-      ].map(p => ({ ...p, categoria: 'cafes', tipo: 'bebida', disponible: true })),
+      ].map(p => ({ ...p, categoria: 'cafes', tipo: 'bebida', disponible: true, alergenos: alergenosDe(p.nombre + ' ' + p.descripcion) })),
       // ── BEBIDAS (cafetería/bar) — precio único ──
       [
         { id: 'be1', nombre: 'Coca-Cola', precio: 2.00, descripcion: 'Lata/botellín 33cl' },
@@ -107,7 +140,7 @@ export const useStore = create(persist((set, get) => ({
         { id: 'be23', nombre: 'Cola Cao', precio: 1.60, descripcion: 'Caliente o frío' },
         { id: 'be24', nombre: 'Chocolate caliente', precio: 2.00, descripcion: 'A la taza' },
         { id: 'be25', nombre: 'Vaso de leche', precio: 1.30, descripcion: 'Caliente o fría' },
-      ].map(p => ({ ...p, categoria: 'bebidas', tipo: 'bebida', disponible: true })),
+      ].map(p => ({ ...p, categoria: 'bebidas', tipo: 'bebida', disponible: true, alergenos: alergenosDe(p.nombre + ' ' + p.descripcion) })),
     ),
   },
 
@@ -768,6 +801,7 @@ export const useStore = create(persist((set, get) => ({
           tipo: state.carta.categorias.find(c => c.id === producto.categoria)?.tipo || 'comida',
           descripcion: producto.descripcion || '',
           ingredientes: (producto.descripcion || '').split(',').map(s => s.trim()).filter(Boolean),
+          alergenos: producto.alergenos || [],
           disponible: true,
         }],
       },
@@ -791,6 +825,7 @@ export const useStore = create(persist((set, get) => ({
             viena: Number(cambios.precioViena ?? p.precios?.viena) || 0,
           }
         }
+        if (cambios.alergenos !== undefined) next.alergenos = cambios.alergenos
         return next
       }),
     },
@@ -829,7 +864,7 @@ export const useStore = create(persist((set, get) => ({
   },
 }), {
   name: 'tpv-hosteleria',
-  version: 6,
+  version: 7, // v7: alérgenos en los productos de la carta
   migrate: () => undefined, // si cambia el formato de carta, descarta lo viejo y usa el por defecto
   partialize: (state) => ({
     local: state.local,
