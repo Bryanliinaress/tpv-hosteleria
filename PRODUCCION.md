@@ -18,7 +18,10 @@ garantías. Ordenado por criticidad. Última actualización: 2026-06-26 (v0.13.0
   por PIN es de demostración (vive en ese mismo estado, sin cifrado).
 - Necesita: Supabase Auth (o equivalente) + tablas normalizadas + **RLS por
   `local_id`** + roles verificados en servidor. Un local por negocio.
-- Ver diseño y migraciones en `supabase/migrations/` (en preparación).
+- ✅ **Diseño y esquema listos**: `supabase/migrations/20260626T01_multitenant.sql`
+  (12 tablas, RLS, numeración fiscal de tickets) + plan completo en
+  `supabase/BACKEND.md`. Falta aplicarlo en un proyecto de producción (requiere
+  credenciales) e implementar las RPC (migración 02) y la capa de datos del front.
 
 ### 2. Concurrencia real
 - Hoy: "último que escribe gana" sobre el blob → con 2-3 camareros simultáneos
