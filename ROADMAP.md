@@ -69,9 +69,10 @@ una agenda por horas. Falta:
 
 - [ ] **Webhook de Stripe** para confirmar el pago de forma segura (en vez de
   fiarse del retorno del navegador).
-- [ ] **Bug conocido**: la `returnUrl` de Stripe no lleva el hash de la ruta
-  (`src/lib/pagos.js`), así que al volver el cliente cae en la Home y el pago no
-  se marca como pagado. Revisar al retomar Stripe.
+- [x] ~~**Bug conocido**: la `returnUrl` de Stripe no lleva el hash de la ruta~~ —
+  resuelto: la Edge Function añade `#/mesa/:id` a `success_url`/`cancel_url` y el
+  retorno se verificó de punta a punta (v0.13.x). En v0.13.1 se limpia además
+  cualquier propina huérfana en localStorage.
 - [ ] Pago del cliente con **Stripe Connect** (el dinero va al restaurante, comisión
   para la plataforma) si se monta como SaaS.
 

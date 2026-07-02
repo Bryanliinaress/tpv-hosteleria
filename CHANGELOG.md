@@ -5,6 +5,14 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.13.1] - 2026-06-26
+
+### Arreglado
+- **Pagos**: cerrado el bug histórico del retorno de Stripe (la Edge Function ya devuelve a `#/mesa/:id` y el flujo está verificado de punta a punta); además se limpian las propinas huérfanas que pudieran quedar en el dispositivo.
+
+### Documentación
+- **PRODUCCION.md**: hoja de ruta completa de demo → restaurante real (bloqueantes críticos, fases, qué requiere terceros y orden de ataque).
+
 ## [0.13.0] - 2026-06-26
 
 ### Añadido

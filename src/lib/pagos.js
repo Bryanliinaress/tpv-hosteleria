@@ -40,9 +40,11 @@ export function leerResultadoPago() {
   return { estado: pago, mesaId, personaId, propina }
 }
 
-// Limpia los parámetros de pago de la URL (sin recargar).
+// Limpia los parámetros de pago de la URL (sin recargar) y las propinas
+// pendientes de esa mesa que hayan quedado huérfanas en localStorage.
 export function limpiarUrlPago(mesaId) {
-  localStorage.removeItem(`tpv-pago-${mesaId}-`) // limpieza best-effort
+  const prefijo = `tpv-pago-${mesaId}-`
+  Object.keys(localStorage).filter(k => k.startsWith(prefijo)).forEach(k => localStorage.removeItem(k))
   const limpio = `${window.location.pathname}${window.location.hash || ''}`
   window.history.replaceState({}, '', limpio)
 }
