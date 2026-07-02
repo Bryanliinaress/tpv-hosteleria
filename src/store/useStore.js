@@ -208,6 +208,7 @@ export const useStore = create(persist((set, get) => ({
     aforo: null,             // nº máx de comensales simultáneos; null = suma de plazas de las mesas
     maxPersonasOnline: 10,   // grupos mayores: deben llamar al local
     diasCerrados: [],        // días de la semana cerrados (0=domingo … 6=sábado)
+    retencionDias: 30,       // RGPD: días que se conservan las reservas pasadas
   },
 
   // ── ACCIONES ───────────────────────────────────────────
@@ -687,6 +688,16 @@ export const useStore = create(persist((set, get) => ({
   updateReservasConfig: (cambios) => set(state => ({
     reservasConfig: { ...state.reservasConfig, ...cambios },
   })),
+
+  // RGPD: borra las reservas cuya fecha pasó hace más de `retencionDias`
+  // (minimización de datos: nombre/email/teléfono no se guardan para siempre).
+  purgarReservasAntiguas: () => set(state => {
+    const dias = Number(state.reservasConfig.retencionDias ?? 30)
+    if (!dias) return {}
+    const limite = new Date(Date.now() - dias * 86400000)
+    const conservar = state.reservas.filter(r => new Date((r.fecha || '9999-12-31') + 'T23:59:59') >= limite)
+    return conservar.length === state.reservas.length ? {} : { reservas: conservar }
+  }),
 
   // ── PERSONAL (gestión de empleados, solo admin) ────────
   // Da de alta un empleado. Devuelve { ok, error }. El PIN debe ser de 4

@@ -5,6 +5,11 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.18.0] - 2026-06-26
+
+### Añadido
+- **RGPD en reservas**: aviso de consentimiento en el formulario (los datos solo se usan para gestionar la reserva) con detalle desplegable de responsable, finalidad y conservación; y **borrado automático** de las reservas pasadas tras N días (configurable en Horarios y aforo, por defecto 30). Textos como plantilla, a validar por asesoría.
+
 ## [0.17.0] - 2026-06-26
 
 ### Añadido
