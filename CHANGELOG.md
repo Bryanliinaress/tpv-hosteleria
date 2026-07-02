@@ -5,6 +5,14 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.19.0] - 2026-06-26
+
+### Añadido
+- **Marchar platos por tiempos**: al tomar el pedido (PDA/Mostrador) cada plato puede marcarse como **1º (marcha ya), 2º plato o postre**. Los tiempos 2+ entran en cocina como **«en espera · sin marchar»** (atenuados, con etiqueta) y sala los lanza con el botón **«🔥 Marchar»** de la mesa (por orden: primero el 2º, luego el postre). Cocina también puede marchar manualmente una línea.
+
+### Arreglado
+- **Sincronización**: se ignora el eco Realtime de las escrituras del propio dispositivo, que podía pisar estado local más nuevo cuando había cambios rápidos seguidos.
+
 ## [0.18.0] - 2026-06-26
 
 ### Añadido
