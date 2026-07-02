@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useStore, owedPorPersona } from '../../store/useStore'
 import { useEmpleadoActual } from '../../lib/sesion'
 import { pedirTexto, confirmar, toast } from '../../store/useUI'
@@ -50,6 +50,17 @@ export default function PanelCamarero() {
   // Unificar mesas arrastrando una sobre otra.
   const [arrastrando, setArrastrando] = useState(null) // id de la mesa que se arrastra
   const [sobre, setSobre] = useState(null)             // id de la mesa sobre la que se suelta
+  // Modo táctil (tablet): pulsación larga sobre una mesa → tocar la destino.
+  const [tactil, setTactil] = useState(false)
+  const touchTimer = useRef(null)
+  const empezarPulsacionLarga = (m) => (e) => {
+    if (e.pointerType !== 'touch') return
+    if (m.estado === 'reservada' || m.unidaA) return
+    clearTimeout(touchTimer.current)
+    touchTimer.current = setTimeout(() => { setArrastrando(m.id); setTactil(true) }, 450)
+  }
+  const cancelarPulsacionLarga = () => clearTimeout(touchTimer.current)
+  const salirModoTactil = () => { setTactil(false); setArrastrando(null); setSobre(null) }
   const soltarSobre = async (destinoId) => {
     const origenId = arrastrando
     setArrastrando(null); setSobre(null)
@@ -164,6 +175,7 @@ export default function PanelCamarero() {
                     const plazasGrupo = (m.capacidad || 0) + (m.unidas || []).reduce((s, id) => s + (mesas.find(x => x.id === id)?.capacidad || 0), 0)
                     const arrastrable = m.estado !== 'reservada' && !esSec
                     const esObjetivo = !!arrastrando && arrastrando !== m.id && sobre === m.id
+                    const candidataTactil = tactil && !!arrastrando && arrastrando !== m.id && !esSec
                     return (
                       <button
                         key={m.id}
@@ -173,11 +185,23 @@ export default function PanelCamarero() {
                         onDragOver={e => { if (arrastrando && arrastrando !== m.id) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (sobre !== m.id) setSobre(m.id) } }}
                         onDragLeave={() => setSobre(s => (s === m.id ? null : s))}
                         onDrop={e => { e.preventDefault(); soltarSobre(m.id) }}
-                        onClick={() => { setReservando(false); setMesaSeleccionada(esSec ? m.unidaA : (sel ? null : m.id)) }}
+                        onPointerDown={empezarPulsacionLarga(m)}
+                        onPointerUp={cancelarPulsacionLarga}
+                        onPointerMove={cancelarPulsacionLarga}
+                        onPointerCancel={cancelarPulsacionLarga}
+                        onContextMenu={e => { if (tactil || arrastrando) e.preventDefault() }}
+                        onClick={() => {
+                          if (tactil && arrastrando) {
+                            if (arrastrando === m.id) salirModoTactil()
+                            else { setTactil(false); soltarSobre(m.id) }
+                            return
+                          }
+                          setReservando(false); setMesaSeleccionada(esSec ? m.unidaA : (sel ? null : m.id))
+                        }}
                         style={{
                           position: 'relative', overflow: 'hidden',
                           background: m.estado === 'libre' ? 'var(--color-surface)' : `linear-gradient(160deg, ${est.color}1f, var(--color-surface) 70%)`,
-                          border: esObjetivo ? '2px dashed #f97316' : `1.5px solid ${sel ? est.color : m.estado === 'libre' ? 'var(--color-border)' : est.color + '66'}`,
+                          border: esObjetivo ? '2px dashed #f97316' : candidataTactil ? '1.5px dashed #f9731688' : `1.5px solid ${sel ? est.color : m.estado === 'libre' ? 'var(--color-border)' : est.color + '66'}`,
                           borderRadius: 'var(--radius)', padding: '0.85rem 0.9rem', cursor: arrastrable ? 'grab' : 'pointer', textAlign: 'left',
                           boxShadow: esObjetivo ? '0 0 0 4px rgba(249,115,22,0.35), var(--shadow-lg)' : sel ? `0 0 0 3px ${est.color}55, var(--shadow)` : 'var(--shadow-sm)',
                           minHeight: '6.6rem', display: 'flex', flexDirection: 'column',
@@ -348,6 +372,14 @@ export default function PanelCamarero() {
           </div>
         )}
       </div>
+
+      {/* Banner de unión táctil (pulsación larga) */}
+      {tactil && arrastrando && (
+        <div className="anim-fade" style={{ position: 'fixed', bottom: '1rem', left: '50%', transform: 'translateX(-50%)', zIndex: 60, display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'var(--color-surface)', border: '1px solid #f97316', borderRadius: '9999px', padding: '0.55rem 1rem', boxShadow: 'var(--shadow-lg)' }}>
+          <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>🔗 Uniendo la <strong>M{mesas.find(x => x.id === arrastrando)?.numero}</strong> — toca la mesa destino</span>
+          <button onClick={salirModoTactil} style={btn('#334155', { fontSize: '0.78rem', padding: '0.3rem 0.7rem' })}>Cancelar</button>
+        </div>
+      )}
 
       {ticket && (ticket.mesa || mesa) && (
         <Ticket tipo={ticket.tipo} mesa={ticket.mesa || mesa} persona={ticket.persona} onClose={() => setTicket(null)} />
