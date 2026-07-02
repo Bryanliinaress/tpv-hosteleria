@@ -5,6 +5,11 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.14.0] - 2026-06-26
+
+### Añadido
+- **Alérgenos por producto** (los 14 de declaración obligatoria en la UE): editables por producto en el Admin (chips en el formulario), visibles como iconos en la carta del cliente y con aviso detallado en la hoja de personalización del plato. La carta demo viene etiquetada automáticamente (gluten en montaditos, lácteos, huevos, pescado, sulfitos…).
+
 ## [0.13.1] - 2026-06-26
 
 ### Arreglado
