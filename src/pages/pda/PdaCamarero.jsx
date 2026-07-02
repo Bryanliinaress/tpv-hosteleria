@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useStore, owedPorPersona } from '../../store/useStore'
+import { useStore, owedPorPersona, TIEMPOS } from '../../store/useStore'
 import { useEmpleadoActual, clearSesion } from '../../lib/sesion'
 import { confirmar, pedirTexto, toast } from '../../store/useUI'
 import Ticket from '../../components/Ticket'
@@ -28,7 +28,7 @@ function haceCuanto(iso) {
 }
 
 export default function PdaCamarero() {
-  const { carta, mesas, pedidosCocina, pedidosBarra, avisos, historial, atenderAviso, pagarParte, cobrarMesa, liberarMesa, unirseAMesa, servirMesa, anularItem, toggleDisponible, fusionarMesa, transferirComensal, asignarCamarero, reservarMesa, cancelarReserva, sentarReserva } = useStore()
+  const { carta, mesas, pedidosCocina, pedidosBarra, avisos, historial, atenderAviso, pagarParte, cobrarMesa, liberarMesa, unirseAMesa, servirMesa, anularItem, toggleDisponible, fusionarMesa, transferirComensal, asignarCamarero, reservarMesa, cancelarReserva, sentarReserva, marcharSiguiente } = useStore()
   const [mover, setMover] = useState(null) // { tipo:'mesa'|'comensal', personaId? }
   const empleado = useEmpleadoActual()
   const camarero = empleado?.nombre || ''
@@ -161,6 +161,17 @@ export default function PdaCamarero() {
 
           {(mesa.estado === 'ocupada' || mesa.estado === 'esperando_cobro') && (
             <>
+              {(() => {
+                const enEspera = [...pedidosCocina, ...pedidosBarra].filter(p => p.mesaId === mesa.id && p.estado === 'espera')
+                if (enEspera.length === 0) return null
+                const t = Math.min(...enEspera.map(p => p.tiempo || 2))
+                const n = enEspera.filter(p => (p.tiempo || 2) === t).reduce((s, p) => s + p.cantidad, 0)
+                return (
+                  <button onClick={() => { marcharSiguiente(mesa.id); toast(`¡Marchando ${TIEMPOS[t]?.largo?.toLowerCase() || ''}!`, 'success') }} style={btn('#7c3aed', { width: '100%', padding: '0.75rem', fontSize: '0.95rem' })}>
+                    🔥 Marchar {TIEMPOS[t]?.largo?.toLowerCase()} ({n})
+                  </button>
+                )
+              })()}
               <button onClick={() => { asignarCamarero(mesa.id, camarero); setPidiendo(true) }} style={btn('#f97316', { width: '100%', padding: '0.75rem', fontSize: '0.95rem' })}>➕ Añadir pedido</button>
               <button onClick={() => { asignarCamarero(mesa.id, camarero); setCobrando(true) }} style={btn('#10b981', { width: '100%', padding: '0.75rem', fontSize: '0.95rem' })}>💶 Cobrar mesa</button>
               <button onClick={() => setMover({ tipo: 'mesa' })} style={btn('#1e293b', { width: '100%', fontSize: '0.9rem' })}>🔀 Mover / Juntar mesa</button>
@@ -247,7 +258,7 @@ export default function PdaCamarero() {
                     <>
                       <div style={{ fontSize: '0.75rem', color: '#10b981' }}>{ev.items.map(i => `${i.cantidad}× ${i.nombre}`).join(', ')}</div>
                       {ev.pendientes.length > 0
-                        ? <div style={{ fontSize: '0.75rem', color: '#f59e0b', marginTop: '0.15rem' }}>⏳ Faltan {ev.pendientes.reduce((s, p) => s + p.cantidad, 0)}: {ev.pendientes.map(p => `${p.cantidad}× ${p.nombre} (${p.estado === 'preparando' ? 'preparándose' : 'en cola'})`).join(', ')}</div>
+                        ? <div style={{ fontSize: '0.75rem', color: '#f59e0b', marginTop: '0.15rem' }}>⏳ Faltan {ev.pendientes.reduce((s, p) => s + p.cantidad, 0)}: {ev.pendientes.map(p => `${p.cantidad}× ${p.nombre} (${p.estado === 'preparando' ? 'preparándose' : p.estado === 'espera' ? 'sin marchar' : 'en cola'})`).join(', ')}</div>
                         : <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)', marginTop: '0.15rem' }}>✅ No queda nada más — puedes llevarlo todo</div>}
                     </>
                   )}

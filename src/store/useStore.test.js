@@ -169,6 +169,33 @@ describe('empleadoPorPin', () => {
   })
 })
 
+describe('marchar por tiempos', () => {
+  it('los tiempos 2+ entran en espera y marcharSiguiente los lanza por orden', () => {
+    useStore.setState({
+      mesas: [mesa({
+        personas: [persona('a', 'Ana', [
+          item({ uid: 'u1', tipo: 'comida', tiempo: 1 }),
+          item({ uid: 'u2', tipo: 'comida', tiempo: 2 }),
+          item({ uid: 'u3', tipo: 'comida', tiempo: 3 }),
+        ])],
+      })],
+    })
+    S().confirmarPedido('mesa-t1')
+    const estados = () => Object.fromEntries(S().pedidosCocina.map(p => [p.id.split('-').pop(), p.estado]))
+    expect(estados()).toEqual({ u1: 'recibido', u2: 'espera', u3: 'espera' })
+    S().marcharSiguiente('mesa-t1') // marcha el 2º
+    expect(estados()).toEqual({ u1: 'recibido', u2: 'recibido', u3: 'espera' })
+    S().marcharSiguiente('mesa-t1') // marcha el postre
+    expect(estados()).toEqual({ u1: 'recibido', u2: 'recibido', u3: 'recibido' })
+  })
+
+  it('setTiempoItem solo cambia líneas pendientes', () => {
+    useStore.setState({ mesas: [mesa({ personas: [persona('a', 'Ana', [item({ uid: 'u1', estado: 'enviado', tiempo: 1 })])] })] })
+    S().setTiempoItem('mesa-t1', 'a', 'u1', 2)
+    expect(S().mesas[0].personas[0].items[0].tiempo).toBe(1)
+  })
+})
+
 describe('alergenosDe', () => {
   it('deduce alérgenos por palabras clave', () => {
     expect(alergenosDe('Jamón york, Queso, Mantequilla')).toContain('lacteos')

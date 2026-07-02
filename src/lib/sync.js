@@ -14,6 +14,10 @@ const ROW_ID = 1
 let aplicandoRemoto = false
 let writeTimer = null
 
+// Identificador de este cliente/pestaña: sirve para ignorar el eco Realtime de
+// nuestras propias escrituras (que llegan tarde y pisarían estado más nuevo).
+const CLIENT_ID = `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
+
 // Se resuelve cuando la carga inicial del estado remoto ha terminado, para que
 // acciones que dependen del estado (p. ej. marcar pagado al volver de Stripe)
 // no se ejecuten antes y acaben sobrescritas.
@@ -36,6 +40,7 @@ const sliceEstado = (s) => ({
 
 function aplicarRemoto(data) {
   if (!data || !data.mesas) return
+  if (data._origen === CLIENT_ID) return // eco de una escritura nuestra: ya tenemos ese estado (o uno más nuevo)
   aplicandoRemoto = true
   useStore.setState({
     ...(data.local ? { local: data.local } : {}),
@@ -54,7 +59,7 @@ function aplicarRemoto(data) {
 }
 
 async function empujarEstado() {
-  const data = sliceEstado(useStore.getState())
+  const data = { ...sliceEstado(useStore.getState()), _origen: CLIENT_ID }
   const { error } = await supabase
     .from('estado')
     .upsert({ id: ROW_ID, data, updated_at: new Date().toISOString() })

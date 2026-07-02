@@ -50,7 +50,11 @@ const firma = (c) => [
   [...(c.quitados || [])].sort().join(','),
   [...(c.anadidos || [])].sort().join(','),
   (c.nota || '').trim(),
+  c.tiempo || 1,
 ].join('|')
+
+// Tiempos de la comanda: 1 = marcha ya, 2 = segundo plato, 3 = postre
+export const TIEMPOS = { 1: { label: '1º', largo: 'Marcha ya' }, 2: { label: '2º', largo: 'Segundo' }, 3: { label: '🍰', largo: 'Postre' } }
 
 export const useStore = create(persist((set, get) => ({
   // ── CARTA (Casa Loli · Desayunos) ──────────────────────
@@ -367,6 +371,7 @@ export const useStore = create(persist((set, get) => ({
             quitados: config.quitados || [],
             anadidos: config.anadidos || [],
             nota: config.nota || '',
+            tiempo: config.tiempo || 1,
             compartidoCon: [],
           }],
         }
@@ -386,6 +391,17 @@ export const useStore = create(persist((set, get) => ({
       pedidosBarra: state.pedidosBarra.filter(p => p.id !== entryId),
     }
   }),
+
+  // Cambia el tiempo (1=ya, 2=segundo, 3=postre) de una línea pendiente.
+  setTiempoItem: (mesaId, personaId, uid, tiempo) => set(state => ({
+    mesas: state.mesas.map(m => m.id !== mesaId ? m : {
+      ...m,
+      personas: m.personas.map(p => p.id !== personaId ? p : {
+        ...p,
+        items: p.items.map(i => (i.uid === uid && i.estado === 'pendiente') ? { ...i, tiempo } : i),
+      }),
+    }),
+  })),
 
   // Cambia la cantidad de una línea pendiente (delta +1/-1). Si llega a 0, se elimina.
   cambiarCantidad: (mesaId, personaId, uid, delta) => set(state => ({
@@ -426,7 +442,9 @@ export const useStore = create(persist((set, get) => ({
           nombre: item.nombre,
           cantidad: item.cantidad,
           nota: componerNota(item),
-          estado: 'recibido',
+          tiempo: item.tiempo || 1,
+          // Los tiempos 2+ quedan "en espera" hasta que sala los marche
+          estado: (item.tiempo || 1) > 1 ? 'espera' : 'recibido',
           horaEntrada: new Date().toISOString(),
         }
         if (item.tipo === 'comida') cocina.push(entry)
@@ -446,6 +464,17 @@ export const useStore = create(persist((set, get) => ({
         })),
       }),
     }
+  }),
+
+  // ¡Marchando! Lanza a cocina/barra el siguiente tiempo en espera de la mesa
+  // (el menor de los tiempos pendientes): pasa de 'espera' a 'recibido'.
+  marcharSiguiente: (mesaId) => set(state => {
+    const enEspera = [...state.pedidosCocina, ...state.pedidosBarra].filter(p => p.mesaId === mesaId && p.estado === 'espera')
+    if (enEspera.length === 0) return {}
+    const t = Math.min(...enEspera.map(p => p.tiempo || 2))
+    const ahora = new Date().toISOString()
+    const marchar = (arr) => arr.map(p => (p.mesaId === mesaId && p.estado === 'espera' && (p.tiempo || 2) === t) ? { ...p, estado: 'recibido', horaEntrada: ahora } : p)
+    return { pedidosCocina: marchar(state.pedidosCocina), pedidosBarra: marchar(state.pedidosBarra) }
   }),
 
   actualizarEstadoCocina: (itemId, nuevoEstado) => set(state => ({
