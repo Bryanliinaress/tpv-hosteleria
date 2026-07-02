@@ -5,6 +5,11 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.16.0] - 2026-06-26
+
+### Añadido
+- **Unir mesas en pantallas táctiles** (tablet): mantén pulsada una mesa ~medio segundo y toca la mesa destino. Aparece un aviso flotante con la mesa en curso y botón de cancelar, y las mesas candidatas se marcan con borde discontinuo. El arrastre con ratón de escritorio se mantiene.
+
 ## [0.15.0] - 2026-06-26
 
 ### Añadido
