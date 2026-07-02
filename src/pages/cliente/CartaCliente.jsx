@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { useStore, owedPorPersona } from '../../store/useStore'
+import { useStore, owedPorPersona, ALERGENO_INFO } from '../../store/useStore'
 import { iniciarPagoOnline, leerResultadoPago, limpiarUrlPago, pagoOnlineDisponible } from '../../lib/pagos'
 import { syncListo } from '../../lib/sync'
 import { toast } from '../../store/useUI'
@@ -474,7 +474,14 @@ export default function CartaCliente() {
               <div style={{ flex: 1, marginRight: '1rem' }}>
                 <div style={{ fontWeight: 700, marginBottom: '0.2rem' }}>{prod.nombre}</div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)', marginBottom: '0.25rem' }}>{prod.descripcion}</div>
-                <div style={{ fontWeight: 700, color: '#f97316' }}>{esMontadito ? `desde ${minPrecio(prod).toFixed(2)} €` : `${prod.precio.toFixed(2)} €`}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <span style={{ fontWeight: 700, color: '#f97316' }}>{esMontadito ? `desde ${minPrecio(prod).toFixed(2)} €` : `${prod.precio.toFixed(2)} €`}</span>
+                  {(prod.alergenos || []).length > 0 && (
+                    <span title={'Alérgenos: ' + prod.alergenos.map(a => ALERGENO_INFO[a]?.nombre || a).join(', ')} style={{ fontSize: '0.72rem', letterSpacing: '0.1em', opacity: 0.85 }}>
+                      {prod.alergenos.map(a => ALERGENO_INFO[a]?.emoji || '•').join('')}
+                    </span>
+                  )}
+                </div>
               </div>
               <button
                 onClick={() => esMontadito
@@ -502,10 +509,15 @@ export default function CartaCliente() {
         <div onClick={() => setPers(null)} style={overlay}>
           <div onClick={e => e.stopPropagation()} style={hoja}>
             <div style={grabHandle} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.4rem' }}>
               <h3 style={{ fontWeight: 800, fontSize: '1.15rem' }}>{pers.producto.nombre}</h3>
               <button onClick={() => setPers(null)} style={btnStyle('#334155', { padding: '0.25rem 0.6rem' })}>✕</button>
             </div>
+            {(pers.producto.alergenos || []).length > 0 && (
+              <p style={{ fontSize: '0.74rem', color: '#fbbf24', marginBottom: '0.75rem' }}>
+                ⚠️ Alérgenos: {pers.producto.alergenos.map(a => `${ALERGENO_INFO[a]?.emoji || ''} ${ALERGENO_INFO[a]?.nombre || a}`).join(' · ')}
+              </p>
+            )}
 
             {/* Formato de pan */}
             <p style={labelMini}>Pan</p>
