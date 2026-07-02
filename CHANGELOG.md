@@ -5,6 +5,11 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.15.0] - 2026-06-26
+
+### Añadido
+- **PWA instalable**: la app se puede añadir a la pantalla de inicio en móvil/tablet (icono propio, pantalla completa, colores de marca) y el "shell" queda precacheado con un service worker de actualización automática — abre al instante incluso sin red (los datos siguen necesitando conexión para sincronizar). Iconos generados por script (`scripts/gen-icons.mjs`).
+
 ## [0.14.0] - 2026-06-26
 
 ### Añadido
