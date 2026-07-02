@@ -5,6 +5,12 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.16.1] - 2026-06-26
+
+### Mantenimiento
+- **Tests automatizados** (vitest): 16 pruebas del núcleo — fusión de líneas de pedido, reparto de platos compartidos, grupos de mesas (unir/separar/cobrar), pagar toda la cuenta, cierre de caja, disponibilidad de reservas, PIN de empleados y deducción de alérgenos.
+- **CI en GitHub Actions**: cada push a `develop`/`main` y cada PR corre tests y build.
+
 ## [0.16.0] - 2026-06-26
 
 ### Añadido
