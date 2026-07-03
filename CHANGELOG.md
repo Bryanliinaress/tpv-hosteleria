@@ -5,6 +5,15 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.20.0] - 2026-06-26
+
+### Añadido
+- **Carta genérica** (paso grande hacia «configurable para cualquier local»):
+  - **Formatos editables**: añade/renombra/borra formatos (tamaños, raciones…) desde Ajustes; cada producto «por formatos» tiene un precio por formato (formulario dinámico en el Admin, con conmutador **precio único ↔ por formatos**).
+  - **Extras con precio propio**: cada añadido tiene su precio (ya no 0,20 € fijo), editable en Ajustes y visible en la personalización del cliente y la PDA.
+  - **Textos de personalización configurables**: «Pan / Tipo de pan / Extras» pueden renombrarse (una pizzería usaría «Tamaño / Masa / Ingredientes»).
+- Compatibilidad total con la carta existente (los extras antiguos se normalizan a 0,20 €).
+
 ## [0.19.0] - 2026-06-26
 
 ### Añadido

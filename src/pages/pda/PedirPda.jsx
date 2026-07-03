@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useStore, TIEMPOS } from '../../store/useStore'
+import { useStore, TIEMPOS, normalizarExtra, etiquetasDe } from '../../store/useStore'
 import { pedirTexto } from '../../store/useUI'
 
 // Toma de pedidos desde la PDA del camarero, para un comensal de la mesa.
@@ -23,7 +23,10 @@ export default function PedirPda({ mesaId, onClose }) {
     setPersonaId(id)
   }
 
-  const precioPers = pers ? (pers.producto.precios[pers.formato] + (carta.tiposPan.find(t => t.id === pers.tipo)?.sup || 0) + 0.20 * pers.anadidos.length) : 0
+  const etiquetas = etiquetasDe(carta)
+  const extrasNorm = (carta.extras || []).map(normalizarExtra)
+  const precioExtra = (nombre) => extrasNorm.find(x => x.nombre === nombre)?.precio || 0
+  const precioPers = pers ? ((pers.producto.precios[pers.formato] ?? 0) + (carta.tiposPan.find(t => t.id === pers.tipo)?.sup || 0) + pers.anadidos.reduce((s, n) => s + precioExtra(n), 0)) : 0
   const toggleEn = (setKey, val) => setPers(s => { const a = s[setKey]; return { ...s, [setKey]: a.includes(val) ? a.filter(x => x !== val) : [...a, val] } })
   const confirmarPers = () => {
     const fmt = carta.formatos.find(f => f.id === pers.formato)
@@ -65,9 +68,9 @@ export default function PedirPda({ mesaId, onClose }) {
               <div style={{ flex: 1, marginRight: '0.5rem' }}>
                 <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{prod.nombre}</div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>{prod.descripcion}</div>
-                <div style={{ fontWeight: 700, color: '#f97316', fontSize: '0.85rem' }}>{esMont ? `desde ${Math.min(prod.precios.pitufo, prod.precios.viena).toFixed(2)}` : prod.precio.toFixed(2)} €</div>
+                <div style={{ fontWeight: 700, color: '#f97316', fontSize: '0.85rem' }}>{esMont ? `desde ${Math.min(...Object.values(prod.precios || {}).map(Number)).toFixed(2)}` : prod.precio.toFixed(2)} €</div>
               </div>
-              <button onClick={() => esMont ? setPers({ producto: prod, formato: 'pitufo', tipo: 'normal', quitados: [], anadidos: [], nota: '' }) : agregarItem(mesaId, persona.id, { productoId: prod.id, nombre: prod.nombre, precio: prod.precio, tipo: prod.tipo })} style={btn('#f97316', { padding: '0.5rem 0.8rem' })}>+</button>
+              <button onClick={() => esMont ? setPers({ producto: prod, formato: (carta.formatos.find(f => prod.precios[f.id] != null) || carta.formatos[0])?.id, tipo: carta.tiposPan[0]?.id, quitados: [], anadidos: [], nota: '' }) : agregarItem(mesaId, persona.id, { productoId: prod.id, nombre: prod.nombre, precio: prod.precio, tipo: prod.tipo })} style={btn('#f97316', { padding: '0.5rem 0.8rem' })}>+</button>
             </div>
           )
         })}
@@ -110,13 +113,13 @@ export default function PedirPda({ mesaId, onClose }) {
               <h3 style={{ fontWeight: 800, fontSize: '1.1rem' }}>{pers.producto.nombre}</h3>
               <button onClick={() => setPers(null)} style={btn('#334155', { padding: '0.25rem 0.6rem' })}>✕</button>
             </div>
-            <p style={lbl}>Pan</p>
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.6rem' }}>
-              {carta.formatos.map(f => (
-                <button key={f.id} onClick={() => setPers(s => ({ ...s, formato: f.id }))} style={btn(pers.formato === f.id ? '#f97316' : '#1e293b', { flex: 1, padding: '0.55rem' })}>{f.nombre} · {pers.producto.precios[f.id].toFixed(2)}€</button>
+            <p style={lbl}>{etiquetas.formatos}</p>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.6rem', flexWrap: 'wrap' }}>
+              {carta.formatos.filter(f => pers.producto.precios[f.id] != null).map(f => (
+                <button key={f.id} onClick={() => setPers(s => ({ ...s, formato: f.id }))} style={btn(pers.formato === f.id ? '#f97316' : '#1e293b', { flex: 1, minWidth: '7rem', padding: '0.55rem' })}>{f.nombre} · {(pers.producto.precios[f.id] ?? 0).toFixed(2)}€</button>
               ))}
             </div>
-            <p style={lbl}>Tipo de pan</p>
+            <p style={lbl}>{etiquetas.tiposPan}</p>
             <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginBottom: '0.6rem' }}>
               {carta.tiposPan.map(t => (
                 <button key={t.id} onClick={() => setPers(s => ({ ...s, tipo: t.id }))} style={btn(pers.tipo === t.id ? '#7c3aed' : '#1e293b', { fontSize: '0.78rem', padding: '0.3rem 0.6rem' })}>{t.nombre}{t.sup > 0 ? ` +${t.sup.toFixed(2)}€` : ''}</button>
@@ -133,11 +136,11 @@ export default function PedirPda({ mesaId, onClose }) {
                 </div>
               </>
             )}
-            <p style={lbl}>Añadir extra · +0,20 € c/u</p>
+            <p style={lbl}>Añadir {etiquetas.extras.toLowerCase()}</p>
             <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginBottom: '0.8rem' }}>
-              {carta.extras.map(ex => {
-                const on = pers.anadidos.includes(ex)
-                return <button key={ex} onClick={() => toggleEn('anadidos', ex)} style={btn(on ? '#065f46' : '#1e293b', { fontSize: '0.78rem', padding: '0.3rem 0.6rem' })}>{on ? '✓ ' : '+ '}{ex}</button>
+              {extrasNorm.map(ex => {
+                const on = pers.anadidos.includes(ex.nombre)
+                return <button key={ex.nombre} onClick={() => toggleEn('anadidos', ex.nombre)} style={btn(on ? '#065f46' : '#1e293b', { fontSize: '0.78rem', padding: '0.3rem 0.6rem' })}>{on ? '✓ ' : '+ '}{ex.nombre}{ex.precio > 0 ? ` +${ex.precio.toFixed(2)}€` : ''}</button>
               })}
             </div>
             <button onClick={confirmarPers} style={btn('#f97316', { width: '100%', padding: '0.8rem', fontSize: '0.95rem' })}>Añadir · {precioPers.toFixed(2)} €</button>
