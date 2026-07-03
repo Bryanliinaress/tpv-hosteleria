@@ -34,8 +34,11 @@ garantías. Ordenado por criticidad. Última actualización: 2026-06-26 (v0.13.0
   registros de facturación verificables, encadenados y (en su caso) remitidos a
   la AEAT; numeración correlativa; datos fiscales completos; IVA por tipo;
   factura simplificada y completa; exportación.
-- ⚠️ **Requiere tercero**: software garante/certificación y validación con la
-  asesoría fiscal del local (calendario de obligación según su caso).
+- ✅ **Proveedor elegido: [Verifacti](https://www.verifacti.com)** (2,90€/NIF/mes,
+  API Verifactu + TicketBAI, NIF de prueba gratis — ver COSTES.md §D). Plan:
+  Edge Function que registra cada ticket al cerrarse y devuelve el QR
+  verificable para imprimirlo. ⚠️ Sigue haciendo falta validar el calendario
+  con la asesoría del local.
 
 ### 4. Pagos de verdad
 - [x] ~~Bug returnUrl (el retorno de Stripe caía en la Home y el pago no se
