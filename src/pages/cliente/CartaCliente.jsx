@@ -7,7 +7,7 @@ import { toast } from '../../store/useUI'
 
 export default function CartaCliente() {
   const { mesaId } = useParams()
-  const { local, carta, mesas, pedidosCocina, pedidosBarra, avisos, unirseAMesa, agregarItem, cambiarCantidad, confirmarPedido, pedirCuenta, pagarParte, pagarTodo, toggleCompartir, llamarCamarero } = useStore()
+  const { local, carta, mesas, pedidosCocina, pedidosBarra, avisos, unirseAMesa, agregarItem, cambiarCantidad, confirmarPedido, pedirCuenta, pagarParte, pagarTodo, toggleCompartir, llamarCamarero, atenderAviso } = useStore()
   const mesa = mesas.find(m => m.id === mesaId)
 
   const [miPersonaId, setMiPersonaId] = useState(() => localStorage.getItem(`tpv-yo-${mesaId}`))
@@ -120,7 +120,13 @@ export default function CartaCliente() {
   }
   const misPedidos = [...pedidosCocina, ...pedidosBarra].filter(p => p.personaId === yo.id)
   const misListos = misPedidos.filter(p => p.estado === 'listo')
-  const avisoActivo = avisos.some(a => a.mesaId === mesaId)
+  const avisoMesa = avisos.find(a => a.mesaId === mesaId)
+  const avisoActivo = !!avisoMesa
+  // Llama al camarero; si ya está avisado, volver a tocar cancela el aviso.
+  const toggleAviso = () => {
+    if (avisoMesa) { atenderAviso(avisoMesa.id); toast('Aviso cancelado', 'info') }
+    else { llamarCamarero(mesaId, yo.nombre); toast('Camarero avisado', 'success') }
+  }
 
   const descrItem = (item) => {
     const p = []
@@ -418,7 +424,7 @@ export default function CartaCliente() {
             <span style={{ marginLeft: '0.5rem', fontSize: '0.8rem', color: '#f97316', fontWeight: 600 }}>Hola, {yo.nombre} 👋</span>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button onClick={() => !avisoActivo && llamarCamarero(mesaId, yo.nombre)} title="Llamar al camarero" style={btnStyle(avisoActivo ? '#10b981' : '#1e293b', { fontSize: '0.8rem', padding: '0.375rem 0.75rem', cursor: avisoActivo ? 'default' : 'pointer' })}>{avisoActivo ? '🔔 Avisado' : '🔔'}</button>
+            <button onClick={toggleAviso} title={avisoActivo ? 'Cancelar el aviso al camarero' : 'Llamar al camarero'} style={btnStyle(avisoActivo ? '#10b981' : '#1e293b', { fontSize: '0.8rem', padding: '0.375rem 0.75rem' })}>{avisoActivo ? '🔔 Avisado ✕' : '🔔'}</button>
             <button onClick={() => setVista('pedido')} style={{ ...btnStyle('#1e293b', { fontSize: '0.8rem', padding: '0.375rem 0.75rem' }), position: 'relative' }}>🛒 {itemsPendientes.length > 0 && <span style={badge}>{itemsPendientes.length}</span>}</button>
             <button onClick={() => setVista('cuenta')} style={btnStyle('#1e293b', { fontSize: '0.8rem', padding: '0.375rem 0.75rem' })}>💰</button>
           </div>
