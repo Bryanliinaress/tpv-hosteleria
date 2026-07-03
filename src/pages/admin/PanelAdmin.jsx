@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
-import { useStore, METODO_LABEL, METODO_EMOJI, ALERGENOS } from '../../store/useStore'
+import { useStore, METODO_LABEL, METODO_EMOJI, ALERGENOS, normalizarExtra, etiquetasDe, ETIQUETAS_DEFECTO } from '../../store/useStore'
 import { confirmar, toast } from '../../store/useUI'
 import Ticket from '../../components/Ticket'
 import ReservasManager from '../../components/ReservasManager'
@@ -8,11 +8,10 @@ import ReservasConfig from '../../components/ReservasConfig'
 import BotonSalir from '../../components/BotonSalir'
 import Informes from './Informes'
 
-const emptyForm = { nombre: '', precioPitufo: '', precioViena: '', categoria: '', descripcion: '', alergenos: [] }
-const precioDesde = (prod) => Math.min(prod.precios?.pitufo ?? 0, prod.precios?.viena ?? 0)
+const emptyForm = { nombre: '', categoria: '', descripcion: '', alergenos: [], conFormatos: false, precios: {}, precio: '' }
 
 export default function PanelAdmin() {
-  const { carta, mesas, historial, cierres, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, addCategoria, removeCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan } = useStore()
+  const { carta, mesas, historial, cierres, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, addCategoria, removeCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas } = useStore()
   const hoyStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
   const reservasHoy = reservas.filter(r => r.fecha === hoyStr && r.estado === 'confirmada').length
   const [tab, setTab] = useState('carta')
@@ -20,8 +19,10 @@ export default function PanelAdmin() {
   const [form, setForm] = useState(emptyForm)
   const [ticket, setTicket] = useState(null)
   const [nuevaCat, setNuevaCat] = useState({ nombre: '', tipo: 'comida' })
-  const [nuevoExtra, setNuevoExtra] = useState('')
+  const [nuevoExtra, setNuevoExtra] = useState({ nombre: '', precio: '0.20' })
   const [nuevoPan, setNuevoPan] = useState({ nombre: '', sup: '' })
+  const [nuevoFormato, setNuevoFormato] = useState('')
+  const etiquetas = etiquetasDe(carta)
   const [contado, setContado] = useState('')
 
   // Tickets del mes en curso, agrupados por día (más reciente primero)
@@ -64,13 +65,19 @@ export default function PanelAdmin() {
   }
   const empezarEdicion = (prod) => {
     setEditando(prod.id)
-    setForm({ nombre: prod.nombre, precioPitufo: String(prod.precios?.pitufo ?? ''), precioViena: String(prod.precios?.viena ?? ''), categoria: prod.categoria, descripcion: prod.descripcion, alergenos: prod.alergenos || [] })
+    setForm({
+      nombre: prod.nombre, categoria: prod.categoria, descripcion: prod.descripcion, alergenos: prod.alergenos || [],
+      conFormatos: !!prod.precios,
+      precios: prod.precios ? Object.fromEntries(Object.entries(prod.precios).map(([k, v]) => [k, String(v)])) : {},
+      precio: String(prod.precio ?? ''),
+    })
   }
   const cancelar = () => { setEditando(null); setForm(emptyForm) }
   const guardar = () => {
     if (!form.nombre.trim() || !form.categoria) return
-    if (editando === 'nuevo') addProducto(form)
-    else updateProducto(editando, form)
+    const payload = { ...form, precios: form.conFormatos ? form.precios : {} }
+    if (editando === 'nuevo') addProducto(payload)
+    else updateProducto(editando, payload)
     cancelar()
   }
 
@@ -169,7 +176,9 @@ export default function PanelAdmin() {
                         </div>
                         <div style={{ fontWeight: 700, color: '#f97316', fontSize: '0.85rem', margin: '0 0.75rem', whiteSpace: 'nowrap', textAlign: 'right' }}>
                           {prod.precios
-                            ? <>{prod.precios.pitufo.toFixed(2)} €<br />{prod.precios.viena.toFixed(2)} €</>
+                            ? Object.entries(prod.precios).map(([k, v]) => (
+                                <div key={k} title={carta.formatos.find(f => f.id === k)?.nombre || k}>{Number(v).toFixed(2)} €</div>
+                              ))
                             : <>{(prod.precio ?? 0).toFixed(2)} €</>}
                         </div>
                         <div style={{ display: 'flex', gap: '0.25rem' }}>
@@ -343,7 +352,7 @@ export default function PanelAdmin() {
 
             {/* Tipos de pan */}
             <div style={ajusteCard}>
-              <h3 style={ajusteTitulo}>Tipos de pan</h3>
+              <h3 style={ajusteTitulo}>{etiquetas.tiposPan} (variedades)</h3>
               {carta.tiposPan.map(t => (
                 <div key={t.id} style={ajusteFila}>
                   <span>{t.nombre} {t.sup > 0 && <span style={{ fontSize: '0.72rem', color: '#f97316' }}>+{t.sup.toFixed(2)}€</span>}</span>
@@ -357,20 +366,53 @@ export default function PanelAdmin() {
               </div>
             </div>
 
-            {/* Extras / condimentos */}
+            {/* Extras (cada uno con su precio) */}
             <div style={ajusteCard}>
-              <h3 style={ajusteTitulo}>Extras (condimentos)</h3>
+              <h3 style={ajusteTitulo}>{etiquetas.extras} (añadibles)</h3>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                {carta.extras.map(ex => (
-                  <span key={ex} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: '#0f172a', border: '1px solid var(--color-border)', borderRadius: '9999px', padding: '0.2rem 0.5rem 0.2rem 0.7rem', fontSize: '0.8rem' }}>
-                    {ex}<button onClick={() => removeExtra(ex)} style={{ background: 'none', border: 'none', color: '#f43f5e', cursor: 'pointer', fontSize: '0.85rem' }}>✕</button>
-                  </span>
-                ))}
+                {carta.extras.map(raw => {
+                  const ex = normalizarExtra(raw)
+                  return (
+                    <span key={ex.nombre} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: '#0f172a', border: '1px solid var(--color-border)', borderRadius: '9999px', padding: '0.2rem 0.5rem 0.2rem 0.7rem', fontSize: '0.8rem' }}>
+                      {ex.nombre}{ex.precio > 0 && <span style={{ color: '#f97316', fontSize: '0.72rem' }}>+{ex.precio.toFixed(2)}€</span>}
+                      <button onClick={() => removeExtra(ex.nombre)} style={{ background: 'none', border: 'none', color: '#f43f5e', cursor: 'pointer', fontSize: '0.85rem' }}>✕</button>
+                    </span>
+                  )
+                })}
               </div>
+              <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
+                <input value={nuevoExtra.nombre} onChange={e => setNuevoExtra(s => ({ ...s, nombre: e.target.value }))} placeholder="Nuevo extra" style={{ ...inputStyle, flex: '1 1 110px' }} />
+                <input value={nuevoExtra.precio} onChange={e => setNuevoExtra(s => ({ ...s, precio: e.target.value }))} type="number" step="0.05" placeholder="+€" style={{ ...inputStyle, flex: '0 1 70px' }} />
+                <button onClick={() => { if (nuevoExtra.nombre.trim()) { addExtra(nuevoExtra.nombre, nuevoExtra.precio); setNuevoExtra({ nombre: '', precio: '0.20' }) } }} style={addBtn}>Añadir</button>
+              </div>
+            </div>
+
+            {/* Formatos (tamaños con precio por producto) */}
+            <div style={ajusteCard}>
+              <h3 style={ajusteTitulo}>{etiquetas.formatos} (formatos)</h3>
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-muted)', marginBottom: '0.5rem' }}>Los productos «por formatos» tienen un precio para cada uno (p. ej. tamaños o raciones).</p>
+              {carta.formatos.map(f => (
+                <div key={f.id} style={ajusteFila}>
+                  <input value={f.nombre} onChange={e => renombrarFormato(f.id, e.target.value)} style={{ ...inputStyle, width: 'auto', flex: 1, marginRight: '0.5rem' }} />
+                  <button onClick={() => removeFormato(f.id)} disabled={carta.formatos.length <= 1} style={{ ...iconBtn, opacity: carta.formatos.length <= 1 ? 0.4 : 1 }}>🗑️</button>
+                </div>
+              ))}
               <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.6rem' }}>
-                <input value={nuevoExtra} onChange={e => setNuevoExtra(e.target.value)} placeholder="Nuevo extra" style={{ ...inputStyle, flex: 1 }} />
-                <button onClick={() => { if (nuevoExtra.trim()) { addExtra(nuevoExtra); setNuevoExtra('') } }} style={addBtn}>Añadir</button>
+                <input value={nuevoFormato} onChange={e => setNuevoFormato(e.target.value)} placeholder="Nuevo formato" style={{ ...inputStyle, flex: 1 }} />
+                <button onClick={() => { if (nuevoFormato.trim()) { addFormato(nuevoFormato); setNuevoFormato('') } }} style={addBtn}>Añadir</button>
               </div>
+            </div>
+
+            {/* Etiquetas de la personalización */}
+            <div style={ajusteCard}>
+              <h3 style={ajusteTitulo}>Textos de personalización</h3>
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-muted)', marginBottom: '0.5rem' }}>Adapta los nombres a tu negocio (una pizzería usaría Tamaño / Masa / Ingredientes).</p>
+              {Object.keys(ETIQUETAS_DEFECTO).map(k => (
+                <div key={k} style={{ marginBottom: '0.5rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--color-muted)', marginBottom: '0.2rem' }}>{{ formatos: 'Grupo de formatos', tiposPan: 'Grupo de variedades', extras: 'Grupo de añadidos' }[k]}</label>
+                  <input value={etiquetas[k]} onChange={e => updateEtiquetas({ [k]: e.target.value })} style={inputStyle} />
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -598,8 +640,15 @@ function FormProducto({ carta, form, setForm, onGuardar, onCancelar, titulo }) {
       <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#f97316' }}>{titulo}</div>
       <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap' }}>
         <input value={form.nombre} onChange={set('nombre')} placeholder="Nombre" style={{ ...inputStyle, flex: '2 1 180px' }} />
-        <input value={form.precioPitufo} onChange={set('precioPitufo')} placeholder="€ Pitufo" type="number" step="0.10" style={{ ...inputStyle, flex: '1 1 90px' }} />
-        <input value={form.precioViena} onChange={set('precioViena')} placeholder="€ Viena" type="number" step="0.10" style={{ ...inputStyle, flex: '1 1 90px' }} />
+        <button type="button" onClick={() => setForm(f => ({ ...f, conFormatos: !f.conFormatos }))}
+          style={{ background: form.conFormatos ? '#7c3aed' : '#0f172a', color: '#fff', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, flex: '0 0 auto' }}>
+          {form.conFormatos ? '📐 Por formatos' : '💶 Precio único'}
+        </button>
+        {form.conFormatos
+          ? carta.formatos.map(f => (
+              <input key={f.id} value={form.precios[f.id] ?? ''} onChange={e => setForm(x => ({ ...x, precios: { ...x.precios, [f.id]: e.target.value } }))} placeholder={`€ ${f.nombre}`} type="number" step="0.10" style={{ ...inputStyle, flex: '1 1 90px' }} />
+            ))
+          : <input value={form.precio} onChange={set('precio')} placeholder="€ Precio" type="number" step="0.10" style={{ ...inputStyle, flex: '1 1 90px' }} />}
         <select value={form.categoria} onChange={set('categoria')} style={{ ...inputStyle, flex: '1 1 140px' }}>
           {carta.categorias.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.nombre}</option>)}
         </select>

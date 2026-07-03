@@ -56,6 +56,15 @@ const firma = (c) => [
 // Tiempos de la comanda: 1 = marcha ya, 2 = segundo plato, 3 = postre
 export const TIEMPOS = { 1: { label: '1º', largo: 'Marcha ya' }, 2: { label: '2º', largo: 'Segundo' }, 3: { label: '🍰', largo: 'Postre' } }
 
+// Un extra puede venir como string legado ('Tomate', 0,20 € implícito) o como
+// objeto { nombre, precio }. Normaliza para poder poner precio por extra.
+export const normalizarExtra = (e) => (typeof e === 'string' ? { nombre: e, precio: 0.20 } : { nombre: e.nombre, precio: Number(e.precio) || 0 })
+
+// Etiquetas de la personalización (configurables por local: una pizzería usará
+// Tamaño/Masa/Ingredientes; un bar de montaditos, Pan/Tipo de pan/Extras).
+export const ETIQUETAS_DEFECTO = { formatos: 'Pan', tiposPan: 'Tipo de pan', extras: 'Extras' }
+export const etiquetasDe = (carta) => ({ ...ETIQUETAS_DEFECTO, ...(carta.etiquetas || {}) })
+
 export const useStore = create(persist((set, get) => ({
   // ── CARTA (Casa Loli · Desayunos) ──────────────────────
   carta: {
@@ -78,8 +87,15 @@ export const useStore = create(persist((set, get) => ({
       { id: 'integral', nombre: 'Integral', sup: 0 },
       { id: 'singluten', nombre: 'Sin gluten', sup: 1.20 },
     ],
-    // Condimentos que se pueden añadir (gratis, como nota a cocina)
-    extras: ['Tomate', 'Aceite', 'Mantequilla', 'Queso', 'Huevo', 'Lechuga', 'Mayonesa', 'Pimientos'],
+    // Etiquetas de la personalización (configurables desde Ajustes)
+    etiquetas: { formatos: 'Pan', tiposPan: 'Tipo de pan', extras: 'Extras' },
+    // Extras que se pueden añadir, cada uno con su precio
+    extras: [
+      { nombre: 'Tomate', precio: 0.20 }, { nombre: 'Aceite', precio: 0.20 },
+      { nombre: 'Mantequilla', precio: 0.20 }, { nombre: 'Queso', precio: 0.20 },
+      { nombre: 'Huevo', precio: 0.20 }, { nombre: 'Lechuga', precio: 0.20 },
+      { nombre: 'Mayonesa', precio: 0.20 }, { nombre: 'Pimientos', precio: 0.20 },
+    ],
     productos: [
       { id: 'cl1', nombre: 'Mantequilla', precios: { pitufo: 1.50, viena: 2.50 }, ingredientes: ['Mantequilla'] },
       { id: 'cl2', nombre: 'Aceite', precios: { pitufo: 1.50, viena: 2.50 }, ingredientes: ['Aceite'] },
@@ -825,18 +841,20 @@ export const useStore = create(persist((set, get) => ({
   })),
 
   // ── GESTIÓN DE CARTA (admin) ───────────────────────────
+  // `producto.precios` = mapa {formatoId: precio} para productos con formatos;
+  // `producto.precio` = precio único para el resto. Solo uno de los dos.
   addProducto: (producto) => set(state => {
     const id = `p${Date.now()}`
+    const conFormatos = producto.precios && Object.keys(producto.precios).length > 0
     return {
       carta: {
         ...state.carta,
         productos: [...state.carta.productos, {
           id,
           nombre: producto.nombre,
-          precios: {
-            pitufo: Number(producto.precioPitufo) || 0,
-            viena: Number(producto.precioViena) || 0,
-          },
+          ...(conFormatos
+            ? { precios: Object.fromEntries(Object.entries(producto.precios).map(([k, v]) => [k, Number(v) || 0])) }
+            : { precio: Number(producto.precio) || 0 }),
           categoria: producto.categoria,
           tipo: state.carta.categorias.find(c => c.id === producto.categoria)?.tipo || 'comida',
           descripcion: producto.descripcion || '',
@@ -859,11 +877,17 @@ export const useStore = create(persist((set, get) => ({
           next.descripcion = cambios.descripcion
           next.ingredientes = cambios.descripcion.split(',').map(s => s.trim()).filter(Boolean)
         }
-        if (cambios.precioPitufo !== undefined || cambios.precioViena !== undefined) {
-          next.precios = {
-            pitufo: Number(cambios.precioPitufo ?? p.precios?.pitufo) || 0,
-            viena: Number(cambios.precioViena ?? p.precios?.viena) || 0,
+        if (cambios.precios !== undefined) {
+          if (cambios.precios && Object.keys(cambios.precios).length > 0) {
+            next.precios = Object.fromEntries(Object.entries(cambios.precios).map(([k, v]) => [k, Number(v) || 0]))
+            delete next.precio
+          } else if (cambios.precio !== undefined) {
+            next.precio = Number(cambios.precio) || 0
+            delete next.precios
           }
+        } else if (cambios.precio !== undefined) {
+          next.precio = Number(cambios.precio) || 0
+          delete next.precios
         }
         if (cambios.alergenos !== undefined) next.alergenos = cambios.alergenos
         return next
@@ -886,12 +910,31 @@ export const useStore = create(persist((set, get) => ({
   removeCategoria: (id) => set(state => ({
     carta: { ...state.carta, categorias: state.carta.categorias.filter(c => c.id !== id), productos: state.carta.productos.filter(p => p.categoria !== id) },
   })),
-  addExtra: (nombre) => set(state => {
+  addExtra: (nombre, precio = 0.20) => set(state => {
     const n = (nombre || '').trim()
-    if (!n || state.carta.extras.includes(n)) return {}
-    return { carta: { ...state.carta, extras: [...state.carta.extras, n] } }
+    if (!n || state.carta.extras.some(e => normalizarExtra(e).nombre === n)) return {}
+    return { carta: { ...state.carta, extras: [...state.carta.extras, { nombre: n, precio: Number(precio) || 0 }] } }
   }),
-  removeExtra: (nombre) => set(state => ({ carta: { ...state.carta, extras: state.carta.extras.filter(e => e !== nombre) } })),
+  removeExtra: (nombre) => set(state => ({ carta: { ...state.carta, extras: state.carta.extras.filter(e => normalizarExtra(e).nombre !== nombre) } })),
+
+  // ── FORMATOS (tamaños/variantes con precio por producto) ──
+  addFormato: (nombre) => set(state => {
+    const n = (nombre || '').trim()
+    if (!n) return {}
+    return { carta: { ...state.carta, formatos: [...state.carta.formatos, { id: `fm${Date.now()}`, nombre: n }] } }
+  }),
+  removeFormato: (id) => set(state => {
+    if (state.carta.formatos.length <= 1) return {} // siempre debe quedar uno
+    return { carta: { ...state.carta, formatos: state.carta.formatos.filter(f => f.id !== id) } }
+  }),
+  renombrarFormato: (id, nombre) => set(state => ({
+    carta: { ...state.carta, formatos: state.carta.formatos.map(f => f.id !== id ? f : { ...f, nombre: (nombre || '').trim() || f.nombre }) },
+  })),
+
+  // Etiquetas de la personalización (Pan/Tamaño, Tipo de pan/Masa, Extras…)
+  updateEtiquetas: (cambios) => set(state => ({
+    carta: { ...state.carta, etiquetas: { ...ETIQUETAS_DEFECTO, ...(state.carta.etiquetas || {}), ...cambios } },
+  })),
   addTipoPan: (nombre, sup) => set(state => ({
     carta: { ...state.carta, tiposPan: [...state.carta.tiposPan, { id: `tp${Date.now()}`, nombre: (nombre || '').trim() || 'Pan', sup: Number(sup) || 0 }] },
   })),
@@ -904,7 +947,7 @@ export const useStore = create(persist((set, get) => ({
   },
 }), {
   name: 'tpv-hosteleria',
-  version: 7, // v7: alérgenos en los productos de la carta
+  version: 8, // v8: extras con precio propio + etiquetas de personalización
   migrate: () => undefined, // si cambia el formato de carta, descarta lo viejo y usa el por defecto
   partialize: (state) => ({
     local: state.local,
