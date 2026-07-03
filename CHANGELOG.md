@@ -5,6 +5,11 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.21.0] - 2026-07-03
+
+### Añadido
+- **Cancelar la llamada al camarero desde el móvil**: si el cliente ha avisado al camarero (🔔) y ya no lo necesita, puede tocar de nuevo el botón («🔔 Avisado ✕») para retirar el aviso. Con confirmación por toast en ambos sentidos.
+
 ## [0.20.0] - 2026-06-26
 
 ### Añadido
