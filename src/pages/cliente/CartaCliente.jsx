@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { useStore, owedPorPersona, ALERGENO_INFO } from '../../store/useStore'
+import { useStore, owedPorPersona, ALERGENO_INFO, normalizarExtra, etiquetasDe } from '../../store/useStore'
 import { iniciarPagoOnline, leerResultadoPago, limpiarUrlPago, pagoOnlineDisponible } from '../../lib/pagos'
 import { syncListo } from '../../lib/sync'
 import { toast } from '../../store/useUI'
@@ -130,7 +130,10 @@ export default function CartaCliente() {
     if (item.nota) p.push('“' + item.nota + '”')
     return p.join(' · ')
   }
-  const minPrecio = (prod) => Math.min(prod.precios.pitufo, prod.precios.viena)
+  const minPrecio = (prod) => Math.min(...Object.values(prod.precios || {}).map(Number))
+  const etiquetas = etiquetasDe(carta)
+  const extrasNorm = (carta.extras || []).map(normalizarExtra)
+  const precioExtra = (nombre) => extrasNorm.find(x => x.nombre === nombre)?.precio || 0
 
   const lineasDe = (persona) => {
     const lineas = []
@@ -389,8 +392,7 @@ export default function CartaCliente() {
   }
 
   // ── Vista CARTA ───────────────────────────────────────
-  const PRECIO_EXTRA = 0.20
-  const precioPers = pers ? (pers.producto.precios[pers.formato] + (carta.tiposPan.find(t => t.id === pers.tipo)?.sup || 0) + PRECIO_EXTRA * pers.anadidos.length) : 0
+  const precioPers = pers ? ((pers.producto.precios[pers.formato] ?? 0) + (carta.tiposPan.find(t => t.id === pers.tipo)?.sup || 0) + pers.anadidos.reduce((s, n) => s + precioExtra(n), 0)) : 0
   const toggleEn = (setKey, val) => setPers(s => {
     const arr = s[setKey]
     return { ...s, [setKey]: arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val] }
@@ -485,7 +487,7 @@ export default function CartaCliente() {
               </div>
               <button
                 onClick={() => esMontadito
-                  ? setPers({ producto: prod, formato: 'pitufo', tipo: 'normal', quitados: [], anadidos: [], nota: '' })
+                  ? setPers({ producto: prod, formato: (carta.formatos.find(f => prod.precios[f.id] != null) || carta.formatos[0])?.id, tipo: carta.tiposPan[0]?.id, quitados: [], anadidos: [], nota: '' })
                   : agregarItem(mesaId, personaActiva.id, { productoId: prod.id, nombre: prod.nombre, precio: prod.precio, tipo: prod.tipo })}
                 style={btnStyle('#f97316', { padding: '0.5rem 0.9rem', whiteSpace: 'nowrap' })}
               >
@@ -519,18 +521,18 @@ export default function CartaCliente() {
               </p>
             )}
 
-            {/* Formato de pan */}
-            <p style={labelMini}>Pan</p>
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
-              {carta.formatos.map(f => (
-                <button key={f.id} onClick={() => setPers(s => ({ ...s, formato: f.id }))} style={btnStyle(pers.formato === f.id ? '#f97316' : '#1e293b', { flex: 1, padding: '0.6rem', fontSize: '0.85rem' })}>
-                  {f.nombre}<br /><span style={{ fontSize: '0.8rem', opacity: 0.9 }}>{pers.producto.precios[f.id].toFixed(2)} €</span>
+            {/* Formato (tamaño/pan según el local) */}
+            <p style={labelMini}>{etiquetas.formatos}</p>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+              {carta.formatos.filter(f => pers.producto.precios[f.id] != null).map(f => (
+                <button key={f.id} onClick={() => setPers(s => ({ ...s, formato: f.id }))} style={btnStyle(pers.formato === f.id ? '#f97316' : '#1e293b', { flex: 1, minWidth: '7rem', padding: '0.6rem', fontSize: '0.85rem' })}>
+                  {f.nombre}<br /><span style={{ fontSize: '0.8rem', opacity: 0.9 }}>{(pers.producto.precios[f.id] ?? 0).toFixed(2)} €</span>
                 </button>
               ))}
             </div>
 
-            {/* Tipo de pan */}
-            <p style={labelMini}>Tipo de pan</p>
+            {/* Tipo/variedad */}
+            <p style={labelMini}>{etiquetas.tiposPan}</p>
             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
               {carta.tiposPan.map(t => (
                 <button key={t.id} onClick={() => setPers(s => ({ ...s, tipo: t.id }))} style={btnStyle(pers.tipo === t.id ? '#7c3aed' : '#1e293b', { fontSize: '0.78rem', padding: '0.35rem 0.65rem' })}>
@@ -556,14 +558,14 @@ export default function CartaCliente() {
               </>
             )}
 
-            {/* Añadir condimentos extra (+0,20 € cada uno) */}
-            <p style={labelMini}>Añadir extra · +0,20 € c/u</p>
+            {/* Añadir extras (cada uno con su precio) */}
+            <p style={labelMini}>Añadir {etiquetas.extras.toLowerCase()}</p>
             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
-              {carta.extras.map(ex => {
-                const puesto = pers.anadidos.includes(ex)
+              {extrasNorm.map(ex => {
+                const puesto = pers.anadidos.includes(ex.nombre)
                 return (
-                  <button key={ex} onClick={() => toggleEn('anadidos', ex)} style={btnStyle(puesto ? '#065f46' : '#1e293b', { fontSize: '0.78rem', padding: '0.35rem 0.65rem' })}>
-                    {puesto ? '✓ ' : '+ '}{ex} <span style={{ opacity: 0.7 }}>+0,20€</span>
+                  <button key={ex.nombre} onClick={() => toggleEn('anadidos', ex.nombre)} style={btnStyle(puesto ? '#065f46' : '#1e293b', { fontSize: '0.78rem', padding: '0.35rem 0.65rem' })}>
+                    {puesto ? '✓ ' : '+ '}{ex.nombre}{ex.precio > 0 && <span style={{ opacity: 0.7 }}> +{ex.precio.toFixed(2)}€</span>}
                   </button>
                 )
               })}
