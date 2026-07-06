@@ -1,12 +1,29 @@
-# De demo a producción — hoja de ruta
+# De demo a producto de mercado — hoja de ruta
 
-Qué falta para implantar este TPV en un restaurante real y que funcione con
-garantías. Ordenado por criticidad. Última actualización: 2026-06-26 (v0.13.0).
+**META: salir al mercado lo antes posible.** Este documento es la fuente de
+verdad de lo que queda. Última actualización: 2026-07-03 (**v0.25.0**).
 
-> **Estado actual:** prototipo funcional muy completo (autopedido QR, KDS,
-> Mostrador, PDA, reservas, caja, accesos por PIN, impresión de comandas,
-> sync en tiempo real). Lo que falta no son features: es la capa de
-> **industrialización** — backend serio, legal, hardware y fiabilidad.
+## Estado a 2026-07-03
+
+**✅ Hecho y desplegado** (además de lo básico: QR, KDS, Mostrador, PDA,
+reservas, caja, PINs): alérgenos 14 UE · PWA instalable · grupos de mesas con
+cuenta única (arrastre + táctil) · marchar por tiempos · informes de ventas ·
+RGPD reservas · tests+CI · carta genérica (formatos/extras/etiquetas) · editar
+pedidos enviados · pagos mixtos + descuento registrado · auditoría de
+anulaciones · cliente en inglés · identidad del local configurable.
+
+**🔜 Pendiente sin bloqueo** (puro código): onboarding del local ("configúralo
+en 15 min"), modo claro, fotos de productos.
+
+**⛔ Bloqueado en decisiones/cuentas del dueño (~30 min):**
+1. Proyecto **Supabase** de producción + token → aplicar migración multi-tenant
+2. Cuenta **Verifacti** (gratis) → fiscal Verifactu
+3. Cuenta **Stripe** real → webhook de pagos
+4. **Impresora térmica** 80mm (~80€) → fase ESC/POS
+
+Documentos hermanos: [COSTES.md](COSTES.md) (qué cuesta operar) ·
+[supabase/BACKEND.md](supabase/BACKEND.md) (diseño backend) ·
+[docs/IMPRESION.md](docs/IMPRESION.md) (probar impresión hoy).
 
 ---
 
