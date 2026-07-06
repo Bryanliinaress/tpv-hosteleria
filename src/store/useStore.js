@@ -596,16 +596,39 @@ export const useStore = create(persist((set, get) => ({
     return { mesas }
   }),
 
-  // Cobra de una vez todo lo pendiente de la mesa con un único método de pago
-  // y la cierra (los ya pagados conservan su método).
+  // Cobra de una vez todo lo pendiente de la mesa y la cierra (los ya pagados
+  // conservan su método). Admite:
+  //   metodo:    método único ('efectivo'|'tarjeta'|'bizum')
+  //   desglose:  pago MIXTO { efectivo: X, tarjeta: Y } (suma = neto cobrado)
+  //   descuento: importe descontado sobre lo pendiente (queda registrado)
   cobrarMesa: (mesaId, opts = {}) => set(state => {
-    const { metodo = 'efectivo', cobradoPor = null } = opts
+    const { metodo = 'efectivo', cobradoPor = null, desglose = null, descuento = 0 } = opts
+    const original = state.mesas.find(m => m.id === mesaId)
     const mesas = state.mesas.map(m => m.id !== mesaId ? m : {
       ...m,
-      personas: m.personas.map(p => p.pagado ? p : { ...p, pagado: true, metodoPago: metodo, cobradoPor }),
+      personas: m.personas.map(p => p.pagado ? p : { ...p, pagado: true, metodoPago: desglose ? 'mixto' : metodo, cobradoPor }),
     })
     const mesa = mesas.find(m => m.id === mesaId)
     const rec = snapshotMesa(mesa)
+    if (rec && (desglose || Number(descuento) > 0)) {
+      // El snapshot no conoce descuentos ni desgloses: se recalculan aquí.
+      // Lo ya pagado antes conserva su método; lo cobrado ahora usa el real.
+      const previos = {}
+      let prevSum = 0
+      original.personas.filter(p => p.pagado).forEach(p => {
+        const sub = p.items.reduce((s, i) => s + i.precio * i.cantidad, 0)
+        if (sub > 0) { const k = p.metodoPago || 'efectivo'; previos[k] = (previos[k] || 0) + sub; prevSum += sub }
+      })
+      const pendienteBruto = rec.total - prevSum
+      const neto = Math.max(0, pendienteBruto - (Number(descuento) || 0))
+      const pagos = { ...previos }
+      const cent = (x) => Math.round(x * 100) / 100
+      if (desglose) Object.entries(desglose).forEach(([k, v]) => { const n = cent(Number(v) || 0); if (n > 0) pagos[k] = cent((pagos[k] || 0) + n) })
+      else if (neto > 0) pagos[metodo] = cent((pagos[metodo] || 0) + neto)
+      rec.pagos = pagos
+      rec.descuento = Number(descuento) || 0
+      rec.total = prevSum + neto
+    }
     const grupo = idsGrupo(mesa)
     return {
       mesas: mesas.map(m => grupo.includes(m.id) ? { ...m, ...CAMPOS_LIBRE } : m),

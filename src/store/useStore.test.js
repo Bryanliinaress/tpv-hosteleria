@@ -89,6 +89,28 @@ describe('grupos de mesas', () => {
   })
 })
 
+describe('cobrarMesa con desglose y descuento', () => {
+  it('registra el pago mixto y el descuento real en el ticket', () => {
+    useStore.setState({
+      mesas: [mesa({
+        personas: [
+          persona('a', 'Ana', [item({ precio: 10 })]),                 // sin pagar
+          { ...persona('b', 'Beto', [item({ precio: 5 })]), pagado: true, metodoPago: 'bizum' }, // ya pagado
+        ],
+      })],
+    })
+    // pendiente bruto = 10; descuento 1 → neto 9; mixto: 4 efectivo + 5 tarjeta
+    S().cobrarMesa('mesa-t1', { desglose: { efectivo: 4, tarjeta: 5 }, descuento: 1, cobradoPor: 'Test' })
+    const t = S().historial.at(-1)
+    expect(t.total).toBeCloseTo(14)        // 5 previos + 9 netos
+    expect(t.descuento).toBeCloseTo(1)
+    expect(t.pagos.bizum).toBeCloseTo(5)   // lo ya pagado conserva su método
+    expect(t.pagos.efectivo).toBeCloseTo(4)
+    expect(t.pagos.tarjeta).toBeCloseTo(5)
+    expect(S().mesas[0].estado).toBe('libre')
+  })
+})
+
 describe('pagarTodo', () => {
   it('marca a todos como pagados, registra la propina una vez y cierra con un ticket', () => {
     useStore.setState({
