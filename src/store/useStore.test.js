@@ -169,6 +169,46 @@ describe('empleadoPorPin', () => {
   })
 })
 
+describe('editar pedidos enviados', () => {
+  const conEnviado = () => {
+    useStore.setState({
+      mesas: [mesa({
+        personas: [
+          persona('a', 'Ana', [item({ uid: 'u1', estado: 'enviado', cantidad: 2, tipo: 'comida' })]),
+          persona('b', 'Beto', []),
+        ],
+      })],
+      pedidosCocina: [{ id: 'mesa-t1-a-u1', mesaId: 'mesa-t1', mesaNumero: 1, personaId: 'a', personaNombre: 'Ana', nombre: 'Café', cantidad: 2, estado: 'recibido', tiempo: 1, horaEntrada: new Date().toISOString() }],
+      pedidosBarra: [],
+    })
+  }
+
+  it('cambiarCantidad sobre línea enviada sincroniza la comanda', () => {
+    conEnviado()
+    S().cambiarCantidad('mesa-t1', 'a', 'u1', -1)
+    expect(S().mesas[0].personas[0].items[0].cantidad).toBe(1)
+    expect(S().pedidosCocina[0].cantidad).toBe(1)
+  })
+
+  it('cambiarCantidad a 0 elimina línea y comanda', () => {
+    conEnviado()
+    S().cambiarCantidad('mesa-t1', 'a', 'u1', -1)
+    S().cambiarCantidad('mesa-t1', 'a', 'u1', -1)
+    expect(S().mesas[0].personas[0].items).toHaveLength(0)
+    expect(S().pedidosCocina).toHaveLength(0)
+  })
+
+  it('moverItem pasa la línea a otro comensal y reetiqueta la comanda', () => {
+    conEnviado()
+    S().moverItem('mesa-t1', 'a', 'u1', 'b')
+    const [ana, beto] = S().mesas[0].personas
+    expect(ana.items).toHaveLength(0)
+    expect(beto.items).toHaveLength(1)
+    expect(S().pedidosCocina[0].id).toBe('mesa-t1-b-u1')
+    expect(S().pedidosCocina[0].personaNombre).toBe('Beto')
+  })
+})
+
 describe('marchar por tiempos', () => {
   it('los tiempos 2+ entran en espera y marcharSiguiente los lanza por orden', () => {
     useStore.setState({

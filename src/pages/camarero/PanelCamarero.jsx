@@ -26,7 +26,7 @@ function haceCuanto(iso) {
 }
 
 export default function PanelCamarero() {
-  const { mesas, pedidosCocina, pedidosBarra, avisos, historial, reservas, liberarMesa, atenderAviso, pagarParte, cobrarMesa, reservarMesa, cancelarReserva, sentarReserva, unirseAMesa, asignarCamarero, agruparMesas, separarMesas, marcharSiguiente } = useStore()
+  const { mesas, pedidosCocina, pedidosBarra, avisos, historial, reservas, liberarMesa, atenderAviso, pagarParte, cobrarMesa, reservarMesa, cancelarReserva, sentarReserva, unirseAMesa, asignarCamarero, agruparMesas, separarMesas, marcharSiguiente, cambiarCantidad, moverItem, anularItem } = useStore()
   const empleado = useEmpleadoActual()
   const yo = empleado?.nombre || 'Mostrador'
   const [mesaSeleccionada, setMesaSeleccionada] = useState(null)
@@ -37,6 +37,7 @@ export default function PanelCamarero() {
   const [cobrandoMesa, setCobrandoMesa] = useState(false) // cobro completo (CobroMesa)
   const [pidiendo, setPidiendo] = useState(false)         // toma de pedido (PedirPda)
   const [mover, setMover] = useState(null)                // { tipo:'mesa'|'comensal', personaId? }
+  const [moverLinea, setMoverLinea] = useState(null)      // { personaId, uid, nombre }
   const [reservando, setReservando] = useState(false)
   const [reservaForm, setReservaForm] = useState({ nombre: '', hora: '', personas: 2 })
 
@@ -307,13 +308,19 @@ export default function PanelCamarero() {
                       </div>
                       {p.items.length === 0
                         ? <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>Sin pedidos aún</p>
-                        : p.items.map((item, idx) => (
-                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '0.2rem 0', borderBottom: '1px solid var(--color-border)' }}>
-                            <span style={{ color: item.estado === 'pendiente' ? '#f59e0b' : 'var(--color-muted)' }}>
+                        : p.items.map(item => (
+                          <div key={item.uid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', padding: '0.2rem 0', borderBottom: '1px solid var(--color-border)', gap: '0.4rem' }}>
+                            <span style={{ flex: 1, color: item.estado === 'pendiente' ? '#f59e0b' : 'var(--color-muted)' }}>
                               {item.cantidad}× {item.nombre}
                               {item.estado === 'pendiente' && <span style={{ marginLeft: '4px', fontSize: '0.7rem' }}>●</span>}
                             </span>
-                            <span style={{ fontWeight: 600 }}>{(item.precio * item.cantidad).toFixed(2)} €</span>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                              <button onClick={() => cambiarCantidad(mesa.id, p.id, item.uid, -1)} disabled={item.cantidad <= 1} title="Una menos" style={miniBtn(item.cantidad <= 1)}>−</button>
+                              <button onClick={() => cambiarCantidad(mesa.id, p.id, item.uid, 1)} title="Una más" style={miniBtn(false)}>+</button>
+                              {mesa.personas.length > 1 && <button onClick={() => setMoverLinea({ personaId: p.id, uid: item.uid, nombre: item.nombre })} title="Mover a otro comensal" style={miniBtn(false)}>⇄</button>}
+                              <button onClick={async () => { if (await confirmar({ titulo: 'Anular línea', mensaje: `¿Anular ${item.cantidad}× ${item.nombre}?`, peligro: true, confirmar: 'Anular' })) { anularItem(mesa.id, p.id, item.uid); toast('Línea anulada', 'success') } }} title="Anular" style={{ background: 'none', border: 'none', color: '#f43f5e', cursor: 'pointer', fontSize: '0.85rem', padding: '0 0.15rem' }}>✕</button>
+                            </span>
+                            <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{(item.precio * item.cantidad).toFixed(2)} €</span>
                           </div>
                         ))
                       }
@@ -417,6 +424,21 @@ export default function PanelCamarero() {
         <CobroMesa mesa={mesa} onCerrar={() => setCobrandoMesa(false)} onCobrar={(metodo) => { cobrarMesa(mesa.id, { metodo, cobradoPor: yo }); setCobrandoMesa(false); setMesaSeleccionada(null) }} />
       )}
 
+      {/* Mover una línea a otro comensal */}
+      {moverLinea && mesa && (
+        <div onClick={() => setMoverLinea(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 120, padding: '1rem', animation: 'fadeIn 0.2s ease both' }}>
+          <div onClick={e => e.stopPropagation()} className="anim-pop" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', padding: '1.25rem', width: '100%', maxWidth: '340px' }}>
+            <h3 style={{ fontWeight: 800, fontSize: '1.05rem', marginBottom: '0.75rem' }}>Mover «{moverLinea.nombre}» a…</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              {mesa.personas.filter(x => x.id !== moverLinea.personaId).map(x => (
+                <button key={x.id} onClick={() => { moverItem(mesa.id, moverLinea.personaId, moverLinea.uid, x.id); setMoverLinea(null); toast(`Movido a ${x.nombre}`, 'success') }} style={btn('#1e293b', { width: '100%', padding: '0.7rem', textAlign: 'left', border: '1px solid var(--color-border)' })}>👤 {x.nombre}</button>
+              ))}
+            </div>
+            <button onClick={() => setMoverLinea(null)} style={{ background: 'none', border: 'none', color: 'var(--color-muted)', cursor: 'pointer', fontSize: '0.8rem', marginTop: '0.6rem', width: '100%' }}>Cancelar</button>
+          </div>
+        </div>
+      )}
+
       {/* Mover / juntar mesa */}
       {mover && mesa && (
         <div onClick={() => setMover(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 120, padding: '1rem', animation: 'fadeIn 0.2s ease both' }}>
@@ -495,3 +517,4 @@ const btn = (bg, extra = {}) => ({
 })
 
 const inp = { background: '#0f172a', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.7rem', color: 'var(--color-text)', fontSize: '0.85rem', width: '100%' }
+const miniBtn = (off) => ({ background: 'var(--color-surface-2)', color: off ? 'var(--color-faint)' : 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.4rem', width: '1.5rem', height: '1.5rem', lineHeight: 1, cursor: off ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontWeight: 700, padding: 0 })

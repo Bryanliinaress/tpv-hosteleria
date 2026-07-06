@@ -5,6 +5,11 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.22.0] - 2026-07-03
+
+### Añadido
+- **Editar pedidos ya enviados** (PDA y Mostrador): cambiar la cantidad de una línea aunque ya esté en cocina (la comanda se actualiza a la vez; a 0 se elimina) y **mover una línea a otro comensal** de la mesa (botón ⇄), reetiquetando la comanda. Imprescindible para corregir errores sin anular todo el pedido.
+
 ## [0.21.0] - 2026-07-03
 
 ### Añadido
