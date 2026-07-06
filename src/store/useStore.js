@@ -419,18 +419,55 @@ export const useStore = create(persist((set, get) => ({
     }),
   })),
 
-  // Cambia la cantidad de una línea pendiente (delta +1/-1). Si llega a 0, se elimina.
-  cambiarCantidad: (mesaId, personaId, uid, delta) => set(state => ({
-    mesas: state.mesas.map(m => m.id !== mesaId ? m : {
-      ...m,
-      personas: m.personas.map(p => p.id !== personaId ? p : {
-        ...p,
-        items: p.items
-          .map(i => (i.uid === uid && i.estado === 'pendiente') ? { ...i, cantidad: i.cantidad + delta } : i)
-          .filter(i => i.cantidad > 0),
+  // Cambia la cantidad de una línea (delta +1/-1), pendiente o YA ENVIADA.
+  // Si está enviada, la comanda de cocina/barra se actualiza a la vez.
+  // Si llega a 0, la línea (y su comanda) se eliminan.
+  cambiarCantidad: (mesaId, personaId, uid, delta) => set(state => {
+    const mesa = state.mesas.find(m => m.id === mesaId)
+    const item = mesa?.personas.find(p => p.id === personaId)?.items.find(i => i.uid === uid)
+    if (!item) return {}
+    const nueva = item.cantidad + delta
+    const entryId = `${mesaId}-${personaId}-${uid}`
+    const ajustar = (arr) => nueva <= 0
+      ? arr.filter(p => p.id !== entryId)
+      : arr.map(p => p.id === entryId ? { ...p, cantidad: nueva } : p)
+    return {
+      mesas: state.mesas.map(m => m.id !== mesaId ? m : {
+        ...m,
+        personas: m.personas.map(p => p.id !== personaId ? p : {
+          ...p,
+          items: p.items.map(i => i.uid === uid ? { ...i, cantidad: nueva } : i).filter(i => i.cantidad > 0),
+        }),
       }),
-    }),
-  })),
+      pedidosCocina: ajustar(state.pedidosCocina),
+      pedidosBarra: ajustar(state.pedidosBarra),
+    }
+  }),
+
+  // Mueve una línea (pendiente o enviada) a otro comensal de la misma mesa,
+  // reetiquetando su comanda para que siga el rastro correcto.
+  moverItem: (mesaId, origenId, uid, destinoId) => set(state => {
+    if (origenId === destinoId) return {}
+    const mesa = state.mesas.find(m => m.id === mesaId)
+    const item = mesa?.personas.find(p => p.id === origenId)?.items.find(i => i.uid === uid)
+    const destino = mesa?.personas.find(p => p.id === destinoId)
+    if (!item || !destino) return {}
+    const oldEntry = `${mesaId}-${origenId}-${uid}`
+    const newEntry = `${mesaId}-${destinoId}-${uid}`
+    const retag = (arr) => arr.map(p => p.id === oldEntry ? { ...p, id: newEntry, personaId: destinoId, personaNombre: destino.nombre } : p)
+    return {
+      mesas: state.mesas.map(m => m.id !== mesaId ? m : {
+        ...m,
+        personas: m.personas.map(p => {
+          if (p.id === origenId) return { ...p, items: p.items.filter(i => i.uid !== uid) }
+          if (p.id === destinoId) return { ...p, pagado: false, items: [...p.items, item] }
+          return p
+        }),
+      }),
+      pedidosCocina: retag(state.pedidosCocina),
+      pedidosBarra: retag(state.pedidosBarra),
+    }
+  }),
 
   confirmarPedido: (mesaId) => set(state => {
     const mesa = state.mesas.find(m => m.id === mesaId)
