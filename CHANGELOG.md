@@ -5,6 +5,14 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.23.0] - 2026-07-03
+
+### Añadido
+- **Pagos mixtos** al cobrar la mesa (PDA y Mostrador): opción «🧮 Mixto» — indicas la parte en efectivo y el resto va a tarjeta o Bizum. El ticket registra el **desglose real** por método.
+
+### Arreglado
+- El **descuento/invitación** del cobro ahora queda **registrado de verdad** en el ticket (importe descontado y total neto); antes solo afectaba a la pantalla y el ticket guardaba el total sin descontar.
+
 ## [0.22.0] - 2026-07-03
 
 ### Añadido

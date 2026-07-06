@@ -421,7 +421,7 @@ export default function PanelCamarero() {
 
       {/* Cobro completo de mesa (descuento, dividir, efectivo) */}
       {cobrandoMesa && mesa && (
-        <CobroMesa mesa={mesa} onCerrar={() => setCobrandoMesa(false)} onCobrar={(metodo) => { cobrarMesa(mesa.id, { metodo, cobradoPor: yo }); setCobrandoMesa(false); setMesaSeleccionada(null) }} />
+        <CobroMesa mesa={mesa} onCerrar={() => setCobrandoMesa(false)} onCobrar={(opts) => { cobrarMesa(mesa.id, { ...opts, cobradoPor: yo }); setCobrandoMesa(false); setMesaSeleccionada(null) }} />
       )}
 
       {/* Mover una línea a otro comensal */}
