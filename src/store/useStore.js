@@ -211,6 +211,9 @@ export const useStore = create(persist((set, get) => ({
   // ── CIERRES DE CAJA (arqueos Z) ────────────────────────
   cierres: [], // { id, desde, hasta, total, propinas, pagos, nTickets, contado, descuadre }
 
+  // ── AUDITORÍA DE ANULACIONES ───────────────────────────
+  anulaciones: [], // { id, fecha, mesaNumero, nombre, cantidad, importe, enviado, motivo, por }
+
   // ── AGENDA DE RESERVAS (reservas online del cliente) ───
   // Reserva tipo CoverManager: el cliente pide fecha/hora/personas/zona y el
   // local la gestiona (asigna mesa, sienta, cancela). Distinto del estado
@@ -395,9 +398,23 @@ export const useStore = create(persist((set, get) => ({
     }),
   })),
 
-  // Anula una línea (pendiente o ya enviada) y retira su comanda de cocina/barra.
-  anularItem: (mesaId, personaId, uid) => set(state => {
+  // Anula una línea (pendiente o ya enviada), retira su comanda de cocina/barra
+  // y deja registro de auditoría (quién, qué, cuánto y por qué).
+  anularItem: (mesaId, personaId, uid, opts = {}) => set(state => {
     const entryId = `${mesaId}-${personaId}-${uid}`
+    const mesa = state.mesas.find(m => m.id === mesaId)
+    const item = mesa?.personas.find(p => p.id === personaId)?.items.find(i => i.uid === uid)
+    const registro = item ? {
+      id: `an${Date.now()}`,
+      fecha: new Date().toISOString(),
+      mesaNumero: mesa.numero,
+      nombre: item.nombre,
+      cantidad: item.cantidad,
+      importe: Math.round(item.precio * item.cantidad * 100) / 100,
+      enviado: item.estado !== 'pendiente',
+      motivo: (opts.motivo || '').trim() || '—',
+      por: opts.por || null,
+    } : null
     return {
       mesas: state.mesas.map(m => m.id !== mesaId ? m : {
         ...m,
@@ -405,6 +422,7 @@ export const useStore = create(persist((set, get) => ({
       }),
       pedidosCocina: state.pedidosCocina.filter(p => p.id !== entryId),
       pedidosBarra: state.pedidosBarra.filter(p => p.id !== entryId),
+      anulaciones: registro ? [...(state.anulaciones || []), registro] : state.anulaciones,
     }
   }),
 
@@ -1019,6 +1037,7 @@ export const useStore = create(persist((set, get) => ({
     avisos: state.avisos,
     historial: state.historial,
     cierres: state.cierres,
+    anulaciones: state.anulaciones,
     reservas: state.reservas,
     reservasConfig: state.reservasConfig,
   }),
