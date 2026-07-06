@@ -5,6 +5,11 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.25.0] - 2026-07-03
+
+### Añadido
+- **Carta del cliente en inglés**: botón 🇬🇧/🇪🇸 en la vista del cliente que traduce toda la interfaz de pedido (bienvenida, carta, pedido, cuenta, pagos, personalización). La carta en sí queda en el idioma en que la escriba el local. Preferencia recordada por dispositivo.
+
 ## [0.24.0] - 2026-07-03
 
 ### Añadido
