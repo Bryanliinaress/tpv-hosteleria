@@ -34,6 +34,7 @@ const sliceEstado = (s) => ({
   avisos: s.avisos,
   historial: s.historial,
   cierres: s.cierres,
+  anulaciones: s.anulaciones,
   reservas: s.reservas,
   reservasConfig: s.reservasConfig,
 })
@@ -53,6 +54,7 @@ function aplicarRemoto(data) {
     avisos: data.avisos || [],
     historial: data.historial || [],
     cierres: data.cierres || [],
+    anulaciones: data.anulaciones || [],
     reservas: data.reservas || [],
   })
   aplicandoRemoto = false
@@ -97,7 +99,7 @@ export async function initSync() {
   // 3) Empuja los cambios locales (con debounce, ignorando los recibidos)
   useStore.subscribe((state, prev) => {
     if (aplicandoRemoto) return
-    if (state.local === prev.local && state.empleados === prev.empleados && state.carta === prev.carta && state.mesas === prev.mesas && state.pedidosCocina === prev.pedidosCocina && state.pedidosBarra === prev.pedidosBarra && state.avisos === prev.avisos && state.historial === prev.historial && state.cierres === prev.cierres && state.reservas === prev.reservas) return
+    if (state.local === prev.local && state.empleados === prev.empleados && state.carta === prev.carta && state.mesas === prev.mesas && state.pedidosCocina === prev.pedidosCocina && state.pedidosBarra === prev.pedidosBarra && state.avisos === prev.avisos && state.historial === prev.historial && state.cierres === prev.cierres && state.anulaciones === prev.anulaciones && state.reservas === prev.reservas) return
     clearTimeout(writeTimer)
     writeTimer = setTimeout(empujarEstado, 150)
   })

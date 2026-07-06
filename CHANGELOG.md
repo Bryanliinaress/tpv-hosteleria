@@ -5,6 +5,11 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.24.0] - 2026-07-03
+
+### Añadido
+- **Auditoría de anulaciones**: al anular una línea (PDA/Mostrador) se pide el **motivo**, y queda registrado quién anuló qué, cuándo, el importe y si ya estaba enviada a cocina. Nueva tarjeta «Anulaciones» en Admin → Caja con el importe total anulado y las últimas operaciones. Registro sincronizado entre dispositivos.
+
 ## [0.23.0] - 2026-07-03
 
 ### Añadido

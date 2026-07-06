@@ -19,7 +19,7 @@ const item = (over = {}) => ({
 const S = () => useStore.getState()
 
 beforeEach(() => {
-  useStore.setState({ mesas: [], pedidosCocina: [], pedidosBarra: [], avisos: [], historial: [], cierres: [] })
+  useStore.setState({ mesas: [], pedidosCocina: [], pedidosBarra: [], avisos: [], historial: [], cierres: [], anulaciones: [] })
 })
 
 describe('agregarItem', () => {
@@ -86,6 +86,23 @@ describe('grupos de mesas', () => {
     expect(m2.unidaA).toBeNull()
     expect(S().historial).toHaveLength(1)
     expect(S().historial[0].pagos.tarjeta).toBeCloseTo(4)
+  })
+})
+
+describe('anularItem con auditoría', () => {
+  it('registra qué, cuánto, quién y por qué al anular', () => {
+    useStore.setState({
+      mesas: [mesa({ personas: [persona('a', 'Ana', [item({ uid: 'u1', precio: 3, cantidad: 2, estado: 'enviado' })])] })],
+      pedidosCocina: [{ id: 'mesa-t1-a-u1', mesaId: 'mesa-t1', estado: 'recibido', cantidad: 2 }],
+    })
+    S().anularItem('mesa-t1', 'a', 'u1', { motivo: 'cliente cambió', por: 'María' })
+    expect(S().mesas[0].personas[0].items).toHaveLength(0)
+    expect(S().pedidosCocina).toHaveLength(0)
+    const a = S().anulaciones.at(-1)
+    expect(a.importe).toBeCloseTo(6)
+    expect(a.motivo).toBe('cliente cambió')
+    expect(a.por).toBe('María')
+    expect(a.enviado).toBe(true)
   })
 })
 
