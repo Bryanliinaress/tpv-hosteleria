@@ -154,7 +154,7 @@ export default function PdaCamarero() {
                         {mesa.personas.length > 1 && (
                           <button onClick={() => setMoverLinea({ personaId: p.id, uid: it.uid, nombre: it.nombre })} title="Mover a otro comensal" style={miniBtn(false)}>⇄</button>
                         )}
-                        <button onClick={async () => { if (await confirmar({ titulo: 'Anular línea', mensaje: `¿Anular ${it.cantidad}× ${it.nombre}?`, peligro: true, confirmar: 'Anular' })) { anularItem(mesa.id, p.id, it.uid); toast('Línea anulada', 'success') } }} title="Anular" style={{ background: 'none', border: 'none', color: '#f43f5e', cursor: 'pointer', fontSize: '0.9rem', padding: '0 0.25rem' }}>✕</button>
+                        <button onClick={async () => { const motivo = await pedirTexto({ titulo: `Anular ${it.cantidad}× ${it.nombre}`, mensaje: 'Indica el motivo — queda registrado en la auditoría.', placeholder: 'Motivo (error, cliente cambió…)', confirmar: 'Anular' }); if (motivo === null) return; anularItem(mesa.id, p.id, it.uid, { motivo, por: camarero }); toast('Línea anulada', 'success') }} title="Anular" style={{ background: 'none', border: 'none', color: '#f43f5e', cursor: 'pointer', fontSize: '0.9rem', padding: '0 0.25rem' }}>✕</button>
                       </span>
                     </div>
                   ))}

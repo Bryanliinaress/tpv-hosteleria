@@ -11,7 +11,7 @@ import Informes from './Informes'
 const emptyForm = { nombre: '', categoria: '', descripcion: '', alergenos: [], conFormatos: false, precios: {}, precio: '' }
 
 export default function PanelAdmin() {
-  const { carta, mesas, historial, cierres, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, addCategoria, removeCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas } = useStore()
+  const { carta, mesas, historial, cierres, anulaciones, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, addCategoria, removeCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas } = useStore()
   const hoyStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
   const reservasHoy = reservas.filter(r => r.fecha === hoyStr && r.estado === 'confirmada').length
   const [tab, setTab] = useState('carta')
@@ -324,6 +324,37 @@ export default function PanelAdmin() {
                   ))}
                 </>
               )}
+            </div>
+
+            {/* Auditoría de anulaciones */}
+            <div style={ajusteCard}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.75rem' }}>
+                <h3 style={ajusteTitulo}>Anulaciones</h3>
+                <span style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{(anulaciones || []).length} en total</span>
+              </div>
+              {(anulaciones || []).length === 0
+                ? <p style={{ fontSize: '0.82rem', color: 'var(--color-muted)' }}>Sin anulaciones registradas.</p>
+                : (
+                  <>
+                    <div style={{ ...ajusteFila, fontWeight: 700 }}>
+                      <span>Importe anulado (total)</span>
+                      <span style={{ color: '#f43f5e' }}>{(anulaciones || []).reduce((s, a) => s + (a.importe || 0), 0).toFixed(2)} €</span>
+                    </div>
+                    {(anulaciones || []).slice(-15).reverse().map(a => (
+                      <div key={a.id} style={{ background: '#0f172a', borderRadius: '0.5rem', padding: '0.55rem 0.75rem', marginBottom: '0.4rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 700 }}>
+                          <span>M{a.mesaNumero} · {a.cantidad}× {a.nombre}{a.enviado ? ' 🔥' : ''}</span>
+                          <span style={{ color: '#f43f5e' }}>−{(a.importe || 0).toFixed(2)} €</span>
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>
+                          {new Date(a.fecha).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}
+                          {a.por ? ` · 👤 ${a.por}` : ''} · «{a.motivo}»
+                        </div>
+                      </div>
+                    ))}
+                    <p style={{ fontSize: '0.68rem', color: 'var(--color-faint)', marginTop: '0.25rem' }}>🔥 = ya estaba enviada a cocina/barra. Se muestran las últimas 15.</p>
+                  </>
+                )}
             </div>
           </div>
         )}
