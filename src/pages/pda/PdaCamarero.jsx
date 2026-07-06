@@ -194,7 +194,7 @@ export default function PdaCamarero() {
 
         {ticket && <Ticket tipo={ticket.tipo} mesa={mesa} persona={ticket.persona} onClose={() => setTicket(null)} />}
         {pidiendo && <PedirPda mesaId={mesa.id} onClose={() => setPidiendo(false)} />}
-        {cobrando && <CobroMesa mesa={mesa} onCerrar={() => setCobrando(false)} onCobrar={(metodo) => { cobrarMesa(mesa.id, { metodo, cobradoPor: camarero }); setCobrando(false); setMesaId(null) }} />}
+        {cobrando && <CobroMesa mesa={mesa} onCerrar={() => setCobrando(false)} onCobrar={(opts) => { cobrarMesa(mesa.id, { ...opts, cobradoPor: camarero }); setCobrando(false); setMesaId(null) }} />}
         {cobroPersona && (
           <MetodoPago
             titulo="Cobrar cliente"
