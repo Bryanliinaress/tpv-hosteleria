@@ -900,6 +900,29 @@ export const useStore = create(persist((set, get) => ({
   }),
 
   // ── GESTIÓN DE SALA (admin) ────────────────────────────
+  // Reconstruye la sala completa desde el onboarding: [{ nombre, mesas, capacidad }].
+  // Solo si no hay ninguna mesa ocupada. Ids `mesa-N` (mismo patrón que los QR).
+  configurarSala: (zonas) => {
+    const st = get()
+    if (st.mesas.some(m => m.estado !== 'libre')) return { ok: false, error: 'Hay mesas ocupadas: cierra la sala antes de reconfigurarla' }
+    let numero = 0
+    const mesas = []
+    ;(zonas || []).forEach(z => {
+      const n = Math.max(0, Number(z.mesas) || 0)
+      for (let i = 0; i < n; i++) {
+        numero++
+        mesas.push({ id: `mesa-${numero}`, numero, capacidad: Math.max(1, Number(z.capacidad) || 4), zona: (z.nombre || 'Sala').trim() || 'Sala', estado: 'libre', personas: [], abiertaDesde: null, unidas: [], unidaA: null, camarero: null, reserva: null })
+      }
+    })
+    if (mesas.length === 0) return { ok: false, error: 'Configura al menos una mesa' }
+    set({ mesas })
+    return { ok: true, total: mesas.length }
+  },
+
+  // Deja la carta sin productos (para empezar de cero desde el onboarding);
+  // conserva categorías, formatos, extras y etiquetas.
+  vaciarCarta: () => set(state => ({ carta: { ...state.carta, productos: [] } })),
+
   addMesa: () => set(state => {
     const maxNum = state.mesas.reduce((mx, x) => Math.max(mx, x.numero), 0)
     const ultZona = state.mesas[state.mesas.length - 1]?.zona || 'Sala'

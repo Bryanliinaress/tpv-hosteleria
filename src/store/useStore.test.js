@@ -189,6 +189,33 @@ describe('reservas: slots y aforo', () => {
   })
 })
 
+describe('onboarding: configurarSala y vaciarCarta', () => {
+  it('configurarSala reconstruye la sala por zonas con numeración correlativa', () => {
+    useStore.setState({ mesas: [mesa({ estado: 'libre' })] })
+    const r = S().configurarSala([{ nombre: 'Terraza', mesas: 2, capacidad: 2 }, { nombre: 'Interior', mesas: 3, capacidad: 4 }])
+    expect(r.ok).toBe(true)
+    const ms = S().mesas
+    expect(ms).toHaveLength(5)
+    expect(ms.map(m => m.numero)).toEqual([1, 2, 3, 4, 5])
+    expect(ms[0].zona).toBe('Terraza')
+    expect(ms[4].zona).toBe('Interior')
+    expect(ms[4].id).toBe('mesa-5') // mismo patrón que los QR
+  })
+  it('configurarSala se niega si hay mesas ocupadas o queda vacía', () => {
+    useStore.setState({ mesas: [mesa({ estado: 'ocupada' })] })
+    expect(S().configurarSala([{ nombre: 'Sala', mesas: 4, capacidad: 4 }]).ok).toBe(false)
+    useStore.setState({ mesas: [mesa({ estado: 'libre' })] })
+    expect(S().configurarSala([{ nombre: 'Sala', mesas: 0, capacidad: 4 }]).ok).toBe(false)
+  })
+  it('vaciarCarta quita productos y conserva la configuración', () => {
+    const antes = S().carta
+    S().vaciarCarta()
+    expect(S().carta.productos).toHaveLength(0)
+    expect(S().carta.categorias.length).toBe(antes.categorias.length)
+    expect(S().carta.formatos.length).toBe(antes.formatos.length)
+  })
+})
+
 describe('empleadoPorPin', () => {
   const emps = [
     { id: 'e1', nombre: 'Admin', pin: '1234', rol: 'admin', activo: true },
