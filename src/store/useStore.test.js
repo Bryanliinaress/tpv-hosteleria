@@ -189,6 +189,31 @@ describe('reservas: slots y aforo', () => {
   })
 })
 
+describe('fichajes', () => {
+  beforeEach(() => useStore.setState({ fichajes: [], empleados: [{ id: 'e1', nombre: 'María', pin: '1111', rol: 'camarero', activo: true }] }))
+
+  it('ficharEmpleado abre un turno y luego lo cierra', () => {
+    const r1 = S().ficharEmpleado('e1')
+    expect(r1.accion).toBe('entrada')
+    expect(S().fichajes).toHaveLength(1)
+    expect(S().fichajes[0].salida).toBeNull()
+    const r2 = S().ficharEmpleado('e1')
+    expect(r2.accion).toBe('salida')
+    expect(S().fichajes).toHaveLength(1)
+    expect(S().fichajes[0].salida).not.toBeNull()
+  })
+
+  it('editarFichaje valida que la salida no sea anterior a la entrada', () => {
+    S().ficharEmpleado('e1')
+    const id = S().fichajes[0].id
+    const bad = S().editarFichaje(id, { entrada: '2026-07-04T10:00:00.000Z', salida: '2026-07-04T09:00:00.000Z' })
+    expect(bad.ok).toBe(false)
+    const ok = S().editarFichaje(id, { entrada: '2026-07-04T10:00:00.000Z', salida: '2026-07-04T18:00:00.000Z' })
+    expect(ok.ok).toBe(true)
+    expect(S().fichajes[0].salida).toBe('2026-07-04T18:00:00.000Z')
+  })
+})
+
 describe('onboarding: configurarSala y vaciarCarta', () => {
   it('configurarSala reconstruye la sala por zonas con numeración correlativa', () => {
     useStore.setState({ mesas: [mesa({ estado: 'libre' })] })

@@ -5,6 +5,13 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.27.0] - 2026-07-08
+
+### Añadido
+- **Fichajes de jornada** (registro de jornada, RD-ley 8/2019):
+  - El personal **ficha entrada/salida** desde su PDA (pestaña «Turno»): un toque abre el turno y otro lo cierra, con aviso del tiempo fichado.
+  - Nueva pestaña **Admin → ⏱ Fichajes**: selector de mes, **horas trabajadas por empleado**, detalle por día con turnos abiertos marcados, **corrección de marcajes** por el admin (entrada/salida) y **export CSV** mensual por local. Todo sincronizado entre dispositivos.
+
 ## [0.26.0] - 2026-07-04
 
 ### Añadido

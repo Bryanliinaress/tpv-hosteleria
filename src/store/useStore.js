@@ -214,6 +214,9 @@ export const useStore = create(persist((set, get) => ({
   // ── AUDITORÍA DE ANULACIONES ───────────────────────────
   anulaciones: [], // { id, fecha, mesaNumero, nombre, cantidad, importe, enviado, motivo, por }
 
+  // ── FICHAJES (registro de jornada, RD-ley 8/2019) ──────
+  fichajes: [], // { id, empleadoId, nombre, entrada, salida } (ISO); salida null = turno abierto
+
   // ── AGENDA DE RESERVAS (reservas online del cliente) ───
   // Reserva tipo CoverManager: el cliente pide fecha/hora/personas/zona y el
   // local la gestiona (asigna mesa, sienta, cancela). Distinto del estado
@@ -865,6 +868,36 @@ export const useStore = create(persist((set, get) => ({
     return { ok: true }
   },
 
+  // ── FICHAJES (registro de jornada) ─────────────────────
+  // Ficha entrada/salida del empleado: si tiene un turno abierto lo cierra,
+  // si no, abre uno nuevo. Devuelve { accion:'entrada'|'salida' }.
+  ficharEmpleado: (empleadoId) => {
+    const e = get().empleados.find(x => x.id === empleadoId)
+    if (!e) return { ok: false }
+    const abierto = get().fichajes.find(f => f.empleadoId === empleadoId && !f.salida)
+    const ahora = new Date().toISOString()
+    if (abierto) {
+      set(state => ({ fichajes: state.fichajes.map(f => f.id === abierto.id ? { ...f, salida: ahora } : f) }))
+      return { ok: true, accion: 'salida' }
+    }
+    set(state => ({ fichajes: [...state.fichajes, { id: `fj${Date.now()}`, empleadoId, nombre: e.nombre, entrada: ahora, salida: null }] }))
+    return { ok: true, accion: 'entrada' }
+  },
+
+  // Corrige o elimina un fichaje (solo admin). cambios: { entrada?, salida? }
+  // en ISO; `salida: null` reabre el turno. Devuelve { ok, error }.
+  editarFichaje: (id, cambios) => {
+    const f = get().fichajes.find(x => x.id === id)
+    if (!f) return { ok: false, error: 'Fichaje no encontrado' }
+    const entrada = cambios.entrada !== undefined ? cambios.entrada : f.entrada
+    const salida = cambios.salida !== undefined ? cambios.salida : f.salida
+    if (!entrada) return { ok: false, error: 'La entrada es obligatoria' }
+    if (salida && new Date(salida) < new Date(entrada)) return { ok: false, error: 'La salida no puede ser anterior a la entrada' }
+    set(state => ({ fichajes: state.fichajes.map(x => x.id === id ? { ...x, entrada, salida } : x) }))
+    return { ok: true }
+  },
+  borrarFichaje: (id) => set(state => ({ fichajes: state.fichajes.filter(x => x.id !== id) })),
+
   // ── IDENTIDAD DEL LOCAL ────────────────────────────────
   // Actualiza los datos del negocio (nombre, IVA, moneda, pie de ticket…).
   updateLocal: (cambios) => set(state => {
@@ -1061,6 +1094,7 @@ export const useStore = create(persist((set, get) => ({
     historial: state.historial,
     cierres: state.cierres,
     anulaciones: state.anulaciones,
+    fichajes: state.fichajes,
     reservas: state.reservas,
     reservasConfig: state.reservasConfig,
   }),

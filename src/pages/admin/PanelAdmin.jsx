@@ -11,7 +11,7 @@ import Informes from './Informes'
 const emptyForm = { nombre: '', categoria: '', descripcion: '', alergenos: [], conFormatos: false, precios: {}, precio: '' }
 
 export default function PanelAdmin() {
-  const { carta, mesas, historial, cierres, anulaciones, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, addCategoria, removeCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas } = useStore()
+  const { carta, mesas, historial, cierres, anulaciones, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, addCategoria, removeCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, editarFichaje, borrarFichaje } = useStore()
   const hoyStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
   const reservasHoy = reservas.filter(r => r.fecha === hoyStr && r.estado === 'confirmada').length
   const [tab, setTab] = useState('carta')
@@ -119,6 +119,7 @@ export default function PanelAdmin() {
           { id: 'carta', label: '📋 Carta' },
           { id: 'local', label: '🏪 Local' },
           { id: 'personal', label: '👥 Personal' },
+          { id: 'fichajes', label: '⏱ Fichajes' },
           { id: 'mesas', label: '🍽 Mesas' },
           { id: 'reservas', label: `📅 Reservas${reservasHoy ? ` (${reservasHoy})` : ''}` },
           { id: 'caja', label: '💰 Caja' },
@@ -506,6 +507,11 @@ export default function PanelAdmin() {
         {/* Tab Informes */}
         {tab === 'informes' && <Informes historial={historial} moneda={local.moneda || '€'} />}
 
+        {/* Tab Fichajes (registro de jornada) */}
+        {tab === 'fichajes' && (
+          <FichajesTab fichajes={fichajes} empleados={empleados} editarFichaje={editarFichaje} borrarFichaje={borrarFichaje} local={local} />
+        )}
+
         {/* Tab Personal (empleados y accesos) */}
         {tab === 'personal' && (
           <PersonalTab empleados={empleados} addEmpleado={addEmpleado} updateEmpleado={updateEmpleado} removeEmpleado={removeEmpleado} />
@@ -580,6 +586,126 @@ export default function PanelAdmin() {
       </div>
 
       {ticket && <Ticket tipo="cuenta" mesa={ticket} onClose={() => setTicket(null)} />}
+    </div>
+  )
+}
+
+// Formatea una fecha ISO al valor de un <input type="datetime-local"> (hora local).
+const isoALocal = (iso) => {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const off = d.getTimezoneOffset() * 60000
+  return new Date(d - off).toISOString().slice(0, 16)
+}
+const localAIso = (v) => (v ? new Date(v).toISOString() : null)
+const horasEntre = (a, b) => (a && b ? Math.max(0, (new Date(b) - new Date(a)) / 3600000) : 0)
+const fmtH = (h) => `${Math.floor(h)}h ${Math.round((h % 1) * 60)}m`
+
+function FichajesTab({ fichajes, empleados, editarFichaje, borrarFichaje, local }) {
+  const [mes, setMes] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` })
+  const [edit, setEdit] = useState(null) // { id, entrada, salida } en formato datetime-local
+
+  const delMes = fichajes.filter(f => (f.entrada || '').slice(0, 7) === mes)
+    .slice().sort((a, b) => new Date(b.entrada) - new Date(a.entrada))
+
+  // Horas por empleado
+  const porEmpleado = {}
+  delMes.forEach(f => { porEmpleado[f.nombre] = (porEmpleado[f.nombre] || 0) + horasEntre(f.entrada, f.salida) })
+  const totalHoras = Object.values(porEmpleado).reduce((s, h) => s + h, 0)
+
+  const guardar = () => {
+    const r = editarFichaje(edit.id, { entrada: localAIso(edit.entrada), salida: edit.salida ? localAIso(edit.salida) : null })
+    if (!r.ok) return toast(r.error, 'error')
+    toast('Fichaje corregido', 'success'); setEdit(null)
+  }
+  const borrar = async (f) => {
+    if (await confirmar({ titulo: 'Borrar fichaje', mensaje: `¿Borrar el fichaje de ${f.nombre} del ${new Date(f.entrada).toLocaleDateString('es-ES')}?`, peligro: true, confirmar: 'Borrar' })) {
+      borrarFichaje(f.id); toast('Fichaje borrado', 'success')
+    }
+  }
+  const exportarCSV = () => {
+    const filas = [['Empleado', 'Fecha', 'Entrada', 'Salida', 'Horas']]
+    delMes.slice().reverse().forEach(f => {
+      const e = new Date(f.entrada)
+      filas.push([
+        f.nombre,
+        e.toLocaleDateString('es-ES'),
+        e.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+        f.salida ? new Date(f.salida).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '(abierto)',
+        f.salida ? horasEntre(f.entrada, f.salida).toFixed(2) : '',
+      ])
+    })
+    const csv = filas.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\n')
+    const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }))
+    const a = document.createElement('a')
+    a.href = url; a.download = `fichajes-${(local?.nombre || 'local').replace(/\s+/g, '_')}-${mes}.csv`; a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  return (
+    <div style={{ maxWidth: '760px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+        <input type="month" value={mes} onChange={e => setMes(e.target.value)} style={{ ...inputStyle, width: 'auto' }} />
+        <span style={{ fontSize: '0.85rem', color: 'var(--color-muted)' }}>{delMes.length} fichaje(s) · <strong style={{ color: '#f97316' }}>{fmtH(totalHoras)}</strong> en total</span>
+        <button onClick={exportarCSV} disabled={delMes.length === 0} style={{ ...addBtn, marginLeft: 'auto', opacity: delMes.length ? 1 : 0.5 }}>⬇ Exportar CSV</button>
+      </div>
+
+      <p style={{ fontSize: '0.75rem', color: 'var(--color-faint)', marginBottom: '1rem' }}>Registro de jornada obligatorio (RD-ley 8/2019): conservar 4 años. El personal ficha desde su PDA (pestaña Turno). Aquí puedes corregir errores.</p>
+
+      {/* Horas por empleado */}
+      {Object.keys(porEmpleado).length > 0 && (
+        <div style={{ ...ajusteCard, marginBottom: '1.25rem' }}>
+          <h3 style={ajusteTitulo}>Horas por empleado</h3>
+          {Object.entries(porEmpleado).sort((a, b) => b[1] - a[1]).map(([n, h]) => (
+            <div key={n} style={ajusteFila}><span>👤 {n}</span><strong>{fmtH(h)}</strong></div>
+          ))}
+        </div>
+      )}
+
+      {/* Detalle */}
+      {delMes.length === 0
+        ? <p style={{ color: 'var(--color-muted)', fontSize: '0.9rem' }}>Sin fichajes este mes.</p>
+        : delMes.map(f => {
+          const abierto = !f.salida
+          return (
+            <div key={f.id} style={{ background: 'var(--color-surface)', border: `1px solid ${abierto ? '#10b981' : 'var(--color-border)'}66`, borderRadius: '0.625rem', padding: '0.7rem 0.85rem', marginBottom: '0.5rem' }}>
+              {edit?.id === f.id ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: '150px' }}>
+                      <label style={lblCampo}>Entrada</label>
+                      <input type="datetime-local" value={edit.entrada} onChange={e => setEdit(s => ({ ...s, entrada: e.target.value }))} style={inputStyle} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: '150px' }}>
+                      <label style={lblCampo}>Salida {abierto && '(vacío = turno abierto)'}</label>
+                      <input type="datetime-local" value={edit.salida} onChange={e => setEdit(s => ({ ...s, salida: e.target.value }))} style={inputStyle} />
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                    <button onClick={() => setEdit(null)} style={{ background: '#334155', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.4rem 0.9rem', cursor: 'pointer', fontSize: '0.82rem' }}>Cancelar</button>
+                    <button onClick={guardar} style={addBtn}>Guardar</button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>👤 {f.nombre} <span style={{ fontWeight: 400, color: 'var(--color-muted)', fontSize: '0.78rem' }}>· {new Date(f.entrada).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}</span></div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>
+                      🟢 {new Date(f.entrada).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                      {' → '}
+                      {abierto ? <span style={{ color: '#10b981' }}>en curso</span> : `🔴 ${new Date(f.salida).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`}
+                      {!abierto && <strong style={{ color: '#f97316', marginLeft: '0.5rem' }}>· {fmtH(horasEntre(f.entrada, f.salida))}</strong>}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.25rem' }}>
+                    <button onClick={() => setEdit({ id: f.id, entrada: isoALocal(f.entrada), salida: isoALocal(f.salida) })} title="Corregir" style={iconBtn}>✏️</button>
+                    <button onClick={() => borrar(f)} title="Borrar" style={iconBtn}>🗑️</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })}
     </div>
   )
 }
