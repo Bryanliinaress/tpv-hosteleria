@@ -28,7 +28,7 @@ function haceCuanto(iso) {
 }
 
 export default function PdaCamarero() {
-  const { carta, mesas, pedidosCocina, pedidosBarra, avisos, historial, atenderAviso, pagarParte, cobrarMesa, liberarMesa, unirseAMesa, servirMesa, anularItem, toggleDisponible, fusionarMesa, transferirComensal, asignarCamarero, reservarMesa, cancelarReserva, sentarReserva, marcharSiguiente, cambiarCantidad, moverItem } = useStore()
+  const { carta, mesas, pedidosCocina, pedidosBarra, avisos, historial, atenderAviso, pagarParte, cobrarMesa, liberarMesa, unirseAMesa, servirMesa, anularItem, toggleDisponible, fusionarMesa, transferirComensal, asignarCamarero, reservarMesa, cancelarReserva, sentarReserva, marcharSiguiente, cambiarCantidad, moverItem, fichajes, ficharEmpleado } = useStore()
   const [mover, setMover] = useState(null) // { tipo:'mesa'|'comensal', personaId? }
   const [moverLinea, setMoverLinea] = useState(null) // { personaId, uid, nombre } línea a otro comensal
   const empleado = useEmpleadoActual()
@@ -367,6 +367,27 @@ export default function PdaCamarero() {
 
       {vista === 'turno' && (
         <div style={{ padding: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+          {/* Fichaje de jornada */}
+          {(() => {
+            const abierto = fichajes.find(f => f.empleadoId === empleado?.id && !f.salida)
+            return (
+              <div style={{ ...card, textAlign: 'center', border: `1px solid ${abierto ? '#10b981' : 'var(--color-border)'}` }}>
+                {abierto ? (
+                  <>
+                    <div style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 700 }}>🟢 Fichado desde {haceCuanto(abierto.entrada)}</div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)', marginBottom: '0.6rem' }}>Entrada: {new Date(abierto.entrada).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</div>
+                    <button onClick={() => { const r = ficharEmpleado(empleado.id); if (r.accion === 'salida') toast('Salida fichada · ¡buen descanso!', 'success') }} style={btn('#f43f5e', { width: '100%', padding: '0.75rem', fontSize: '0.95rem' })}>🔴 Fichar salida</button>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)', marginBottom: '0.6rem' }}>No has fichado tu entrada</div>
+                    <button onClick={() => { ficharEmpleado(empleado.id); toast('Entrada fichada · ¡buen turno!', 'success') }} style={btn('#10b981', { width: '100%', padding: '0.75rem', fontSize: '0.95rem' })}>🟢 Fichar entrada</button>
+                  </>
+                )}
+              </div>
+            )
+          })()}
+
           <div style={{ ...card, textAlign: 'center', padding: '1.25rem' }}>
             <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>Tu turno · {camarero}</div>
             <div style={{ fontWeight: 800, fontSize: '2rem', color: '#f97316', marginTop: '0.25rem' }}>{ventasTurno.toFixed(2)} €</div>
