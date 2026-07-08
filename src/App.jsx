@@ -8,6 +8,7 @@ import PanelAdmin from './pages/admin/PanelAdmin'
 import PrintStation from './pages/print/PrintStation'
 import Reservar from './pages/reservar/Reservar'
 import Home from './pages/Home'
+import Onboarding from './pages/setup/Onboarding'
 import Protegido from './components/Protegido'
 import UIHost from './components/UIHost'
 
@@ -28,6 +29,7 @@ export default function App() {
         <Route path="/print" element={<Protegido><PrintStation /></Protegido>} />
         {/* Admin: requiere PIN de administrador */}
         <Route path="/admin" element={<Protegido rol="admin"><PanelAdmin /></Protegido>} />
+        <Route path="/setup" element={<Protegido rol="admin"><Onboarding /></Protegido>} />
         <Route path="*" element={<Navigate to="/" /> } />
       </Routes>
     </HashRouter>

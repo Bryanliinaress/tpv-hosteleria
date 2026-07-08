@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { useStore } from '../store/useStore'
 
 const grupos = [
   {
@@ -33,6 +34,7 @@ const grupos = [
 
 export default function Home() {
   const navigate = useNavigate()
+  const local = useStore(s => s.local)
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '3.5rem 1.5rem 3rem' }}>
       <div className="anim-fade" style={{ width: '100%', maxWidth: '980px' }}>
@@ -54,6 +56,24 @@ export default function Home() {
             Demo de TPV para bar y restaurante: autopedido por QR, sala, cocina, caja y reservas — todo sincronizado en tiempo real.
           </p>
         </div>
+
+        {/* Banner de configuración inicial */}
+        {!local?.onboarded && (
+          <button onClick={() => navigate('/setup')} style={{
+            display: 'flex', alignItems: 'center', gap: '1rem', width: '100%', textAlign: 'left',
+            background: 'linear-gradient(120deg, rgba(249,115,22,0.16), rgba(249,115,22,0.05))',
+            border: '1px solid rgba(249,115,22,0.5)', borderRadius: 'var(--radius-lg)',
+            padding: '1.1rem 1.3rem', cursor: 'pointer', marginBottom: '1.75rem',
+            boxShadow: '0 10px 30px -12px rgba(249,115,22,0.4)',
+          }}>
+            <span style={{ fontSize: '1.8rem' }}>🚀</span>
+            <span style={{ flex: 1 }}>
+              <span style={{ display: 'block', fontWeight: 800, color: 'var(--color-text)' }}>Configura tu local en 15 minutos</span>
+              <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--color-muted)' }}>Nombre, sala, personal y carta — el asistente te guía paso a paso.</span>
+            </span>
+            <span style={{ color: '#f97316', fontSize: '1.2rem' }}>→</span>
+          </button>
+        )}
 
         {/* Grupos de roles */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
@@ -96,7 +116,7 @@ export default function Home() {
           ))}
         </div>
 
-        <p style={{ marginTop: '2.75rem', fontSize: '0.75rem', color: 'var(--color-faint)', textAlign: 'center' }}>v0.25.0 · Demo en desarrollo</p>
+        <p style={{ marginTop: '2.75rem', fontSize: '0.75rem', color: 'var(--color-faint)', textAlign: 'center' }}>v0.26.0 · Demo en desarrollo</p>
       </div>
     </div>
   )

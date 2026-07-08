@@ -5,6 +5,13 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.26.0] - 2026-07-04
+
+### Añadido
+- **Onboarding del local** (`/setup`, solo admin): asistente de 5 pasos — identidad del local → sala por zonas (reconstruye las mesas con QRs correlativos) → equipo con PINs → carta (mantener la de ejemplo o empezar vacía) → resumen final. Deja un bar operativo en ~15 minutos.
+- **Banner «Configura tu local»** en la portada mientras el local no haya completado la configuración inicial; desaparece al terminar (y el asistente sigue accesible en `/setup` para reconfigurar).
+- Acciones nuevas del store: `configurarSala(zonas)` (protegida si hay mesas ocupadas) y `vaciarCarta()`. Tests incluidos (26 en total).
+
 ## [0.25.0] - 2026-07-03
 
 ### Añadido
