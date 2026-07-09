@@ -8,7 +8,7 @@ import ReservasConfig from '../../components/ReservasConfig'
 import BotonSalir from '../../components/BotonSalir'
 import Informes from './Informes'
 
-const emptyForm = { nombre: '', categoria: '', descripcion: '', alergenos: [], conFormatos: false, precios: {}, precio: '' }
+const emptyForm = { nombre: '', categoria: '', descripcion: '', alergenos: [], imagen: '', conFormatos: false, precios: {}, precio: '' }
 
 export default function PanelAdmin() {
   const { carta, mesas, historial, cierres, anulaciones, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, addCategoria, removeCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, editarFichaje, borrarFichaje } = useStore()
@@ -66,7 +66,7 @@ export default function PanelAdmin() {
   const empezarEdicion = (prod) => {
     setEditando(prod.id)
     setForm({
-      nombre: prod.nombre, categoria: prod.categoria, descripcion: prod.descripcion, alergenos: prod.alergenos || [],
+      nombre: prod.nombre, categoria: prod.categoria, descripcion: prod.descripcion, alergenos: prod.alergenos || [], imagen: prod.imagen || '',
       conFormatos: !!prod.precios,
       precios: prod.precios ? Object.fromEntries(Object.entries(prod.precios).map(([k, v]) => [k, String(v)])) : {},
       precio: String(prod.precio ?? ''),
@@ -164,7 +164,8 @@ export default function PanelAdmin() {
                     editando === prod.id ? (
                       <FormProducto key={prod.id} carta={carta} form={form} setForm={setForm} onGuardar={guardar} onCancelar={cancelar} titulo="Editar producto" />
                     ) : (
-                      <div key={prod.id} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.625rem', padding: '0.875rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: prod.disponible ? 1 : 0.5 }}>
+                      <div key={prod.id} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.625rem', padding: '0.875rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.6rem', opacity: prod.disponible ? 1 : 0.5 }}>
+                        {prod.imagen && <img src={prod.imagen} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ width: '2.4rem', height: '2.4rem', objectFit: 'cover', borderRadius: '0.4rem', flexShrink: 0 }} />}
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>
                             {prod.nombre}
@@ -811,6 +812,11 @@ function FormProducto({ carta, form, setForm, onGuardar, onCancelar, titulo }) {
         </select>
       </div>
       <input value={form.descripcion} onChange={set('descripcion')} placeholder="Descripción" style={inputStyle} />
+      {/* Foto del producto (URL) */}
+      <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+        <input value={form.imagen} onChange={set('imagen')} placeholder="📷 URL de la foto (opcional)" style={{ ...inputStyle, flex: 1 }} />
+        {form.imagen?.trim() && <img src={form.imagen} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ width: '2.6rem', height: '2.6rem', objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid var(--color-border)' }} />}
+      </div>
       {/* Alérgenos (14 UE) */}
       <div>
         <p style={{ fontSize: '0.72rem', color: 'var(--color-muted)', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Alérgenos</p>

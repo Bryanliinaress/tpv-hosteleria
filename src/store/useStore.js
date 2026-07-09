@@ -994,6 +994,7 @@ export const useStore = create(persist((set, get) => ({
           descripcion: producto.descripcion || '',
           ingredientes: (producto.descripcion || '').split(',').map(s => s.trim()).filter(Boolean),
           alergenos: producto.alergenos || [],
+          imagen: (producto.imagen || '').trim(),
           disponible: true,
         }],
       },
@@ -1024,6 +1025,7 @@ export const useStore = create(persist((set, get) => ({
           delete next.precios
         }
         if (cambios.alergenos !== undefined) next.alergenos = cambios.alergenos
+        if (cambios.imagen !== undefined) next.imagen = (cambios.imagen || '').trim()
         return next
       }),
     },

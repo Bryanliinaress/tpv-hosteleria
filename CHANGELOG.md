@@ -5,6 +5,11 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.28.0] - 2026-07-08
+
+### Añadido
+- **Fotos de productos**: cada producto puede tener una imagen (por URL), editable en Admin → Carta con **previsualización** en el formulario y miniatura en la lista. En la **carta del cliente** aparece como miniatura junto al plato y como **foto grande** en la hoja de personalización. Si una URL falla, la imagen se oculta sola. (La subida de archivos llegará con el backend/Storage.)
+
 ## [0.27.0] - 2026-07-08
 
 ### Añadido
