@@ -485,8 +485,9 @@ export default function CartaCliente() {
         {productosFiltrados.map(prod => {
           const esMontadito = !!prod.precios
           return (
-            <div key={prod.id} style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ flex: 1, marginRight: '1rem' }}>
+            <div key={prod.id} style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem' }}>
+              {prod.imagen && <img src={prod.imagen} alt="" loading="lazy" onError={e => { e.currentTarget.style.display = 'none' }} style={{ width: '4rem', height: '4rem', objectFit: 'cover', borderRadius: '0.6rem', flexShrink: 0 }} />}
+              <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 700, marginBottom: '0.2rem' }}>{prod.nombre}</div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)', marginBottom: '0.25rem' }}>{prod.descripcion}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -528,6 +529,7 @@ export default function CartaCliente() {
               <h3 style={{ fontWeight: 800, fontSize: '1.15rem' }}>{pers.producto.nombre}</h3>
               <button onClick={() => setPers(null)} style={btnStyle('#334155', { padding: '0.25rem 0.6rem' })}>✕</button>
             </div>
+            {pers.producto.imagen && <img src={pers.producto.imagen} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ width: '100%', height: '9rem', objectFit: 'cover', borderRadius: '0.75rem', marginBottom: '0.75rem' }} />}
             {(pers.producto.alergenos || []).length > 0 && (
               <p style={{ fontSize: '0.74rem', color: '#fbbf24', marginBottom: '0.75rem' }}>
                 ⚠️ {t('Alérgenos')}: {pers.producto.alergenos.map(a => `${ALERGENO_INFO[a]?.emoji || ''} ${ALERGENO_INFO[a]?.nombre || a}`).join(' · ')}
