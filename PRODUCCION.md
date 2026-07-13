@@ -1,7 +1,7 @@
 # De demo a producto de mercado — hoja de ruta
 
 **META: salir al mercado lo antes posible.** Este documento es la fuente de
-verdad de lo que queda. Última actualización: 2026-07-03 (**v0.25.0**).
+verdad de lo que queda. Última actualización: 2026-07-13 (**v0.28.1**).
 
 ## Estado a 2026-07-03
 
@@ -12,8 +12,14 @@ RGPD reservas · tests+CI · carta genérica (formatos/extras/etiquetas) · edit
 pedidos enviados · pagos mixtos + descuento registrado · auditoría de
 anulaciones · cliente en inglés · identidad del local configurable.
 
-**🔜 Pendiente sin bloqueo** (puro código): onboarding del local ("configúralo
-en 15 min"), modo claro, fotos de productos.
+Añadido desde v0.25: **onboarding del local** (`/setup`, v0.26) · **fichajes de
+jornada** con export CSV (v0.27) · **fotos de productos** (v0.28) · fix de
+sincronización que fusiona los logs solo-añadir para no perder fichajes/tickets
+entre dispositivos (v0.28.1).
+
+**🔜 Pendiente sin bloqueo** (puro código): **modo claro** (barrer los hex
+hardcodeados a variables CSS). La subida de fotos como archivo llegará con el
+backend (Storage).
 
 **⛔ Bloqueado en decisiones/cuentas del dueño (~30 min):**
 1. Proyecto **Supabase** de producción + token → aplicar migración multi-tenant
