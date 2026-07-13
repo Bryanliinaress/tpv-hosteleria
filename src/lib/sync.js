@@ -40,9 +40,26 @@ const sliceEstado = (s) => ({
   reservasConfig: s.reservasConfig,
 })
 
+// Marca de tiempo de un registro (campo _ts, o los dígitos de su id `xx<ms>`).
+export const tsRegistro = (item) => item?._ts || Number((String(item?.id).match(/\d+/) || [])[0]) || 0
+
+// Fusión para colecciones "solo-añadir" (fichajes, tickets, anulaciones,
+// cierres): parte del remoto (gana en los ids que comparten, p. ej. una
+// corrección) y le suma los registros LOCALES recientes (<90 s) que el remoto
+// aún no tiene. Así, si dos dispositivos escriben casi a la vez, ninguno pierde
+// lo que acaba de crear (evita el "último que escribe gana" en los logs).
+export function mergeLog(local, remote) {
+  const rem = remote || []
+  const ids = new Set(rem.map(x => x.id))
+  const limite = Date.now() - 90000
+  const extra = (local || []).filter(x => !ids.has(x.id) && tsRegistro(x) >= limite)
+  return extra.length ? [...rem, ...extra] : rem
+}
+
 function aplicarRemoto(data) {
   if (!data || !data.mesas) return
   if (data._origen === CLIENT_ID) return // eco de una escritura nuestra: ya tenemos ese estado (o uno más nuevo)
+  const st = useStore.getState()
   aplicandoRemoto = true
   useStore.setState({
     ...(data.local ? { local: data.local } : {}),
@@ -53,10 +70,11 @@ function aplicarRemoto(data) {
     pedidosCocina: data.pedidosCocina || [],
     pedidosBarra: data.pedidosBarra || [],
     avisos: data.avisos || [],
-    historial: data.historial || [],
-    cierres: data.cierres || [],
-    anulaciones: data.anulaciones || [],
-    fichajes: data.fichajes || [],
+    // Logs solo-añadir: fusionar para no perder registros de otros dispositivos.
+    historial: mergeLog(st.historial, data.historial),
+    cierres: mergeLog(st.cierres, data.cierres),
+    anulaciones: mergeLog(st.anulaciones, data.anulaciones),
+    fichajes: mergeLog(st.fichajes, data.fichajes),
     reservas: data.reservas || [],
   })
   aplicandoRemoto = false

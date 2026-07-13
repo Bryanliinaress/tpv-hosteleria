@@ -5,6 +5,11 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.28.1] - 2026-07-09
+
+### Arreglado
+- **Los fichajes (y tickets/anulaciones/cierres) ya no se pierden al sincronizar**: si otro dispositivo escribía su copia del estado casi a la vez, podía pisar un fichaje recién hecho (el botón "volvía a como antes"). Ahora esos registros «solo-añadir» se **fusionan** al recibir estado remoto: lo local reciente que el remoto no tiene se conserva. Mitiga el «último-que-escribe-gana» del estado compartido; la solución de raíz sigue siendo el backend por entidades (PRODUCCION.md §1-2).
+
 ## [0.28.0] - 2026-07-08
 
 ### Añadido
