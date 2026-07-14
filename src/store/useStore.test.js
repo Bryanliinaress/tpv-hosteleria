@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import {
   useStore, owedPorPersona, empleadoPorPin, alergenosDe,
-  generarSlots, slotDisponible, diaCerrado, aforoTotal,
+  generarSlots, slotDisponible, diaCerrado, aforoTotal, aforoZona, ocupacionEn,
 } from './useStore'
 
 // Mesa de pruebas mínima
@@ -334,5 +334,74 @@ describe('alergenosDe', () => {
     expect(alergenosDe('Atún')).toContain('pescado')
     expect(alergenosDe('Copa de vino tinto')).toContain('sulfitos')
     expect(alergenosDe('Agua mineral')).toEqual([])
+  })
+})
+
+describe('owedPorPersona: casos límite', () => {
+  it('reparte por cantidad y entre los que comparten', () => {
+    const m = mesa({ personas: [
+      persona('a', 'Ana', [item({ precio: 10, cantidad: 2, compartidoCon: ['b'] })]),
+      persona('b', 'Bea'),
+    ] })
+    const owed = owedPorPersona(m)
+    expect(owed.a).toBeCloseTo(10) // 10×2 = 20, a medias con Bea
+    expect(owed.b).toBeCloseTo(10)
+  })
+  it('ignora a un comensal compartido que ya no está en la mesa', () => {
+    const m = mesa({ personas: [
+      persona('a', 'Ana', [item({ precio: 9, cantidad: 1, compartidoCon: ['fantasma'] })]),
+    ] })
+    const owed = owedPorPersona(m)
+    expect(owed.a).toBeCloseTo(9)          // Ana asume el total, no se pierde dinero
+    expect(owed.fantasma).toBeUndefined()
+  })
+})
+
+describe('pagarParte', () => {
+  it('marca solo a esa persona con su método y propina; no cierra si faltan otros', () => {
+    useStore.setState({ mesas: [mesa({ personas: [
+      persona('a', 'Ana', [item({ precio: 10, estado: 'enviado' })]),
+      persona('b', 'Bea', [item({ precio: 5, estado: 'enviado' })]),
+    ] })], historial: [] })
+    S().pagarParte('mesa-t1', 'a', { propina: 1, metodo: 'tarjeta', cobradoPor: 'Juan' })
+    const m = S().mesas[0]
+    expect(m.personas.find(p => p.id === 'a')).toMatchObject({ pagado: true, metodoPago: 'tarjeta', propina: 1 })
+    expect(m.personas.find(p => p.id === 'b').pagado).toBe(false)
+    expect(m.estado).not.toBe('libre')
+    expect(S().historial).toHaveLength(0)
+  })
+  it('al pagar el último comensal cierra la mesa y guarda un ticket', () => {
+    useStore.setState({ mesas: [mesa({ personas: [
+      persona('a', 'Ana', [item({ precio: 10, estado: 'enviado' })]),
+    ] })], historial: [] })
+    S().pagarParte('mesa-t1', 'a', { metodo: 'efectivo' })
+    expect(S().mesas[0].estado).toBe('libre')
+    expect(S().historial).toHaveLength(1)
+  })
+})
+
+describe('reservas: aforo por zona y edición', () => {
+  const cfg = { turnos: [{ id: 'c', nombre: 'Comida', inicio: '13:00', fin: '15:00' }], intervaloMin: 30, duracionMin: 90, aforo: null, maxPersonasOnline: 10, diasCerrados: [] }
+  const mesasZ = [mesa({ id: 'ms', zona: 'Salón', capacidad: 4 }), mesa({ id: 'mt', zona: 'Terraza', capacidad: 6 })]
+
+  it('aforoZona cuenta solo las plazas de la zona (y el total sin zona)', () => {
+    expect(aforoZona(cfg, mesasZ, 'Salón')).toBe(4)
+    expect(aforoZona(cfg, mesasZ, 'Terraza')).toBe(6)
+    expect(aforoZona(cfg, mesasZ, '')).toBe(10)
+  })
+  it('llenar una zona no bloquea la otra', () => {
+    const reservas = [{ id: 'r1', fecha: '2026-07-01', hora: '13:00', personas: 4, estado: 'confirmada', zona: 'Salón' }]
+    expect(slotDisponible(cfg, mesasZ, reservas, '2026-07-01', '13:00', 1, 'Salón')).toBe(false)
+    expect(slotDisponible(cfg, mesasZ, reservas, '2026-07-01', '13:00', 6, 'Terraza')).toBe(true)
+  })
+  it('excluirId no cuenta la propia reserva al modificarla', () => {
+    const reservas = [{ id: 'r1', fecha: '2026-07-01', hora: '13:00', personas: 6, estado: 'confirmada', zona: 'Terraza' }]
+    expect(ocupacionEn(reservas, cfg, '2026-07-01', '13:00', 'Terraza')).toBe(6)
+    expect(ocupacionEn(reservas, cfg, '2026-07-01', '13:00', 'Terraza', 'r1')).toBe(0)
+    expect(slotDisponible(cfg, mesasZ, reservas, '2026-07-01', '13:00', 6, 'Terraza', 'r1')).toBe(true)
+  })
+  it('una reserva cancelada no ocupa aforo', () => {
+    const reservas = [{ id: 'r1', fecha: '2026-07-01', hora: '13:00', personas: 4, estado: 'cancelada', zona: 'Salón' }]
+    expect(ocupacionEn(reservas, cfg, '2026-07-01', '13:00', 'Salón')).toBe(0)
   })
 })
