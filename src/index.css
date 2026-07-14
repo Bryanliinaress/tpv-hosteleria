@@ -1,5 +1,5 @@
-@import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
 
 :root {
   /* ── TEMA OSCURO (por defecto) — slate profundo con contraste de superficies ── */
@@ -111,7 +111,9 @@ body {
   background-image:
     radial-gradient(900px 600px at 12% -10%, var(--bg-glow-1), transparent 60%),
     radial-gradient(900px 700px at 105% 0%, var(--bg-glow-2), transparent 55%);
-  background-attachment: fixed;
+  /* Sin background-attachment: fixed — provoca jank de scroll en móvil (el
+     cliente lee la carta en su teléfono). Los glows quedan anclados arriba. */
+  background-repeat: no-repeat;
   transition: background-color 0.25s ease, color 0.25s ease;
   color: var(--color-text);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
