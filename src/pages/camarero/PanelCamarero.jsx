@@ -217,7 +217,7 @@ export default function PanelCamarero() {
                         <span style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '3px', background: est.color }} />
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
                           <span style={{ fontWeight: 800, fontSize: '1.25rem' }}>M{m.numero}{enGrupo && <span style={{ fontSize: '0.7rem', color: '#a78bfa', fontWeight: 700 }}> 🔗+{m.unidas.length}</span>}</span>
-                          <span style={{ fontSize: '0.62rem', background: est.color + '22', color: est.color, borderRadius: '9999px', padding: '0.15rem 0.5rem', fontWeight: 700 }}>{esSec ? 'Unida' : est.label}</span>
+                          <span style={{ fontSize: '0.62rem', background: est.color + '22', color: `color-mix(in srgb, ${est.color}, var(--color-text) 38%)`, borderRadius: '9999px', padding: '0.15rem 0.5rem', fontWeight: 700 }}>{esSec ? 'Unida' : est.label}</span>
                         </div>
                         <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{'👤'.repeat(Math.min(enGrupo ? plazasGrupo : m.capacidad, 8))} <span style={{ opacity: 0.7 }}>{enGrupo ? plazasGrupo : m.capacidad}p</span></div>
 
