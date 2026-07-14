@@ -12,8 +12,24 @@ const TIPO = {
 // Se monta una sola vez en App.
 export default function UIHost() {
   const { toasts, cerrarToast, dialogo, responder } = useUI()
+  const conexion = useUI(s => s.conexion)
   return (
     <>
+      {/* Aviso de sincronización: solo visible si algo no se está guardando */}
+      {conexion === 'sin-conexion' && (
+        <div className="no-print anim-fade" style={{
+          position: 'fixed', bottom: '1rem', left: '1rem', zIndex: 250,
+          display: 'flex', alignItems: 'center', gap: '0.5rem',
+          background: 'var(--tint-warning-bg)', color: 'var(--tint-warning-fg)',
+          border: '1px solid var(--tint-warning-bd)', borderRadius: '9999px',
+          padding: '0.45rem 0.85rem', fontSize: '0.8rem', fontWeight: 600,
+          boxShadow: 'var(--shadow-lg)', pointerEvents: 'none',
+        }}>
+          <span style={{ width: '0.55rem', height: '0.55rem', borderRadius: '9999px', background: 'currentColor', animation: 'pulseRing 1.8s ease-out infinite' }} />
+          Sin conexión · reintentando…
+        </div>
+      )}
+
       {/* Toasts */}
       <div className="no-print" style={{ position: 'fixed', top: '1rem', left: '50%', transform: 'translateX(-50%)', zIndex: 200, display: 'flex', flexDirection: 'column', gap: '0.5rem', width: 'min(92vw, 420px)', pointerEvents: 'none' }}>
         {toasts.map(t => {

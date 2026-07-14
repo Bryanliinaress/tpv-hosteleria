@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { useStore } from '../store/useStore'
+import { useUI } from '../store/useUI'
 
 // Sincroniza el estado del TPV (mesas + colas de cocina/barra) entre todos los
 // dispositivos mediante una única fila JSONB en Supabase con Realtime.
@@ -80,12 +81,37 @@ function aplicarRemoto(data) {
   aplicandoRemoto = false
 }
 
+// Escritura resiliente: si falla (wifi flojo en el local), reintenta con
+// backoff exponencial hasta lograrlo — así un pedido enviado no se pierde por
+// un parpadeo de red. Siempre empuja el ESTADO ACTUAL (no una copia vieja), y
+// coalesce escrituras solapadas con `hayPendiente`.
+let escribiendo = false
+let hayPendiente = false
+let reintentos = 0
+let reintentoTimer = null
+
 async function empujarEstado() {
+  if (!supabase) return
+  if (escribiendo) { hayPendiente = true; return }
+  clearTimeout(reintentoTimer)
+  escribiendo = true
+  hayPendiente = false
   const data = { ...sliceEstado(useStore.getState()), _origen: CLIENT_ID }
   const { error } = await supabase
     .from('estado')
     .upsert({ id: ROW_ID, data, updated_at: new Date().toISOString() })
-  if (error) console.warn('[sync] error al guardar:', error.message)
+  escribiendo = false
+  if (error) {
+    reintentos++
+    useUI.getState().setConexion('sin-conexion')
+    const espera = Math.min(1000 * 2 ** (reintentos - 1), 15000)
+    console.warn(`[sync] error al guardar (reintento ${reintentos} en ${espera} ms):`, error.message)
+    reintentoTimer = setTimeout(empujarEstado, espera)
+    return
+  }
+  reintentos = 0
+  useUI.getState().setConexion('ok')
+  if (hayPendiente) empujarEstado() // hubo cambios mientras escribíamos: reenvía el estado más nuevo
 }
 
 export async function initSync() {
@@ -99,6 +125,7 @@ export async function initSync() {
   const { data, error } = await supabase.from('estado').select('data').eq('id', ROW_ID).single()
   if (error && error.code !== 'PGRST116') {
     console.warn('[sync] error al cargar estado:', error.message)
+    useUI.getState().setConexion('sin-conexion')
   }
   if (data?.data?.mesas) {
     aplicarRemoto(data.data)
@@ -109,12 +136,24 @@ export async function initSync() {
   resolverListo() // la carga inicial ha terminado
   useStore.getState().purgarReservasAntiguas() // RGPD: retención de reservas
 
-  // 2) Realtime: aplica cambios de otros dispositivos
+  // 2) Realtime: aplica cambios de otros dispositivos y vigila la conexión
   supabase
     .channel('estado-tpv')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'estado', filter: `id=eq.${ROW_ID}` },
       payload => aplicarRemoto(payload.new?.data))
-    .subscribe()
+    .subscribe(status => {
+      if (status === 'SUBSCRIBED') {
+        useUI.getState().setConexion('ok')
+        // Al (re)conectar, reenvía cualquier escritura que quedó pendiente.
+        if (reintentos > 0 || hayPendiente) empujarEstado()
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        useUI.getState().setConexion('sin-conexion')
+      }
+    })
+
+  // El navegador avisa de cortes de red: reflejarlo y reintentar al volver.
+  window.addEventListener('offline', () => useUI.getState().setConexion('sin-conexion'))
+  window.addEventListener('online', () => empujarEstado())
 
   // 3) Empuja los cambios locales (con debounce, ignorando los recibidos)
   useStore.subscribe((state, prev) => {

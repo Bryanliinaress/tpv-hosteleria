@@ -1,7 +1,7 @@
 # De demo a producto de mercado — hoja de ruta
 
 **META: salir al mercado lo antes posible.** Este documento es la fuente de
-verdad de lo que queda. Última actualización: 2026-07-14 (**v0.30.0**).
+verdad de lo que queda. Última actualización: 2026-07-14 (**v0.31.0**).
 
 ## Estado a 2026-07-03
 
@@ -18,7 +18,9 @@ sincronización que fusiona los logs solo-añadir para no perder fichajes/ticket
 entre dispositivos (v0.28.1) · **modo claro/oscuro** conmutable y persistente
 por dispositivo (v0.29.0) · **code-splitting por ruta** (v0.30.0): cada pantalla
 es su chunk (React.lazy); el cliente por QR baja ~527 KB en vez de 734 KB, y
-Admin/KDS/PDA se cargan bajo demanda.
+Admin/KDS/PDA se cargan bajo demanda · **resiliencia de sync** (v0.31.0):
+reintento con backoff de escrituras fallidas, aviso "sin conexión" visible y
+reenvío al reconectar — un pedido no se pierde por un parpadeo de wifi.
 
 **Modo claro (v0.29.0)**: sistema de tokens CSS ampliado (superficies, textos,
 bordes y "pozos" de estado success/danger/warning/info) con override
@@ -93,8 +95,9 @@ Documentos hermanos: [COSTES.md](COSTES.md) (qué cuesta operar) ·
 6. **Impresión térmica real (ESC/POS)** fiable y sin diálogo (hoy:
    `window.print()` + Chrome kiosko). Valorar un puente local (Node/agent) o
    impresoras de red con cola.
-7. **Resiliencia/offline**: PWA instalable ✅ (v0.15.0) + **cola offline** de
-   operaciones y reconexión (pendiente; depende del backend de Fase 0).
+7. **Resiliencia/offline**: PWA instalable ✅ (v0.15.0) + reintento de escrituras
+   con backoff, aviso de conexión y reenvío al reconectar ✅ (v0.31.0). La **cola
+   offline** completa (operar sin red y encolar) sigue pendiente del backend Fase 0.
 8. **Alérgenos por plato** (14 UE) — obligatorio informarlos. ✅ v0.14.0.
 9. **Hardware**: tablets/PDAs, pantallas cocina, cajón portamonedas, TPV
    físico. ⚠️ Compra/instalación en el local.
