@@ -1,7 +1,7 @@
 # De demo a producto de mercado — hoja de ruta
 
 **META: salir al mercado lo antes posible.** Este documento es la fuente de
-verdad de lo que queda. Última actualización: 2026-07-14 (**v0.32.0**).
+verdad de lo que queda. Última actualización: 2026-07-14 (**v0.33.0**).
 
 ## Estado a 2026-07-03
 
@@ -22,7 +22,10 @@ Admin/KDS/PDA se cargan bajo demanda · **resiliencia de sync** (v0.31.0):
 reintento con backoff de escrituras fallidas, aviso "sin conexión" visible y
 reenvío al reconectar — un pedido no se pierde por un parpadeo de wifi · **pulido UX/a11y** (v0.32.0):
 +8 tests (40), contraste de pills de estado, sin `background-attachment:fixed`
-(scroll fluido en móvil) y `role="dialog"`/`aria-modal` en los diálogos.
+(scroll fluido en móvil) y `role="dialog"`/`aria-modal` en los diálogos ·
+**terreno preparado para el backend** (v0.33.0): migración 02 con las RPC
+transaccionales escrita y parseada, capa de datos `lib/repo.js` tras flag
+`VITE_BACKEND=v2` con tests de contrato (48), y borrador RGPD en `docs/RGPD.md`.
 
 **Modo claro (v0.29.0)**: sistema de tokens CSS ampliado (superficies, textos,
 bordes y "pozos" de estado success/danger/warning/info) con override
@@ -56,10 +59,13 @@ Documentos hermanos: [COSTES.md](COSTES.md) (qué cuesta operar) ·
   por PIN es de demostración (vive en ese mismo estado, sin cifrado).
 - Necesita: Supabase Auth (o equivalente) + tablas normalizadas + **RLS por
   `local_id`** + roles verificados en servidor. Un local por negocio.
-- ✅ **Diseño y esquema listos**: `supabase/migrations/20260626T01_multitenant.sql`
-  (12 tablas, RLS, numeración fiscal de tickets) + plan completo en
-  `supabase/BACKEND.md`. Falta aplicarlo en un proyecto de producción (requiere
-  credenciales) e implementar las RPC (migración 02) y la capa de datos del front.
+- ✅ **Diseño, esquema y RPC listos**: `supabase/migrations/20260626T01_multitenant.sql`
+  (12 tablas, RLS, numeración fiscal) + `20260714T02_rpc_servicio.sql` (RPC
+  transaccionales: pedido QR con precio en servidor, cobro atómico, grupos,
+  marchar, reservas con aforo en servidor, PIN por hash) + capa de datos del
+  front (`src/lib/repo.js`, flag `VITE_BACKEND=v2`) con tests de contrato.
+  **Solo falta**: crear el proyecto de producción (gratis, ~10 min del dueño),
+  aplicar las 2 migraciones y cablear el store al repo (probar contra el real).
 
 ### 2. Concurrencia real
 - Hoy: "último que escribe gana" sobre el blob → con 2-3 camareros simultáneos

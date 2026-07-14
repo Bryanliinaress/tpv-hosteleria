@@ -47,13 +47,21 @@ Suscripciones por tabla filtradas por `local_id` (en vez de una fila global):
 
 ## Plan de migración desde la demo
 
-1. **Aplicar la migración 01** (este esquema) en un proyecto de Supabase
+1. **Aplicar las migraciones 01 y 02** en un proyecto de Supabase
    **nuevo/limpio** (separar demo de producción, punto 18 de PRODUCCION.md).
-2. **Migración 02** (pendiente): funciones RPC de servicio (abrir mesa, enviar
-   pedido, marchar, cobrar, agrupar/separar, reservar) + verificación de PIN.
-3. **Capa de datos en el front**: sustituir `lib/sync.js` por un repositorio
-   por entidad (misma API que las acciones actuales del store, que ya están
-   bien factorizadas) + optimistic updates.
+2. ✅ **Migración 02 ESCRITA** (`migrations/20260714T02_rpc_servicio.sql`):
+   RPC transaccionales de servicio — cliente QR (`qr_*`: unirse, pedir con
+   precio resuelto EN SERVIDOR, confirmar, llamar, cuenta), reservas online con
+   validación de aforo en servidor + autogestión por token, y personal
+   (`pagar_parte`/`cobrar_mesa` con cierre atómico y ticket fiscal,
+   agrupar/separar, marchar, anular con auditoría, PIN por hash bcrypt).
+   GRANTs mínimos: `anon` solo sus RPC. Sintaxis validada con libpg_query.
+3. **Capa de datos en el front**: ✅ base creada en `src/lib/repo.js`
+   (repositorio por entidad que mapea 1:1 a las RPC + realtime por tabla
+   filtrado por `local_id`), tras el flag `VITE_BACKEND=v2` — la demo sigue
+   con el blob. Tests de contrato repo↔RPC en `src/lib/repo.test.js`.
+   Falta: cablear el store a este repo + optimistic updates (necesita el
+   proyecto real para probar).
 4. **Auth**: pantalla de login del local (email+contraseña del encargado) que
    fija el dispositivo al local; el PIN sigue siendo el cambio de usuario.
 5. **Seed**: script que vuelca el estado JSONB actual a las tablas (carta,
