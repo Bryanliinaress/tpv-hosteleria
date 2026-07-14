@@ -10,6 +10,7 @@ function temaInicial() {
   try { return localStorage.getItem(TEMA_KEY) === 'claro' ? 'claro' : 'oscuro' } catch { return 'oscuro' }
 }
 export function aplicarTema(t) {
+  if (typeof document === 'undefined') return // entornos sin DOM (tests/SSR)
   const root = document.documentElement
   if (t === 'claro') root.setAttribute('data-theme', 'light')
   else root.removeAttribute('data-theme')
@@ -28,6 +29,11 @@ export const useUI = create((set, get) => ({
     aplicarTema(tema)
     set({ tema })
   },
+
+  // Estado de la sincronización con el backend, para avisar al personal cuando
+  // algo no se está guardando (wifi flojo en el local). 'ok' | 'sin-conexion'.
+  conexion: 'ok',
+  setConexion: (c) => { if (get().conexion !== c) set({ conexion: c }) },
 
   toast: (mensaje, tipo = 'info', ms = 3200) => {
     const id = ++contador
