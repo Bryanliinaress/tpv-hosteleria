@@ -2,21 +2,36 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 :root {
-  /* Paleta base — slate más profundo y con más contraste de superficies */
+  /* ── TEMA OSCURO (por defecto) — slate profundo con contraste de superficies ── */
   --color-bg: #0b1120;
   --color-surface: #161f31;
   --color-surface-2: #1e293b;
+  --color-surface-3: #334155;   /* superficie elevada / hover */
+  --color-inset: #0f172a;       /* pozos: inputs, listas, celdas hundidas */
   --color-border: #2c3a52;
   --color-border-soft: #233148;
+  --color-border-strong: #475569;
   --color-accent: #f97316;
   --color-accent-2: #fb923c;
   --color-text: #f8fafc;
+  --color-text-2: #e2e8f0;      /* texto secundario claro */
   --color-muted: #94a3b8;
   --color-faint: #64748b;
   --color-success: #10b981;
   --color-danger: #f43f5e;
   --color-warning: #f59e0b;
   --color-info: #3b82f6;
+
+  /* Fondo del body (gradientes de marca) — cambian con el tema */
+  --bg-glow-1: rgba(249,115,22,0.10);
+  --bg-glow-2: rgba(59,130,246,0.10);
+
+  /* Pozos de estado (chips/badges): fondo tenue + texto + borde por semántica.
+     En oscuro son tintes profundos; en claro, pasteles con texto legible. */
+  --tint-success-bg: #052e16;  --tint-success-fg: #10b981;  --tint-success-bd: #14532d;
+  --tint-danger-bg:  #2d0a14;  --tint-danger-fg:  #f43f5e;  --tint-danger-bd:  #450a1b;
+  --tint-warning-bg: #2d1900;  --tint-warning-fg: #f59e0b;  --tint-warning-bd: #7c3a00;
+  --tint-info-bg:    #0c1e3a;  --tint-info-fg:    #60a5fa;  --tint-info-bd:    #1e3a5f;
 
   /* Radios y sombras reutilizables */
   --radius: 0.85rem;
@@ -27,6 +42,66 @@
   --ring: 0 0 0 3px rgba(249,115,22,0.35);
 }
 
+/* ── TEMA CLARO ── */
+:root[data-theme="light"] {
+  --color-bg: #eef2f7;
+  --color-surface: #ffffff;
+  --color-surface-2: #f1f5f9;
+  --color-surface-3: #e2e8f0;
+  --color-inset: #f8fafc;
+  --color-border: #d5dde8;
+  --color-border-soft: #e5eaf1;
+  --color-border-strong: #b6c1d1;
+  /* Naranja de marca más oscuro en claro: legible como texto sobre blanco
+     y con contraste suficiente como fondo de botón con texto blanco. */
+  --color-accent: #c2410c;
+  --color-accent-2: #ea580c;
+  --color-text: #0f172a;
+  --color-text-2: #1e293b;
+  --color-muted: #475569;
+  --color-faint: #64748b;
+  --color-success: #059669;
+  --color-danger: #e11d48;
+  --color-warning: #d97706;
+  --color-info: #2563eb;
+
+  --bg-glow-1: rgba(249,115,22,0.08);
+  --bg-glow-2: rgba(59,130,246,0.07);
+
+  --tint-success-bg: #dcfce7;  --tint-success-fg: #047857;  --tint-success-bd: #86efac;
+  --tint-danger-bg:  #ffe4e6;  --tint-danger-fg:  #be123c;  --tint-danger-bd:  #fda4af;
+  --tint-warning-bg: #fef3c7;  --tint-warning-fg: #b45309;  --tint-warning-bd: #fcd34d;
+  --tint-info-bg:    #dbeafe;  --tint-info-fg:    #1d4ed8;  --tint-info-bd:    #93c5fd;
+
+  --shadow-sm: 0 1px 2px rgba(15,23,42,0.08);
+  --shadow: 0 6px 20px -8px rgba(15,23,42,0.14);
+  --shadow-lg: 0 18px 40px -14px rgba(15,23,42,0.22);
+}
+
+/* Pantallas de producción (cocina/barra) que van SIEMPRE en oscuro,
+   con independencia del tema: redeclaran los tokens oscuros en su subárbol.
+   Diseñadas para lectura a distancia y menor reflejo en el pase. */
+.force-dark {
+  --color-bg: #0b1120;
+  --color-surface: #161f31;
+  --color-surface-2: #1e293b;
+  --color-surface-3: #334155;
+  --color-inset: #0f172a;
+  --color-border: #2c3a52;
+  --color-border-soft: #233148;
+  --color-border-strong: #475569;
+  --color-accent: #f97316;
+  --color-accent-2: #fb923c;
+  --color-text: #f8fafc;
+  --color-text-2: #e2e8f0;
+  --color-muted: #94a3b8;
+  --color-faint: #64748b;
+  --tint-success-bg: #052e16;  --tint-success-fg: #10b981;  --tint-success-bd: #14532d;
+  --tint-danger-bg:  #2d0a14;  --tint-danger-fg:  #f43f5e;  --tint-danger-bd:  #450a1b;
+  --tint-warning-bg: #2d1900;  --tint-warning-fg: #f59e0b;  --tint-warning-bd: #7c3a00;
+  --tint-info-bg:    #0c1e3a;  --tint-info-fg:    #60a5fa;  --tint-info-bd:    #1e3a5f;
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 html { -webkit-text-size-adjust: 100%; }
@@ -34,9 +109,10 @@ html { -webkit-text-size-adjust: 100%; }
 body {
   background-color: var(--color-bg);
   background-image:
-    radial-gradient(900px 600px at 12% -10%, rgba(249,115,22,0.10), transparent 60%),
-    radial-gradient(900px 700px at 105% 0%, rgba(59,130,246,0.10), transparent 55%);
+    radial-gradient(900px 600px at 12% -10%, var(--bg-glow-1), transparent 60%),
+    radial-gradient(900px 700px at 105% 0%, var(--bg-glow-2), transparent 55%);
   background-attachment: fixed;
+  transition: background-color 0.25s ease, color 0.25s ease;
   color: var(--color-text);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   font-feature-settings: 'cv11', 'ss01';

@@ -71,7 +71,7 @@ export default function CartaCliente() {
         <div style={{ fontSize: '4rem' }}>✅</div>
         <h1 style={{ fontSize: '1.6rem', fontWeight: 800, textAlign: 'center' }}>{t('¡Cuenta pagada!')}</h1>
         <p style={{ color: 'var(--color-muted)', textAlign: 'center' }}>{t('Gracias por tu visita a la Mesa')} {mesa.numero}. {t('¡Hasta pronto! 👋')}</p>
-        <button onClick={limpiarDispositivo} style={btnStyle('#f97316', { padding: '0.875rem 1.5rem', fontSize: '1rem' })}>{t('Empezar una nueva mesa')}</button>
+        <button onClick={limpiarDispositivo} style={btnStyle('var(--color-accent)', { padding: '0.875rem 1.5rem', fontSize: '1rem' })}>{t('Empezar una nueva mesa')}</button>
       </div>
     )
   }
@@ -90,7 +90,7 @@ export default function CartaCliente() {
           {idioma === 'es' ? '🇬🇧 EN' : '🇪🇸 ES'}
         </button>
         <div style={{ fontSize: '3.5rem' }}>🥪</div>
-        {local?.nombre && <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#f97316', letterSpacing: '0.01em' }}>{local.nombre}</div>}
+        {local?.nombre && <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--color-accent)', letterSpacing: '0.01em' }}>{local.nombre}</div>}
         <h1 style={{ fontSize: '1.6rem', fontWeight: 800 }}>{t('Mesa')} {mesa.numero}</h1>
         {ocupada ? (
           <p style={{ color: 'var(--color-muted)', textAlign: 'center' }}>{t('Ya están en la mesa:')} <strong style={{ color: 'var(--color-text)' }}>{mesa.personas.map(p => p.nombre).join(', ')}</strong>.<br />{t('Únete escribiendo tu nombre.')}</p>
@@ -98,7 +98,7 @@ export default function CartaCliente() {
           <p style={{ color: 'var(--color-muted)', textAlign: 'center' }}>{t('¡Bienvenido/a! Escribe tu nombre para empezar a pedir.')}</p>
         )}
         <input value={nombre} onChange={e => setNombre(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && nombre.trim()) unirse() }} placeholder={t('Tu nombre')} autoFocus style={{ ...inputStyle, maxWidth: '300px', textAlign: 'center', fontSize: '1rem' }} />
-        <button onClick={unirse} disabled={!nombre.trim()} style={btnStyle(nombre.trim() ? '#f97316' : '#334155', { width: '100%', maxWidth: '300px', padding: '0.875rem', fontSize: '1rem', cursor: nombre.trim() ? 'pointer' : 'not-allowed' })}>
+        <button onClick={unirse} disabled={!nombre.trim()} style={btnStyle(nombre.trim() ? 'var(--color-accent)' : 'var(--color-surface-3)', { width: '100%', maxWidth: '300px', padding: '0.875rem', fontSize: '1rem', cursor: nombre.trim() ? 'pointer' : 'not-allowed' })}>
           {ocupada ? t('Unirme a la mesa') : t('Abrir mesa y pedir')}
         </button>
       </div>
@@ -185,7 +185,7 @@ export default function CartaCliente() {
     return (
       <div style={{ maxWidth: '480px', margin: '0 auto', padding: '1.25rem', minHeight: '100vh' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-          <button onClick={() => setVista('carta')} style={btnStyle('#1e293b')}>←</button>
+          <button onClick={() => setVista('carta')} style={btnStyle('var(--color-surface-2)')}>←</button>
           <h2 style={{ fontWeight: 700, fontSize: '1.25rem' }}>{t('Cuenta — Mesa')} {mesa.numero}</h2>
         </div>
         {mesa.personas.map(p => {
@@ -195,8 +195,8 @@ export default function CartaCliente() {
           return (
             <div key={p.id} style={{ ...cardStyle, marginBottom: '0.75rem', borderColor: p.pagado ? '#10b981' : 'var(--color-border)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <div style={{ fontWeight: 700, color: '#f97316' }}>{p.nombre}{esYo && <span style={{ color: 'var(--color-muted)', fontWeight: 400 }}> (tú)</span>}</div>
-                {p.pagado && <span style={{ fontSize: '0.7rem', background: '#052e16', color: '#10b981', borderRadius: '9999px', padding: '0.15rem 0.6rem', fontWeight: 700 }}>✓ Pagado{p.propina > 0 ? ` · +${p.propina.toFixed(2)} €` : ''}</span>}
+                <div style={{ fontWeight: 700, color: 'var(--color-accent)' }}>{p.nombre}{esYo && <span style={{ color: 'var(--color-muted)', fontWeight: 400 }}> (tú)</span>}</div>
+                {p.pagado && <span style={{ fontSize: '0.7rem', background: 'var(--tint-success-bg)', color: 'var(--tint-success-fg)', borderRadius: '9999px', padding: '0.15rem 0.6rem', fontWeight: 700 }}>✓ Pagado{p.propina > 0 ? ` · +${p.propina.toFixed(2)} €` : ''}</span>}
               </div>
               {lineas.length === 0
                 ? <p style={{ color: 'var(--color-muted)', fontSize: '0.85rem' }}>{t('Sin pedidos')}</p>
@@ -223,7 +223,7 @@ export default function CartaCliente() {
                               {mesa.personas.filter(x => x.id !== p.id).map(x => {
                                 const activo = (item.compartidoCon || []).includes(x.id)
                                 return (
-                                  <button key={x.id} onClick={() => toggleCompartir(mesaId, p.id, item.uid, x.id)} style={btnStyle(activo ? '#7c3aed' : '#334155', { fontSize: '0.72rem', padding: '0.2rem 0.55rem' })}>
+                                  <button key={x.id} onClick={() => toggleCompartir(mesaId, p.id, item.uid, x.id)} style={btnStyle(activo ? '#7c3aed' : 'var(--color-surface-3)', { fontSize: '0.72rem', padding: '0.2rem 0.55rem' })}>
                                     {activo ? '✓ ' : ''}{x.nombre}
                                   </button>
                                 )
@@ -251,7 +251,7 @@ export default function CartaCliente() {
                     <p style={{ fontSize: '0.72rem', color: 'var(--color-muted)', marginBottom: '0.35rem' }}>{t('¿Añadir propina?')}</p>
                     <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
                       {[0, 5, 10, 15].map(pct => (
-                        <button key={pct} onClick={() => setPropinaPct(pct)} style={btnStyle(propinaPct === pct ? '#f97316' : '#334155', { fontSize: '0.75rem', padding: '0.3rem 0.6rem' })}>
+                        <button key={pct} onClick={() => setPropinaPct(pct)} style={btnStyle(propinaPct === pct ? 'var(--color-accent)' : 'var(--color-surface-3)', { fontSize: '0.75rem', padding: '0.3rem 0.6rem' })}>
                           {pct === 0 ? t('Sin propina') : `${pct}%`}
                         </button>
                       ))}
@@ -267,9 +267,9 @@ export default function CartaCliente() {
           )
         })}
 
-        <div style={{ ...cardStyle, borderColor: '#f97316', marginBottom: '1rem' }}>
+        <div style={{ ...cardStyle, borderColor: 'var(--color-accent)', marginBottom: '1rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1.1rem' }}>
-            <span>{t('Pendiente de pago')}</span><span style={{ color: '#f97316' }}>{totalPendienteMesa.toFixed(2)} €</span>
+            <span>{t('Pendiente de pago')}</span><span style={{ color: 'var(--color-accent)' }}>{totalPendienteMesa.toFixed(2)} €</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--color-muted)', marginTop: '0.25rem' }}>
             <span>{t('Total mesa')}</span><span>{totalMesa.toFixed(2)} €</span>
@@ -291,7 +291,7 @@ export default function CartaCliente() {
                 <p style={{ fontSize: '0.72rem', color: 'var(--color-muted)', marginBottom: '0.35rem' }}>{t('¿Añadir propina?')}</p>
                 <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', marginBottom: '0.6rem' }}>
                   {[0, 5, 10, 15].map(pct => (
-                    <button key={pct} onClick={() => setPropinaTodoPct(pct)} style={btnStyle(propinaTodoPct === pct ? '#f97316' : '#334155', { fontSize: '0.75rem', padding: '0.3rem 0.6rem' })}>
+                    <button key={pct} onClick={() => setPropinaTodoPct(pct)} style={btnStyle(propinaTodoPct === pct ? 'var(--color-accent)' : 'var(--color-surface-3)', { fontSize: '0.75rem', padding: '0.3rem 0.6rem' })}>
                       {pct === 0 ? t('Sin propina') : `${pct}%`}
                     </button>
                   ))}
@@ -306,9 +306,9 @@ export default function CartaCliente() {
         )}
 
         {mesa.estado !== 'esperando_cobro' ? (
-          <button onClick={() => pedirCuenta(mesaId)} style={btnStyle('#1e293b', { width: '100%', padding: '0.875rem', fontSize: '0.95rem' })}>{t('🧑‍🍳 Que cobre el camarero (efectivo/tarjeta)')}</button>
+          <button onClick={() => pedirCuenta(mesaId)} style={btnStyle('var(--color-surface-2)', { width: '100%', padding: '0.875rem', fontSize: '0.95rem' })}>{t('🧑‍🍳 Que cobre el camarero (efectivo/tarjeta)')}</button>
         ) : (
-          <div style={{ textAlign: 'center', padding: '1rem', background: '#052e16', borderRadius: '0.75rem', color: '#10b981', fontWeight: 700 }}>✅ {t('✅ El camarero viene a cobrar').replace('✅ ','')}</div>
+          <div style={{ textAlign: 'center', padding: '1rem', background: 'var(--tint-success-bg)', borderRadius: '0.75rem', color: 'var(--tint-success-fg)', fontWeight: 700 }}>✅ {t('✅ El camarero viene a cobrar').replace('✅ ','')}</div>
         )}
       </div>
     )
@@ -319,7 +319,7 @@ export default function CartaCliente() {
     return (
       <div style={{ maxWidth: '480px', margin: '0 auto', padding: '1.25rem', minHeight: '100vh' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-          <button onClick={() => setVista('carta')} style={btnStyle('#1e293b')}>←</button>
+          <button onClick={() => setVista('carta')} style={btnStyle('var(--color-surface-2)')}>←</button>
           <h2 style={{ fontWeight: 700, fontSize: '1.25rem' }}>{t('Pedido de')} {personaActiva.nombre}{!pedirParaOtro && ` ${t('(tú)')}`}</h2>
         </div>
 
@@ -355,24 +355,24 @@ export default function CartaCliente() {
                     {item.pan && <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)', marginTop: '0.1rem' }}>{descrItem(item)}</div>}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: '0.5rem' }}>
-                    <button onClick={() => cambiarCantidad(mesaId, personaActiva.id, item.uid, -1)} style={btnStyle('#334155', { padding: '0.25rem 0.625rem', fontSize: '1rem' })}>−</button>
+                    <button onClick={() => cambiarCantidad(mesaId, personaActiva.id, item.uid, -1)} style={btnStyle('var(--color-surface-3)', { padding: '0.25rem 0.625rem', fontSize: '1rem' })}>−</button>
                     <span style={{ fontWeight: 700, minWidth: '1.5rem', textAlign: 'center' }}>{item.cantidad}</span>
-                    <button onClick={() => cambiarCantidad(mesaId, personaActiva.id, item.uid, 1)} style={btnStyle('#334155', { padding: '0.25rem 0.625rem', fontSize: '1rem' })}>+</button>
+                    <button onClick={() => cambiarCantidad(mesaId, personaActiva.id, item.uid, 1)} style={btnStyle('var(--color-surface-3)', { padding: '0.25rem 0.625rem', fontSize: '1rem' })}>+</button>
                     <span style={{ fontWeight: 700, minWidth: '3rem', textAlign: 'right' }}>{(item.precio * item.cantidad).toFixed(2)} €</span>
                   </div>
                 </div>
               </div>
             ))}
-            <div style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', fontWeight: 700, marginBottom: '1rem', borderColor: '#f97316' }}>
-              <span>{t('Total pendiente')}</span><span style={{ color: '#f97316' }}>{totalPendiente.toFixed(2)} €</span>
+            <div style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', fontWeight: 700, marginBottom: '1rem', borderColor: 'var(--color-accent)' }}>
+              <span>{t('Total pendiente')}</span><span style={{ color: 'var(--color-accent)' }}>{totalPendiente.toFixed(2)} €</span>
             </div>
-            <button onClick={() => setMostrarResumen(true)} style={btnStyle('#f97316', { width: '100%', padding: '0.875rem', fontSize: '1rem' })}>{t('Enviar pedido 🚀')}</button>
+            <button onClick={() => setMostrarResumen(true)} style={btnStyle('var(--color-accent)', { width: '100%', padding: '0.875rem', fontSize: '1rem' })}>{t('Enviar pedido 🚀')}</button>
           </>
         ) : (
           <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-muted)' }}>
             <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🛒</div>
             <p>{t('Aún no hay nada por enviar')}</p>
-            <button onClick={() => setVista('carta')} style={{ ...btnStyle('#f97316'), marginTop: '1rem' }}>{t('Ver carta')}</button>
+            <button onClick={() => setVista('carta')} style={{ ...btnStyle('var(--color-accent)'), marginTop: '1rem' }}>{t('Ver carta')}</button>
           </div>
         )}
 
@@ -386,16 +386,16 @@ export default function CartaCliente() {
                 <div key={item.uid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '0.5rem 0', borderBottom: '1px solid var(--color-border)' }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{item.cantidad}× {item.nombre}</div>
-                    {item.pan && <div style={{ fontSize: '0.74rem', color: '#fbbf24' }}>{descrItem(item)}</div>}
+                    {item.pan && <div style={{ fontSize: '0.74rem', color: 'var(--tint-warning-fg)' }}>{descrItem(item)}</div>}
                   </div>
                   <span style={{ fontWeight: 600, fontSize: '0.9rem', whiteSpace: 'nowrap' }}>{(item.precio * item.cantidad).toFixed(2)} €</span>
                 </div>
               ))}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1rem', margin: '0.75rem 0 1rem' }}>
-                <span>Total</span><span style={{ color: '#f97316' }}>{totalPendiente.toFixed(2)} €</span>
+                <span>Total</span><span style={{ color: 'var(--color-accent)' }}>{totalPendiente.toFixed(2)} €</span>
               </div>
-              <button onClick={() => { confirmarPedido(mesaId); setMostrarResumen(false); setVista('carta') }} style={btnStyle('#f97316', { width: '100%', padding: '0.875rem', fontSize: '1rem', marginBottom: '0.5rem' })}>{t('Confirmar y enviar 🚀')}</button>
-              <button onClick={() => setMostrarResumen(false)} style={btnStyle('#334155', { width: '100%', padding: '0.7rem', fontSize: '0.9rem' })}>{t('Seguir pidiendo')}</button>
+              <button onClick={() => { confirmarPedido(mesaId); setMostrarResumen(false); setVista('carta') }} style={btnStyle('var(--color-accent)', { width: '100%', padding: '0.875rem', fontSize: '1rem', marginBottom: '0.5rem' })}>{t('Confirmar y enviar 🚀')}</button>
+              <button onClick={() => setMostrarResumen(false)} style={btnStyle('var(--color-surface-3)', { width: '100%', padding: '0.7rem', fontSize: '0.9rem' })}>{t('Seguir pidiendo')}</button>
             </div>
           </div>
         )}
@@ -427,31 +427,31 @@ export default function CartaCliente() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
           <div>
             <span style={{ fontWeight: 800, fontSize: '1.1rem' }}>{t('Mesa')} {mesa.numero}</span>
-            <span style={{ marginLeft: '0.5rem', fontSize: '0.8rem', color: '#f97316', fontWeight: 600 }}>{t('Hola,')} {yo.nombre} 👋</span>
+            <span style={{ marginLeft: '0.5rem', fontSize: '0.8rem', color: 'var(--color-accent)', fontWeight: 600 }}>{t('Hola,')} {yo.nombre} 👋</span>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button onClick={() => setIdioma(idioma === 'es' ? 'en' : 'es')} title="Idioma / Language" style={btnStyle('#1e293b', { fontSize: '0.75rem', padding: '0.375rem 0.6rem', fontWeight: 700 })}>{idioma === 'es' ? '🇬🇧' : '🇪🇸'}</button>
-            <button onClick={toggleAviso} title={avisoActivo ? t('Cancelar el aviso al camarero') : t('Llamar al camarero')} style={btnStyle(avisoActivo ? '#10b981' : '#1e293b', { fontSize: '0.8rem', padding: '0.375rem 0.75rem' })}>{avisoActivo ? `🔔 ${t('Avisado')} ✕` : '🔔'}</button>
-            <button onClick={() => setVista('pedido')} style={{ ...btnStyle('#1e293b', { fontSize: '0.8rem', padding: '0.375rem 0.75rem' }), position: 'relative' }}>🛒 {itemsPendientes.length > 0 && <span style={badge}>{itemsPendientes.length}</span>}</button>
-            <button onClick={() => setVista('cuenta')} style={btnStyle('#1e293b', { fontSize: '0.8rem', padding: '0.375rem 0.75rem' })}>💰</button>
+            <button onClick={() => setIdioma(idioma === 'es' ? 'en' : 'es')} title="Idioma / Language" style={btnStyle('var(--color-surface-2)', { fontSize: '0.75rem', padding: '0.375rem 0.6rem', fontWeight: 700 })}>{idioma === 'es' ? '🇬🇧' : '🇪🇸'}</button>
+            <button onClick={toggleAviso} title={avisoActivo ? t('Cancelar el aviso al camarero') : t('Llamar al camarero')} style={btnStyle(avisoActivo ? '#10b981' : 'var(--color-surface-2)', { fontSize: '0.8rem', padding: '0.375rem 0.75rem' })}>{avisoActivo ? `🔔 ${t('Avisado')} ✕` : '🔔'}</button>
+            <button onClick={() => setVista('pedido')} style={{ ...btnStyle('var(--color-surface-2)', { fontSize: '0.8rem', padding: '0.375rem 0.75rem' }), position: 'relative' }}>🛒 {itemsPendientes.length > 0 && <span style={badge}>{itemsPendientes.length}</span>}</button>
+            <button onClick={() => setVista('cuenta')} style={btnStyle('var(--color-surface-2)', { fontSize: '0.8rem', padding: '0.375rem 0.75rem' })}>💰</button>
           </div>
         </div>
         <div style={{ display: 'flex', gap: '0.375rem', overflowX: 'auto', paddingBottom: '0.25rem', alignItems: 'center' }}>
           <span style={{ fontSize: '0.7rem', color: 'var(--color-muted)', whiteSpace: 'nowrap', marginRight: '0.25rem' }}>{t('Pedir para:')}</span>
-          <button onClick={() => setPidiendoPara(null)} style={btnStyle(!pedirParaOtro ? '#f97316' : '#0f172a', { fontSize: '0.75rem', padding: '0.25rem 0.625rem', whiteSpace: 'nowrap' })}>{yo.nombre} {t('(tú)')}</button>
+          <button onClick={() => setPidiendoPara(null)} style={btnStyle(!pedirParaOtro ? 'var(--color-accent)' : 'var(--color-inset)', { fontSize: '0.75rem', padding: '0.25rem 0.625rem', whiteSpace: 'nowrap' })}>{yo.nombre} {t('(tú)')}</button>
           {mesa.personas.filter(p => p.id !== yo.id).map(p => (
-            <button key={p.id} onClick={() => setPidiendoPara(p.id)} style={btnStyle(pidiendoPara === p.id ? '#f97316' : '#0f172a', { fontSize: '0.75rem', padding: '0.25rem 0.625rem', whiteSpace: 'nowrap' })}>{p.nombre}</button>
+            <button key={p.id} onClick={() => setPidiendoPara(p.id)} style={btnStyle(pidiendoPara === p.id ? 'var(--color-accent)' : 'var(--color-inset)', { fontSize: '0.75rem', padding: '0.25rem 0.625rem', whiteSpace: 'nowrap' })}>{p.nombre}</button>
           ))}
         </div>
       </div>
 
       {misListos.length > 0 && (
-        <div style={{ background: '#052e16', color: '#10b981', fontSize: '0.85rem', fontWeight: 700, padding: '0.55rem 1.25rem', textAlign: 'center', borderBottom: '1px solid #14532d' }}>
+        <div style={{ background: 'var(--tint-success-bg)', color: 'var(--tint-success-fg)', fontSize: '0.85rem', fontWeight: 700, padding: '0.55rem 1.25rem', textAlign: 'center', borderBottom: '1px solid var(--tint-success-bd)' }}>
           ✅ {t('¡Listo para ti!')} {misListos.map(p => `${p.cantidad}× ${p.nombre}`).join(', ')}
         </div>
       )}
       {pedirParaOtro && (
-        <div style={{ background: '#2d1900', color: '#f59e0b', fontSize: '0.78rem', padding: '0.4rem 1.25rem', textAlign: 'center' }}>{t('Estás pidiendo para')} <strong>{personaActiva.nombre}</strong></div>
+        <div style={{ background: 'var(--tint-warning-bg)', color: 'var(--tint-warning-fg)', fontSize: '0.78rem', padding: '0.4rem 1.25rem', textAlign: 'center' }}>{t('Estás pidiendo para')} <strong>{personaActiva.nombre}</strong></div>
       )}
 
       {/* Buscador */}
@@ -467,7 +467,7 @@ export default function CartaCliente() {
       {!q && (
         <div style={{ display: 'flex', gap: '0.5rem', padding: '0.75rem 1.25rem', overflowX: 'auto', background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' }}>
           {carta.categorias.map(cat => (
-            <button key={cat.id} onClick={() => setCategoriaActiva(cat.id)} style={btnStyle(categoriaActiva === cat.id ? '#f97316' : '#1e293b', { whiteSpace: 'nowrap', fontSize: '0.85rem', padding: '0.4rem 0.85rem' })}>
+            <button key={cat.id} onClick={() => setCategoriaActiva(cat.id)} style={btnStyle(categoriaActiva === cat.id ? 'var(--color-accent)' : 'var(--color-surface-2)', { whiteSpace: 'nowrap', fontSize: '0.85rem', padding: '0.4rem 0.85rem' })}>
               {cat.emoji} {cat.nombre}
             </button>
           ))}
@@ -491,7 +491,7 @@ export default function CartaCliente() {
                 <div style={{ fontWeight: 700, marginBottom: '0.2rem' }}>{prod.nombre}</div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)', marginBottom: '0.25rem' }}>{prod.descripcion}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <span style={{ fontWeight: 700, color: '#f97316' }}>{esMontadito ? `${t('desde')} ${minPrecio(prod).toFixed(2)} €` : `${prod.precio.toFixed(2)} €`}</span>
+                  <span style={{ fontWeight: 700, color: 'var(--color-accent)' }}>{esMontadito ? `${t('desde')} ${minPrecio(prod).toFixed(2)} €` : `${prod.precio.toFixed(2)} €`}</span>
                   {(prod.alergenos || []).length > 0 && (
                     <span title={'Alérgenos: ' + prod.alergenos.map(a => ALERGENO_INFO[a]?.nombre || a).join(', ')} style={{ fontSize: '0.72rem', letterSpacing: '0.1em', opacity: 0.85 }}>
                       {prod.alergenos.map(a => ALERGENO_INFO[a]?.emoji || '•').join('')}
@@ -503,7 +503,7 @@ export default function CartaCliente() {
                 onClick={() => esMontadito
                   ? setPers({ producto: prod, formato: (carta.formatos.find(f => prod.precios[f.id] != null) || carta.formatos[0])?.id, tipo: carta.tiposPan[0]?.id, quitados: [], anadidos: [], nota: '' })
                   : agregarItem(mesaId, personaActiva.id, { productoId: prod.id, nombre: prod.nombre, precio: prod.precio, tipo: prod.tipo })}
-                style={btnStyle('#f97316', { padding: '0.5rem 0.9rem', whiteSpace: 'nowrap' })}
+                style={btnStyle('var(--color-accent)', { padding: '0.5rem 0.9rem', whiteSpace: 'nowrap' })}
               >
                 {esMontadito ? t('Añadir') : t('+ Añadir')}
               </button>
@@ -516,7 +516,7 @@ export default function CartaCliente() {
       {itemsPendientes.length > 0 && (
         <div style={{ padding: '1rem 1.25rem', background: 'var(--color-surface)', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', bottom: 0 }}>
           <span style={{ color: 'var(--color-muted)', fontSize: '0.875rem' }}>{itemsPendientes.reduce((s, i) => s + i.cantidad, 0)} {t('producto(s)')} · {totalPendiente.toFixed(2)} €</span>
-          <button onClick={() => setVista('pedido')} style={btnStyle('#f97316', { padding: '0.625rem 1.25rem' })}>{t('Ver pedido →')}</button>
+          <button onClick={() => setVista('pedido')} style={btnStyle('var(--color-accent)', { padding: '0.625rem 1.25rem' })}>{t('Ver pedido →')}</button>
         </div>
       )}
 
@@ -527,11 +527,11 @@ export default function CartaCliente() {
             <div style={grabHandle} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.4rem' }}>
               <h3 style={{ fontWeight: 800, fontSize: '1.15rem' }}>{pers.producto.nombre}</h3>
-              <button onClick={() => setPers(null)} style={btnStyle('#334155', { padding: '0.25rem 0.6rem' })}>✕</button>
+              <button onClick={() => setPers(null)} style={btnStyle('var(--color-surface-3)', { padding: '0.25rem 0.6rem' })}>✕</button>
             </div>
             {pers.producto.imagen && <img src={pers.producto.imagen} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ width: '100%', height: '9rem', objectFit: 'cover', borderRadius: '0.75rem', marginBottom: '0.75rem' }} />}
             {(pers.producto.alergenos || []).length > 0 && (
-              <p style={{ fontSize: '0.74rem', color: '#fbbf24', marginBottom: '0.75rem' }}>
+              <p style={{ fontSize: '0.74rem', color: 'var(--tint-warning-fg)', marginBottom: '0.75rem' }}>
                 ⚠️ {t('Alérgenos')}: {pers.producto.alergenos.map(a => `${ALERGENO_INFO[a]?.emoji || ''} ${ALERGENO_INFO[a]?.nombre || a}`).join(' · ')}
               </p>
             )}
@@ -540,7 +540,7 @@ export default function CartaCliente() {
             <p style={labelMini}>{etiquetas.formatos}</p>
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
               {carta.formatos.filter(f => pers.producto.precios[f.id] != null).map(f => (
-                <button key={f.id} onClick={() => setPers(s => ({ ...s, formato: f.id }))} style={btnStyle(pers.formato === f.id ? '#f97316' : '#1e293b', { flex: 1, minWidth: '7rem', padding: '0.6rem', fontSize: '0.85rem' })}>
+                <button key={f.id} onClick={() => setPers(s => ({ ...s, formato: f.id }))} style={btnStyle(pers.formato === f.id ? 'var(--color-accent)' : 'var(--color-surface-2)', { flex: 1, minWidth: '7rem', padding: '0.6rem', fontSize: '0.85rem' })}>
                   {f.nombre}<br /><span style={{ fontSize: '0.8rem', opacity: 0.9 }}>{(pers.producto.precios[f.id] ?? 0).toFixed(2)} €</span>
                 </button>
               ))}
@@ -550,7 +550,7 @@ export default function CartaCliente() {
             <p style={labelMini}>{etiquetas.tiposPan}</p>
             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
               {carta.tiposPan.map(t => (
-                <button key={t.id} onClick={() => setPers(s => ({ ...s, tipo: t.id }))} style={btnStyle(pers.tipo === t.id ? '#7c3aed' : '#1e293b', { fontSize: '0.78rem', padding: '0.35rem 0.65rem' })}>
+                <button key={t.id} onClick={() => setPers(s => ({ ...s, tipo: t.id }))} style={btnStyle(pers.tipo === t.id ? '#7c3aed' : 'var(--color-surface-2)', { fontSize: '0.78rem', padding: '0.35rem 0.65rem' })}>
                   {t.nombre}{t.sup > 0 ? ` +${t.sup.toFixed(2)}€` : ''}
                 </button>
               ))}
@@ -564,7 +564,7 @@ export default function CartaCliente() {
                   {pers.producto.ingredientes.map(ing => {
                     const quitado = pers.quitados.includes(ing)
                     return (
-                      <button key={ing} onClick={() => toggleEn('quitados', ing)} style={btnStyle(quitado ? '#7f1d1d' : '#334155', { fontSize: '0.78rem', padding: '0.35rem 0.65rem', textDecoration: quitado ? 'line-through' : 'none' })}>
+                      <button key={ing} onClick={() => toggleEn('quitados', ing)} style={btnStyle(quitado ? '#7f1d1d' : 'var(--color-surface-3)', { fontSize: '0.78rem', padding: '0.35rem 0.65rem', textDecoration: quitado ? 'line-through' : 'none' })}>
                         {quitado ? '✕ ' : ''}{ing}
                       </button>
                     )
@@ -579,7 +579,7 @@ export default function CartaCliente() {
               {extrasNorm.map(ex => {
                 const puesto = pers.anadidos.includes(ex.nombre)
                 return (
-                  <button key={ex.nombre} onClick={() => toggleEn('anadidos', ex.nombre)} style={btnStyle(puesto ? '#065f46' : '#1e293b', { fontSize: '0.78rem', padding: '0.35rem 0.65rem' })}>
+                  <button key={ex.nombre} onClick={() => toggleEn('anadidos', ex.nombre)} style={btnStyle(puesto ? '#065f46' : 'var(--color-surface-2)', { fontSize: '0.78rem', padding: '0.35rem 0.65rem' })}>
                     {puesto ? '✓ ' : '+ '}{ex.nombre}{ex.precio > 0 && <span style={{ opacity: 0.7 }}> +{ex.precio.toFixed(2)}€</span>}
                   </button>
                 )
@@ -588,7 +588,7 @@ export default function CartaCliente() {
 
             <input value={pers.nota} onChange={e => setPers(s => ({ ...s, nota: e.target.value }))} placeholder="📝 Otra indicación (opcional)" style={{ ...inputStyle, fontSize: '0.82rem', padding: '0.5rem 0.7rem', marginBottom: '0.9rem' }} />
 
-            <button onClick={confirmarPers} style={btnStyle('#f97316', { width: '100%', padding: '0.875rem', fontSize: '1rem' })}>
+            <button onClick={confirmarPers} style={btnStyle('var(--color-accent)', { width: '100%', padding: '0.875rem', fontSize: '1rem' })}>
               Añadir al pedido · {precioPers.toFixed(2)} €
             </button>
           </div>
@@ -603,8 +603,8 @@ const grabHandle = { width: '36px', height: '4px', borderRadius: '9999px', backg
 const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 50, animation: 'fadeIn 0.2s ease both' }
 const hoja = { background: 'var(--color-surface)', borderTopLeftRadius: 'var(--radius-lg)', borderTopRightRadius: 'var(--radius-lg)', padding: '1.25rem', width: '100%', maxWidth: '480px', maxHeight: '88vh', overflowY: 'auto', borderTop: '1px solid var(--color-border)', boxShadow: '0 -22px 50px -20px rgba(0,0,0,0.8)', animation: 'slideUp 0.28s cubic-bezier(0.16,1,0.3,1) both' }
 
-const btnStyle = (bg, extra = {}) => ({ background: bg, color: 'white', border: 'none', borderRadius: '0.55rem', padding: '0.5rem 1rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.875rem', boxShadow: '0 1px 2px rgba(0,0,0,0.2)', ...extra })
+const btnStyle = (bg, extra = {}) => ({ background: bg, color: /surface|inset|transparent|none|tint-[a-z]+-bg/.test(bg) ? 'var(--color-text)' : 'white', border: 'none', borderRadius: '0.55rem', padding: '0.5rem 1rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.875rem', boxShadow: '0 1px 2px rgba(0,0,0,0.2)', ...extra })
 const cardStyle = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '1rem', boxShadow: 'var(--shadow-sm)' }
 const inputStyle = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.75rem 1rem', color: 'var(--color-text)', width: '100%' }
 const labelMini = { fontSize: '0.75rem', color: 'var(--color-muted)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.05em' }
-const badge = { position: 'absolute', top: '-4px', right: '-4px', background: '#f97316', color: 'white', borderRadius: '9999px', fontSize: '0.65rem', padding: '0 4px', fontWeight: 700 }
+const badge = { position: 'absolute', top: '-4px', right: '-4px', background: 'var(--color-accent)', color: 'white', borderRadius: '9999px', fontSize: '0.65rem', padding: '0 4px', fontWeight: 700 }
