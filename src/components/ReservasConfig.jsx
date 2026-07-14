@@ -73,7 +73,7 @@ export default function ReservasConfig() {
               {DIAS.map(({ d, t }) => {
                 const cerrado = cfg.diasCerrados.includes(d)
                 return (
-                  <button key={d} onClick={() => toggleDia(d)} title={cerrado ? 'Cerrado' : 'Abierto'} style={{ flex: 1, background: cerrado ? '#7f1d1d' : '#1e293b', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 0', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem' }}>{t}</button>
+                  <button key={d} onClick={() => toggleDia(d)} title={cerrado ? 'Cerrado' : 'Abierto'} style={{ flex: 1, background: cerrado ? '#7f1d1d' : 'var(--color-surface-2)', color: cerrado ? '#fff' : 'var(--color-text)', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 0', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem' }}>{t}</button>
                 )
               })}
             </div>
@@ -93,5 +93,5 @@ const Campo = ({ label, children }) => (
 )
 
 const lbl = { fontSize: '0.72rem', color: 'var(--color-muted)', margin: '0 0 0.35rem', textTransform: 'uppercase', letterSpacing: '0.05em' }
-const inp = { background: '#0f172a', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.65rem', color: 'var(--color-text)', fontSize: '0.85rem', width: '100%' }
-const addBtn = { background: '#f97316', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.45rem 0.85rem', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, marginTop: '0.25rem' }
+const inp = { background: 'var(--color-inset)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.65rem', color: 'var(--color-text)', fontSize: '0.85rem', width: '100%' }
+const addBtn = { background: 'var(--color-accent)', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.45rem 0.85rem', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, marginTop: '0.25rem' }

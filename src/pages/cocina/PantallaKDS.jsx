@@ -20,9 +20,9 @@ export default function PantallaKDS() {
   const listos = pedidosCocina.filter(p => p.estado === 'listo')
 
   return (
-    <div style={{ minHeight: '100vh', background: '#030712', color: '#f8fafc' }}>
+    <div className="force-dark" style={{ minHeight: '100vh', background: 'var(--color-bg)', color: 'var(--color-text)' }}>
       {/* Header */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'linear-gradient(180deg, #06351a, #052e16)', borderBottom: '1px solid #14532d', boxShadow: '0 8px 24px -12px rgba(0,0,0,0.7)', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'linear-gradient(180deg, var(--tint-success-bg), var(--tint-success-bg))', borderBottom: '1px solid var(--tint-success-bd)', boxShadow: '0 8px 24px -12px rgba(0,0,0,0.7)', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
           <div style={{ width: '4px', height: '2.5rem', borderRadius: '9999px', background: '#10b981', boxShadow: '0 0 14px #10b981' }} />
           <div>
@@ -56,7 +56,7 @@ export default function PantallaKDS() {
                 const urgente = p.estado !== 'espera' && (Date.now() - new Date(p.horaEntrada)) > 10 * 60 * 1000
                 return (
                   <div key={p.id} className={urgente ? 'anim-fade pulse-attn' : 'anim-fade'} style={{
-                    background: 'linear-gradient(180deg, #131c2e, #0f172a)',
+                    background: 'linear-gradient(180deg, #131c2e, var(--color-inset))',
                     border: `2px solid ${urgente ? '#f43f5e' : est.color + '44'}`,
                     borderRadius: 'var(--radius)',
                     padding: '1rem',
@@ -107,7 +107,7 @@ export default function PantallaKDS() {
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {listos.map(p => (
-                <div key={p.id} style={{ background: '#052e16', border: '1px solid #14532d', borderRadius: '0.625rem', padding: '0.75rem', opacity: 0.85 }}>
+                <div key={p.id} style={{ background: 'var(--tint-success-bg)', border: '1px solid var(--tint-success-bd)', borderRadius: '0.625rem', padding: '0.75rem', opacity: 0.85 }}>
                   <div style={{ fontWeight: 700, color: '#10b981', fontSize: '0.9rem' }}>M{p.mesaNumero} — {p.personaNombre}</div>
                   <div style={{ fontSize: '0.8rem', color: '#6ee7b7' }}>{p.cantidad}× {p.nombre}</div>
                 </div>

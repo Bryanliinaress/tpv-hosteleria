@@ -103,7 +103,7 @@ export default function Reservar() {
           <div style={{ fontSize: '3.5rem' }}>🗑️</div>
           <h1 style={{ fontWeight: 800, fontSize: '1.4rem', margin: '0.5rem 0' }}>Reserva cancelada</h1>
           <p style={{ color: 'var(--color-muted)' }}>Tu reserva del {fechaBonita(cancelada.fecha)} a las {cancelada.hora} se ha cancelado.{emailConfigurado && cancelada.email ? ' Te hemos enviado un correo de confirmación.' : ''}</p>
-          <button onClick={reiniciar} style={btn('#f97316', { marginTop: '1rem', width: '100%', padding: '0.85rem', fontSize: '1rem' })}>Hacer una nueva reserva</button>
+          <button onClick={reiniciar} style={btn('var(--color-accent)', { marginTop: '1rem', width: '100%', padding: '0.85rem', fontSize: '1rem' })}>Hacer una nueva reserva</button>
         </div>
       </div>
     )
@@ -117,7 +117,7 @@ export default function Reservar() {
           <div className="anim-pop" style={{ fontSize: '3.5rem' }}>✅</div>
           <h1 style={{ fontWeight: 800, fontSize: '1.5rem', margin: '0.5rem 0' }}>{hecha.modificada ? '¡Reserva modificada!' : '¡Reserva confirmada!'}</h1>
           <p style={{ color: 'var(--color-muted)', marginBottom: '1rem' }}>Te esperamos, {hecha.nombre}.</p>
-          <div style={{ background: '#0f172a', borderRadius: '0.75rem', padding: '1rem', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+          <div style={{ background: 'var(--color-inset)', borderRadius: '0.75rem', padding: '1rem', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
             <Fila k="📅 Día" v={fechaBonita(hecha.fecha)} />
             <Fila k="🕐 Hora" v={hecha.hora} />
             <Fila k="👥 Personas" v={hecha.personas} />
@@ -126,8 +126,8 @@ export default function Reservar() {
           <p style={{ fontSize: '0.82rem', color: emailConfigurado ? '#10b981' : 'var(--color-muted)', marginTop: '0.875rem' }}>
             {emailConfigurado ? `📧 Te hemos enviado la confirmación a ${hecha.email}` : `📧 Confirmación a ${hecha.email}`}
           </p>
-          <a href={gcalLink(hecha, cfg.duracionMin)} target="_blank" rel="noreferrer" style={btn('#1e293b', { display: 'block', marginTop: '0.875rem', padding: '0.75rem', textDecoration: 'none' })}>📆 Añadir a mi calendario</a>
-          <button onClick={reiniciar} style={btn('#f97316', { marginTop: '0.6rem', width: '100%', padding: '0.85rem', fontSize: '1rem' })}>Hacer otra reserva</button>
+          <a href={gcalLink(hecha, cfg.duracionMin)} target="_blank" rel="noreferrer" style={btn('var(--color-surface-2)', { display: 'block', marginTop: '0.875rem', padding: '0.75rem', textDecoration: 'none' })}>📆 Añadir a mi calendario</a>
+          <button onClick={reiniciar} style={btn('var(--color-accent)', { marginTop: '0.6rem', width: '100%', padding: '0.85rem', fontSize: '1rem' })}>Hacer otra reserva</button>
         </div>
       </div>
     )
@@ -143,7 +143,7 @@ export default function Reservar() {
             <div style={{ fontSize: '2.5rem' }}>🤔</div>
             <h1 style={{ fontWeight: 800, fontSize: '1.2rem', margin: '0.5rem 0' }}>No encontramos esa reserva</h1>
             <p style={{ color: 'var(--color-muted)' }}>El enlace no es válido o la reserva ya estaba cancelada.</p>
-            <button onClick={reiniciar} style={btn('#f97316', { marginTop: '1rem', width: '100%', padding: '0.85rem', fontSize: '1rem' })}>Hacer una reserva</button>
+            <button onClick={reiniciar} style={btn('var(--color-accent)', { marginTop: '1rem', width: '100%', padding: '0.85rem', fontSize: '1rem' })}>Hacer una reserva</button>
           </div>
         </div>
       )
@@ -156,14 +156,14 @@ export default function Reservar() {
           <h1 style={{ fontWeight: 800, fontSize: '1.5rem' }}>Tu reserva</h1>
         </div>
         <div style={card}>
-          <div style={{ background: '#0f172a', borderRadius: '0.75rem', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
+          <div style={{ background: 'var(--color-inset)', borderRadius: '0.75rem', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
             <Fila k="👤 Nombre" v={r.nombre} />
             <Fila k="📅 Día" v={fechaBonita(r.fecha)} />
             <Fila k="🕐 Hora" v={r.hora} />
             <Fila k="👥 Personas" v={r.personas} />
             {r.zona && <Fila k="📍 Zona" v={r.zona} />}
           </div>
-          <button onClick={() => { setForm({ fecha: r.fecha, hora: r.hora, personas: r.personas, zona: r.zona || '', nombre: r.nombre, email: r.email || '', telefono: r.telefono || '', notas: r.notas || '' }); setEditandoId(r.id); setIdx(0) }} style={btn('#f97316', { width: '100%', padding: '0.85rem', fontSize: '1rem', marginBottom: '0.5rem' })}>✏️ Modificar reserva</button>
+          <button onClick={() => { setForm({ fecha: r.fecha, hora: r.hora, personas: r.personas, zona: r.zona || '', nombre: r.nombre, email: r.email || '', telefono: r.telefono || '', notas: r.notas || '' }); setEditandoId(r.id); setIdx(0) }} style={btn('var(--color-accent)', { width: '100%', padding: '0.85rem', fontSize: '1rem', marginBottom: '0.5rem' })}>✏️ Modificar reserva</button>
           <button onClick={async () => { if (await confirmar({ titulo: 'Cancelar reserva', mensaje: '¿Seguro que quieres cancelar tu reserva?', peligro: true, confirmar: 'Sí, cancelar', cancelar: 'Volver' })) { cancelarReservaCliente(r); setCancelada(r) } }} style={btn('#7f1d1d', { width: '100%', padding: '0.85rem', fontSize: '1rem' })}>🗑️ Cancelar reserva</button>
         </div>
       </div>
@@ -184,18 +184,18 @@ export default function Reservar() {
     <div style={wrap}>
       <div style={{ textAlign: 'center', marginBottom: '0.75rem' }}>
         <div style={{ fontSize: '2.25rem' }}>📅</div>
-        {local?.nombre && <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f97316' }}>{local.nombre}</div>}
+        {local?.nombre && <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-accent)' }}>{local.nombre}</div>}
         <h1 style={{ fontWeight: 800, fontSize: '1.5rem' }}>{editandoId ? 'Modificar reserva' : 'Reservar mesa'}</h1>
         <div style={{ display: 'flex', justifyContent: 'center', gap: '0.4rem', marginTop: '0.6rem' }}>
           {pasos.map((_, n) => (
-            <div key={n} style={{ width: idx === n ? '1.6rem' : '0.5rem', height: '0.5rem', borderRadius: '9999px', background: n <= idx ? '#f97316' : '#334155', transition: 'all 0.2s' }} />
+            <div key={n} style={{ width: idx === n ? '1.6rem' : '0.5rem', height: '0.5rem', borderRadius: '9999px', background: n <= idx ? 'var(--color-accent)' : 'var(--color-surface-3)', transition: 'all 0.2s' }} />
           ))}
         </div>
       </div>
 
       {!editandoId && misReservas.length > 0 && (
         <div style={{ marginBottom: '0.75rem' }}>
-          <button onClick={() => setVerMias(v => !v)} style={btn('#0c1e3a', { width: '100%', border: '1px solid #3b82f6', color: '#60a5fa', fontSize: '0.82rem' })}>
+          <button onClick={() => setVerMias(v => !v)} style={btn('var(--tint-info-bg)', { width: '100%', border: '1px solid #3b82f6', color: 'var(--tint-info-fg)', fontSize: '0.82rem' })}>
             🔔 Tienes {misReservas.length} reserva(s) · {verMias ? 'ocultar' : 'gestionar'}
           </button>
           {verMias && (
@@ -281,7 +281,7 @@ export default function Reservar() {
             {(() => {
               const ok = form.nombre.trim() && emailValido(form.email)
               return <>
-                <button onClick={confirmar} disabled={!ok} style={btn(ok ? '#10b981' : '#334155', { width: '100%', padding: '0.95rem', fontSize: '1.05rem', marginTop: '0.9rem', cursor: ok ? 'pointer' : 'not-allowed' })}>{editandoId ? 'Guardar cambios ✓' : 'Confirmar reserva ✓'}</button>
+                <button onClick={confirmar} disabled={!ok} style={btn(ok ? '#10b981' : 'var(--color-surface-3)', { width: '100%', padding: '0.95rem', fontSize: '1.05rem', marginTop: '0.9rem', cursor: ok ? 'pointer' : 'not-allowed' })}>{editandoId ? 'Guardar cambios ✓' : 'Confirmar reserva ✓'}</button>
                 {!ok && <p style={{ fontSize: '0.75rem', color: 'var(--color-muted)', textAlign: 'center', marginTop: '0.5rem' }}>{!form.nombre.trim() ? 'Escribe tu nombre' : 'Escribe un email válido'} para terminar.</p>}
                 {/* RGPD: información básica sobre el uso de los datos */}
                 <p style={{ fontSize: '0.68rem', color: 'var(--color-faint)', textAlign: 'center', marginTop: '0.7rem', lineHeight: 1.5 }}>
@@ -308,7 +308,7 @@ export default function Reservar() {
 const Paso = ({ titulo, onAtras, children }) => (
   <div>
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.9rem' }}>
-      {onAtras && <button onClick={onAtras} style={btn('#1e293b', { padding: '0.3rem 0.6rem' })}>←</button>}
+      {onAtras && <button onClick={onAtras} style={btn('var(--color-surface-2)', { padding: '0.3rem 0.6rem' })}>←</button>}
       <h2 style={{ fontWeight: 800, fontSize: '1.15rem' }}>{titulo}</h2>
     </div>
     {children}
@@ -320,15 +320,15 @@ const Fila = ({ k, v }) => (
   </div>
 )
 const Chip = ({ onClick, children }) => (
-  <button onClick={onClick} style={{ background: '#1e293b', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '9999px', padding: '0.3rem 0.75rem', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}>{children}</button>
+  <button onClick={onClick} style={{ background: 'var(--color-surface-2)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '9999px', padding: '0.3rem 0.75rem', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600 }}>{children}</button>
 )
 const Aviso = ({ children }) => (
-  <div style={{ background: '#2d1900', border: '1px solid #7c3a00', borderRadius: '0.5rem', padding: '0.8rem 0.85rem', fontSize: '0.85rem', color: '#fbbf24' }}>{children}</div>
+  <div style={{ background: 'var(--tint-warning-bg)', border: '1px solid var(--tint-warning-bd)', borderRadius: '0.5rem', padding: '0.8rem 0.85rem', fontSize: '0.85rem', color: 'var(--tint-warning-fg)' }}>{children}</div>
 )
 
 const wrap = { maxWidth: '460px', margin: '0 auto', minHeight: '100vh', padding: '1.5rem 1.25rem' }
 const card = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: '1.25rem', boxShadow: 'var(--shadow)', animation: 'fadeIn 0.3s ease both' }
-const inp = { background: '#0f172a', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.7rem 0.85rem', color: 'var(--color-text)', fontSize: '0.95rem', width: '100%', marginBottom: '0.4rem' }
-const enlace = { color: '#fbbf24', textDecoration: 'underline', cursor: 'pointer' }
-const btn = (bg, extra = {}) => ({ background: bg, color: '#fff', border: 'none', borderRadius: '0.55rem', padding: '0.5rem 0.85rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.2)', ...extra })
-const opcion = (sel, extra = {}) => ({ background: sel ? '#f97316' : '#1e293b', color: '#fff', border: `1px solid ${sel ? '#f97316' : 'var(--color-border)'}`, borderRadius: '0.65rem', cursor: 'pointer', fontWeight: 600, boxShadow: sel ? '0 6px 16px -8px rgba(249,115,22,0.8)' : 'var(--shadow-sm)', transition: 'transform 0.12s ease, box-shadow 0.15s ease, background 0.15s ease', ...extra })
+const inp = { background: 'var(--color-inset)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.7rem 0.85rem', color: 'var(--color-text)', fontSize: '0.95rem', width: '100%', marginBottom: '0.4rem' }
+const enlace = { color: 'var(--tint-warning-fg)', textDecoration: 'underline', cursor: 'pointer' }
+const btn = (bg, extra = {}) => ({ background: bg, color: /surface|inset|transparent|none|tint-[a-z]+-bg/.test(bg) ? 'var(--color-text)' : '#fff', border: 'none', borderRadius: '0.55rem', padding: '0.5rem 0.85rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', textAlign: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.2)', ...extra })
+const opcion = (sel, extra = {}) => ({ background: sel ? 'var(--color-accent)' : 'var(--color-surface-2)', color: sel ? '#fff' : 'var(--color-text)', border: `1px solid ${sel ? 'var(--color-accent)' : 'var(--color-border)'}`, borderRadius: '0.65rem', cursor: 'pointer', fontWeight: 600, boxShadow: sel ? '0 6px 16px -8px rgba(249,115,22,0.8)' : 'var(--shadow-sm)', transition: 'transform 0.12s ease, box-shadow 0.15s ease, background 0.15s ease', ...extra })

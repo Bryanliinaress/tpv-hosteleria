@@ -60,7 +60,7 @@ export default function Informes({ historial, moneda = '€' }) {
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.875rem', marginBottom: '1.5rem' }}>
         {[
-          { l: `Facturado (${ahora.toLocaleDateString('es-ES', { month: 'long' })})`, v: `${total.toFixed(2)} ${moneda}`, c: '#f97316' },
+          { l: `Facturado (${ahora.toLocaleDateString('es-ES', { month: 'long' })})`, v: `${total.toFixed(2)} ${moneda}`, c: 'var(--color-accent)' },
           { l: 'Tickets', v: delMes.length, c: '#3b82f6' },
           { l: 'Ticket medio', v: `${ticketMedio.toFixed(2)} ${moneda}`, c: '#8b5cf6' },
           { l: 'Comensales', v: comensales, c: '#06b6d4' },
@@ -81,7 +81,7 @@ export default function Informes({ historial, moneda = '€' }) {
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '120px' }}>
             {dias.map(d => (
               <div key={d} title={`Día ${d}: ${porDia[d].toFixed(2)} ${moneda}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%' }}>
-                <div style={{ height: `${Math.max(4, porDia[d] / maxDia * 100)}%`, background: 'linear-gradient(180deg, #fb923c, #f97316)', borderRadius: '3px 3px 0 0' }} />
+                <div style={{ height: `${Math.max(4, porDia[d] / maxDia * 100)}%`, background: 'linear-gradient(180deg, var(--color-accent-2), var(--color-accent))', borderRadius: '3px 3px 0 0' }} />
                 <div style={{ fontSize: '0.6rem', color: 'var(--color-faint)', textAlign: 'center', marginTop: '2px' }}>{d}</div>
               </div>
             ))}
@@ -136,7 +136,7 @@ function Barra({ etiqueta, valor, max, color, moneda }) {
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '0.5rem' }}>{etiqueta}</span>
         <strong style={{ whiteSpace: 'nowrap' }}>{valor.toFixed(2)} {moneda}</strong>
       </div>
-      <div style={{ background: '#0f172a', borderRadius: '9999px', height: '0.55rem', overflow: 'hidden' }}>
+      <div style={{ background: 'var(--color-inset)', borderRadius: '9999px', height: '0.55rem', overflow: 'hidden' }}>
         <div style={{ width: `${valor / max * 100}%`, height: '100%', background: color, borderRadius: '9999px', transition: 'width 0.3s' }} />
       </div>
     </div>

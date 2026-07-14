@@ -68,25 +68,25 @@ export default function PrintStation() {
 
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
           {[{ id: 'cocina', t: '🍳 Cocina' }, { id: 'barra', t: '🍺 Barra' }, { id: 'ambas', t: '📋 Ambas' }].map(o => (
-            <button key={o.id} onClick={() => { setEstacion(o.id); localStorage.setItem('tpv-print-estacion', o.id) }} style={btn(estacion === o.id ? '#f97316' : '#1e293b', { flex: 1 })}>{o.t}</button>
+            <button key={o.id} onClick={() => { setEstacion(o.id); localStorage.setItem('tpv-print-estacion', o.id) }} style={btn(estacion === o.id ? 'var(--color-accent)' : 'var(--color-surface-2)', { flex: 1 })}>{o.t}</button>
           ))}
         </div>
 
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-          <button onClick={() => setAuto(a => !a)} style={btn(auto ? '#10b981' : '#334155', { flex: 1 })}>{auto ? '🟢 Auto-impresión ON' : '⚪ Auto-impresión OFF'}</button>
-          <button onClick={() => { const ult = relevantes.slice(-1); if (ult.length) setCola(c => [...c, { id: 'test' + Date.now(), mesaNumero: ult[0].mesaNumero, items: [ult[0]], hora: new Date().toISOString() }]) }} style={btn('#1e293b')}>Imprimir prueba</button>
+          <button onClick={() => setAuto(a => !a)} style={btn(auto ? '#10b981' : 'var(--color-surface-3)', { flex: 1 })}>{auto ? '🟢 Auto-impresión ON' : '⚪ Auto-impresión OFF'}</button>
+          <button onClick={() => { const ult = relevantes.slice(-1); if (ult.length) setCola(c => [...c, { id: 'test' + Date.now(), mesaNumero: ult[0].mesaNumero, items: [ult[0]], hora: new Date().toISOString() }]) }} style={btn('var(--color-surface-2)')}>Imprimir prueba</button>
         </div>
 
-        <div style={{ background: '#2d1900', border: '1px solid #7c3a00', borderRadius: '0.5rem', padding: '0.75rem', fontSize: '0.8rem', color: '#fbbf24', marginBottom: '1.25rem' }}>
+        <div style={{ background: 'var(--tint-warning-bg)', border: '1px solid var(--tint-warning-bd)', borderRadius: '0.5rem', padding: '0.75rem', fontSize: '0.8rem', color: 'var(--tint-warning-fg)', marginBottom: '1.25rem' }}>
           ℹ️ Para impresión <strong>sin diálogo</strong>: abre esta página en el PC de la barra/cocina con Chrome iniciado con <code>--kiosk-printing</code> y la impresora térmica como predeterminada.
         </div>
 
-        <h2 style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: '0.5rem' }}>Últimas comandas {cola.length > 0 && <span style={{ color: '#f97316' }}>· {cola.length} en cola</span>}</h2>
+        <h2 style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: '0.5rem' }}>Últimas comandas {cola.length > 0 && <span style={{ color: 'var(--color-accent)' }}>· {cola.length} en cola</span>}</h2>
         {log.length === 0 && <p style={{ color: 'var(--color-muted)', fontSize: '0.85rem' }}>Esperando pedidos…</p>}
         {log.map(t => (
           <div key={t.id} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.6rem 0.8rem', marginBottom: '0.4rem', display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>Mesa {t.mesaNumero} · {t.items.map(i => `${i.cantidad}× ${i.nombre}`).join(', ')}</span>
-            <button onClick={() => setCola(c => [...c, { ...t, id: 'r' + Date.now() }])} style={btn('#1e293b', { padding: '0.25rem 0.6rem', fontSize: '0.75rem' })}>↻ Reimprimir</button>
+            <button onClick={() => setCola(c => [...c, { ...t, id: 'r' + Date.now() }])} style={btn('var(--color-surface-2)', { padding: '0.25rem 0.6rem', fontSize: '0.75rem' })}>↻ Reimprimir</button>
           </div>
         ))}
       </div>
@@ -112,4 +112,4 @@ export default function PrintStation() {
   )
 }
 
-const btn = (bg, extra = {}) => ({ background: bg, color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.6rem 0.9rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', ...extra })
+const btn = (bg, extra = {}) => ({ background: bg, color: /surface|inset|transparent|none|tint-[a-z]+-bg/.test(bg) ? 'var(--color-text)' : '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.6rem 0.9rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', ...extra })

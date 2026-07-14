@@ -19,13 +19,13 @@ export default function PantallaBarra() {
   const listos = pedidosBarra.filter(p => p.estado === 'listo')
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0c0a0e', color: '#f8fafc' }}>
-      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'linear-gradient(180deg, #36101c, #2d0a14)', borderBottom: '1px solid #450a1b', boxShadow: '0 8px 24px -12px rgba(0,0,0,0.7)', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className="force-dark" style={{ minHeight: '100vh', background: 'var(--color-bg)', color: 'var(--color-text)' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'linear-gradient(180deg, var(--tint-danger-bg), var(--tint-danger-bg))', borderBottom: '1px solid var(--tint-danger-bd)', boxShadow: '0 8px 24px -12px rgba(0,0,0,0.7)', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
           <div style={{ width: '4px', height: '2.5rem', borderRadius: '9999px', background: '#f43f5e', boxShadow: '0 0 14px #f43f5e' }} />
           <div>
             <h1 style={{ fontWeight: 900, fontSize: '1.5rem', color: '#f43f5e', letterSpacing: '0.02em' }}>🍺 BARRA</h1>
-            <p style={{ fontSize: '0.8rem', color: '#fda4af' }}>{activos.length} en cola · {listos.length} listos</p>
+            <p style={{ fontSize: '0.8rem', color: 'var(--tint-danger-fg)' }}>{activos.length} en cola · {listos.length} listos</p>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -38,7 +38,7 @@ export default function PantallaBarra() {
 
       <div style={{ padding: '1.5rem', display: 'flex', gap: '1.5rem' }}>
         <div style={{ flex: 1 }}>
-          <h2 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#fda4af', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '1rem' }}>
+          <h2 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--tint-danger-fg)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '1rem' }}>
             En cola ({activos.length})
           </h2>
           {activos.length === 0 ? (
@@ -53,7 +53,7 @@ export default function PantallaBarra() {
                 const urgente = (Date.now() - new Date(p.horaEntrada)) > 5 * 60 * 1000
                 return (
                   <div key={p.id} className={urgente ? 'anim-fade pulse-attn' : 'anim-fade'} style={{
-                    background: 'linear-gradient(180deg, #131c2e, #0f172a)',
+                    background: 'linear-gradient(180deg, #131c2e, var(--color-inset))',
                     border: `2px solid ${urgente ? '#ef4444' : est.color + '44'}`,
                     borderRadius: 'var(--radius)',
                     padding: '1rem',
@@ -63,7 +63,7 @@ export default function PantallaBarra() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                       <div>
                         <span style={{ fontWeight: 900, fontSize: '1.25rem', color: '#f43f5e' }}>M{p.mesaNumero}</span>
-                        <span style={{ marginLeft: '0.5rem', fontSize: '0.8rem', color: '#fda4af' }}>{p.personaNombre}</span>
+                        <span style={{ marginLeft: '0.5rem', fontSize: '0.8rem', color: 'var(--tint-danger-fg)' }}>{p.personaNombre}</span>
                       </div>
                       <span style={{ fontSize: '0.75rem', color: urgente ? '#f43f5e' : '#6b7280', fontWeight: urgente ? 700 : 400 }}>
                         {urgente ? '⚠️ ' : ''}{tiempoTranscurrido(p.horaEntrada)}
@@ -99,9 +99,9 @@ export default function PantallaBarra() {
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {listos.map(p => (
-                <div key={p.id} style={{ background: '#2d0a14', border: '1px solid #450a1b', borderRadius: '0.625rem', padding: '0.75rem', opacity: 0.85 }}>
+                <div key={p.id} style={{ background: 'var(--tint-danger-bg)', border: '1px solid var(--tint-danger-bd)', borderRadius: '0.625rem', padding: '0.75rem', opacity: 0.85 }}>
                   <div style={{ fontWeight: 700, color: '#f43f5e', fontSize: '0.9rem' }}>M{p.mesaNumero} — {p.personaNombre}</div>
-                  <div style={{ fontSize: '0.8rem', color: '#fda4af' }}>{p.cantidad}× {p.nombre}</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--tint-danger-fg)' }}>{p.cantidad}× {p.nombre}</div>
                 </div>
               ))}
             </div>

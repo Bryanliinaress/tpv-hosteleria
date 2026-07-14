@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore'
+import TemaToggle from '../components/TemaToggle'
 
 const grupos = [
   {
@@ -38,6 +39,9 @@ export default function Home() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '3.5rem 1.5rem 3rem' }}>
       <div className="anim-fade" style={{ width: '100%', maxWidth: '980px' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
+          <TemaToggle />
+        </div>
         {/* Hero */}
         <div style={{ textAlign: 'center', marginBottom: '2.75rem' }}>
           <div style={{
@@ -49,7 +53,7 @@ export default function Home() {
           }}>🍽</div>
           <h1 style={{
             fontSize: 'clamp(2rem, 5vw, 2.75rem)', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1.05,
-            background: 'linear-gradient(120deg, #fff 30%, #fdba74)', WebkitBackgroundClip: 'text',
+            background: 'linear-gradient(120deg, var(--color-text) 25%, var(--color-accent))', WebkitBackgroundClip: 'text',
             backgroundClip: 'text', color: 'transparent', marginBottom: '0.6rem',
           }}>TPV Hostelería</h1>
           <p style={{ color: 'var(--color-muted)', fontSize: '1rem', maxWidth: '34rem', margin: '0 auto' }}>
@@ -71,7 +75,7 @@ export default function Home() {
               <span style={{ display: 'block', fontWeight: 800, color: 'var(--color-text)' }}>Configura tu local en 15 minutos</span>
               <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--color-muted)' }}>Nombre, sala, personal y carta — el asistente te guía paso a paso.</span>
             </span>
-            <span style={{ color: '#f97316', fontSize: '1.2rem' }}>→</span>
+            <span style={{ color: 'var(--color-accent)', fontSize: '1.2rem' }}>→</span>
           </button>
         )}
 
@@ -116,7 +120,7 @@ export default function Home() {
           ))}
         </div>
 
-        <p style={{ marginTop: '2.75rem', fontSize: '0.75rem', color: 'var(--color-faint)', textAlign: 'center' }}>v0.28.1 · Demo en desarrollo</p>
+        <p style={{ marginTop: '2.75rem', fontSize: '0.75rem', color: 'var(--color-faint)', textAlign: 'center' }}>v0.29.0 · Demo en desarrollo</p>
       </div>
     </div>
   )

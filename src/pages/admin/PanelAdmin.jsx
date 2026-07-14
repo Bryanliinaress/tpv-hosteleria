@@ -6,6 +6,7 @@ import Ticket from '../../components/Ticket'
 import ReservasManager from '../../components/ReservasManager'
 import ReservasConfig from '../../components/ReservasConfig'
 import BotonSalir from '../../components/BotonSalir'
+import TemaToggle from '../../components/TemaToggle'
 import Informes from './Informes'
 
 const emptyForm = { nombre: '', categoria: '', descripcion: '', alergenos: [], imagen: '', conFormatos: false, precios: {}, precio: '' }
@@ -90,7 +91,8 @@ export default function PanelAdmin() {
           <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>{local.nombre || 'Gestión del local'}</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <button onClick={resetDatos} title="Borra todos los datos guardados y recarga" style={{ background: '#1e293b', color: 'var(--color-muted)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.875rem', cursor: 'pointer', fontSize: '0.8rem' }}>
+          <TemaToggle compacto />
+          <button onClick={resetDatos} title="Borra todos los datos guardados y recarga" style={{ background: 'var(--color-surface-2)', color: 'var(--color-muted)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.875rem', cursor: 'pointer', fontSize: '0.8rem' }}>
             ↺ Reiniciar datos
           </button>
           <BotonSalir />
@@ -100,10 +102,10 @@ export default function PanelAdmin() {
       {/* Stats rápidas */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-border)' }}>
         {[
-          { label: 'Mesas ocupadas', value: `${mesasOcupadas}/${mesas.length}`, color: '#f59e0b' },
-          { label: 'Productos en carta', value: carta.productos.length, color: '#3b82f6' },
+          { label: 'Mesas ocupadas', value: `${mesasOcupadas}/${mesas.length}`, color: 'var(--tint-warning-fg)' },
+          { label: 'Productos en carta', value: carta.productos.length, color: 'var(--tint-info-fg)' },
           { label: 'Categorías', value: carta.categorias.length, color: '#8b5cf6' },
-          { label: 'Consumo activo', value: `${totalVentas.toFixed(2)} €`, color: '#f97316' },
+          { label: 'Consumo activo', value: `${totalVentas.toFixed(2)} €`, color: 'var(--color-accent)' },
         ].map(s => (
           <div key={s.label} style={{ position: 'relative', overflow: 'hidden', background: 'var(--color-surface)', borderRadius: 'var(--radius)', padding: '1rem', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
             <div style={{ position: 'absolute', top: 0, left: 0, width: '3px', height: '100%', background: s.color }} />
@@ -130,8 +132,8 @@ export default function PanelAdmin() {
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
             background: 'none', border: 'none', padding: '0.875rem 1.5rem', cursor: 'pointer',
-            color: tab === t.id ? '#f97316' : 'var(--color-muted)',
-            borderBottom: tab === t.id ? '2px solid #f97316' : '2px solid transparent',
+            color: tab === t.id ? 'var(--color-accent)' : 'var(--color-muted)',
+            borderBottom: tab === t.id ? '2px solid var(--color-accent)' : '2px solid transparent',
             fontWeight: tab === t.id ? 700 : 400, fontSize: '0.875rem',
           }}>
             {t.label}
@@ -148,8 +150,8 @@ export default function PanelAdmin() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                   <span style={{ fontSize: '1.1rem' }}>{cat.emoji}</span>
                   <h3 style={{ fontWeight: 700, fontSize: '1rem' }}>{cat.nombre}</h3>
-                  <span style={{ fontSize: '0.75rem', background: cat.tipo === 'comida' ? '#052e16' : '#2d0a14', color: cat.tipo === 'comida' ? '#10b981' : '#f43f5e', borderRadius: '9999px', padding: '0.15rem 0.5rem' }}>{cat.tipo}</span>
-                  <button onClick={() => empezarNuevo(cat.id)} style={{ marginLeft: 'auto', background: '#f97316', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.3rem 0.75rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
+                  <span style={{ fontSize: '0.75rem', background: cat.tipo === 'comida' ? 'var(--tint-success-bg)' : 'var(--tint-danger-bg)', color: cat.tipo === 'comida' ? 'var(--tint-success-fg)' : 'var(--tint-danger-fg)', borderRadius: '9999px', padding: '0.15rem 0.5rem' }}>{cat.tipo}</span>
+                  <button onClick={() => empezarNuevo(cat.id)} style={{ marginLeft: 'auto', background: 'var(--color-accent)', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.3rem 0.75rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
                     + Añadir
                   </button>
                 </div>
@@ -176,7 +178,7 @@ export default function PanelAdmin() {
                             {(prod.alergenos || []).length > 0 && <span title={prod.alergenos.map(a => ALERGENOS.find(x => x.id === a)?.nombre || a).join(', ')} style={{ marginLeft: '0.4rem' }}>{prod.alergenos.map(a => ALERGENOS.find(x => x.id === a)?.emoji || '•').join('')}</span>}
                           </div>
                         </div>
-                        <div style={{ fontWeight: 700, color: '#f97316', fontSize: '0.85rem', margin: '0 0.75rem', whiteSpace: 'nowrap', textAlign: 'right' }}>
+                        <div style={{ fontWeight: 700, color: 'var(--color-accent)', fontSize: '0.85rem', margin: '0 0.75rem', whiteSpace: 'nowrap', textAlign: 'right' }}>
                           {prod.precios
                             ? Object.entries(prod.precios).map(([k, v]) => (
                                 <div key={k} title={carta.formatos.find(f => f.id === k)?.nombre || k}>{Number(v).toFixed(2)} €</div>
@@ -202,7 +204,7 @@ export default function PanelAdmin() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <p style={{ color: 'var(--color-muted)', fontSize: '0.85rem' }}>Configura las mesas: capacidad, zona, añadir o quitar. (Solo se pueden borrar mesas libres.)</p>
-              <button onClick={addMesa} style={{ background: '#f97316', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 0.9rem', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap' }}>+ Añadir mesa</button>
+              <button onClick={addMesa} style={{ background: 'var(--color-accent)', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 0.9rem', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap' }}>+ Añadir mesa</button>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.875rem' }}>
               {mesas.map(m => {
@@ -217,7 +219,7 @@ export default function PanelAdmin() {
                     <input value={m.zona || ''} onChange={e => updateMesa(m.id, { zona: e.target.value })} list="zonas-list" placeholder="Zona" style={{ ...inputStyle, marginBottom: '0.5rem' }} />
                     <label style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Capacidad</label>
                     <input value={m.capacidad} onChange={e => updateMesa(m.id, { capacidad: e.target.value })} type="number" min="1" style={{ ...inputStyle, marginBottom: '0.625rem' }} />
-                    <button onClick={async () => { if (libre && await confirmar({ titulo: 'Borrar mesa', mensaje: `¿Borrar la mesa ${m.numero}?`, peligro: true, confirmar: 'Borrar' })) { removeMesa(m.id); toast('Mesa borrada', 'success') } }} disabled={!libre} style={{ width: '100%', background: libre ? '#7f1d1d' : '#1e293b', color: libre ? '#fff' : '#64748b', border: 'none', borderRadius: '0.5rem', padding: '0.4rem', cursor: libre ? 'pointer' : 'not-allowed', fontSize: '0.78rem' }}>{libre ? '🗑️ Borrar mesa' : 'Ocupada'}</button>
+                    <button onClick={async () => { if (libre && await confirmar({ titulo: 'Borrar mesa', mensaje: `¿Borrar la mesa ${m.numero}?`, peligro: true, confirmar: 'Borrar' })) { removeMesa(m.id); toast('Mesa borrada', 'success') } }} disabled={!libre} style={{ width: '100%', background: libre ? '#7f1d1d' : 'var(--color-surface-2)', color: libre ? '#fff' : '#64748b', border: 'none', borderRadius: '0.5rem', padding: '0.4rem', cursor: libre ? 'pointer' : 'not-allowed', fontSize: '0.78rem' }}>{libre ? '🗑️ Borrar mesa' : 'Ocupada'}</button>
                   </div>
                 )
               })}
@@ -232,7 +234,7 @@ export default function PanelAdmin() {
         {tab === 'reservas' && (
           <div style={{ maxWidth: '640px' }}>
             <p style={{ color: 'var(--color-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
-              Reservas online de los clientes. Asigna una mesa y siéntalos cuando lleguen. Las reservas entran desde la página pública <code style={{ color: '#60a5fa' }}>/reservar</code>.
+              Reservas online de los clientes. Asigna una mesa y siéntalos cuando lleguen. Las reservas entran desde la página pública <code style={{ color: 'var(--tint-info-fg)' }}>/reservar</code>.
             </p>
             <ReservasConfig />
             <ReservasManager />
@@ -252,19 +254,19 @@ export default function PanelAdmin() {
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.625rem', marginBottom: '1rem' }}>
-                <div style={{ background: '#0f172a', borderRadius: '0.625rem', padding: '0.75rem' }}>
+                <div style={{ background: 'var(--color-inset)', borderRadius: '0.625rem', padding: '0.75rem' }}>
                   <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Ventas</div>
-                  <div style={{ fontWeight: 800, fontSize: '1.3rem', color: '#f97316' }}>{cajaTotal.toFixed(2)} €</div>
+                  <div style={{ fontWeight: 800, fontSize: '1.3rem', color: 'var(--color-accent)' }}>{cajaTotal.toFixed(2)} €</div>
                 </div>
-                <div style={{ background: '#0f172a', borderRadius: '0.625rem', padding: '0.75rem' }}>
+                <div style={{ background: 'var(--color-inset)', borderRadius: '0.625rem', padding: '0.75rem' }}>
                   <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Tickets</div>
                   <div style={{ fontWeight: 800, fontSize: '1.3rem', color: '#3b82f6' }}>{ticketsCaja.length}</div>
                 </div>
-                <div style={{ background: '#0f172a', borderRadius: '0.625rem', padding: '0.75rem' }}>
+                <div style={{ background: 'var(--color-inset)', borderRadius: '0.625rem', padding: '0.75rem' }}>
                   <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Propinas</div>
                   <div style={{ fontWeight: 800, fontSize: '1.3rem', color: '#10b981' }}>{cajaPropinas.toFixed(2)} €</div>
                 </div>
-                <div style={{ background: '#0f172a', borderRadius: '0.625rem', padding: '0.75rem' }}>
+                <div style={{ background: 'var(--color-inset)', borderRadius: '0.625rem', padding: '0.75rem' }}>
                   <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Ticket medio</div>
                   <div style={{ fontWeight: 800, fontSize: '1.3rem', color: '#8b5cf6' }}>{(ticketsCaja.length ? cajaTotal / ticketsCaja.length : 0).toFixed(2)} €</div>
                 </div>
@@ -304,7 +306,7 @@ export default function PanelAdmin() {
                   <span>Descuadre</span><strong>{descuadre >= 0 ? '+' : ''}{descuadre.toFixed(2)} €</strong>
                 </div>
               )}
-              <button onClick={hacerCierre} disabled={ticketsCaja.length === 0} style={{ width: '100%', marginTop: '0.875rem', background: ticketsCaja.length ? '#f97316' : '#334155', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.8rem', cursor: ticketsCaja.length ? 'pointer' : 'not-allowed', fontWeight: 700 }}>
+              <button onClick={hacerCierre} disabled={ticketsCaja.length === 0} style={{ width: '100%', marginTop: '0.875rem', background: ticketsCaja.length ? 'var(--color-accent)' : 'var(--color-surface-3)', color: ticketsCaja.length ? '#fff' : 'var(--color-text)', border: 'none', borderRadius: '0.5rem', padding: '0.8rem', cursor: ticketsCaja.length ? 'pointer' : 'not-allowed', fontWeight: 700 }}>
                 🔒 Cerrar caja
               </button>
 
@@ -312,10 +314,10 @@ export default function PanelAdmin() {
                 <>
                   <h4 style={{ fontSize: '0.85rem', fontWeight: 700, margin: '1.25rem 0 0.5rem', color: 'var(--color-muted)' }}>Cierres anteriores</h4>
                   {cierres.slice().reverse().map(z => (
-                    <div key={z.id} style={{ background: '#0f172a', borderRadius: '0.5rem', padding: '0.6rem 0.75rem', marginBottom: '0.4rem' }}>
+                    <div key={z.id} style={{ background: 'var(--color-inset)', borderRadius: '0.5rem', padding: '0.6rem 0.75rem', marginBottom: '0.4rem' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '0.85rem' }}>
                         <span>{new Date(z.hasta).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}</span>
-                        <span style={{ color: '#f97316' }}>{z.total.toFixed(2)} €</span>
+                        <span style={{ color: 'var(--color-accent)' }}>{z.total.toFixed(2)} €</span>
                       </div>
                       <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>
                         {z.nTickets} ticket(s)
@@ -343,7 +345,7 @@ export default function PanelAdmin() {
                       <span style={{ color: '#f43f5e' }}>{(anulaciones || []).reduce((s, a) => s + (a.importe || 0), 0).toFixed(2)} €</span>
                     </div>
                     {(anulaciones || []).slice(-15).reverse().map(a => (
-                      <div key={a.id} style={{ background: '#0f172a', borderRadius: '0.5rem', padding: '0.55rem 0.75rem', marginBottom: '0.4rem' }}>
+                      <div key={a.id} style={{ background: 'var(--color-inset)', borderRadius: '0.5rem', padding: '0.55rem 0.75rem', marginBottom: '0.4rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 700 }}>
                           <span>M{a.mesaNumero} · {a.cantidad}× {a.nombre}{a.enviado ? ' 🔥' : ''}</span>
                           <span style={{ color: '#f43f5e' }}>−{(a.importe || 0).toFixed(2)} €</span>
@@ -388,7 +390,7 @@ export default function PanelAdmin() {
               <h3 style={ajusteTitulo}>{etiquetas.tiposPan} (variedades)</h3>
               {carta.tiposPan.map(t => (
                 <div key={t.id} style={ajusteFila}>
-                  <span>{t.nombre} {t.sup > 0 && <span style={{ fontSize: '0.72rem', color: '#f97316' }}>+{t.sup.toFixed(2)}€</span>}</span>
+                  <span>{t.nombre} {t.sup > 0 && <span style={{ fontSize: '0.72rem', color: 'var(--color-accent)' }}>+{t.sup.toFixed(2)}€</span>}</span>
                   <button onClick={() => removeTipoPan(t.id)} style={iconBtn}>🗑️</button>
                 </div>
               ))}
@@ -406,8 +408,8 @@ export default function PanelAdmin() {
                 {carta.extras.map(raw => {
                   const ex = normalizarExtra(raw)
                   return (
-                    <span key={ex.nombre} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: '#0f172a', border: '1px solid var(--color-border)', borderRadius: '9999px', padding: '0.2rem 0.5rem 0.2rem 0.7rem', fontSize: '0.8rem' }}>
-                      {ex.nombre}{ex.precio > 0 && <span style={{ color: '#f97316', fontSize: '0.72rem' }}>+{ex.precio.toFixed(2)}€</span>}
+                    <span key={ex.nombre} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: 'var(--color-inset)', border: '1px solid var(--color-border)', borderRadius: '9999px', padding: '0.2rem 0.5rem 0.2rem 0.7rem', fontSize: '0.8rem' }}>
+                      {ex.nombre}{ex.precio > 0 && <span style={{ color: 'var(--color-accent)', fontSize: '0.72rem' }}>+{ex.precio.toFixed(2)}€</span>}
                       <button onClick={() => removeExtra(ex.nombre)} style={{ background: 'none', border: 'none', color: '#f43f5e', cursor: 'pointer', fontSize: '0.85rem' }}>✕</button>
                     </span>
                   )
@@ -524,7 +526,7 @@ export default function PanelAdmin() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
               {[
                 { label: `Tickets de ${ahora.toLocaleDateString('es-ES', { month: 'long' })}`, value: delMes.length, color: '#3b82f6' },
-                { label: 'Facturado (mes)', value: `${totalMes.toFixed(2)} €`, color: '#f97316' },
+                { label: 'Facturado (mes)', value: `${totalMes.toFixed(2)} €`, color: 'var(--color-accent)' },
                 { label: 'Propinas (mes)', value: `${propinasMes.toFixed(2)} €`, color: '#10b981' },
               ].map(s => (
                 <div key={s.label} style={{ background: 'var(--color-surface)', borderRadius: '0.75rem', padding: '1rem', border: '1px solid var(--color-border)' }}>
@@ -538,7 +540,7 @@ export default function PanelAdmin() {
               <div key={dia} style={{ marginBottom: '1.5rem' }}>
                 <div style={{ fontWeight: 700, marginBottom: '0.625rem', display: 'flex', justifyContent: 'space-between' }}>
                   <span>{dia}</span>
-                  <span style={{ color: '#f97316' }}>{porDia[dia].reduce((s, r) => s + r.total, 0).toFixed(2)} €</span>
+                  <span style={{ color: 'var(--color-accent)' }}>{porDia[dia].reduce((s, r) => s + r.total, 0).toFixed(2)} €</span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.5rem' }}>
                   {porDia[dia].slice().reverse().map(r => (
@@ -547,7 +549,7 @@ export default function PanelAdmin() {
                         <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Mesa {r.mesaNumero}</div>
                         <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{new Date(r.cerradaEn).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} · {r.total.toFixed(2)} €</div>
                       </div>
-                      <button onClick={() => setTicket({ numero: r.mesaNumero, personas: r.personas })} style={{ background: '#f97316', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.4rem 0.7rem', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>Ver</button>
+                      <button onClick={() => setTicket({ numero: r.mesaNumero, personas: r.personas })} style={{ background: 'var(--color-accent)', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.4rem 0.7rem', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>Ver</button>
                     </div>
                   ))}
                 </div>
@@ -574,7 +576,7 @@ export default function PanelAdmin() {
                     <code style={{ fontSize: '0.65rem', color: '#a78bfa', wordBreak: 'break-all', textAlign: 'center' }}>{url}</code>
                     <button
                       onClick={() => navigator.clipboard?.writeText(url)}
-                      style={{ background: '#1e293b', color: 'var(--color-muted)', border: '1px solid var(--color-border)', borderRadius: '0.375rem', padding: '0.375rem 0.75rem', cursor: 'pointer', fontSize: '0.75rem', width: '100%' }}
+                      style={{ background: 'var(--color-surface-2)', color: 'var(--color-muted)', border: '1px solid var(--color-border)', borderRadius: '0.375rem', padding: '0.375rem 0.75rem', cursor: 'pointer', fontSize: '0.75rem', width: '100%' }}
                     >
                       Copiar URL
                     </button>
@@ -647,7 +649,7 @@ function FichajesTab({ fichajes, empleados, editarFichaje, borrarFichaje, local 
     <div style={{ maxWidth: '760px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
         <input type="month" value={mes} onChange={e => setMes(e.target.value)} style={{ ...inputStyle, width: 'auto' }} />
-        <span style={{ fontSize: '0.85rem', color: 'var(--color-muted)' }}>{delMes.length} fichaje(s) · <strong style={{ color: '#f97316' }}>{fmtH(totalHoras)}</strong> en total</span>
+        <span style={{ fontSize: '0.85rem', color: 'var(--color-muted)' }}>{delMes.length} fichaje(s) · <strong style={{ color: 'var(--color-accent)' }}>{fmtH(totalHoras)}</strong> en total</span>
         <button onClick={exportarCSV} disabled={delMes.length === 0} style={{ ...addBtn, marginLeft: 'auto', opacity: delMes.length ? 1 : 0.5 }}>⬇ Exportar CSV</button>
       </div>
 
@@ -683,7 +685,7 @@ function FichajesTab({ fichajes, empleados, editarFichaje, borrarFichaje, local 
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                    <button onClick={() => setEdit(null)} style={{ background: '#334155', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.4rem 0.9rem', cursor: 'pointer', fontSize: '0.82rem' }}>Cancelar</button>
+                    <button onClick={() => setEdit(null)} style={{ background: 'var(--color-surface-3)', color: 'var(--color-text)', border: 'none', borderRadius: '0.5rem', padding: '0.4rem 0.9rem', cursor: 'pointer', fontSize: '0.82rem' }}>Cancelar</button>
                     <button onClick={guardar} style={addBtn}>Guardar</button>
                   </div>
                 </div>
@@ -695,7 +697,7 @@ function FichajesTab({ fichajes, empleados, editarFichaje, borrarFichaje, local 
                       🟢 {new Date(f.entrada).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
                       {' → '}
                       {abierto ? <span style={{ color: '#10b981' }}>en curso</span> : `🔴 ${new Date(f.salida).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`}
-                      {!abierto && <strong style={{ color: '#f97316', marginLeft: '0.5rem' }}>· {fmtH(horasEntre(f.entrada, f.salida))}</strong>}
+                      {!abierto && <strong style={{ color: 'var(--color-accent)', marginLeft: '0.5rem' }}>· {fmtH(horasEntre(f.entrada, f.salida))}</strong>}
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '0.25rem' }}>
@@ -743,7 +745,7 @@ function PersonalTab({ empleados, addEmpleado, updateEmpleado, removeEmpleado })
       <p style={{ color: 'var(--color-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
         Da de alta al personal y asígnale un PIN. Cada empleado entra en las pantallas (PDA, cocina, barra, impresión y este panel) con su PIN. Los <strong>administradores</strong> además pueden entrar aquí. Desactiva a quien no esté de turno sin perder su ficha.
       </p>
-      {err && <div style={{ background: '#2d0a14', border: '1px solid #f43f5e', color: '#fda4af', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.82rem', marginBottom: '0.75rem' }}>⚠️ {err}</div>}
+      {err && <div style={{ background: 'var(--tint-danger-bg)', border: '1px solid #f43f5e', color: 'var(--tint-danger-fg)', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.82rem', marginBottom: '0.75rem' }}>⚠️ {err}</div>}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
         {empleados.map(e => (
@@ -757,7 +759,7 @@ function PersonalTab({ empleados, addEmpleado, updateEmpleado, removeEmpleado })
               <label style={lblCampo}>PIN</label>
               <input value={pinDraft[e.id] ?? e.pin} onChange={ev => onPin(e, ev.target.value)} inputMode="numeric" maxLength={4} style={{ ...inputStyle, letterSpacing: '0.2em', fontWeight: 700 }} />
             </div>
-            <button onClick={() => updateEmpleado(e.id, { activo: !e.activo })} style={{ background: e.activo ? '#052e16' : '#3f1d0a', color: e.activo ? '#10b981' : '#f59e0b', border: `1px solid ${e.activo ? '#10b981' : '#f59e0b'}66`, borderRadius: '9999px', padding: '0.3rem 0.7rem', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
+            <button onClick={() => updateEmpleado(e.id, { activo: !e.activo })} style={{ background: e.activo ? 'var(--tint-success-bg)' : 'var(--color-surface-3)', color: e.activo ? 'var(--tint-success-fg)' : 'var(--tint-warning-fg)', border: `1px solid ${e.activo ? '#10b981' : '#f59e0b'}66`, borderRadius: '9999px', padding: '0.3rem 0.7rem', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
               {e.activo ? '🟢 Activo' : '⏸ Inactivo'}
             </button>
             <button onClick={() => borrar(e)} title="Eliminar" style={iconBtn}>🗑️</button>
@@ -766,7 +768,7 @@ function PersonalTab({ empleados, addEmpleado, updateEmpleado, removeEmpleado })
       </div>
 
       {/* Alta de empleado */}
-      <div style={{ ...ajusteCard, borderColor: '#f97316' }}>
+      <div style={{ ...ajusteCard, borderColor: 'var(--color-accent)' }}>
         <h3 style={{ ...ajusteTitulo, marginBottom: '0.6rem' }}>Nuevo empleado</h3>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ flex: '2 1 160px' }}>
@@ -794,12 +796,12 @@ function PersonalTab({ empleados, addEmpleado, updateEmpleado, removeEmpleado })
 function FormProducto({ carta, form, setForm, onGuardar, onCancelar, titulo }) {
   const set = (campo) => (e) => setForm(f => ({ ...f, [campo]: e.target.value }))
   return (
-    <div style={{ background: 'var(--color-surface)', border: '1px solid #f97316', borderRadius: '0.625rem', padding: '1rem', marginBottom: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.625rem', gridColumn: '1 / -1' }}>
-      <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#f97316' }}>{titulo}</div>
+    <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-accent)', borderRadius: '0.625rem', padding: '1rem', marginBottom: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.625rem', gridColumn: '1 / -1' }}>
+      <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--color-accent)' }}>{titulo}</div>
       <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap' }}>
         <input value={form.nombre} onChange={set('nombre')} placeholder="Nombre" style={{ ...inputStyle, flex: '2 1 180px' }} />
         <button type="button" onClick={() => setForm(f => ({ ...f, conFormatos: !f.conFormatos }))}
-          style={{ background: form.conFormatos ? '#7c3aed' : '#0f172a', color: '#fff', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, flex: '0 0 auto' }}>
+          style={{ background: form.conFormatos ? '#7c3aed' : 'var(--color-inset)', color: '#fff', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, flex: '0 0 auto' }}>
           {form.conFormatos ? '📐 Por formatos' : '💶 Precio único'}
         </button>
         {form.conFormatos
@@ -825,7 +827,7 @@ function FormProducto({ carta, form, setForm, onGuardar, onCancelar, titulo }) {
             const on = (form.alergenos || []).includes(a.id)
             return (
               <button key={a.id} type="button" onClick={() => setForm(f => ({ ...f, alergenos: on ? f.alergenos.filter(x => x !== a.id) : [...(f.alergenos || []), a.id] }))}
-                style={{ background: on ? '#7c2d12' : '#0f172a', color: on ? '#fdba74' : 'var(--color-muted)', border: `1px solid ${on ? '#f97316' : 'var(--color-border)'}`, borderRadius: '9999px', padding: '0.25rem 0.6rem', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}>
+                style={{ background: on ? '#7c2d12' : 'var(--color-inset)', color: on ? '#fdba74' : 'var(--color-muted)', border: `1px solid ${on ? 'var(--color-accent)' : 'var(--color-border)'}`, borderRadius: '9999px', padding: '0.25rem 0.6rem', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}>
                 {a.emoji} {a.nombre}
               </button>
             )
@@ -833,15 +835,15 @@ function FormProducto({ carta, form, setForm, onGuardar, onCancelar, titulo }) {
         </div>
       </div>
       <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-        <button onClick={onCancelar} style={{ background: '#334155', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer', fontSize: '0.85rem' }}>Cancelar</button>
-        <button onClick={onGuardar} style={{ background: '#f97316', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1.25rem', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}>Guardar</button>
+        <button onClick={onCancelar} style={{ background: 'var(--color-surface-3)', color: 'var(--color-text)', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer', fontSize: '0.85rem' }}>Cancelar</button>
+        <button onClick={onGuardar} style={{ background: 'var(--color-accent)', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1.25rem', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}>Guardar</button>
       </div>
     </div>
   )
 }
 
 const inputStyle = {
-  background: '#0f172a',
+  background: 'var(--color-inset)',
   border: '1px solid var(--color-border)',
   borderRadius: '0.5rem',
   padding: '0.5rem 0.75rem',
@@ -863,4 +865,4 @@ const lblCampo = { display: 'block', fontSize: '0.72rem', color: 'var(--color-mu
 const ajusteCard = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.875rem', padding: '1.1rem' }
 const ajusteTitulo = { fontWeight: 700, fontSize: '1rem', marginBottom: '0.75rem' }
 const ajusteFila = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.35rem 0', borderBottom: '1px solid var(--color-border)', fontSize: '0.875rem' }
-const addBtn = { background: '#f97316', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 0.85rem', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, whiteSpace: 'nowrap' }
+const addBtn = { background: 'var(--color-accent)', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 0.85rem', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, whiteSpace: 'nowrap' }

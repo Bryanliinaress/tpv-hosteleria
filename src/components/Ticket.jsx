@@ -101,8 +101,8 @@ export default function Ticket({ tipo, mesa, persona, onClose }) {
           {tipo === 'comanda' ? <Comanda mesa={mesa} /> : <Cuenta mesa={mesa} persona={tipo === 'persona' ? persona : null} local={local} />}
         </div>
         <div className="no-print" style={{ display: 'flex', gap: '0.5rem' }}>
-          <button onClick={() => window.print()} style={st.btn('#f97316')}>🖨️ Imprimir</button>
-          <button onClick={onClose} style={st.btn('#334155')}>Cerrar</button>
+          <button onClick={() => window.print()} style={st.btn('var(--color-accent)')}>🖨️ Imprimir</button>
+          <button onClick={onClose} style={st.btn('var(--color-surface-3)')}>Cerrar</button>
         </div>
       </div>
     </div>
@@ -118,5 +118,5 @@ const st = {
   linea: { display: 'flex', justifyContent: 'space-between', gap: '0.5rem' },
   mod: { fontSize: '0.74rem', color: '#666', paddingLeft: '0.5rem' },
   fine: { fontSize: '0.74rem', color: '#555' },
-  btn: (bg) => ({ background: bg, color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.6rem 1.1rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem' }),
+  btn: (bg) => ({ background: bg, color: /surface|inset|transparent|none|tint-[a-z]+-bg/.test(bg) ? 'var(--color-text)' : '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.6rem 1.1rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem' }),
 }

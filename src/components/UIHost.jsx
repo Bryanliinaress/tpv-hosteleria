@@ -50,7 +50,7 @@ function Dialogo({ dialogo, responder }) {
 
   const aceptar = () => responder(esPrompt ? valor : true)
   const cancelar = () => responder(esPrompt ? null : false)
-  const colorOk = dialogo.peligro ? '#f43f5e' : '#f97316'
+  const colorOk = dialogo.peligro ? '#f43f5e' : 'var(--color-accent)'
 
   return (
     <div className="no-print" onClick={cancelar} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300, padding: '1rem', animation: 'fadeIn 0.2s ease both' }}>
@@ -62,7 +62,7 @@ function Dialogo({ dialogo, responder }) {
             ref={inputRef} value={valor} onChange={e => setValor(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') aceptar() }}
             placeholder={dialogo.placeholder}
-            style={{ width: '100%', background: '#0f172a', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.7rem 0.85rem', color: 'var(--color-text)', fontSize: '0.95rem', marginBottom: '1rem' }}
+            style={{ width: '100%', background: 'var(--color-inset)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.7rem 0.85rem', color: 'var(--color-text)', fontSize: '0.95rem', marginBottom: '1rem' }}
           />
         )}
         <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end' }}>
@@ -74,4 +74,4 @@ function Dialogo({ dialogo, responder }) {
   )
 }
 
-const btn = (bg, extra = {}) => ({ background: bg, color: '#fff', border: 'none', borderRadius: '0.55rem', padding: '0.6rem 1.1rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.88rem', boxShadow: '0 1px 2px rgba(0,0,0,0.2)', ...extra })
+const btn = (bg, extra = {}) => ({ background: bg, color: /surface|inset|transparent|none|tint-[a-z]+-bg/.test(bg) ? 'var(--color-text)' : '#fff', border: 'none', borderRadius: '0.55rem', padding: '0.6rem 1.1rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.88rem', boxShadow: '0 1px 2px rgba(0,0,0,0.2)', ...extra })
