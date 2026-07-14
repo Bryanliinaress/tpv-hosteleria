@@ -70,7 +70,7 @@ function Dialogo({ dialogo, responder }) {
 
   return (
     <div className="no-print" onClick={cancelar} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300, padding: '1rem', animation: 'fadeIn 0.2s ease both' }}>
-      <div onClick={e => e.stopPropagation()} className="anim-pop" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', padding: '1.3rem', width: '100%', maxWidth: '380px' }}>
+      <div onClick={e => e.stopPropagation()} className="anim-pop" role="dialog" aria-modal="true" aria-label={dialogo.titulo || 'Diálogo'} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', padding: '1.3rem', width: '100%', maxWidth: '380px' }}>
         {dialogo.titulo && <h3 style={{ fontWeight: 800, fontSize: '1.1rem', marginBottom: dialogo.mensaje ? '0.4rem' : '0.9rem' }}>{dialogo.titulo}</h3>}
         {dialogo.mensaje && <p style={{ color: 'var(--color-muted)', fontSize: '0.9rem', marginBottom: '1rem', lineHeight: 1.45 }}>{dialogo.mensaje}</p>}
         {esPrompt && (
