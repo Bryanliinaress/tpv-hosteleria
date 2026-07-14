@@ -70,7 +70,7 @@ export default function ReservasManager({ onSentada }) {
     <div>
       <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1rem' }}>
         {[{ id: 'agenda', t: '📋 Agenda' }, { id: 'servicio', t: '📊 Servicio' }].map(o => (
-          <button key={o.id} onClick={() => setVista(o.id)} style={btn(vista === o.id ? '#3b82f6' : '#1e293b', { flex: 1, fontSize: '0.82rem' })}>{o.t}</button>
+          <button key={o.id} onClick={() => setVista(o.id)} style={btn(vista === o.id ? '#3b82f6' : 'var(--color-surface-2)', { flex: 1, fontSize: '0.82rem' })}>{o.t}</button>
         ))}
       </div>
 
@@ -79,7 +79,7 @@ export default function ReservasManager({ onSentada }) {
       {vista === 'agenda' && (<>
       <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1rem' }}>
         {[{ id: 'hoy', t: `Hoy${pendientesHoy ? ` (${pendientesHoy})` : ''}` }, { id: 'proximas', t: 'Próximas' }, { id: 'todas', t: 'Todas' }].map(o => (
-          <button key={o.id} onClick={() => setFiltro(o.id)} style={btn(filtro === o.id ? '#f97316' : '#1e293b', { flex: 1, fontSize: '0.82rem' })}>{o.t}</button>
+          <button key={o.id} onClick={() => setFiltro(o.id)} style={btn(filtro === o.id ? 'var(--color-accent)' : 'var(--color-surface-2)', { flex: 1, fontSize: '0.82rem' })}>{o.t}</button>
         ))}
       </div>
 
@@ -111,9 +111,9 @@ export default function ReservasManager({ onSentada }) {
                   </div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)', marginBottom: r.notas ? '0.25rem' : '0.5rem' }}>
                     👥 {r.personas} pers.{r.zona && ` · 📍 ${r.zona}`}{r.email && ` · ✉️ ${r.email}`}{r.telefono && ` · ☎ ${r.telefono}`}
-                    {mesaAsignada && <span style={{ color: '#60a5fa' }}> · 🍽 Mesa {mesaAsignada.numero}</span>}
+                    {mesaAsignada && <span style={{ color: 'var(--tint-info-fg)' }}> · 🍽 Mesa {mesaAsignada.numero}</span>}
                   </div>
-                  {r.notas && <div style={{ fontSize: '0.78rem', color: '#fbbf24', marginBottom: '0.5rem' }}>📝 {r.notas}</div>}
+                  {r.notas && <div style={{ fontSize: '0.78rem', color: 'var(--tint-warning-fg)', marginBottom: '0.5rem' }}>📝 {r.notas}</div>}
 
                   {activa && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', alignItems: 'center' }}>
@@ -123,10 +123,10 @@ export default function ReservasManager({ onSentada }) {
                           <option key={m.id} value={m.id}>Mesa {m.numero} · {m.zona} · {m.capacidad}p{m.capacidad < r.personas ? ' ⚠' : ''}</option>
                         ))}
                       </select>
-                      <button onClick={() => sentar(r.id)} disabled={!r.mesaId} title={r.mesaId ? '' : 'Asigna una mesa primero'} style={btn(r.mesaId ? '#10b981' : '#334155', { fontSize: '0.8rem', cursor: r.mesaId ? 'pointer' : 'not-allowed' })}>▶ Sentar</button>
+                      <button onClick={() => sentar(r.id)} disabled={!r.mesaId} title={r.mesaId ? '' : 'Asigna una mesa primero'} style={btn(r.mesaId ? '#10b981' : 'var(--color-surface-3)', { fontSize: '0.8rem', cursor: r.mesaId ? 'pointer' : 'not-allowed' })}>▶ Sentar</button>
                       {r.email && <button onClick={() => enviarCorreo('confirmacion', r)} title={`Confirmación a ${r.email}`} style={btn('#16a34a', { fontSize: '0.8rem' })}>✉️ Confirmar</button>}
                       {r.email && <button onClick={() => enviarCorreo('recordatorio', r)} title={`Recordatorio a ${r.email}`} style={btn('#1d4ed8', { fontSize: '0.8rem' })}>🔔 Recordar</button>}
-                      <button onClick={async () => { if (await confirmar({ titulo: 'Cancelar reserva', mensaje: 'Se avisará al cliente por email. ¿Continuar?', peligro: true, confirmar: 'Cancelar reserva', cancelar: 'Volver' })) { cambiarEstadoReserva(r.id, 'cancelada'); if (r.email) enviarEmailReserva('cancelacion', r, { permitirMailto: false }).catch(() => {}); toast('Reserva cancelada', 'success') } }} style={btn('#334155', { fontSize: '0.8rem' })}>Cancelar</button>
+                      <button onClick={async () => { if (await confirmar({ titulo: 'Cancelar reserva', mensaje: 'Se avisará al cliente por email. ¿Continuar?', peligro: true, confirmar: 'Cancelar reserva', cancelar: 'Volver' })) { cambiarEstadoReserva(r.id, 'cancelada'); if (r.email) enviarEmailReserva('cancelacion', r, { permitirMailto: false }).catch(() => {}); toast('Reserva cancelada', 'success') } }} style={btn('var(--color-surface-3)', { fontSize: '0.8rem' })}>Cancelar</button>
                     </div>
                   )}
                 </div>
@@ -154,8 +154,8 @@ function Servicio({ cfg, mesas, reservas, fecha, setFecha }) {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
-        <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} style={{ background: '#0f172a', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.45rem 0.6rem', color: 'var(--color-text)', fontSize: '0.85rem' }} />
-        <span style={{ fontSize: '0.82rem', color: 'var(--color-muted)' }}>{delDia.length} reserva(s) · <strong style={{ color: '#f97316' }}>{coversDia}</strong> comensales · aforo {aforo}</span>
+        <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} style={{ background: 'var(--color-inset)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.45rem 0.6rem', color: 'var(--color-text)', fontSize: '0.85rem' }} />
+        <span style={{ fontSize: '0.82rem', color: 'var(--color-muted)' }}>{delDia.length} reserva(s) · <strong style={{ color: 'var(--color-accent)' }}>{coversDia}</strong> comensales · aforo {aforo}</span>
       </div>
 
       {slots.length === 0 && <p style={{ color: 'var(--color-muted)', fontSize: '0.85rem' }}>No hay turnos configurados.</p>}
@@ -171,9 +171,9 @@ function Servicio({ cfg, mesas, reservas, fecha, setFecha }) {
             return (
               <div key={s.hora} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.3rem' }}>
                 <span style={{ width: '3rem', fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-text)' }}>{s.hora}</span>
-                <div style={{ flex: 1, background: '#0f172a', borderRadius: '9999px', height: '1.1rem', overflow: 'hidden', position: 'relative' }}>
+                <div style={{ flex: 1, background: 'var(--color-inset)', borderRadius: '9999px', height: '1.1rem', overflow: 'hidden', position: 'relative' }}>
                   <div style={{ width: `${pct}%`, height: '100%', background: col, transition: 'width 0.2s' }} />
-                  <span style={{ position: 'absolute', left: '0.5rem', top: 0, lineHeight: '1.1rem', fontSize: '0.68rem', color: '#e2e8f0' }}>{ocup}/{aforo}{enSlot.length ? ` · ${enSlot.map(r => r.nombre.split(' ')[0]).join(', ')}` : ''}</span>
+                  <span style={{ position: 'absolute', left: '0.5rem', top: 0, lineHeight: '1.1rem', fontSize: '0.68rem', color: 'var(--color-text-2)' }}>{ocup}/{aforo}{enSlot.length ? ` · ${enSlot.map(r => r.nombre.split(' ')[0]).join(', ')}` : ''}</span>
                 </div>
               </div>
             )
@@ -184,5 +184,5 @@ function Servicio({ cfg, mesas, reservas, fecha, setFecha }) {
   )
 }
 
-const btn = (bg, extra = {}) => ({ background: bg, color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.45rem 0.8rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', ...extra })
-const sel = { background: '#0f172a', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.45rem 0.6rem', color: 'var(--color-text)', fontSize: '0.8rem', flex: '1 1 160px' }
+const btn = (bg, extra = {}) => ({ background: bg, color: /surface|inset|transparent|none|tint-[a-z]+-bg/.test(bg) ? 'var(--color-text)' : '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.45rem 0.8rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', ...extra })
+const sel = { background: 'var(--color-inset)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.45rem 0.6rem', color: 'var(--color-text)', fontSize: '0.8rem', flex: '1 1 160px' }

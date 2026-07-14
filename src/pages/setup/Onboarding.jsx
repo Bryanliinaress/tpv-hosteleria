@@ -72,7 +72,7 @@ export default function Onboarding() {
         <div style={{ display: 'flex', justifyContent: 'center', gap: '0.4rem', marginTop: '0.8rem' }}>
           {PASOS.map((p, i) => (
             <div key={p} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <div style={{ width: paso === i ? '1.6rem' : '0.5rem', height: '0.5rem', borderRadius: '9999px', background: i <= paso ? '#f97316' : '#334155', transition: 'all 0.2s' }} />
+              <div style={{ width: paso === i ? '1.6rem' : '0.5rem', height: '0.5rem', borderRadius: '9999px', background: i <= paso ? 'var(--color-accent)' : 'var(--color-surface-3)', transition: 'all 0.2s' }} />
             </div>
           ))}
         </div>
@@ -127,7 +127,7 @@ export default function Onboarding() {
             ))}
             <button onClick={() => setZonas(a => [...a, { nombre: '', mesas: 4, capacidad: 4 }])} style={btnSuave}>+ Añadir zona</button>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: 'var(--color-muted)', margin: '0.8rem 0' }}>
-              <span>Total</span><strong style={{ color: '#f97316' }}>{zonas.reduce((s, z) => s + (Number(z.mesas) || 0), 0)} mesas · {zonas.reduce((s, z) => s + (Number(z.mesas) || 0) * (Number(z.capacidad) || 0), 0)} plazas</strong>
+              <span>Total</span><strong style={{ color: 'var(--color-accent)' }}>{zonas.reduce((s, z) => s + (Number(z.mesas) || 0), 0)} mesas · {zonas.reduce((s, z) => s + (Number(z.mesas) || 0) * (Number(z.capacidad) || 0), 0)} plazas</strong>
             </div>
             <Nav atras={() => setPaso(0)} siguiente={siguienteSala} />
           </>
@@ -188,7 +188,7 @@ export default function Onboarding() {
         {paso === 4 && (
           <>
             <h2 style={titulo}>🎉 ¡Todo listo!</h2>
-            <div style={{ background: '#0f172a', borderRadius: '0.75rem', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem', fontSize: '0.88rem' }}>
+            <div style={{ background: 'var(--color-inset)', borderRadius: '0.75rem', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem', fontSize: '0.88rem' }}>
               <Fila k="🏪 Local" v={useStore.getState().local.nombre} />
               <Fila k="🍽 Mesas" v={`${useStore.getState().mesas.length} (${[...new Set(useStore.getState().mesas.map(m => m.zona))].join(', ')})`} />
               <Fila k="👥 Personal" v={`${empleados.filter(e => e.activo).length} empleados`} />
@@ -219,8 +219,8 @@ const Fila = ({ k, v }) => (
 const card = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: '1.4rem', boxShadow: 'var(--shadow)' }
 const titulo = { fontWeight: 800, fontSize: '1.15rem', marginBottom: '0.75rem' }
 const lbl = { display: 'block', fontSize: '0.72rem', color: 'var(--color-muted)', marginBottom: '0.25rem' }
-const inp = { background: '#0f172a', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.65rem 0.8rem', color: 'var(--color-text)', fontSize: '0.92rem', width: '100%', marginBottom: '0.7rem' }
+const inp = { background: 'var(--color-inset)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.65rem 0.8rem', color: 'var(--color-text)', fontSize: '0.92rem', width: '100%', marginBottom: '0.7rem' }
 const nota = { fontSize: '0.78rem', color: 'var(--color-muted)', marginBottom: '0.9rem', lineHeight: 1.5 }
-const btnPrimario = { width: '100%', background: '#f97316', color: '#fff', border: 'none', borderRadius: '0.6rem', padding: '0.85rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.95rem', marginTop: '0.5rem', boxShadow: '0 6px 16px -8px rgba(249,115,22,0.8)' }
+const btnPrimario = { width: '100%', background: 'var(--color-accent)', color: '#fff', border: 'none', borderRadius: '0.6rem', padding: '0.85rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.95rem', marginTop: '0.5rem', boxShadow: '0 6px 16px -8px rgba(249,115,22,0.8)' }
 const btnSuave = { background: 'var(--color-surface-2)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.55rem', padding: '0.5rem 0.9rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem', marginBottom: '0.4rem' }
-const opcion = { background: '#0f172a', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.9rem', color: 'var(--color-text)' }
+const opcion = { background: 'var(--color-inset)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.9rem', color: 'var(--color-text)' }

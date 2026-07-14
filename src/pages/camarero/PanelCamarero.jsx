@@ -10,10 +10,10 @@ import PedirPda from '../pda/PedirPda'
 import CobroMesa from '../pda/CobroMesa'
 
 const ESTADO = {
-  libre: { label: 'Libre', color: '#10b981', bg: '#052e16' },
-  ocupada: { label: 'Ocupada', color: '#f59e0b', bg: '#2d1900' },
-  esperando_cobro: { label: 'Pide cuenta', color: '#f43f5e', bg: '#2d0a14' },
-  reservada: { label: 'Reservada', color: '#3b82f6', bg: '#0c1e3a' },
+  libre: { label: 'Libre', color: '#10b981', bg: 'var(--tint-success-bg)' },
+  ocupada: { label: 'Ocupada', color: '#f59e0b', bg: 'var(--tint-warning-bg)' },
+  esperando_cobro: { label: 'Pide cuenta', color: '#f43f5e', bg: 'var(--tint-danger-bg)' },
+  reservada: { label: 'Reservada', color: '#3b82f6', bg: 'var(--tint-info-bg)' },
 }
 const ORDEN_ESTADO = ['esperando_cobro', 'ocupada', 'reservada', 'libre']
 
@@ -107,12 +107,12 @@ export default function PanelCamarero() {
           <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>{mesas.filter(m => m.estado !== 'libre').length} ocupadas de {mesas.length} · {empleado?.nombre || ''}</p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          {totalCocina > 0 && <div style={{ background: '#052e16', color: '#10b981', borderRadius: '0.5rem', padding: '0.375rem 0.75rem', fontSize: '0.8rem', fontWeight: 700 }}>🍳 {totalCocina} listo(s)</div>}
-          {totalBarra > 0 && <div style={{ background: '#2d0a14', color: '#f43f5e', borderRadius: '0.5rem', padding: '0.375rem 0.75rem', fontSize: '0.8rem', fontWeight: 700 }}>🍺 {totalBarra} listo(s)</div>}
-          <button onClick={() => setVerReservas(true)} style={{ background: reservasHoyN ? '#0c1e3a' : '#1e293b', color: reservasHoyN ? '#60a5fa' : 'var(--color-text)', border: `1px solid ${reservasHoyN ? '#3b82f6' : 'var(--color-border)'}`, borderRadius: '0.5rem', padding: '0.45rem 0.85rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
+          {totalCocina > 0 && <div style={{ background: 'var(--tint-success-bg)', color: 'var(--tint-success-fg)', borderRadius: '0.5rem', padding: '0.375rem 0.75rem', fontSize: '0.8rem', fontWeight: 700 }}>🍳 {totalCocina} listo(s)</div>}
+          {totalBarra > 0 && <div style={{ background: 'var(--tint-danger-bg)', color: 'var(--tint-danger-fg)', borderRadius: '0.5rem', padding: '0.375rem 0.75rem', fontSize: '0.8rem', fontWeight: 700 }}>🍺 {totalBarra} listo(s)</div>}
+          <button onClick={() => setVerReservas(true)} style={{ background: reservasHoyN ? 'var(--tint-info-bg)' : 'var(--color-surface-2)', color: reservasHoyN ? 'var(--tint-info-fg)' : 'var(--color-text)', border: `1px solid ${reservasHoyN ? '#3b82f6' : 'var(--color-border)'}`, borderRadius: '0.5rem', padding: '0.45rem 0.85rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
             📅 Reservas{reservasHoyN > 0 ? ` (${reservasHoyN})` : ''}
           </button>
-          <button onClick={() => setVerHistorial(true)} style={{ background: '#1e293b', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.45rem 0.85rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
+          <button onClick={() => setVerHistorial(true)} style={{ background: 'var(--color-surface-2)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.45rem 0.85rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
             🧾 Cerradas hoy{cerradasHoy.length > 0 ? ` (${cerradasHoy.length})` : ''}
           </button>
           <BotonSalir />
@@ -121,10 +121,10 @@ export default function PanelCamarero() {
 
       {/* Avisos de clientes (llamadas al camarero) */}
       {avisos.length > 0 && (
-        <div style={{ background: '#3b1d00', borderBottom: '1px solid #7c3a00', padding: '0.75rem 1.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.625rem', alignItems: 'center' }}>
-          <span style={{ fontWeight: 800, color: '#fbbf24', fontSize: '0.85rem' }}>🔔 Te llaman:</span>
+        <div style={{ background: 'var(--tint-warning-bg)', borderBottom: '1px solid var(--tint-warning-bd)', padding: '0.75rem 1.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.625rem', alignItems: 'center' }}>
+          <span style={{ fontWeight: 800, color: 'var(--tint-warning-fg)', fontSize: '0.85rem' }}>🔔 Te llaman:</span>
           {avisos.map(a => (
-            <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#1e293b', border: '1px solid #f59e0b', borderRadius: '9999px', padding: '0.25rem 0.4rem 0.25rem 0.75rem' }}>
+            <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--color-surface-2)', border: '1px solid #f59e0b', borderRadius: '9999px', padding: '0.25rem 0.4rem 0.25rem 0.75rem' }}>
               <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>Mesa {a.mesaNumero}</span>
               {a.personaNombre && <span style={{ fontSize: '0.78rem', color: 'var(--color-muted)' }}>· {a.personaNombre}</span>}
               <button onClick={() => atenderAviso(a.id)} title="Marcar atendido" style={{ background: '#10b981', color: 'white', border: 'none', borderRadius: '9999px', width: '1.5rem', height: '1.5rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem' }}>✓</button>
@@ -202,7 +202,7 @@ export default function PanelCamarero() {
                         style={{
                           position: 'relative', overflow: 'hidden',
                           background: m.estado === 'libre' ? 'var(--color-surface)' : `linear-gradient(160deg, ${est.color}1f, var(--color-surface) 70%)`,
-                          border: esObjetivo ? '2px dashed #f97316' : candidataTactil ? '1.5px dashed #f9731688' : `1.5px solid ${sel ? est.color : m.estado === 'libre' ? 'var(--color-border)' : est.color + '66'}`,
+                          border: esObjetivo ? '2px dashed var(--color-accent)' : candidataTactil ? '1.5px dashed #f9731688' : `1.5px solid ${sel ? est.color : m.estado === 'libre' ? 'var(--color-border)' : est.color + '66'}`,
                           borderRadius: 'var(--radius)', padding: '0.85rem 0.9rem', cursor: arrastrable ? 'grab' : 'pointer', textAlign: 'left',
                           boxShadow: esObjetivo ? '0 0 0 4px rgba(249,115,22,0.35), var(--shadow-lg)' : sel ? `0 0 0 3px ${est.color}55, var(--shadow)` : 'var(--shadow-sm)',
                           minHeight: '6.6rem', display: 'flex', flexDirection: 'column',
@@ -223,22 +223,22 @@ export default function PanelCamarero() {
 
                         <div style={{ marginTop: 'auto', paddingTop: '0.4rem' }}>
                           {esSec && <div style={{ fontSize: '0.74rem', color: '#a78bfa', fontWeight: 600 }}>🔗 Unida a M{principalNum}</div>}
-                          {!esSec && m.estado === 'libre' && <div style={{ fontSize: '0.74rem', color: '#10b981', fontWeight: 600 }}>Toca para abrir ▶</div>}
-                          {!esSec && m.estado === 'reservada' && <div style={{ fontSize: '0.72rem', color: '#60a5fa' }}>📅 {m.reserva?.nombre}{m.reserva?.hora ? ` · ${m.reserva.hora}` : ''}</div>}
+                          {!esSec && m.estado === 'libre' && <div style={{ fontSize: '0.74rem', color: 'var(--tint-success-fg)', fontWeight: 600 }}>Toca para abrir ▶</div>}
+                          {!esSec && m.estado === 'reservada' && <div style={{ fontSize: '0.72rem', color: 'var(--tint-info-fg)' }}>📅 {m.reserva?.nombre}{m.reserva?.hora ? ` · ${m.reserva.hora}` : ''}</div>}
                           {!esSec && (m.estado === 'ocupada' || m.estado === 'esperando_cobro') && (
                             <>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                                 <span style={{ fontSize: '0.7rem', color: 'var(--color-muted)' }}>👥 {m.personas.length} · ⏱ {haceCuanto(m.abiertaDesde)}</span>
                               </div>
-                              <div style={{ fontWeight: 800, color: '#f97316', fontSize: '1rem' }}>{totalMesa.toFixed(2)} €</div>
+                              <div style={{ fontWeight: 800, color: 'var(--color-accent)', fontSize: '1rem' }}>{totalMesa.toFixed(2)} €</div>
                             </>
                           )}
                         </div>
 
                         {listo > 0 && (
                           <div style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', display: 'flex', gap: '0.2rem' }}>
-                            {listoCocina > 0 && <span style={{ fontSize: '0.62rem', background: '#052e16', color: '#10b981', borderRadius: '4px', padding: '0 4px', fontWeight: 700 }}>🍳{listoCocina}</span>}
-                            {listoBarra > 0 && <span style={{ fontSize: '0.62rem', background: '#2d0a14', color: '#f43f5e', borderRadius: '4px', padding: '0 4px', fontWeight: 700 }}>🍺{listoBarra}</span>}
+                            {listoCocina > 0 && <span style={{ fontSize: '0.62rem', background: 'var(--tint-success-bg)', color: 'var(--tint-success-fg)', borderRadius: '4px', padding: '0 4px', fontWeight: 700 }}>🍳{listoCocina}</span>}
+                            {listoBarra > 0 && <span style={{ fontSize: '0.62rem', background: 'var(--tint-danger-bg)', color: 'var(--tint-danger-fg)', borderRadius: '4px', padding: '0 4px', fontWeight: 700 }}>🍺{listoBarra}</span>}
                           </div>
                         )}
                       </button>
@@ -258,13 +258,13 @@ export default function PanelCamarero() {
                 <h2 style={{ fontWeight: 800, fontSize: '1.1rem' }}>Mesa {mesa.numero}</h2>
                 {mesa.unidas?.length > 0 && <div style={{ fontSize: '0.75rem', color: '#a78bfa', fontWeight: 600 }}>🔗 Unida con {mesa.unidas.map(id => 'M' + (mesas.find(x => x.id === id)?.numero)).join(' · ')} · cuenta única</div>}
               </div>
-              <button onClick={() => setMesaSeleccionada(null)} style={btn('#1e293b')}>✕</button>
+              <button onClick={() => setMesaSeleccionada(null)} style={btn('var(--color-surface-2)')}>✕</button>
             </div>
 
             {mesa.estado === 'reservada' ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <div style={{ background: '#0c1e3a', border: '1px solid #3b82f6', borderRadius: '0.625rem', padding: '0.875rem' }}>
-                  <div style={{ fontWeight: 800, color: '#60a5fa', marginBottom: '0.35rem' }}>📅 Reservada</div>
+                <div style={{ background: 'var(--tint-info-bg)', border: '1px solid #3b82f6', borderRadius: '0.625rem', padding: '0.875rem' }}>
+                  <div style={{ fontWeight: 800, color: 'var(--tint-info-fg)', marginBottom: '0.35rem' }}>📅 Reservada</div>
                   <div style={{ fontSize: '0.9rem' }}>{mesa.reserva?.nombre}</div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>
                     {mesa.reserva?.hora && `🕐 ${mesa.reserva.hora} · `}{mesa.reserva?.personas} pers.
@@ -272,7 +272,7 @@ export default function PanelCamarero() {
                   </div>
                 </div>
                 <button onClick={() => { sentarReserva(mesa.id, mesa.reserva?.nombre || '') }} style={btn('#10b981', { width: '100%' })}>▶ Sentar (abrir mesa)</button>
-                <button onClick={() => cancelarReserva(mesa.id)} style={btn('#334155', { width: '100%', fontSize: '0.8rem' })}>Cancelar reserva</button>
+                <button onClick={() => cancelarReserva(mesa.id)} style={btn('var(--color-surface-3)', { width: '100%', fontSize: '0.8rem' })}>Cancelar reserva</button>
               </div>
             ) : mesa.estado === 'libre' ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -281,16 +281,16 @@ export default function PanelCamarero() {
                 {!reservando ? (
                   <button onClick={() => { setReservaForm({ nombre: '', hora: '', personas: mesa.capacidad }); setReservando(true) }} style={btn('#3b82f6', { width: '100%' })}>📅 Reservar mesa</button>
                 ) : (
-                  <div style={{ background: '#0f172a', borderRadius: '0.625rem', padding: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', border: '1px solid #3b82f6' }}>
-                    <div style={{ fontWeight: 700, color: '#60a5fa', fontSize: '0.9rem' }}>Nueva reserva</div>
+                  <div style={{ background: 'var(--color-inset)', borderRadius: '0.625rem', padding: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', border: '1px solid #3b82f6' }}>
+                    <div style={{ fontWeight: 700, color: 'var(--tint-info-fg)', fontSize: '0.9rem' }}>Nueva reserva</div>
                     <input value={reservaForm.nombre} onChange={e => setReservaForm(s => ({ ...s, nombre: e.target.value }))} placeholder="Nombre" style={inp} autoFocus />
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                       <input value={reservaForm.hora} onChange={e => setReservaForm(s => ({ ...s, hora: e.target.value }))} type="time" style={{ ...inp, flex: 1 }} />
                       <input value={reservaForm.personas} onChange={e => setReservaForm(s => ({ ...s, personas: e.target.value }))} type="number" min="1" placeholder="Pers." style={{ ...inp, width: '80px' }} />
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button onClick={() => setReservando(false)} style={btn('#334155', { flex: 1, fontSize: '0.8rem' })}>Cancelar</button>
-                      <button onClick={() => { reservarMesa(mesa.id, reservaForm); setReservando(false) }} disabled={!reservaForm.nombre.trim()} style={btn(reservaForm.nombre.trim() ? '#3b82f6' : '#334155', { flex: 1, fontSize: '0.8rem' })}>Guardar</button>
+                      <button onClick={() => setReservando(false)} style={btn('var(--color-surface-3)', { flex: 1, fontSize: '0.8rem' })}>Cancelar</button>
+                      <button onClick={() => { reservarMesa(mesa.id, reservaForm); setReservando(false) }} disabled={!reservaForm.nombre.trim()} style={btn(reservaForm.nombre.trim() ? '#3b82f6' : 'var(--color-surface-3)', { flex: 1, fontSize: '0.8rem' })}>Guardar</button>
                     </div>
                   </div>
                 )}
@@ -301,10 +301,10 @@ export default function PanelCamarero() {
                 {mesa.personas.map(p => {
                   const aPagar = owed[p.id] ?? p.items.reduce((s, i) => s + i.precio * i.cantidad, 0)
                   return (
-                    <div key={p.id} style={{ background: '#0f172a', borderRadius: '0.625rem', padding: '0.875rem', border: p.pagado ? '1px solid #10b981' : '1px solid transparent' }}>
+                    <div key={p.id} style={{ background: 'var(--color-inset)', borderRadius: '0.625rem', padding: '0.875rem', border: p.pagado ? '1px solid #10b981' : '1px solid transparent' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                        <span style={{ fontWeight: 700, color: '#f97316', fontSize: '0.9rem' }}>{p.nombre}</span>
-                        {p.pagado && <span style={{ fontSize: '0.7rem', background: '#052e16', color: '#10b981', borderRadius: '9999px', padding: '0.15rem 0.6rem', fontWeight: 700 }}>✓ Pagado{p.propina > 0 ? ` · +${p.propina.toFixed(2)} €` : ''}</span>}
+                        <span style={{ fontWeight: 700, color: 'var(--color-accent)', fontSize: '0.9rem' }}>{p.nombre}</span>
+                        {p.pagado && <span style={{ fontSize: '0.7rem', background: 'var(--tint-success-bg)', color: 'var(--tint-success-fg)', borderRadius: '9999px', padding: '0.15rem 0.6rem', fontWeight: 700 }}>✓ Pagado{p.propina > 0 ? ` · +${p.propina.toFixed(2)} €` : ''}</span>}
                       </div>
                       {p.items.length === 0
                         ? <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>Sin pedidos aún</p>
@@ -325,9 +325,9 @@ export default function PanelCamarero() {
                         ))
                       }
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
-                        <span style={{ fontWeight: 700, fontSize: '0.875rem', color: '#f97316' }}>{aPagar.toFixed(2)} €</span>
+                        <span style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--color-accent)' }}>{aPagar.toFixed(2)} €</span>
                         <div style={{ display: 'flex', gap: '0.4rem' }}>
-                          <button onClick={() => setTicket({ tipo: 'persona', persona: p })} title="Ticket de este cliente" style={btn('#1e293b', { fontSize: '0.78rem', padding: '0.35rem 0.6rem' })}>🧾</button>
+                          <button onClick={() => setTicket({ tipo: 'persona', persona: p })} title="Ticket de este cliente" style={btn('var(--color-surface-2)', { fontSize: '0.78rem', padding: '0.35rem 0.6rem' })}>🧾</button>
                           {!p.pagado && (
                             <button onClick={() => setCobro({ tipo: 'persona', personaId: p.id, importe: aPagar })} style={btn('#10b981', { fontSize: '0.78rem', padding: '0.35rem 0.75rem' })}>Cobrar</button>
                           )}
@@ -338,14 +338,14 @@ export default function PanelCamarero() {
                 })}
 
                 {/* Total mesa */}
-                <div style={{ background: '#0f172a', borderRadius: '0.625rem', padding: '0.875rem', display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1rem' }}>
+                <div style={{ background: 'var(--color-inset)', borderRadius: '0.625rem', padding: '0.875rem', display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1rem' }}>
                   <span>Total mesa</span>
-                  <span style={{ color: '#f97316' }}>{mesa.personas.reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0).toFixed(2)} €</span>
+                  <span style={{ color: 'var(--color-accent)' }}>{mesa.personas.reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0).toFixed(2)} €</span>
                 </div>
 
                 {/* Listos para servir */}
                 {(pedidosCocina.some(p => p.mesaId === mesa.id && p.estado === 'listo') || pedidosBarra.some(p => p.mesaId === mesa.id && p.estado === 'listo')) && (
-                  <div style={{ background: '#052e16', borderRadius: '0.625rem', padding: '0.875rem' }}>
+                  <div style={{ background: 'var(--tint-success-bg)', borderRadius: '0.625rem', padding: '0.875rem' }}>
                     <div style={{ fontWeight: 700, color: '#10b981', marginBottom: '0.5rem', fontSize: '0.875rem' }}>✅ Listos para servir</div>
                     {[...pedidosCocina, ...pedidosBarra].filter(p => p.mesaId === mesa.id && p.estado === 'listo').map(p => (
                       <div key={p.id} style={{ fontSize: '0.8rem', color: '#86efac', padding: '0.2rem 0' }}>
@@ -367,22 +367,22 @@ export default function PanelCamarero() {
                     </button>
                   )
                 })()}
-                <button onClick={() => { asignarCamarero(mesa.id, yo); setPidiendo(true) }} style={btn('#f97316', { width: '100%', padding: '0.8rem', fontSize: '0.95rem' })}>➕ Tomar pedido</button>
+                <button onClick={() => { asignarCamarero(mesa.id, yo); setPidiendo(true) }} style={btn('var(--color-accent)', { width: '100%', padding: '0.8rem', fontSize: '0.95rem' })}>➕ Tomar pedido</button>
                 {mesa.personas.some(p => !p.pagado) && (
                   <button onClick={() => { asignarCamarero(mesa.id, yo); setCobrandoMesa(true) }} style={btn('#10b981', { width: '100%', padding: '0.8rem', fontSize: '0.95rem' })}>💶 Cobrar mesa</button>
                 )}
-                <button onClick={() => setMover({ tipo: 'mesa' })} style={btn('#1e293b', { width: '100%', fontSize: '0.85rem' })}>🔗 Unir con otra mesa</button>
+                <button onClick={() => setMover({ tipo: 'mesa' })} style={btn('var(--color-surface-2)', { width: '100%', fontSize: '0.85rem' })}>🔗 Unir con otra mesa</button>
                 {mesa.unidas?.length > 0 && (
-                  <button onClick={() => { separarMesas(mesa.id); toast('Mesas separadas', 'success') }} style={btn('#1e293b', { width: '100%', fontSize: '0.85rem' })}>✂️ Separar mesas ({mesa.unidas.length + 1})</button>
+                  <button onClick={() => { separarMesas(mesa.id); toast('Mesas separadas', 'success') }} style={btn('var(--color-surface-2)', { width: '100%', fontSize: '0.85rem' })}>✂️ Separar mesas ({mesa.unidas.length + 1})</button>
                 )}
 
                 {/* Tickets de mesa */}
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button onClick={() => setTicket({ tipo: 'comanda' })} style={btn('#1e293b', { flex: 1, fontSize: '0.85rem' })}>🧾 Comanda</button>
-                  <button onClick={() => setTicket({ tipo: 'cuenta' })} style={btn('#1e293b', { flex: 1, fontSize: '0.85rem' })}>💶 Cuenta</button>
+                  <button onClick={() => setTicket({ tipo: 'comanda' })} style={btn('var(--color-surface-2)', { flex: 1, fontSize: '0.85rem' })}>🧾 Comanda</button>
+                  <button onClick={() => setTicket({ tipo: 'cuenta' })} style={btn('var(--color-surface-2)', { flex: 1, fontSize: '0.85rem' })}>💶 Cuenta</button>
                 </div>
 
-                <button onClick={() => liberarMesa(mesa.id)} style={btn('#334155', { width: '100%', fontSize: '0.8rem' })}>
+                <button onClick={() => liberarMesa(mesa.id)} style={btn('var(--color-surface-3)', { width: '100%', fontSize: '0.8rem' })}>
                   Cerrar mesa sin cobrar
                 </button>
               </>
@@ -393,9 +393,9 @@ export default function PanelCamarero() {
 
       {/* Banner de unión táctil (pulsación larga) */}
       {tactil && arrastrando && (
-        <div className="anim-fade" style={{ position: 'fixed', bottom: '1rem', left: '50%', transform: 'translateX(-50%)', zIndex: 60, display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'var(--color-surface)', border: '1px solid #f97316', borderRadius: '9999px', padding: '0.55rem 1rem', boxShadow: 'var(--shadow-lg)' }}>
+        <div className="anim-fade" style={{ position: 'fixed', bottom: '1rem', left: '50%', transform: 'translateX(-50%)', zIndex: 60, display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'var(--color-surface)', border: '1px solid var(--color-accent)', borderRadius: '9999px', padding: '0.55rem 1rem', boxShadow: 'var(--shadow-lg)' }}>
           <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>🔗 Uniendo la <strong>M{mesas.find(x => x.id === arrastrando)?.numero}</strong> — toca la mesa destino</span>
-          <button onClick={salirModoTactil} style={btn('#334155', { fontSize: '0.78rem', padding: '0.3rem 0.7rem' })}>Cancelar</button>
+          <button onClick={salirModoTactil} style={btn('var(--color-surface-3)', { fontSize: '0.78rem', padding: '0.3rem 0.7rem' })}>Cancelar</button>
         </div>
       )}
 
@@ -431,7 +431,7 @@ export default function PanelCamarero() {
             <h3 style={{ fontWeight: 800, fontSize: '1.05rem', marginBottom: '0.75rem' }}>Mover «{moverLinea.nombre}» a…</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
               {mesa.personas.filter(x => x.id !== moverLinea.personaId).map(x => (
-                <button key={x.id} onClick={() => { moverItem(mesa.id, moverLinea.personaId, moverLinea.uid, x.id); setMoverLinea(null); toast(`Movido a ${x.nombre}`, 'success') }} style={btn('#1e293b', { width: '100%', padding: '0.7rem', textAlign: 'left', border: '1px solid var(--color-border)' })}>👤 {x.nombre}</button>
+                <button key={x.id} onClick={() => { moverItem(mesa.id, moverLinea.personaId, moverLinea.uid, x.id); setMoverLinea(null); toast(`Movido a ${x.nombre}`, 'success') }} style={btn('var(--color-surface-2)', { width: '100%', padding: '0.7rem', textAlign: 'left', border: '1px solid var(--color-border)' })}>👤 {x.nombre}</button>
               ))}
             </div>
             <button onClick={() => setMoverLinea(null)} style={{ background: 'none', border: 'none', color: 'var(--color-muted)', cursor: 'pointer', fontSize: '0.8rem', marginTop: '0.6rem', width: '100%' }}>Cancelar</button>
@@ -445,7 +445,7 @@ export default function PanelCamarero() {
           <div onClick={e => e.stopPropagation()} className="anim-pop" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', padding: '1.25rem', width: '100%', maxWidth: '460px', maxHeight: '85vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
               <h3 style={{ fontWeight: 800, fontSize: '1.05rem' }}>Unir Mesa {mesa.numero} con…</h3>
-              <button onClick={() => setMover(null)} style={btn('#1e293b', { padding: '0.25rem 0.6rem' })}>✕</button>
+              <button onClick={() => setMover(null)} style={btn('var(--color-surface-2)', { padding: '0.25rem 0.6rem' })}>✕</button>
             </div>
             <p style={{ fontSize: '0.78rem', color: 'var(--color-muted)', marginBottom: '0.75rem' }}>Compartirán una sola cuenta y se ocuparán juntas hasta que cobres.</p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '0.5rem' }}>
@@ -468,7 +468,7 @@ export default function PanelCamarero() {
           <div onClick={e => e.stopPropagation()} style={{ width: '420px', maxWidth: '94vw', background: 'var(--color-surface)', height: '100%', overflowY: 'auto', padding: '1.25rem', borderLeft: '1px solid var(--color-border)', boxShadow: '-22px 0 50px -20px rgba(0,0,0,0.8)', animation: 'slideLeft 0.28s cubic-bezier(0.16,1,0.3,1) both' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h2 style={{ fontWeight: 800, fontSize: '1.1rem' }}>📅 Reservas</h2>
-              <button onClick={() => setVerReservas(false)} style={btn('#1e293b')}>✕</button>
+              <button onClick={() => setVerReservas(false)} style={btn('var(--color-surface-2)')}>✕</button>
             </div>
             <ReservasManager onSentada={(mesaId) => { setVerReservas(false); if (mesaId) setMesaSeleccionada(mesaId) }} />
           </div>
@@ -480,20 +480,20 @@ export default function PanelCamarero() {
           <div onClick={e => e.stopPropagation()} style={{ width: '380px', maxWidth: '92vw', background: 'var(--color-surface)', height: '100%', overflowY: 'auto', padding: '1.25rem', borderLeft: '1px solid var(--color-border)', boxShadow: '-22px 0 50px -20px rgba(0,0,0,0.8)', animation: 'slideLeft 0.28s cubic-bezier(0.16,1,0.3,1) both' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h2 style={{ fontWeight: 800, fontSize: '1.1rem' }}>🧾 Cerradas hoy</h2>
-              <button onClick={() => setVerHistorial(false)} style={btn('#1e293b')}>✕</button>
+              <button onClick={() => setVerHistorial(false)} style={btn('var(--color-surface-2)')}>✕</button>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.75rem', color: 'var(--color-muted)' }}>
               <span>{cerradasHoy.length} ticket(s)</span>
-              <span>Total: <strong style={{ color: '#f97316' }}>{cerradasHoy.reduce((s, r) => s + r.total, 0).toFixed(2)} €</strong></span>
+              <span>Total: <strong style={{ color: 'var(--color-accent)' }}>{cerradasHoy.reduce((s, r) => s + r.total, 0).toFixed(2)} €</strong></span>
             </div>
             {cerradasHoy.length === 0 && <p style={{ color: 'var(--color-muted)', fontSize: '0.85rem' }}>Aún no se ha cerrado ninguna mesa hoy.</p>}
             {cerradasHoy.map(r => (
-              <div key={r.id} style={{ background: '#0f172a', borderRadius: '0.625rem', padding: '0.75rem 0.875rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div key={r.id} style={{ background: 'var(--color-inset)', borderRadius: '0.625rem', padding: '0.75rem 0.875rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontWeight: 700 }}>Mesa {r.mesaNumero}</div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>{new Date(r.cerradaEn).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} · {r.total.toFixed(2)} €</div>
                 </div>
-                <button onClick={() => setTicket({ tipo: 'cuenta', mesa: { numero: r.mesaNumero, personas: r.personas } })} style={btn('#f97316', { fontSize: '0.78rem', padding: '0.4rem 0.7rem' })}>Ver ticket</button>
+                <button onClick={() => setTicket({ tipo: 'cuenta', mesa: { numero: r.mesaNumero, personas: r.personas } })} style={btn('var(--color-accent)', { fontSize: '0.78rem', padding: '0.4rem 0.7rem' })}>Ver ticket</button>
               </div>
             ))}
           </div>
@@ -505,7 +505,7 @@ export default function PanelCamarero() {
 
 const btn = (bg, extra = {}) => ({
   background: bg,
-  color: 'white',
+  color: /surface|inset|transparent|none|tint-[a-z]+-bg/.test(bg) ? 'var(--color-text)' : 'white',
   border: 'none',
   borderRadius: '0.55rem',
   padding: '0.5rem 1rem',
@@ -516,5 +516,5 @@ const btn = (bg, extra = {}) => ({
   ...extra,
 })
 
-const inp = { background: '#0f172a', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.7rem', color: 'var(--color-text)', fontSize: '0.85rem', width: '100%' }
+const inp = { background: 'var(--color-inset)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.7rem', color: 'var(--color-text)', fontSize: '0.85rem', width: '100%' }
 const miniBtn = (off) => ({ background: 'var(--color-surface-2)', color: off ? 'var(--color-faint)' : 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.4rem', width: '1.5rem', height: '1.5rem', lineHeight: 1, cursor: off ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontWeight: 700, padding: 0 })

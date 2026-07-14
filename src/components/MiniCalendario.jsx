@@ -21,7 +21,7 @@ export default function MiniCalendario({ value, onChange, esCerrado, minISO }) {
   const mover = (delta) => setVista(v => { const d = new Date(v.y, v.m + delta, 1); return { y: d.getFullYear(), m: d.getMonth() } })
 
   return (
-    <div style={{ background: '#0f172a', border: '1px solid var(--color-border)', borderRadius: '0.75rem', padding: '0.75rem' }}>
+    <div style={{ background: 'var(--color-inset)', border: '1px solid var(--color-border)', borderRadius: '0.75rem', padding: '0.75rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
         <button onClick={() => mover(-1)} disabled={noRetroceder} style={navBtn(noRetroceder)}>‹</button>
         <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{MESES[vista.m]} {vista.y}</span>
@@ -44,8 +44,8 @@ export default function MiniCalendario({ value, onChange, esCerrado, minISO }) {
             <button key={i} onClick={() => !deshab && onChange(f)} disabled={deshab} title={cerrado ? 'Cerrado' : ''}
               style={{
                 aspectRatio: '1 / 1', borderRadius: '0.5rem', border: 'none', cursor: deshab ? 'not-allowed' : 'pointer',
-                background: sel ? '#f97316' : deshab ? 'transparent' : '#1e293b',
-                color: sel ? '#fff' : deshab ? '#475569' : 'var(--color-text)',
+                background: sel ? 'var(--color-accent)' : deshab ? 'transparent' : 'var(--color-surface-2)',
+                color: sel ? '#fff' : deshab ? 'var(--color-faint)' : 'var(--color-text)',
                 fontWeight: sel ? 800 : 600, fontSize: '0.85rem',
                 textDecoration: cerrado ? 'line-through' : 'none',
                 boxShadow: sel ? '0 6px 16px -6px rgba(249,115,22,0.85)' : 'none',
@@ -58,4 +58,4 @@ export default function MiniCalendario({ value, onChange, esCerrado, minISO }) {
   )
 }
 
-const navBtn = (off) => ({ background: off ? 'transparent' : '#1e293b', color: off ? '#475569' : 'var(--color-text)', border: 'none', borderRadius: '0.5rem', width: '2rem', height: '2rem', cursor: off ? 'not-allowed' : 'pointer', fontSize: '1.2rem', fontWeight: 700, lineHeight: 1 })
+const navBtn = (off) => ({ background: off ? 'transparent' : 'var(--color-surface-2)', color: off ? 'var(--color-faint)' : 'var(--color-text)', border: 'none', borderRadius: '0.5rem', width: '2rem', height: '2rem', cursor: off ? 'not-allowed' : 'pointer', fontSize: '1.2rem', fontWeight: 700, lineHeight: 1 })

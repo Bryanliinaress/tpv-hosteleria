@@ -26,7 +26,7 @@ export default function PinLogin({ soloAdmin = false, titulo }) {
       <div className="anim-pop" style={{ width: '100%', maxWidth: '320px', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', padding: '1.5rem 1.4rem' }}>
         <div style={{ textAlign: 'center', marginBottom: '1.1rem' }}>
           <div style={{ fontSize: '2rem' }}>{soloAdmin ? '🔐' : '🔑'}</div>
-          {local?.nombre && <div style={{ fontSize: '0.8rem', color: '#f97316', fontWeight: 700, marginTop: '0.2rem' }}>{local.nombre}</div>}
+          {local?.nombre && <div style={{ fontSize: '0.8rem', color: 'var(--color-accent)', fontWeight: 700, marginTop: '0.2rem' }}>{local.nombre}</div>}
           <h1 style={{ fontWeight: 800, fontSize: '1.2rem', marginTop: '0.1rem' }}>{titulo || (soloAdmin ? 'Acceso administrador' : 'Acceso personal')}</h1>
           <p style={{ color: 'var(--color-muted)', fontSize: '0.82rem', marginTop: '0.25rem' }}>Introduce tu PIN</p>
         </div>
@@ -36,8 +36,8 @@ export default function PinLogin({ soloAdmin = false, titulo }) {
           {[0, 1, 2, 3].map(i => (
             <div key={i} style={{
               width: '0.9rem', height: '0.9rem', borderRadius: '9999px',
-              background: error ? '#f43f5e' : pin.length > i ? '#f97316' : 'transparent',
-              border: `2px solid ${error ? '#f43f5e' : pin.length > i ? '#f97316' : 'var(--color-border)'}`,
+              background: error ? '#f43f5e' : pin.length > i ? 'var(--color-accent)' : 'transparent',
+              border: `2px solid ${error ? '#f43f5e' : pin.length > i ? 'var(--color-accent)' : 'var(--color-border)'}`,
               transition: 'all 0.12s',
             }} />
           ))}

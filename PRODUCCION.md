@@ -1,7 +1,7 @@
 # De demo a producto de mercado — hoja de ruta
 
 **META: salir al mercado lo antes posible.** Este documento es la fuente de
-verdad de lo que queda. Última actualización: 2026-07-13 (**v0.28.1**).
+verdad de lo que queda. Última actualización: 2026-07-14 (**v0.29.0**).
 
 ## Estado a 2026-07-03
 
@@ -15,11 +15,20 @@ anulaciones · cliente en inglés · identidad del local configurable.
 Añadido desde v0.25: **onboarding del local** (`/setup`, v0.26) · **fichajes de
 jornada** con export CSV (v0.27) · **fotos de productos** (v0.28) · fix de
 sincronización que fusiona los logs solo-añadir para no perder fichajes/tickets
-entre dispositivos (v0.28.1).
+entre dispositivos (v0.28.1) · **modo claro/oscuro** conmutable y persistente
+por dispositivo (v0.29.0).
 
-**🔜 Pendiente sin bloqueo** (puro código): **modo claro** (barrer los hex
-hardcodeados a variables CSS). La subida de fotos como archivo llegará con el
-backend (Storage).
+**Modo claro (v0.29.0)**: sistema de tokens CSS ampliado (superficies, textos,
+bordes y "pozos" de estado success/danger/warning/info) con override
+`:root[data-theme="light"]`; barrido de los hex hardcodeados a variables en las
+9 pantallas; toggle ☀️/🌙 en Home y cabecera de Admin (preferencia en
+`localStorage`, no en el estado sincronizado). Decisión de diseño: las pantallas
+de **producción (cocina/barra)** van siempre en oscuro (clase `.force-dark`) por
+lectura a distancia y menor reflejo en el pase. Verificado por auditoría de
+contraste: sin texto ilegible en ninguna pantalla.
+
+**🔜 Pendiente sin bloqueo** (puro código): la subida de fotos como archivo
+llegará con el backend (Storage).
 
 **⛔ Bloqueado en decisiones/cuentas del dueño (~30 min):**
 1. Proyecto **Supabase** de producción + token → aplicar migración multi-tenant
