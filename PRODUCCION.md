@@ -1,7 +1,7 @@
 # De demo a producto de mercado — hoja de ruta
 
 **META: salir al mercado lo antes posible.** Este documento es la fuente de
-verdad de lo que queda. Última actualización: 2026-07-14 (**v0.29.0**).
+verdad de lo que queda. Última actualización: 2026-07-14 (**v0.30.0**).
 
 ## Estado a 2026-07-03
 
@@ -16,7 +16,9 @@ Añadido desde v0.25: **onboarding del local** (`/setup`, v0.26) · **fichajes d
 jornada** con export CSV (v0.27) · **fotos de productos** (v0.28) · fix de
 sincronización que fusiona los logs solo-añadir para no perder fichajes/tickets
 entre dispositivos (v0.28.1) · **modo claro/oscuro** conmutable y persistente
-por dispositivo (v0.29.0).
+por dispositivo (v0.29.0) · **code-splitting por ruta** (v0.30.0): cada pantalla
+es su chunk (React.lazy); el cliente por QR baja ~527 KB en vez de 734 KB, y
+Admin/KDS/PDA se cargan bajo demanda.
 
 **Modo claro (v0.29.0)**: sistema de tokens CSS ampliado (superficies, textos,
 bordes y "pozos" de estado success/danger/warning/info) con override
