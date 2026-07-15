@@ -79,8 +79,10 @@ export default function CartaCliente() {
   // ── Pantalla IDENTIFICACIÓN ───────────────────────────
   if (!yo) {
     const ocupada = mesa.estado !== 'libre'
-    const unirse = () => {
-      const id = unirseAMesa(mesaId, nombre)
+    const unirse = async () => {
+      // v1 devuelve el id síncrono; v2 (RPC) una promesa — cubrimos ambos
+      const id = await Promise.resolve(unirseAMesa(mesaId, nombre))
+      if (!id) return
       localStorage.setItem(`tpv-yo-${mesaId}`, id)
       setMiPersonaId(id); setNombre('')
     }
