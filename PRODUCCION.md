@@ -40,7 +40,11 @@ contraste: sin texto ilegible en ninguna pantalla.
 llegará con el backend (Storage).
 
 **⛔ Bloqueado en decisiones/cuentas del dueño (~30 min):**
-1. Proyecto **Supabase** de producción + token → aplicar migración multi-tenant
+1. ~~Proyecto **Supabase** de producción~~ ✅ **CREADO Y MIGRADO** (2026-07-14):
+   migraciones 01+02 aplicadas, smoke test E2E por RPC en verde (pedido QR →
+   cobro atómico → ticket nº1 → aforo), RLS verificado (anon no lee ni escribe
+   tablas de servicio, ni llama RPC de personal). Siguiente: cablear el store
+   al repo (`VITE_BACKEND=v2`) + auth del local + seed.
 2. Cuenta **Verifacti** (gratis) → fiscal Verifactu
 3. Cuenta **Stripe** real → webhook de pagos
 4. **Impresora térmica** 80mm (~80€) → fase ESC/POS

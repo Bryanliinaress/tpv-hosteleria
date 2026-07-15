@@ -47,8 +47,12 @@ Suscripciones por tabla filtradas por `local_id` (en vez de una fila global):
 
 ## Plan de migración desde la demo
 
-1. **Aplicar las migraciones 01 y 02** en un proyecto de Supabase
-   **nuevo/limpio** (separar demo de producción, punto 18 de PRODUCCION.md).
+1. ✅ **Migraciones 01 y 02 APLICADAS** (2026-07-14) en el proyecto de
+   producción `tesilntyomnovjcuieho` (región UE). Verificado con smoke test
+   E2E por RPC (unirse→pedir con precio en servidor→confirmar→cobrar→ticket
+   correlativo→aforo de reservas) y comprobación de RLS con la anon key
+   (lectura pública solo de carta/mesas; escritura y RPC de personal
+   denegadas). Runner reutilizable: `scripts/aplicar-migraciones.mjs`.
 2. ✅ **Migración 02 ESCRITA** (`migrations/20260714T02_rpc_servicio.sql`):
    RPC transaccionales de servicio — cliente QR (`qr_*`: unirse, pedir con
    precio resuelto EN SERVIDOR, confirmar, llamar, cuenta), reservas online con
