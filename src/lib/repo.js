@@ -64,8 +64,8 @@ export const reservas = {
   crear: (localId, r) =>
     rpc('crear_reserva', {
       p_local: localId, p_fecha: r.fecha, p_hora: r.hora, p_personas: r.personas,
-      p_nombre: r.nombre, p_email: r.email ?? null, p_telefono: r.telefono ?? null,
-      p_zona: r.zona ?? null, p_notas: r.notas ?? null,
+      p_nombre: r.nombre, p_email: r.email || null, p_telefono: r.telefono || null,
+      p_zona: r.zona || null, p_notas: r.notas || null,   // '' = sin preferencia → null
     }),
   porToken: (token) => rpc('reserva_por_token', { p_token: token }),
   cancelar: (token) => rpc('cancelar_reserva', { p_token: token }),
