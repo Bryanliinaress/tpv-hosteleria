@@ -31,6 +31,16 @@ jobs:
           VITE_EMAILJS_SERVICE_ID: ${{ secrets.VITE_EMAILJS_SERVICE_ID }}
           VITE_EMAILJS_TEMPLATE_ID: ${{ secrets.VITE_EMAILJS_TEMPLATE_ID }}
           VITE_EMAILJS_PUBLIC_KEY: ${{ secrets.VITE_EMAILJS_PUBLIC_KEY }}
+      # ── APP REAL (backend multi-tenant v2, Casa Loli) en /app/ ──
+      - run: npm run build -- --outDir dist/app
+        env:
+          VITE_BASE: /tpv-hosteleria/app/
+          VITE_BACKEND: v2
+          VITE_SUPABASE_URL: https://tesilntyomnovjcuieho.supabase.co
+          VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlc2lsbnR5b21ub3ZqY3VpZWhvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwOTQxMTUsImV4cCI6MjA5OTY3MDExNX0.0KvPZzY58VkT0EKTQWPCE1aVI1LnNBvz2m-vgMfwVkc
+          VITE_EMAILJS_SERVICE_ID: ${{ secrets.VITE_EMAILJS_SERVICE_ID }}
+          VITE_EMAILJS_TEMPLATE_ID: ${{ secrets.VITE_EMAILJS_TEMPLATE_ID }}
+          VITE_EMAILJS_PUBLIC_KEY: ${{ secrets.VITE_EMAILJS_PUBLIC_KEY }}
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:

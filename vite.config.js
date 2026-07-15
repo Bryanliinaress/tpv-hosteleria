@@ -3,10 +3,11 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
-// En build (GitHub Pages) la app se sirve bajo /tpv-hosteleria/.
+// En build (GitHub Pages) la demo se sirve bajo /tpv-hosteleria/ y la APP REAL
+// (backend v2) bajo /tpv-hosteleria/app/ (VITE_BASE la fija el workflow).
 // En desarrollo se mantiene en la raíz.
 export default defineConfig(({ command }) => ({
-  base: command === 'build' ? '/tpv-hosteleria/' : '/',
+  base: command === 'build' ? (process.env.VITE_BASE || '/tpv-hosteleria/') : '/',
   plugins: [
     react(),
     tailwindcss(),

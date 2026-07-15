@@ -120,7 +120,7 @@ export default function Home() {
           ))}
         </div>
 
-        <p style={{ marginTop: '2.75rem', fontSize: '0.75rem', color: 'var(--color-faint)', textAlign: 'center' }}>v0.34.0 · Demo en desarrollo</p>
+        <p style={{ marginTop: '2.75rem', fontSize: '0.75rem', color: 'var(--color-faint)', textAlign: 'center' }}>v0.35.0 · Demo en desarrollo</p>
       </div>
     </div>
   )

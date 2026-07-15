@@ -3,6 +3,7 @@ import { useStore } from '../../store/useStore'
 import { backendV2, personal } from '../repo'
 import { cargarTodo, iniciarRealtime, iniciarModoAnon } from './estado'
 import { accionesV2 } from './acciones'
+import { accionesV2b } from './acciones2'
 
 // ────────────────────────────────────────────────────────────────────────────
 // Arranque del backend v2 (multi-tenant). Sustituye a initSync() del blob.
@@ -26,7 +27,7 @@ export function initV2() {
     } catch (e) {
       console.warn('v2: hidratación falló (¿sin permisos de sesión?):', e.message)
     }
-    useStore.setState(accionesV2())
+    useStore.setState({ ...accionesV2(), ...accionesV2b() })
     iniciarRealtime()
 
     // sin sesión de local → cliente QR: su mesa por estado_mesa (polling)
