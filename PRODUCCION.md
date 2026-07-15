@@ -1,7 +1,7 @@
 # De demo a producto de mercado — hoja de ruta
 
 **META: salir al mercado lo antes posible.** Este documento es la fuente de
-verdad de lo que queda. Última actualización: 2026-07-14 (**v0.33.0**).
+verdad de lo que queda. Última actualización: 2026-07-15 (**v0.34.0**).
 
 ## Estado a 2026-07-03
 
@@ -25,7 +25,13 @@ reenvío al reconectar — un pedido no se pierde por un parpadeo de wifi · **p
 (scroll fluido en móvil) y `role="dialog"`/`aria-modal` en los diálogos ·
 **terreno preparado para el backend** (v0.33.0): migración 02 con las RPC
 transaccionales escrita y parseada, capa de datos `lib/repo.js` tras flag
-`VITE_BACKEND=v2` con tests de contrato (48), y borrador RGPD en `docs/RGPD.md`.
+`VITE_BACKEND=v2` con tests de contrato (48), y borrador RGPD en `docs/RGPD.md` ·
+**front cableado al backend real** (v0.34.0): adaptador `lib/v2/` que hidrata
+las tablas al shape del store (pantallas intactas), acciones→RPC/tablas RLS,
+LoginLocal (email por dispositivo) + PIN verificado en servidor, migraciones
+04 (fichajes) y 05 (config_publica). E2E cliente QR verificado CONTRA
+PRODUCCIÓN: unirse→personalizar→pedido→comanda en cocina, precio en servidor.
+La demo pública sigue en v1 (flag apagado).
 
 **Modo claro (v0.29.0)**: sistema de tokens CSS ampliado (superficies, textos,
 bordes y "pozos" de estado success/danger/warning/info) con override
