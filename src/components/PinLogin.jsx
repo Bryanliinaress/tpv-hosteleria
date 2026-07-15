@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useStore, empleadoPorPin } from '../store/useStore'
 import { setSesion } from '../lib/sesion'
+import { backendV2 } from '../lib/repo'
+import { verificarPinV2 } from '../lib/v2'
 
 // Pantalla de acceso con teclado numérico. `soloAdmin` exige rol admin.
 // Al validar el PIN contra el padrón, abre sesión en el dispositivo.
@@ -13,11 +15,16 @@ export default function PinLogin({ soloAdmin = false, titulo }) {
   const borra = () => { setError(false); setPin(p => p.slice(0, -1)) }
 
   // Al completar 4 dígitos, valida automáticamente.
+  // v2: el PIN se verifica EN SERVIDOR contra su hash (nunca viaja el padrón).
   useEffect(() => {
     if (pin.length !== 4) return
-    const emp = empleadoPorPin(empleados, pin, soloAdmin)
-    if (emp) { setSesion(emp) }
-    else { setError(true); setTimeout(() => setPin(''), 400) }
+    const resolver = backendV2
+      ? verificarPinV2(pin, soloAdmin).catch(() => null)
+      : Promise.resolve(empleadoPorPin(empleados, pin, soloAdmin))
+    resolver.then(emp => {
+      if (emp) { setSesion(emp) }
+      else { setError(true); setTimeout(() => setPin(''), 400) }
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pin])
 
