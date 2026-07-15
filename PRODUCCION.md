@@ -43,8 +43,11 @@ llegará con el backend (Storage).
 1. ~~Proyecto **Supabase** de producción~~ ✅ **CREADO Y MIGRADO** (2026-07-14):
    migraciones 01+02 aplicadas, smoke test E2E por RPC en verde (pedido QR →
    cobro atómico → ticket nº1 → aforo), RLS verificado (anon no lee ni escribe
-   tablas de servicio, ni llama RPC de personal). Siguiente: cablear el store
-   al repo (`VITE_BACKEND=v2`) + auth del local + seed.
+   tablas de servicio, ni llama RPC de personal). **2026-07-15: TERMINADO** —
+   migración 03 (realtime + `estado_mesa` para el QR), seed de Casa Loli
+   (3 categorías, 56 productos, 12 mesas, 3 empleados con PIN bcrypt) y usuario
+   admin con `local_id` en el JWT, login verificado. Siguiente (solo front):
+   pantalla de login + cablear el store a `lib/repo.js` (`VITE_BACKEND=v2`).
 2. Cuenta **Verifacti** (gratis) → fiscal Verifactu
 3. Cuenta **Stripe** real → webhook de pagos
 4. **Impresora térmica** 80mm (~80€) → fase ESC/POS
