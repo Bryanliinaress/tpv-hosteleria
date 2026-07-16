@@ -488,6 +488,12 @@ export default function PanelAdmin() {
                   <input value={local.moneda} onChange={e => updateLocal({ moneda: e.target.value })} placeholder="€" style={inputStyle} />
                 </div>
               </div>
+              <label style={lblCampo}>Razón social (ticket)</label>
+              <input value={local.razonSocial || ''} onChange={e => updateLocal({ razonSocial: e.target.value })} placeholder="Si difiere del nombre comercial" style={{ ...inputStyle, marginBottom: '0.7rem' }} />
+              <label style={lblCampo}>Dirección fiscal (ticket)</label>
+              <input value={local.direccionFiscal || ''} onChange={e => updateLocal({ direccionFiscal: e.target.value })} placeholder="Si difiere de la dirección" style={{ ...inputStyle, marginBottom: '0.7rem' }} />
+              <label style={lblCampo}>URL de reseñas (QR del ticket)</label>
+              <input value={local.urlResena || ''} onChange={e => updateLocal({ urlResena: e.target.value })} placeholder="https://g.page/r/... (vacío = QR a la carta)" style={{ ...inputStyle, marginBottom: '0.7rem' }} />
               <label style={lblCampo}>Pie del ticket</label>
               <input value={local.pieTicket} onChange={e => updateLocal({ pieTicket: e.target.value })} placeholder="¡Gracias por su visita!" style={{ ...inputStyle, marginBottom: '1rem' }} />
 
