@@ -2,11 +2,11 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore'
 import TemaToggle from '../components/TemaToggle'
 
-const grupos = [
+const grupos = (mesa1) => [
   {
     titulo: 'Cliente',
     roles: [
-      { label: 'Mesa 1 (QR)', path: '/mesa/mesa-1', emoji: '📱', color: '#3b82f6', desc: 'Carta y autopedido desde el móvil' },
+      { label: 'Mesa 1 (QR)', path: `/mesa/${mesa1}`, emoji: '📱', color: '#3b82f6', desc: 'Carta y autopedido desde el móvil' },
       { label: 'Reservar mesa', path: '/reservar', emoji: '📅', color: '#0ea5e9', desc: 'Reserva online estilo CoverManager' },
     ],
   },
@@ -36,6 +36,8 @@ const grupos = [
 export default function Home() {
   const navigate = useNavigate()
   const local = useStore(s => s.local)
+  // el id de la primera mesa depende del backend (v1: 'mesa-1'; v2: uuid real)
+  const mesa1 = useStore(s => s.mesas[0]?.id) || 'mesa-1'
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '3.5rem 1.5rem 3rem' }}>
       <div className="anim-fade" style={{ width: '100%', maxWidth: '980px' }}>
@@ -81,7 +83,7 @@ export default function Home() {
 
         {/* Grupos de roles */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
-          {grupos.map(g => (
+          {grupos(mesa1).map(g => (
             <div key={g.titulo}>
               <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-faint)', marginBottom: '0.75rem', paddingLeft: '0.15rem' }}>
                 {g.titulo}
@@ -120,7 +122,7 @@ export default function Home() {
           ))}
         </div>
 
-        <p style={{ marginTop: '2.75rem', fontSize: '0.75rem', color: 'var(--color-faint)', textAlign: 'center' }}>v0.35.2 · Demo en desarrollo</p>
+        <p style={{ marginTop: '2.75rem', fontSize: '0.75rem', color: 'var(--color-faint)', textAlign: 'center' }}>v0.35.3 · Demo en desarrollo</p>
       </div>
     </div>
   )

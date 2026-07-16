@@ -1078,11 +1078,11 @@ export const useStore = create(persist((set, get) => ({
 
   // ── UTILIDAD ───────────────────────────────────────────
   resetDatos: () => {
-    localStorage.removeItem('tpv-hosteleria')
+    localStorage.removeItem(import.meta.env.VITE_BACKEND === 'v2' ? 'tpv-hosteleria-v2' : 'tpv-hosteleria')
     location.reload()
   },
 }), {
-  name: 'tpv-hosteleria',
+  name: import.meta.env.VITE_BACKEND === 'v2' ? 'tpv-hosteleria-v2' : 'tpv-hosteleria',
   version: 8, // v8: extras con precio propio + etiquetas de personalización
   migrate: () => undefined, // si cambia el formato de carta, descarta lo viejo y usa el por defecto
   partialize: (state) => ({
@@ -1205,6 +1205,6 @@ export function owedPorPersona(mesa) {
 // ── Sincronización en vivo entre pestañas del mismo navegador ──
 if (typeof window !== 'undefined') {
   window.addEventListener('storage', (e) => {
-    if (e.key === 'tpv-hosteleria') useStore.persist.rehydrate()
+    if (e.key === (import.meta.env.VITE_BACKEND === 'v2' ? 'tpv-hosteleria-v2' : 'tpv-hosteleria')) useStore.persist.rehydrate()
   })
 }
