@@ -15,6 +15,7 @@ const PantallaBarra = lazy(() => import('./pages/barra/PantallaBarra'))
 const PanelAdmin = lazy(() => import('./pages/admin/PanelAdmin'))
 const PrintStation = lazy(() => import('./pages/print/PrintStation'))
 const Onboarding = lazy(() => import('./pages/setup/Onboarding'))
+const TicketDemo = lazy(() => import('./pages/print/TicketDemo'))
 
 function Cargando() {
   return (
@@ -43,6 +44,7 @@ export default function App() {
           {/* Admin: requiere PIN de administrador */}
           <Route path="/admin" element={<Protegido rol="admin"><PanelAdmin /></Protegido>} />
           <Route path="/setup" element={<Protegido rol="admin"><Onboarding /></Protegido>} />
+          <Route path="/ticket-demo" element={<TicketDemo />} />
           <Route path="*" element={<Navigate to="/" /> } />
         </Routes>
       </Suspense>
