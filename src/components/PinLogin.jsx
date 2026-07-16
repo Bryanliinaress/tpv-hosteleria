@@ -9,7 +9,7 @@ import { verificarPinV2 } from '../lib/v2'
 export default function PinLogin({ soloAdmin = false, titulo }) {
   const { empleados, local } = useStore()
   const [pin, setPin] = useState('')
-  const [error, setError] = useState(false)
+  const [error, setError] = useState(false) // false | 'pin' | 'tecnico'
 
   const pulsa = (d) => { setError(false); setPin(p => (p + d).slice(0, 4)) }
   const borra = () => { setError(false); setPin(p => p.slice(0, -1)) }
@@ -19,11 +19,11 @@ export default function PinLogin({ soloAdmin = false, titulo }) {
   useEffect(() => {
     if (pin.length !== 4) return
     const resolver = backendV2
-      ? verificarPinV2(pin, soloAdmin).catch(() => null)
+      ? verificarPinV2(pin, soloAdmin).catch(e => { console.warn('verificar_pin:', e); return { _fallo: e.codigo || e.message } })
       : Promise.resolve(empleadoPorPin(empleados, pin, soloAdmin))
     resolver.then(emp => {
-      if (emp) { setSesion(emp) }
-      else { setError(true); setTimeout(() => setPin(''), 400) }
+      if (emp && !emp._fallo) { setSesion(emp) }
+      else { setError(emp?._fallo ? 'tecnico' : 'pin'); setTimeout(() => setPin(''), 400) }
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pin])
@@ -49,7 +49,9 @@ export default function PinLogin({ soloAdmin = false, titulo }) {
             }} />
           ))}
         </div>
-        {error && <p style={{ textAlign: 'center', color: '#f43f5e', fontSize: '0.8rem', marginTop: '-0.6rem', marginBottom: '0.8rem' }}>PIN incorrecto</p>}
+        {error && <p style={{ textAlign: 'center', color: '#f43f5e', fontSize: '0.8rem', marginTop: '-0.6rem', marginBottom: '0.8rem' }}>
+          {error === 'tecnico' ? 'No se pudo comprobar el PIN (conexión o sesión) — reintenta' : 'PIN incorrecto'}
+        </p>}
 
         {/* Teclado */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.6rem' }}>
