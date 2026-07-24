@@ -167,7 +167,7 @@ export default function CartaCliente() {
     try {
       await iniciarPagoOnline({ mesaId, personaId: p.id, importe: total + propina, propina, descripcion: `Mesa ${mesa.numero} · ${p.nombre}` })
     } catch (e) {
-      toast('No se pudo iniciar el pago: ' + e.message, 'error')
+      toast(e.message + '. Avisa al camarero para pagar en efectivo o con datáfono.', 'error')
     }
   }
 
@@ -178,7 +178,7 @@ export default function CartaCliente() {
     try {
       await iniciarPagoOnline({ mesaId, personaId: '__todo__', importe: total + propina, propina, descripcion: `Mesa ${mesa.numero} · cuenta completa` })
     } catch (e) {
-      toast('No se pudo iniciar el pago: ' + e.message, 'error')
+      toast(e.message + '. Avisa al camarero para pagar en efectivo o con datáfono.', 'error')
     }
   }
 

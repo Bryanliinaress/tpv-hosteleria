@@ -28,6 +28,8 @@ jobs:
         env:
           VITE_SUPABASE_URL: https://sgyioiadkaswfohpeyjx.supabase.co
           VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNneWlvaWFka2Fzd2ZvaHBleWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NzIxOTUsImV4cCI6MjA5NzM0ODE5NX0.W4ZQlmeaf42JnqP5aN-QR_qA9oTnyZUjihK7BfkK2Kc
+          # la demo sí tiene desplegada la Edge Function de checkout (Stripe test)
+          VITE_PAGOS_ONLINE: '1'
           VITE_EMAILJS_SERVICE_ID: ${{ secrets.VITE_EMAILJS_SERVICE_ID }}
           VITE_EMAILJS_TEMPLATE_ID: ${{ secrets.VITE_EMAILJS_TEMPLATE_ID }}
           VITE_EMAILJS_PUBLIC_KEY: ${{ secrets.VITE_EMAILJS_PUBLIC_KEY }}
