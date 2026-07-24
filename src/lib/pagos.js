@@ -5,7 +5,12 @@
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-export const pagoOnlineDisponible = !!(SUPABASE_URL && ANON_KEY)
+// Tener claves de Supabase NO implica que la Edge Function `crear-checkout`
+// esté desplegada ni que haya cuenta de Stripe: hace falta activarlo a
+// propósito (VITE_PAGOS_ONLINE=1). Sin eso, el cliente paga al camarero y no
+// se le ofrece un botón que fallaría.
+export const pagoOnlineDisponible =
+  !!(SUPABASE_URL && ANON_KEY) && import.meta.env.VITE_PAGOS_ONLINE === '1'
 
 // Inicia el pago: guarda la propina pendiente (para marcarla al volver) y
 // redirige a Stripe Checkout.
@@ -17,12 +22,18 @@ export async function iniciarPagoOnline({ mesaId, personaId, importe, propina = 
 
   const returnUrl = `${window.location.origin}${import.meta.env.BASE_URL}`
 
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/crear-checkout`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ANON_KEY}`, apikey: ANON_KEY },
-    body: JSON.stringify({ mesaId, personaId, importe, descripcion, returnUrl }),
-  })
-  const data = await res.json()
+  let res
+  try {
+    res = await fetch(`${SUPABASE_URL}/functions/v1/crear-checkout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ANON_KEY}`, apikey: ANON_KEY },
+      body: JSON.stringify({ mesaId, personaId, importe, descripcion, returnUrl }),
+    })
+  } catch {
+    // sin red, o la Edge Function no está desplegada en este proyecto
+    throw new Error('No se pudo contactar con la pasarela de pago')
+  }
+  const data = await res.json().catch(() => ({}))
   if (!res.ok || !data.url) throw new Error(data.error || 'No se pudo iniciar el pago')
 
   window.location.href = data.url
