@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useStore, owedPorPersona, TIEMPOS } from '../../store/useStore'
 import { useEmpleadoActual, clearSesion } from '../../lib/sesion'
-import { confirmar, pedirTexto, toast } from '../../store/useUI'
+import { pedirTexto, toast } from '../../store/useUI'
 import Ticket from '../../components/Ticket'
 import MetodoPago from '../../components/MetodoPago'
 import PedirPda from './PedirPda'
