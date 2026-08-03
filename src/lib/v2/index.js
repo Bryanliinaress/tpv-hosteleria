@@ -4,6 +4,7 @@ import { backendV2, personal } from '../repo'
 import { cargarTodo, iniciarRealtime, iniciarModoAnon } from './estado'
 import { accionesV2 } from './acciones'
 import { accionesV2b } from './acciones2'
+import { iniciarCola, procesar } from './cola'
 
 // ────────────────────────────────────────────────────────────────────────────
 // Arranque del backend v2 (multi-tenant). Sustituye a initSync() del blob.
@@ -29,6 +30,8 @@ export function initV2() {
     }
     useStore.setState({ ...accionesV2(), ...accionesV2b() })
     iniciarRealtime()
+    iniciarCola()
+    procesar()   // reenvía lo que quedara guardado de la sesión anterior
 
     // sin sesión de local → cliente QR: su mesa por estado_mesa (polling)
     const { data } = await supabase.auth.getSession()

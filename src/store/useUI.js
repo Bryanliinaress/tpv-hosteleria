@@ -35,6 +35,11 @@ export const useUI = create((set, get) => ({
   conexion: 'ok',
   setConexion: (c) => { if (get().conexion !== c) set({ conexion: c }) },
 
+  // Operaciones de servicio guardadas en el dispositivo esperando conexión
+  // (cola offline del backend v2). 0 = todo enviado.
+  pendientes: 0,
+  setPendientes: (n) => { if (get().pendientes !== n) set({ pendientes: n }) },
+
   toast: (mensaje, tipo = 'info', ms = 3200) => {
     const id = ++contador
     set(s => ({ toasts: [...s.toasts, { id, mensaje, tipo }] }))

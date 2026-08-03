@@ -11,7 +11,10 @@ import { getLocalId, cargarSala, cargarComandas, cargarAvisos, cargarReservas, c
 // dispositivos; el refresco local hace de "optimistic" simple y fiable).
 // ────────────────────────────────────────────────────────────────────────────
 
-const err = (e) => { toast(traducir(e.codigo || e.message), 'error'); console.warn('v2:', e) }
+const err = (e) => {
+  if (e?.encolada) { toast('Sin conexión: guardado y se enviará solo al volver la red', 'warning'); return }
+  toast(traducir(e.codigo || e.message), 'error'); console.warn('v2:', e)
+}
 const traducir = (c) => ({
   mesa_cerrada: 'La mesa se ha cerrado', mesa_no_existe: 'Mesa no encontrada',
   producto_no_disponible: 'Producto no disponible', sin_aforo: 'No queda aforo para esa hora',
