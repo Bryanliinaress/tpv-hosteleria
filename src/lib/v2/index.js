@@ -1,6 +1,6 @@
 import { supabase } from '../supabase'
 import { useStore } from '../../store/useStore'
-import { backendV2, personal } from '../repo'
+import { backendV2, personal, cuenta } from '../repo'
 import { cargarTodo, iniciarRealtime, iniciarModoAnon } from './estado'
 import { accionesV2 } from './acciones'
 import { accionesV2b } from './acciones2'
@@ -61,6 +61,28 @@ export async function loginLocal(email, password) {
 export async function logoutLocal() {
   await supabase.auth.signOut()
   window.location.reload()
+}
+
+// ── Alta de un negocio nuevo ────────────────────────────────────────────────
+
+// Crea la cuenta del dueño. Según la config del proyecto, Supabase puede
+// exigir confirmar el email antes de poder entrar.
+export async function registrarCuenta(email, password) {
+  const { data, error } = await supabase.auth.signUp({ email, password })
+  if (error) throw new Error(error.message)
+  return { sesion: data.session, requiereConfirmacion: !data.session }
+}
+
+// ¿este usuario ya tiene local? (null si aún no ha registrado ninguno)
+export const miLocal = () => cuenta.miLocal()
+
+// Registra el local y refresca la sesión: el JWT nuevo lleva el local_id que
+// leen todas las policies RLS (sin esto, el usuario no vería sus propios datos).
+export async function crearLocal(nombre, pinAdmin = '1234') {
+  const id = await cuenta.registrarLocal(nombre, pinAdmin)
+  await supabase.auth.refreshSession()
+  await initV2()
+  return id
 }
 
 // ── PIN v2: verificado en servidor (hash bcrypt), nunca en el cliente ───────

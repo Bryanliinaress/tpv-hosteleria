@@ -125,6 +125,16 @@ export const personal = {
     rpc('anular_linea', { p_linea: lineaId, p_motivo: motivo, p_por: por }),
 }
 
+// ── Alta de locales (multi-tenant: cada negocio registra el suyo) ───────────
+
+export const cuenta = {
+  // Local del usuario autenticado, o null si aún no ha registrado ninguno
+  miLocal: () => rpc('mi_local').then(r => r?.[0] || null),
+  // Crea el local del usuario y lo deja como admin. → uuid del local
+  registrarLocal: (nombre, pinAdmin) =>
+    rpc('registrar_local', { p_nombre: nombre, p_pin_admin: pinAdmin }),
+}
+
 // ── Realtime por entidad (sustituye a la fila global) ───────────────────────
 
 // Suscribe los canales del local y despacha cambios por tabla.
