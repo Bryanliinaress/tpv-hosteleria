@@ -2,7 +2,7 @@ import { supabase } from '../supabase'
 import { useStore } from '../../store/useStore'
 import { reservas as rpcReservas, personal } from '../repo'
 import { toast } from '../../store/useUI'
-import { getLocalId, cargarSala, cargarComandas, cargarReservas, cargarCarta, cargarLocal, cargarHistorial, cargarFichajes } from './estado'
+import { getLocalId, cargarSala, cargarComandas, cargarReservas, cargarCarta, cargarLocal, cargarHistorial, cargarFichajes, cargarCierres } from './estado'
 
 // Segunda ola de acciones v2: KDS, agenda de reservas, CRUD de carta/sala/
 // personal, caja y config del local. Personal/admin operan por RLS.
@@ -218,9 +218,7 @@ export function accionesV2b() {
           contado: contado != null ? Number(contado) : null,
           descuadre: contado != null ? Number(contado) - (pagos.efectivo || 0) : null,
         })
-        cargarHistorial()
-        const { data: cs } = await t('cierres_caja').select('*').order('hasta', { ascending: false })
-        useStore.setState({ cierres: (cs || []).map(c => ({ id: c.id, desde: c.desde, hasta: c.hasta, total: Number(c.total), propinas: Number(c.propinas), pagos: c.pagos, nTickets: c.n_tickets, contado: c.contado != null ? Number(c.contado) : null, descuadre: c.descuadre != null ? Number(c.descuadre) : null })) })
+        cargarHistorial(); cargarCierres()
       } catch (e) { err(e) }
     },
   }

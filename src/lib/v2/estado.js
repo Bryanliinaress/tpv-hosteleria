@@ -182,6 +182,19 @@ export async function cargarHistorial() {
   })
 }
 
+export async function cargarCierres() {
+  const cierres = await q('cierres_caja', 'id, desde, hasta, total, propinas, pagos, n_tickets, contado, descuadre')
+  useStore.setState({
+    cierres: cierres.sort((a, b) => a.hasta < b.hasta ? 1 : -1).map(c => ({
+      id: c.id, desde: c.desde, hasta: c.hasta,
+      total: Number(c.total), propinas: Number(c.propinas), pagos: c.pagos,
+      nTickets: c.n_tickets,
+      contado: c.contado != null ? Number(c.contado) : null,
+      descuadre: c.descuadre != null ? Number(c.descuadre) : null,
+    })),
+  })
+}
+
 export async function cargarFichajes() {
   try {
     const fichajes = await q('fichajes', 'id, empleado_id, entrada, salida, editado_por')
@@ -199,7 +212,7 @@ export async function cargarTodo() {
   // lecturas públicas y deben cargar igualmente.
   try { await cargarLocal() } catch (e) { console.warn('v2 local:', e.message) }
   await Promise.all([cargarCarta(), cargarSala()])
-  await Promise.all([cargarComandas(), cargarAvisos(), cargarReservas(), cargarHistorial(), cargarFichajes()])
+  await Promise.all([cargarComandas(), cargarAvisos(), cargarReservas(), cargarHistorial(), cargarFichajes(), cargarCierres().catch(() => {})])
 }
 
 // ── Cliente QR anónimo: su mesa vía estado_mesa (RLS no le deja ver tablas) ──
