@@ -71,11 +71,14 @@ export default function Reservar() {
 
   const reiniciar = () => { window.location.hash = '#/reservar'; setForm(FORM0); setIdx(0); setHecha(null); setEditandoId(null); setCancelada(null) }
 
-  const confirmar = () => {
+  const confirmar = async () => {
     let id
-    if (editandoId) { actualizarReserva(editandoId, form); id = editandoId }
+    if (editandoId) { await actualizarReserva(editandoId, form); id = editandoId }
     else {
-      id = crearReserva(form)
+      // en el backend real la reserva la valida el servidor (aforo, día
+      // cerrado…) y puede rechazarla: NO damos por confirmado hasta tener id.
+      id = await crearReserva(form)
+      if (!id) return   // la acción ya avisó del motivo con un toast
       try { const m = JSON.parse(localStorage.getItem('tpv-mis-reservas') || '[]'); localStorage.setItem('tpv-mis-reservas', JSON.stringify([...m, id])) } catch { /* noop */ }
     }
     const r = useStore.getState().reservas.find(x => x.id === id) || { ...form, id }

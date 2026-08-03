@@ -21,12 +21,12 @@ mercado a confirmar con presupuesto.
 
 | Concepto | Coste/mes | Nota |
 |---|---|---|
-| Supabase (backend) | 0€ → ~23€ | free tier al empezar; Pro recomendado (backups) |
+| Supabase (backend) | 0€ → ~23€ | ⚠️ **Pro OBLIGATORIO en producción**: el free tier **pausa el proyecto tras ~1 semana sin actividad** y el TPV deja de funcionar hasta reactivarlo a mano (comprobado el 2026-08-03: ambos proyectos pausados tras 18 días parados; los datos se conservan). Pro además da backups. |
 | Hosting front | 0€ | GitHub Pages/Vercel |
 | Dominio | ~1€ | 12€/año |
 | Emails reservas (EmailJS) | 0€ → ~7€ | 200/mes gratis |
 | **Fiscal Verifactu — Verifacti** | **2,90€/NIF** | ✅ verificado: 3.000 facturas/mes incluidas, +2€/1.000 extra, NIF de prueba gratis, incluye TicketBAI y plantilla de declaración responsable |
-| **Total** | **~4€/mes al empezar · ~35€/mes en serio** | |
+| **Total** | **~4€/mes en pruebas · ~35€/mes en producción** | En un local real, Supabase Pro no es opcional (ver nota arriba). |
 
 ## C) Variable (pagos online por QR)
 
