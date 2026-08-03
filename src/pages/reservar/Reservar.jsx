@@ -4,7 +4,7 @@ import { useStore, generarSlots, slotDisponible, diaCerrado } from '../../store/
 import { enviarEmailReserva, emailConfigurado } from '../../lib/email'
 import { syncListo } from '../../lib/sync'
 import MiniCalendario from '../../components/MiniCalendario'
-import { confirmar } from '../../store/useUI'
+import { confirmar as pedirConfirmacion } from '../../store/useUI'
 
 // ── utilidades de fecha ───────────────────────────────────
 const pad = (n) => String(n).padStart(2, '0')
@@ -54,7 +54,7 @@ export default function Reservar() {
   const siguiente = () => setIdx(i => Math.min(pasos.length - 1, i + 1))
   const atras = () => setIdx(i => Math.max(0, i - 1))
 
-  useEffect(() => { set('hora', '') }, [form.personas, form.zona, form.fecha]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { set('hora', '') }, [form.personas, form.zona, form.fecha])
 
   const misIds = (() => { try { return JSON.parse(localStorage.getItem('tpv-mis-reservas') || '[]') } catch { return [] } })()
   const misReservas = reservas.filter(r => misIds.includes(r.id) && r.estado === 'confirmada' && r.fecha >= hoyLocal())
@@ -167,7 +167,7 @@ export default function Reservar() {
             {r.zona && <Fila k="📍 Zona" v={r.zona} />}
           </div>
           <button onClick={() => { setForm({ fecha: r.fecha, hora: r.hora, personas: r.personas, zona: r.zona || '', nombre: r.nombre, email: r.email || '', telefono: r.telefono || '', notas: r.notas || '' }); setEditandoId(r.id); setIdx(0) }} style={btn('var(--color-accent)', { width: '100%', padding: '0.85rem', fontSize: '1rem', marginBottom: '0.5rem' })}>✏️ Modificar reserva</button>
-          <button onClick={async () => { if (await confirmar({ titulo: 'Cancelar reserva', mensaje: '¿Seguro que quieres cancelar tu reserva?', peligro: true, confirmar: 'Sí, cancelar', cancelar: 'Volver' })) { cancelarReservaCliente(r); setCancelada(r) } }} style={btn('#7f1d1d', { width: '100%', padding: '0.85rem', fontSize: '1rem' })}>🗑️ Cancelar reserva</button>
+          <button onClick={async () => { if (await pedirConfirmacion({ titulo: 'Cancelar reserva', mensaje: '¿Seguro que quieres cancelar tu reserva?', peligro: true, confirmar: 'Sí, cancelar', cancelar: 'Volver' })) { cancelarReservaCliente(r); setCancelada(r) } }} style={btn('#7f1d1d', { width: '100%', padding: '0.85rem', fontSize: '1rem' })}>🗑️ Cancelar reserva</button>
         </div>
       </div>
     )
@@ -206,7 +206,7 @@ export default function Reservar() {
               {misReservas.map(r => (
                 <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', padding: '0.3rem 0' }}>
                   <span style={{ fontSize: '0.85rem' }}>📅 {fechaBonita(r.fecha)} · 🕐 {r.hora} · 👥 {r.personas}</span>
-                  <button onClick={async () => { if (await confirmar({ titulo: 'Cancelar reserva', mensaje: '¿Cancelar esta reserva?', peligro: true, confirmar: 'Sí, cancelar', cancelar: 'Volver' })) cancelarReservaCliente(r) }} style={btn('#7f1d1d', { fontSize: '0.75rem', padding: '0.3rem 0.6rem' })}>Cancelar</button>
+                  <button onClick={async () => { if (await pedirConfirmacion({ titulo: 'Cancelar reserva', mensaje: '¿Cancelar esta reserva?', peligro: true, confirmar: 'Sí, cancelar', cancelar: 'Volver' })) cancelarReservaCliente(r) }} style={btn('#7f1d1d', { fontSize: '0.75rem', padding: '0.3rem 0.6rem' })}>Cancelar</button>
                 </div>
               ))}
             </div>

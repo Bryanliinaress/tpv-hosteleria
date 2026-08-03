@@ -610,7 +610,7 @@ const localAIso = (v) => (v ? new Date(v).toISOString() : null)
 const horasEntre = (a, b) => (a && b ? Math.max(0, (new Date(b) - new Date(a)) / 3600000) : 0)
 const fmtH = (h) => `${Math.floor(h)}h ${Math.round((h % 1) * 60)}m`
 
-function FichajesTab({ fichajes, empleados, editarFichaje, borrarFichaje, local }) {
+function FichajesTab({ fichajes, editarFichaje, borrarFichaje, local }) {
   const [mes, setMes] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` })
   const [edit, setEdit] = useState(null) // { id, entrada, salida } en formato datetime-local
 
