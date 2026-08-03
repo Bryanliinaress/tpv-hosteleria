@@ -13,6 +13,7 @@ const TIPO = {
 export default function UIHost() {
   const { toasts, cerrarToast, dialogo, responder } = useUI()
   const conexion = useUI(s => s.conexion)
+  const pendientes = useUI(s => s.pendientes)
   return (
     <>
       {/* Aviso de sincronización: solo visible si algo no se está guardando */}
@@ -26,7 +27,9 @@ export default function UIHost() {
           boxShadow: 'var(--shadow-lg)', pointerEvents: 'none',
         }}>
           <span style={{ width: '0.55rem', height: '0.55rem', borderRadius: '9999px', background: 'currentColor', animation: 'pulseRing 1.8s ease-out infinite' }} />
-          Sin conexión · reintentando…
+          {pendientes > 0
+            ? `Sin conexión · ${pendientes} pendiente${pendientes > 1 ? 's' : ''} de enviar`
+            : 'Sin conexión · reintentando…'}
         </div>
       )}
 

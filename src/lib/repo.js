@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { encolar, esFalloDeRed } from './v2/cola'
 
 // ────────────────────────────────────────────────────────────────────────────
 // Repositorio por entidad contra el backend multi-tenant (migraciones 01+02).
@@ -17,10 +18,35 @@ import { supabase } from './supabase'
 
 export const backendV2 = import.meta.env.VITE_BACKEND === 'v2'
 
+// Operaciones de servicio que pueden esperar a que vuelva el wifi. Los cobros
+// y cierres NO están aquí: reenviarlos a ciegas podría duplicar un ticket.
+const ENCOLABLES = new Set([
+  'qr_agregar_linea', 'qr_cambiar_cantidad', 'qr_confirmar_pedido',
+  'qr_llamar_camarero', 'qr_cancelar_aviso', 'qr_pedir_cuenta',
+  'marchar_siguiente',
+])
+
+// Sin red la operación se guarda para reenviarla; ojo: supabase-js NO lanza
+// excepción en fallos de red, los devuelve dentro de `error`.
+function sinConexion(fn, args) {
+  encolar(fn, args)
+  const e = new Error('guardado_sin_conexion')
+  e.codigo = 'guardado_sin_conexion'
+  e.encolada = true
+  return e
+}
+
 async function rpc(fn, args) {
   if (!supabase) throw new Error('backend no configurado')
-  const { data, error } = await supabase.rpc(fn, args)
+  let data, error
+  try {
+    ({ data, error } = await supabase.rpc(fn, args))
+  } catch (fallo) {
+    if (ENCOLABLES.has(fn) && esFalloDeRed(fallo)) throw sinConexion(fn, args)
+    throw fallo
+  }
   if (error) {
+    if (ENCOLABLES.has(fn) && esFalloDeRed(error)) throw sinConexion(fn, args)
     // los RAISE EXCEPTION de las RPC llegan como message ('sin_aforo', …)
     const e = new Error(error.message)
     e.codigo = error.message
