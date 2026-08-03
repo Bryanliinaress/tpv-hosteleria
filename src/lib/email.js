@@ -3,13 +3,27 @@
 // VITE_EMAILJS_PUBLIC_KEY. La plantilla de EmailJS solo necesita usar las
 // variables {{to_email}}, {{asunto}} y {{mensaje}} (y to_name si se quiere).
 
+import { useStore } from '../store/useStore'
+
 const SERVICE = import.meta.env.VITE_EMAILJS_SERVICE_ID
 const TEMPLATE = import.meta.env.VITE_EMAILJS_TEMPLATE_ID
 const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY
 
+// nombre del local para firmar los correos (cae a un genérico si no está)
+const nombreLocal = () => useStore.getState().local?.nombre || 'el restaurante'
+
 export const emailConfigurado = !!(SERVICE && TEMPLATE && PUBLIC_KEY)
 
-const fechaBonita = (f) => { const [y, m, d] = f.split('-'); return `${d}/${m}/${y}` }
+const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio',
+  'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+
+// Fecha en texto ("4 de agosto de 2026"). Se evitan las barras a propósito:
+// EmailJS escapa el HTML de las variables y "04/08/2026" llegaba al asunto
+// como "04&#x2F;08&#x2F;2026".
+const fechaBonita = (f) => {
+  const [y, m, d] = f.split('-')
+  return `${Number(d)} de ${MESES[Number(m) - 1]} de ${y}`
+}
 
 // Enlace público para que el cliente gestione (cancele o modifique) su reserva.
 export function enlaceGestion(r) {
@@ -28,7 +42,7 @@ function contenido(tipo, r) {
         '',
         'Si ha sido un error o quieres volver a reservar, puedes hacerlo cuando quieras.',
         '',
-        'Un saludo.',
+        `Un saludo, ${nombreLocal()}.`,
       ].join('\n'),
     }
   }
@@ -45,10 +59,13 @@ function contenido(tipo, r) {
     ...(r.zona ? [`📍 Zona: ${r.zona}`] : []),
     ...(r.token ? ['', '¿Necesitas cancelar o modificar tu reserva?', enlaceGestion(r)] : []),
     '',
-    '¡Te esperamos!',
+    `¡Te esperamos en ${nombreLocal()}!`,
   ].join('\n')
   return { asunto, mensaje }
 }
+
+// Expuesto solo para los tests: comprobar asunto y cuerpo sin enviar nada.
+export const __contenido = contenido
 
 // Envía el correo. Si EmailJS está configurado, lo manda de verdad; si no,
 // abre el cliente de correo (mailto) como alternativa para la demo.
@@ -79,6 +96,8 @@ export async function enviarEmailReserva(tipo, r, { permitirMailto = true } = {}
         hora: r.hora,
         personas: r.personas,
         zona: r.zona || '',
+        local: nombreLocal(),
+        from_name: nombreLocal(),
       },
     }),
   })
