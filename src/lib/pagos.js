@@ -14,7 +14,7 @@ export const pagoOnlineDisponible =
 
 // Inicia el pago: guarda la propina pendiente (para marcarla al volver) y
 // redirige a Stripe Checkout.
-export async function iniciarPagoOnline({ mesaId, personaId, importe, propina = 0, descripcion }) {
+export async function iniciarPagoOnline({ mesaId, personaId, importe, propina = 0, descripcion, localId = null }) {
   if (!pagoOnlineDisponible) throw new Error('Pago online no configurado')
 
   // Guardamos la propina para aplicarla al volver de Stripe
@@ -27,7 +27,7 @@ export async function iniciarPagoOnline({ mesaId, personaId, importe, propina = 
     res = await fetch(`${SUPABASE_URL}/functions/v1/crear-checkout`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ANON_KEY}`, apikey: ANON_KEY },
-      body: JSON.stringify({ mesaId, personaId, importe, descripcion, returnUrl }),
+      body: JSON.stringify({ mesaId, personaId, importe, descripcion, returnUrl, localId, propina }),
     })
   } catch {
     // sin red, o la Edge Function no está desplegada en este proyecto
