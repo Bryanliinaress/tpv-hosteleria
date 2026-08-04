@@ -38,6 +38,7 @@ jobs:
         env:
           VITE_BASE: /tpv-hosteleria/app/
           VITE_BACKEND: v2
+          VITE_FISCAL: verifactu
           VITE_SUPABASE_URL: https://tesilntyomnovjcuieho.supabase.co
           VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlc2lsbnR5b21ub3ZqY3VpZWhvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwOTQxMTUsImV4cCI6MjA5OTY3MDExNX0.0KvPZzY58VkT0EKTQWPCE1aVI1LnNBvz2m-vgMfwVkc
           VITE_EMAILJS_SERVICE_ID: ${{ secrets.VITE_EMAILJS_SERVICE_ID }}

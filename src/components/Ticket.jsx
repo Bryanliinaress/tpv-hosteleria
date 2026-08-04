@@ -57,7 +57,7 @@ function consolidar(personas) {
 // Ticket de cuenta estilo térmico profesional: cabecera fiscal, columnas
 // DESCRIPCIÓN/UDS/PRECIO/IMPORTE, base+IVA, comensales, estado de pago,
 // mesa/zona y QR (reseña o carta).
-function Cuenta({ mesa, persona, local }) {
+function Cuenta({ mesa, persona, local, fiscal }) {
   const personas = persona ? [persona] : mesa.personas
   const filas = consolidar(personas)
   const total = personas.reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0)
@@ -127,7 +127,24 @@ function Cuenta({ mesa, persona, local }) {
         {mesa.zona && <div>{mesa.zona}</div>}
       </div>
 
-      {/* QR */}
+      {/* QR fiscal (Verifactu): obligatorio en el ticket si está registrado */}
+      {fiscal?.qr || fiscal?.url ? (
+        <>
+          <div style={st.hr} />
+          <div style={{ textAlign: 'center', fontSize: '0.72rem', fontWeight: 700 }}>
+            Factura verificable en la Sede Electrónica de la AEAT
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', margin: '0.4rem 0' }}>
+            {fiscal.qr
+              ? <img src={fiscal.qr.startsWith('data:') ? fiscal.qr : `data:image/png;base64,${fiscal.qr}`}
+                     alt="QR Veri*Factu" style={{ width: '110px', height: '110px' }} />
+              : <QRCodeSVG value={fiscal.url} size={110} />}
+          </div>
+          <div style={{ textAlign: 'center', fontSize: '0.62rem', letterSpacing: '0.04em' }}>VERI*FACTU</div>
+        </>
+      ) : null}
+
+      {/* QR del local (reseñas o carta) */}
       <div style={st.hr} />
       <div style={{ textAlign: 'center', fontSize: '0.76rem' }}>
         {local?.urlResena ? 'Escanea este QR para valorar nuestro servicio' : 'Escanea este QR para ver la carta y pedir'}
@@ -145,13 +162,13 @@ function Cuenta({ mesa, persona, local }) {
   )
 }
 
-export default function Ticket({ tipo, mesa, persona, onClose }) {
+export default function Ticket({ tipo, mesa, persona, onClose, fiscal }) {
   const local = useStore(s => s.local)
   return (
     <div onClick={onClose} className="no-print" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '1rem', animation: 'fadeIn 0.2s ease both' }}>
       <div onClick={e => e.stopPropagation()} className="anim-pop" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', maxHeight: '92vh' }}>
         <div className="ticket-print" style={st.papel}>
-          {tipo === 'comanda' ? <Comanda mesa={mesa} /> : <Cuenta mesa={mesa} persona={tipo === 'persona' ? persona : null} local={local} />}
+          {tipo === 'comanda' ? <Comanda mesa={mesa} /> : <Cuenta mesa={mesa} persona={tipo === 'persona' ? persona : null} local={local} fiscal={fiscal} />}
         </div>
         <div className="no-print" style={{ display: 'flex', gap: '0.5rem' }}>
           <button onClick={() => window.print()} style={st.btn('var(--color-accent)')}>🖨️ Imprimir</button>

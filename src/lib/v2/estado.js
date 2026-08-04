@@ -172,11 +172,12 @@ export async function cargarReservas() {
 }
 
 export async function cargarHistorial() {
-  const tickets = await q('tickets', 'id, numero, mesa_numero, cerrado_en, total, propina, pagos, detalle, camarero, cobrado_por')
+  const tickets = await q('tickets', 'id, numero, mesa_numero, cerrado_en, total, propina, pagos, detalle, camarero, cobrado_por, fiscal_estado, fiscal_qr, fiscal_url, fiscal_error')
   useStore.setState({
     historial: tickets.sort((a, b) => a.cerrado_en < b.cerrado_en ? 1 : -1).map(t => ({
       id: t.id, numero: t.numero, mesaNumero: t.mesa_numero, cerradaEn: t.cerrado_en,
       total: Number(t.total), propina: Number(t.propina), pagos: t.pagos,
+      fiscalEstado: t.fiscal_estado, fiscalQr: t.fiscal_qr, fiscalUrl: t.fiscal_url, fiscalError: t.fiscal_error,
       personas: t.detalle, camarero: t.camarero, cobradoPor: t.cobrado_por,
     })),
   })
