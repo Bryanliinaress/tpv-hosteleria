@@ -94,11 +94,16 @@ Documentos hermanos: [COSTES.md](COSTES.md) (qué cuesta operar) ·
   registros de facturación verificables, encadenados y (en su caso) remitidos a
   la AEAT; numeración correlativa; datos fiscales completos; IVA por tipo;
   factura simplificada y completa; exportación.
-- ✅ **Proveedor elegido: [Verifacti](https://www.verifacti.com)** (2,90€/NIF/mes,
-  API Verifactu + TicketBAI, NIF de prueba gratis — ver COSTES.md §D). Plan:
-  Edge Function que registra cada ticket al cerrarse y devuelve el QR
-  verificable para imprimirlo. ⚠️ Sigue haciendo falta validar el calendario
-  con la asesoría del local.
+- ✅ **INTEGRADO Y VERIFICADO (v0.39.0, 2026-08-04)** con
+  [Verifacti](https://www.verifacti.com) (2,90€/NIF/mes; ver COSTES.md §D):
+  Edge Function `registrar-fiscal` que registra cada ticket al cobrarlo, QR
+  verificable de la AEAT impreso en el ticket con sello VERI*FACTU, y aviso +
+  reintento de pendientes en Admin → Tickets. El registro **no bloquea el
+  cobro** (queda pendiente y se reintenta). Probado contra la AEAT de test:
+  ticket nº1 con uuid y URL de cotejo en `prewww2.aeat.es`.
+- Pendiente para operar de verdad: dar de alta el **NIF real** del local en
+  Verifacti y pasar al entorno de producción; ⚠️ validar el calendario de
+  entrada en vigor con la asesoría del local.
 
 ### 4. Pagos de verdad
 - [x] ~~Bug returnUrl (el retorno de Stripe caía en la Home y el pago no se
