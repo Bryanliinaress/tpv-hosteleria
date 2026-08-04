@@ -1,7 +1,7 @@
 # De demo a producto de mercado — hoja de ruta
 
 **META: salir al mercado lo antes posible.** Este documento es la fuente de
-verdad de lo que queda. Última actualización: 2026-07-15 (**v0.34.0**).
+verdad de lo que queda. Última actualización: 2026-08-04 (**v0.39.1**).
 
 ## Estado a 2026-07-03
 
@@ -54,7 +54,10 @@ llegará con el backend (Storage).
    (3 categorías, 56 productos, 12 mesas, 3 empleados con PIN bcrypt) y usuario
    admin con `local_id` en el JWT, login verificado. Siguiente (solo front):
    pantalla de login + cablear el store a `lib/repo.js` (`VITE_BACKEND=v2`).
-2. Cuenta **Verifacti** (gratis) → fiscal Verifactu
+2. ~~Cuenta **Verifacti**~~ ✅ **HECHO (2026-08-04)**: NIF de pruebas B75777847,
+   Edge Function `registrar-fiscal` desplegada, migraciones 08-09 aplicadas.
+   Ticket nº1 registrado de verdad en la AEAT de test (uuid + URL de cotejo).
+   Falta: NIF real del local y pasar a entorno de producción de Verifacti.
 3. Cuenta **Stripe** real → webhook de pagos
 4. **Impresora térmica** 80mm (~80€) → fase ESC/POS
 
@@ -118,7 +121,8 @@ Documentos hermanos: [COSTES.md](COSTES.md) (qué cuesta operar) ·
    impresoras de red con cola.
 7. **Resiliencia/offline**: PWA instalable ✅ (v0.15.0) + reintento de escrituras
    con backoff, aviso de conexión y reenvío al reconectar ✅ (v0.31.0). La **cola
-   offline** completa (operar sin red y encolar) sigue pendiente del backend Fase 0.
+   offline** completa ✅ (v0.37.0): las operaciones de servicio se guardan y se
+   reenvían al reconectar; los cobros nunca se encolan (evita duplicar tickets).
 8. **Alérgenos por plato** (14 UE) — obligatorio informarlos. ✅ v0.14.0.
 9. **Hardware**: tablets/PDAs, pantallas cocina, cajón portamonedas, TPV
    físico. ⚠️ Compra/instalación en el local.
