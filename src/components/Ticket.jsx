@@ -1,5 +1,7 @@
 import { useStore } from '../store/useStore'
 import { QRCodeSVG } from 'qrcode.react'
+import { imprimirESCPOS, config as configImpresora } from '../lib/impresora'
+import { ticketESCPOS, comandaESCPOS } from '../lib/escpos'
 
 // Modificadores de una línea (pan, sin/con, nota) en una sola cadena
 const descr = (item) => {
@@ -162,6 +164,34 @@ function Cuenta({ mesa, persona, local, fiscal }) {
   )
 }
 
+// Imprime por la térmica (ESC/POS) si el dispositivo la tiene configurada; si
+// no, o si falla, cae al diálogo del navegador para no quedarse sin comanda.
+async function imprimir({ tipo, mesa, persona, local, fiscal }) {
+  if (configImpresora().modo === 'navegador') { window.print(); return }
+
+  let bytes
+  if (tipo === 'comanda') {
+    const lineas = []
+    mesa.personas.forEach(p => p.items.forEach(it => lineas.push({
+      cantidad: it.cantidad, nombre: it.nombre, nota: descr(it), persona: p.nombre,
+    })))
+    bytes = comandaESCPOS({ mesa: mesa.numero, destino: 'COMANDA', lineas })
+  } else {
+    const personas = persona ? [persona] : mesa.personas
+    const filas = consolidar(personas)
+    bytes = ticketESCPOS({
+      local, mesa,
+      lineas: filas.map(l => ({ nombre: l.nombre, cantidad: l.uds, precio: l.precio, nota: l.extra })),
+      total: filas.reduce((s, l) => s + l.precio * l.uds, 0),
+      propina: personas.reduce((s, p) => s + (p.propina || 0), 0),
+      comensales: personas.length,
+      pagado: personas.length > 0 && personas.every(p => p.pagado),
+      fiscal,
+    })
+  }
+  await imprimirESCPOS(bytes, { alternativa: () => window.print() })
+}
+
 export default function Ticket({ tipo, mesa, persona, onClose, fiscal }) {
   const local = useStore(s => s.local)
   return (
@@ -171,7 +201,7 @@ export default function Ticket({ tipo, mesa, persona, onClose, fiscal }) {
           {tipo === 'comanda' ? <Comanda mesa={mesa} /> : <Cuenta mesa={mesa} persona={tipo === 'persona' ? persona : null} local={local} fiscal={fiscal} />}
         </div>
         <div className="no-print" style={{ display: 'flex', gap: '0.5rem' }}>
-          <button onClick={() => window.print()} style={st.btn('var(--color-accent)')}>🖨️ Imprimir</button>
+          <button onClick={() => imprimir({ tipo, mesa, persona, local, fiscal })} style={st.btn('var(--color-accent)')}>🖨️ Imprimir</button>
           <button onClick={onClose} style={st.btn('var(--color-surface-3)', 'var(--color-text)')}>Cerrar</button>
         </div>
       </div>

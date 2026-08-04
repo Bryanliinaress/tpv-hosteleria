@@ -8,6 +8,7 @@ import ReservasConfig from '../../components/ReservasConfig'
 import BotonSalir from '../../components/BotonSalir'
 import TemaToggle from '../../components/TemaToggle'
 import EstadoFiscal from '../../components/EstadoFiscal'
+import ConfigImpresora from '../../components/ConfigImpresora'
 import Informes from './Informes'
 
 const emptyForm = { nombre: '', categoria: '', descripcion: '', alergenos: [], imagen: '', conFormatos: false, precios: {}, precio: '' }
@@ -366,7 +367,9 @@ export default function PanelAdmin() {
 
         {/* Tab Ajustes de carta */}
         {tab === 'ajustes' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', alignItems: 'start' }}>
+          <div>
+            <ConfigImpresora />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', alignItems: 'start' }}>
             {/* Categorías */}
             <div style={ajusteCard}>
               <h3 style={ajusteTitulo}>Categorías</h3>
@@ -449,6 +452,7 @@ export default function PanelAdmin() {
                   <input value={etiquetas[k]} onChange={e => updateEtiquetas({ [k]: e.target.value })} style={inputStyle} />
                 </div>
               ))}
+            </div>
             </div>
           </div>
         )}

@@ -1,54 +1,68 @@
-# Probar la impresión térmica (con lo que ya hay)
+# Impresión térmica
 
-La estación de impresión (`/print`) ya imprime comandas automáticamente usando
-la impresión del navegador. Para que salga **sin diálogo** (silenciosa) se usa
-Chrome en modo kiosko. Esto se puede probar HOY con cualquier impresora térmica
-con driver de Windows.
+Hay **tres formas** de imprimir, configurables por dispositivo en
+**Admin → Ajustes → Impresión** (cada terminal puede usar la suya):
 
-## Qué comprar (si aún no hay impresora)
+| Modo | Cuándo usarlo | Necesita |
+|---|---|---|
+| **USB directo (ESC/POS)** | Impresora enchufada al PC de barra | Chrome/Edge; elegir la impresora una vez |
+| **Puente de red (ESC/POS)** | Impresora Ethernet, o varias estaciones | Ejecutar `scripts/puente-impresion.mjs` en un PC del local |
+| **Diálogo del navegador** | Cualquier impresora con driver | Chrome en modo kiosko para no ver el diálogo |
 
-- **Ancho 80 mm** (el ticket está maquetado a 80 mm). Las de 58 mm valen pero
-  habría que ajustar el CSS.
-- Con **driver de Windows** (casi todas las genéricas lo traen) y a poder ser
-  **conexión Ethernet/LAN** además de USB — la red nos servirá después para la
-  fase ESC/POS (tarea #16) sin cambiar de hardware.
-- Opciones: genérica 80 mm USB+LAN (~60-100€) para probar, o Epson TM-T20III
-  (~180€) si va a ser la definitiva. Con **corte automático** mejor.
+Con **ESC/POS** la comanda sale al instante, sin diálogo, con **corte
+automático**, **QR nativo** (más nítido y rápido que una imagen) y posibilidad
+de abrir el **cajón portamonedas**. Es lo que usan los TPV comerciales.
 
-## Puesta en marcha (10 minutos)
+## Opción 1 · USB directo (lo más simple)
 
-1. **Instala la impresora** en el PC de barra/cocina con su driver y márcala
-   como **impresora predeterminada** de Windows.
-2. En las preferencias de impresión del driver: papel 80 mm, sin márgenes
-   extra, corte al finalizar (si lo soporta).
-3. **Lanza Chrome en modo kiosko de impresión** con el acceso directo de abajo
-   (o crea uno): imprime directo a la predeterminada, sin diálogo.
-4. En la estación (`#/print`): elige **Cocina/Barra/Ambas** y deja
-   **Auto-impresión ON**. Cada pedido nuevo imprime su comanda solo.
-5. Prueba también los tickets de cuenta desde Mostrador/PDA (🧾): salen por la
-   misma impresora predeterminada.
+1. Enchufa la impresora al PC y enciéndela.
+2. Admin → Ajustes → Impresión → **USB directo** → *Elegir impresora USB*.
+3. Selecciona la impresora en el diálogo del navegador (solo la primera vez).
+4. Pulsa **Imprimir ticket de prueba**: debe salir con acentos y un QR.
 
-## Acceso directo (Windows)
+> Solo funciona en Chrome/Edge de escritorio, y en HTTPS o localhost.
 
-Crea `EstacionImpresion.bat` con esto (ajusta la URL si es local):
+## Opción 2 · Puente de red (impresoras Ethernet)
 
-```bat
-start "" chrome --kiosk-printing --app=https://bryanliinaress.github.io/tpv-hosteleria/#/print
+El navegador no puede abrir sockets TCP, así que un pequeño programa hace de
+intermediario. En un PC del local (puede ser el mismo de barra):
+
+```bash
+IMPRESORA=192.168.1.50 node scripts/puente-impresion.mjs
 ```
 
-`--kiosk-printing` = imprime sin mostrar el diálogo. `--app` = ventana sin
-pestañas, tipo aplicación.
+Al arrancar imprime su dirección (`http://IP-DEL-PC:9110`). Ponla en
+Admin → Ajustes → Impresión → **Puente de red**. Comprueba con
+`http://IP-DEL-PC:9110/estado` que responde.
 
-## Probar SIN impresora (hoy mismo)
+Ventajas: una sola impresora sirve a varias tablets/PDAs, y no depende de que
+ese navegador tenga permisos USB.
 
-Se puede validar la maquetación sin hardware: abre `#/print`, genera un pedido
-desde una mesa y, sin modo kiosko, en el diálogo elige **"Microsoft Print to
-PDF"** → el PDF muestra exactamente lo que saldría por el papel de 80 mm.
+## Opción 3 · Diálogo del navegador (lo de siempre)
 
-## Limitaciones del enfoque actual (lo que resuelve la fase ESC/POS)
+Sigue disponible y **es el modo por defecto**. Además funciona como red de
+seguridad: si ESC/POS falla, la app cae automáticamente aquí para no dejar al
+camarero sin comanda.
 
-- Depende de un PC con Chrome encendido con el flag correcto.
-- No abre el cajón portamonedas ni controla el corte por software.
-- Si el driver mete márgenes o escala, hay que ajustarlo en el driver.
-- Una comanda cada ~1 s (cola secuencial del navegador) — suficiente para un
-  bar, justo para picos muy grandes.
+Para que no muestre el diálogo, Chrome en modo kiosko:
+
+```
+chrome.exe --kiosk-printing --app=https://bryanliinaress.github.io/tpv-hosteleria/app/#/print
+```
+
+## Qué comprar
+
+- **80 mm** (el ticket está maquetado a ese ancho; las de 58 mm requieren ajuste).
+- **Corte automático** — imprescindible para el ritmo de un servicio.
+- **USB + Ethernet** si es posible: te deja elegir modo sin cambiar de hardware.
+- Genérica 80 mm (~60-100 €) para empezar, o Epson TM-T20III (~180 €) si va a
+  ser la definitiva.
+
+## Detalles técnicos
+
+- Los comandos se generan en `src/lib/escpos.js` (cubierto por 14 tests).
+- Texto codificado en **CP858**: las térmicas no entienden UTF-8. Los caracteres
+  sin equivalente se transcriben sin tilde en vez de imprimir basura.
+- El transporte vive en `src/lib/impresora.js` y guarda la preferencia **por
+  dispositivo** en `localStorage`, porque cada terminal del local puede imprimir
+  en un sitio distinto.
