@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { owedPorPersona, METODOS_PAGO } from '../../store/useStore'
+import { useUnaVez } from '../../lib/unaVez'
 
 // Cobro de la mesa desde la PDA: método de pago, descuento/invitación, dividir
 // a partes iguales y cálculo de cambio en efectivo. Al cobrar, cierra la mesa.
@@ -21,12 +22,13 @@ export default function CobroMesa({ mesa, onCobrar, onCerrar }) {
   const mixtoEf = Math.min(aCobrar, parseFloat(mixtoEfectivo.replace(',', '.')) || 0)
   const mixtoRestoImp = Math.max(0, aCobrar - mixtoEf)
 
-  const confirmarCobro = () => {
+  // pulsar dos veces "cobrado" generaba dos tickets del mismo importe
+  const [confirmarCobro, cobrando] = useUnaVez(async () => {
     const desglose = metodo === 'mixto'
       ? { efectivo: mixtoEf, [mixtoResto]: mixtoRestoImp }
       : null
-    onCobrar({ metodo: metodo === 'mixto' ? 'mixto' : metodo, desglose, descuento })
-  }
+    await Promise.resolve(onCobrar({ metodo: metodo === 'mixto' ? 'mixto' : metodo, desglose, descuento }))
+  })
 
   return (
     <div onClick={onCerrar} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 80, animation: 'fadeIn 0.2s ease both' }}>
@@ -105,7 +107,7 @@ export default function CobroMesa({ mesa, onCobrar, onCerrar }) {
           </>
         )}
 
-        <button onClick={confirmarCobro} disabled={metodo === 'mixto' && mixtoEf <= 0} style={btn(metodo === 'mixto' && mixtoEf <= 0 ? 'var(--color-surface-3)' : '#10b981', { width: '100%', padding: '0.85rem', fontSize: '1rem', cursor: metodo === 'mixto' && mixtoEf <= 0 ? 'not-allowed' : 'pointer' })}>✓ Cobrado · cerrar mesa</button>
+        <button onClick={confirmarCobro} disabled={cobrando || (metodo === 'mixto' && mixtoEf <= 0)} style={btn(metodo === 'mixto' && mixtoEf <= 0 ? 'var(--color-surface-3)' : '#10b981', { width: '100%', padding: '0.85rem', fontSize: '1rem', cursor: metodo === 'mixto' && mixtoEf <= 0 ? 'not-allowed' : 'pointer' })}>{cobrando ? 'Cobrando…' : '✓ Cobrado · cerrar mesa'}</button>
       </div>
     </div>
   )

@@ -5,6 +5,7 @@ import { iniciarPagoOnline, leerResultadoPago, limpiarUrlPago, pagoOnlineDisponi
 import { syncListo } from '../../lib/sync'
 import { toast } from '../../store/useUI'
 import { useIdioma, tr } from '../../lib/i18n'
+import { useUnaVez } from '../../lib/unaVez'
 
 export default function CartaCliente() {
   const { mesaId } = useParams()
@@ -27,6 +28,11 @@ export default function CartaCliente() {
   const [dividiendo, setDividiendo] = useState(null)
   const [busqueda, setBusqueda] = useState('')
   const [mostrarResumen, setMostrarResumen] = useState(false)
+  // en un movil el doble toque enviaba la comanda dos veces
+  const [enviarPedido, enviando] = useUnaVez(async () => {
+    await Promise.resolve(confirmarPedido(mesaId))
+    setMostrarResumen(false); setVista('carta')
+  })
 
   // Personalización de un plato (elegir pan + condimentos)
   const [pers, setPers] = useState(null) // { producto, formato, tipo, quitados, anadidos, nota }
@@ -396,7 +402,7 @@ export default function CartaCliente() {
               <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1rem', margin: '0.75rem 0 1rem' }}>
                 <span>Total</span><span style={{ color: 'var(--color-accent)' }}>{totalPendiente.toFixed(2)} €</span>
               </div>
-              <button onClick={() => { confirmarPedido(mesaId); setMostrarResumen(false); setVista('carta') }} style={btnStyle('var(--color-accent)', { width: '100%', padding: '0.875rem', fontSize: '1rem', marginBottom: '0.5rem' })}>{t('Confirmar y enviar 🚀')}</button>
+              <button onClick={enviarPedido} disabled={enviando} style={btnStyle(enviando ? 'var(--color-surface-3)' : 'var(--color-accent)', { width: '100%', padding: '0.875rem', fontSize: '1rem', marginBottom: '0.5rem', cursor: enviando ? 'wait' : 'pointer' })}>{enviando ? t('Enviando…') : t('Confirmar y enviar 🚀')}</button>
               <button onClick={() => setMostrarResumen(false)} style={btnStyle('var(--color-surface-3)', { width: '100%', padding: '0.7rem', fontSize: '0.9rem' })}>{t('Seguir pidiendo')}</button>
             </div>
           </div>
