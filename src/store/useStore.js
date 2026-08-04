@@ -984,6 +984,7 @@ export const useStore = create(persist((set, get) => ({
       carta: {
         ...state.carta,
         productos: [...state.carta.productos, {
+          menu: producto.menu || null,
           id,
           nombre: producto.nombre,
           ...(conFormatos
@@ -1008,6 +1009,7 @@ export const useStore = create(persist((set, get) => ({
         if (p.id !== productoId) return p
         const next = { ...p }
         if (cambios.nombre !== undefined) next.nombre = cambios.nombre
+        if (cambios.menu !== undefined) next.menu = cambios.menu
         if (cambios.descripcion !== undefined) {
           next.descripcion = cambios.descripcion
           next.ingredientes = cambios.descripcion.split(',').map(s => s.trim()).filter(Boolean)

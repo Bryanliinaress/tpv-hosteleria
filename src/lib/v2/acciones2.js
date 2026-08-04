@@ -138,7 +138,7 @@ export function accionesV2b() {
         await t('productos').insert({
           local_id: getLocalId(), categoria_id: p.categoria, nombre: p.nombre,
           descripcion: p.descripcion || '', precios: p.precios || { base: p.precio ?? 0 },
-          modificadores: { ingredientes: p.ingredientes || [], imagen: p.imagen || '' },
+          modificadores: { ingredientes: p.ingredientes || [], imagen: p.imagen || '', menu: p.menu || null },
           alergenos: p.alergenos || [], disponible: true,
           orden: st().carta.productos.length,
         }); cargarCarta()
@@ -151,7 +151,7 @@ export function accionesV2b() {
           categoria_id: c.categoria ?? p.categoria, nombre: c.nombre ?? p.nombre,
           descripcion: c.descripcion ?? p.descripcion,
           precios: c.precios ?? (c.precio != null ? { base: c.precio } : p.precios),
-          modificadores: { ingredientes: c.ingredientes ?? p.ingredientes, imagen: c.imagen ?? p.imagen },
+          modificadores: { ingredientes: c.ingredientes ?? p.ingredientes, imagen: c.imagen ?? p.imagen, menu: c.menu !== undefined ? c.menu : p.menu ?? null },
           alergenos: c.alergenos ?? p.alergenos,
         }).eq('id', id); cargarCarta()
       } catch (e) { err(e) }

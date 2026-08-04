@@ -82,6 +82,7 @@ export async function cargarCarta() {
         disponible: p.disponible,
         ingredientes: p.modificadores?.ingredientes || [],
         imagen: p.modificadores?.imagen || '',
+        menu: p.modificadores?.menu || null,
       })),
     },
   }))
