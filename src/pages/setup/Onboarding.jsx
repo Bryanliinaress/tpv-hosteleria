@@ -7,8 +7,9 @@ import { toast, confirmar } from '../../store/useUI'
 // carta → listo). Pensado para dejar un bar operativo en ~15 minutos.
 export default function Onboarding() {
   const navigate = useNavigate()
-  const { local, updateLocal, configurarSala, vaciarCarta, carta, empleados, addEmpleado, updateEmpleado, removeEmpleado } = useStore()
+  const { local, updateLocal, configurarSala, vaciarCarta, sembrarCarta, carta, empleados, addEmpleado, updateEmpleado, removeEmpleado } = useStore()
   const [paso, setPaso] = useState(0)
+  const [sembrando, setSembrando] = useState(false)
 
   // Paso identidad (borrador local para no sincronizar en cada tecla)
   const [ident, setIdent] = useState({ nombre: local.nombre === 'Mi Local' ? '' : local.nombre, subtitulo: local.subtitulo || '', ivaPct: local.ivaPct ?? 10, moneda: local.moneda || '€' })
@@ -47,6 +48,13 @@ export default function Onboarding() {
     const r = addEmpleado(nuevoEmp)
     if (!r.ok) { toast(r.error, 'error'); return }
     setNuevoEmp({ nombre: '', pin: '', rol: 'camarero' })
+  }
+
+  const sembrar = async () => {
+    setSembrando(true)
+    await Promise.resolve(sembrarCarta?.())
+    setSembrando(false)
+    toast('Carta de ejemplo creada: edítala en Admin → Carta', 'success')
   }
 
   const vaciar = async () => {
@@ -171,14 +179,30 @@ export default function Onboarding() {
             <h2 style={titulo}>📋 Tu carta</h2>
             <p style={nota}>Puedes empezar con la carta de ejemplo y editarla, o partir de cero. Los productos se gestionan en Admin → Carta (con formatos, alérgenos y extras).</p>
             <div style={{ display: 'grid', gap: '0.6rem' }}>
-              <div style={{ ...opcion, borderColor: '#10b981' }}>
-                <div style={{ fontWeight: 700 }}>✅ Mantener la carta actual</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>{carta.productos.length} productos de ejemplo (bar/cafetería) listos para editar.</div>
-              </div>
-              <button onClick={vaciar} disabled={carta.productos.length === 0} style={{ ...opcion, cursor: carta.productos.length ? 'pointer' : 'not-allowed', textAlign: 'left', opacity: carta.productos.length ? 1 : 0.5 }}>
-                <div style={{ fontWeight: 700 }}>🗑️ Empezar con la carta vacía</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>Quita los productos de ejemplo; añades los tuyos después.</div>
-              </button>
+              {carta.productos.length > 0 ? (
+                <>
+                  <div style={{ ...opcion, borderColor: '#10b981' }}>
+                    <div style={{ fontWeight: 700 }}>✅ Mantener la carta actual</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>{carta.productos.length} productos (bar/cafetería) listos para editar.</div>
+                  </div>
+                  <button onClick={vaciar} style={{ ...opcion, cursor: 'pointer', textAlign: 'left' }}>
+                    <div style={{ fontWeight: 700 }}>🗑️ Empezar con la carta vacía</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>Quita estos productos; añades los tuyos después.</div>
+                  </button>
+                </>
+              ) : (
+                // local nuevo: aún no tiene carta, se le ofrece sembrarla
+                <>
+                  <button onClick={sembrar} disabled={sembrando} style={{ ...opcion, borderColor: 'var(--color-accent)', cursor: sembrando ? 'wait' : 'pointer', textAlign: 'left' }}>
+                    <div style={{ fontWeight: 700 }}>🍽 {sembrando ? 'Creando la carta…' : 'Empezar con una carta de ejemplo'}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>Carta típica de bar (desayunos, cafés y bebidas) para editarla a tu gusto. Es lo más rápido.</div>
+                  </button>
+                  <div style={opcion}>
+                    <div style={{ fontWeight: 700 }}>✍️ Crear mi carta desde cero</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>Continúa y añade tus productos en Admin → Carta.</div>
+                  </div>
+                </>
+              )}
             </div>
             <Nav atras={() => setPaso(2)} siguiente={() => setPaso(4)} />
           </>

@@ -2,6 +2,7 @@ import { supabase } from '../supabase'
 import { useStore } from '../../store/useStore'
 import { reservas as rpcReservas, personal } from '../repo'
 import { toast } from '../../store/useUI'
+import { sembrarCartaEjemplo, vaciarCartaV2 } from './plantillaCarta'
 import { getLocalId, cargarSala, cargarComandas, cargarReservas, cargarCarta, cargarLocal, cargarHistorial, cargarFichajes, cargarCierres } from './estado'
 
 // Segunda ola de acciones v2: KDS, agenda de reservas, CRUD de carta/sala/
@@ -160,6 +161,11 @@ export function accionesV2b() {
       try { await t('categorias').insert({ local_id: getLocalId(), nombre, tipo: tipo || 'comida', orden: st().carta.categorias.length }); cargarCarta() } catch (e) { err(e) }
     },
     removeCategoria: async (id) => { try { await t('categorias').delete().eq('id', id); cargarCarta() } catch (e) { err(e) } },
+
+    // Un local recién registrado nace sin carta: puede arrancar con la de
+    // ejemplo (para editarla) o vaciarla y hacer la suya.
+    sembrarCarta: () => sembrarCartaEjemplo().catch(err),
+    vaciarCarta: () => vaciarCartaV2().catch(err),
 
     // config de carta del local (formatos/panes/extras/etiquetas)
     addFormato: (nombre) => actualizarConfig({ carta: { formatos: [...(cartaCfg().formatos || []), { id: nombre.toLowerCase().replace(/\W+/g, '-'), nombre }] } }).catch(err),
