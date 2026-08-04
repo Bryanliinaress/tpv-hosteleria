@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'Método no permitido' }, 405)
 
   try {
-    const { importe, descripcion, mesaId, personaId, returnUrl } = await req.json()
+    const { importe, descripcion, mesaId, personaId, returnUrl, localId, propina } = await req.json()
     const cents = Math.round(Number(importe) * 100)
     if (!cents || cents < 50) return json({ error: 'Importe inválido (mínimo 0,50 €)' }, 400)
 
@@ -43,6 +43,14 @@ Deno.serve(async (req) => {
       }],
       success_url: `${base}?${q}#/mesa/${mesaId}`,
       cancel_url: `${base}?pago=cancel#/mesa/${mesaId}`,
+      // El webhook (fuente fiable del cobro) necesita saber qué se ha pagado:
+      // el retorno del navegador ya no decide nada.
+      metadata: {
+        mesaId: String(mesaId ?? ''),
+        personaId: String(personaId ?? ''),
+        localId: String(localId ?? ''),
+        propina: String(propina ?? 0),
+      },
     })
 
     return json({ url: session.url })
