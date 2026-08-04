@@ -9,9 +9,10 @@ import BotonSalir from '../../components/BotonSalir'
 import TemaToggle from '../../components/TemaToggle'
 import EstadoFiscal from '../../components/EstadoFiscal'
 import ConfigImpresora from '../../components/ConfigImpresora'
+import EditorMenu from '../../components/EditorMenu'
 import Informes from './Informes'
 
-const emptyForm = { nombre: '', categoria: '', descripcion: '', alergenos: [], imagen: '', conFormatos: false, precios: {}, precio: '' }
+const emptyForm = { nombre: '', categoria: '', descripcion: '', alergenos: [], imagen: '', conFormatos: false, precios: {}, precio: '', menu: null }
 
 export default function PanelAdmin() {
   const { carta, mesas, historial, cierres, anulaciones, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, addCategoria, removeCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, editarFichaje, borrarFichaje } = useStore()
@@ -79,6 +80,8 @@ export default function PanelAdmin() {
   const guardar = () => {
     if (!form.nombre.trim() || !form.categoria) return
     const payload = { ...form, precios: form.conFormatos ? form.precios : {} }
+    // sin grupos no es un menú: se guarda como producto normal
+    if (!payload.menu?.grupos?.length) payload.menu = null
     if (editando === 'nuevo') addProducto(payload)
     else updateProducto(editando, payload)
     cancelar()
@@ -831,6 +834,8 @@ function FormProducto({ carta, form, setForm, onGuardar, onCancelar, titulo }) {
         <input value={form.imagen} onChange={set('imagen')} placeholder="📷 URL de la foto (opcional)" style={{ ...inputStyle, flex: 1 }} />
         {form.imagen?.trim() && <img src={form.imagen} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ width: '2.6rem', height: '2.6rem', objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid var(--color-border)' }} />}
       </div>
+      {/* Menú del día / combo (opcional) */}
+      <EditorMenu menu={form.menu} onChange={(m) => setForm(f => ({ ...f, menu: m }))} />
       {/* Alérgenos (14 UE) */}
       <div>
         <p style={{ fontSize: '0.72rem', color: 'var(--color-muted)', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Alérgenos</p>
