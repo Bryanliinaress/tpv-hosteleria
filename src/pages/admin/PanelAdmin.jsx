@@ -7,6 +7,7 @@ import ReservasManager from '../../components/ReservasManager'
 import ReservasConfig from '../../components/ReservasConfig'
 import BotonSalir from '../../components/BotonSalir'
 import TemaToggle from '../../components/TemaToggle'
+import EstadoFiscal from '../../components/EstadoFiscal'
 import Informes from './Informes'
 
 const emptyForm = { nombre: '', categoria: '', descripcion: '', alergenos: [], imagen: '', conFormatos: false, precios: {}, precio: '' }
@@ -529,6 +530,7 @@ export default function PanelAdmin() {
         {/* Tab Tickets del mes */}
         {tab === 'tickets' && (
           <div>
+            <EstadoFiscal />
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
               {[
                 { label: `Tickets de ${ahora.toLocaleDateString('es-ES', { month: 'long' })}`, value: delMes.length, color: '#3b82f6' },

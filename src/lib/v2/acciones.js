@@ -2,6 +2,7 @@ import { supabase } from '../supabase'
 import { useStore } from '../../store/useStore'
 import { qr, personal, reservas as rpcReservas } from '../repo'
 import { toast } from '../../store/useUI'
+import { registrarTicket } from '../fiscal'
 import { getLocalId, cargarSala, cargarComandas, cargarAvisos, cargarReservas, cargarHistorial, cargarCarta, cargarFichajes, refrescarServicio } from './estado'
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -86,7 +87,13 @@ export function accionesV2() {
     },
     pagarParte: (mesaId, personaId, opts) => {
       const o = typeof opts === 'number' ? { propina: opts } : (opts || {})
-      personal.pagarParte(personaId, o).then(() => { cargarSala(); cargarHistorial() }).catch(err)
+      personal.pagarParte(personaId, o).then(async (r) => {
+        cargarSala(); await cargarHistorial()
+        // si esta parte cerró la mesa, hay ticket que registrar
+        const fila = Array.isArray(r) ? r[0] : r
+        const ult = st().historial[0]
+        if (fila?.cerrada && ult?.id) registrarTicket(ult.id).then(() => cargarHistorial())
+      }).catch(err)
     },
     pagarTodo: (mesaId, opts = {}) => {
       const pagos = opts.metodo ? { [opts.metodo]: null } : {}
@@ -98,7 +105,14 @@ export function accionesV2() {
       personal.cobrarMesa(mesaId, {
         pagos: o.pagos || (o.metodo ? { [o.metodo]: null } : {}),
         propina: o.propina || 0, cobradoPor: o.cobradoPor, descuento: o.descuento || 0,
-      }).then(() => { cargarSala(); cargarComandas(); cargarHistorial() }).catch(err)
+      }).then(async () => {
+        cargarSala(); cargarComandas()
+        await cargarHistorial()
+        // registro fiscal en segundo plano: si falla, el ticket queda
+        // pendiente y se reintenta (el cobro nunca se bloquea)
+        const ult = st().historial[0]
+        if (ult?.id) registrarTicket(ult.id).then(() => cargarHistorial())
+      }).catch(err)
     },
     liberarMesa: async (mesaId) => {
       try {
