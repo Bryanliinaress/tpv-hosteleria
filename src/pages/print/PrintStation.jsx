@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../../store/useStore'
 import BotonSalir from '../../components/BotonSalir'
+import { imprimirESCPOS, config as configImpresora } from '../../lib/impresora'
+import { comandaESCPOS } from '../../lib/escpos'
 
 // Estación de impresión automática. Pensada para un PC en cocina/barra con la
 // impresora térmica como predeterminada y Chrome en modo "kiosk-printing"
@@ -49,10 +51,22 @@ export default function PrintStation() {
     if (cola.length === 0 || imprimiendo.current) return
     imprimiendo.current = true
     const t = setTimeout(() => {
-      try { window.print() } catch { /* sin impresora */ }
+      // ESC/POS si el dispositivo lo tiene configurado; si no, el navegador
+      if (configImpresora().modo === 'navegador') {
+        try { window.print() } catch { /* sin impresora */ }
+      } else {
+        const bytes = comandaESCPOS({
+          mesa: actual.mesaNumero,
+          destino: estacion === 'barra' ? 'BARRA' : 'COCINA',
+          lineas: actual.items.map(i => ({ cantidad: i.cantidad, nombre: i.nombre, nota: i.nota, persona: i.personaNombre })),
+        })
+        imprimirESCPOS(bytes, { alternativa: () => { try { window.print() } catch { /* noop */ } } })
+      }
       setTimeout(() => { setCola(c => c.slice(1)); imprimiendo.current = false }, 700)
     }, 250)
     return () => clearTimeout(t)
+    // se dispara con la cola; `actual` y `estacion` se leen en ese momento
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cola])
 
   const actual = cola[0]
