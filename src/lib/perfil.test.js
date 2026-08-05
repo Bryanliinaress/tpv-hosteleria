@@ -1,0 +1,68 @@
+import { describe, it, expect } from 'vitest'
+import { leerPerfil, cssDeMarca, aplicarMarca, urlLogo, PERFIL_GENERICO } from './perfil'
+
+describe('leerPerfil', () => {
+  it('sin perfil inyectado usa la marca genérica', () => {
+    expect(leerPerfil(undefined)).toBe(PERFIL_GENERICO)
+  })
+
+  it('completa los huecos del perfil del local', () => {
+    const p = leerPerfil(JSON.stringify({ slug: 'bar-manolo', nombre: 'Bar Manolo' }))
+    expect(p.nombre).toBe('Bar Manolo')
+    expect(p.emoji).toBe('🍽')
+    expect(p.modulos).toEqual({})
+  })
+
+  it('un JSON roto no tumba la app', () => {
+    expect(leerPerfil('{roto')).toBe(PERFIL_GENERICO)
+  })
+})
+
+describe('cssDeMarca', () => {
+  it('escribe una regla por tema', () => {
+    const css = cssDeMarca({ colores: { acento: '#111111', acento2: '#222222', acentoClaro: '#333333' } })
+    expect(css).toContain(':root{--color-accent:#111111;--color-accent-2:#222222}')
+    expect(css).toContain(':root[data-theme="light"]{--color-accent:#333333}')
+  })
+
+  it('sin colores propios no genera CSS', () => {
+    expect(cssDeMarca({ colores: {} })).toBe('')
+  })
+})
+
+describe('aplicarMarca', () => {
+  // documento mínimo: sin jsdom, solo lo que aplicarMarca toca
+  const docFalso = () => {
+    const head = { hijos: [], appendChild(el) { this.hijos.push(el); return el } }
+    return {
+      head,
+      createElement: () => ({ textContent: '' }),
+      getElementById: (id) => head.hijos.find(h => h.id === id) || null,
+    }
+  }
+
+  it('reutiliza el mismo <style> en vez de acumularlos', () => {
+    const doc = docFalso()
+    const p = { colores: { acento: '#111111' } }
+    aplicarMarca(p, doc)
+    aplicarMarca(p, doc)
+    expect(doc.head.hijos).toHaveLength(1)
+    expect(doc.head.hijos[0].textContent).toContain('#111111')
+  })
+
+  it('no toca el documento si el local no trae colores', () => {
+    const doc = docFalso()
+    expect(aplicarMarca({ colores: {} }, doc)).toBeNull()
+    expect(doc.head.hijos).toHaveLength(0)
+  })
+})
+
+describe('urlLogo', () => {
+  it('cuelga el logo del base del despliegue', () => {
+    expect(urlLogo({ logo: 'logo.svg' }, '/bar-manolo/')).toBe('/bar-manolo/marca/logo.svg')
+  })
+
+  it('sin logo propio devuelve null', () => {
+    expect(urlLogo({ logo: null }, '/')).toBeNull()
+  })
+})

@@ -1,0 +1,30 @@
+{
+  "marca": {
+    "nombre": "Bar Manolo",
+    "corto": "Manolo",
+    "descripcion": "Carta, pedidos y reservas de Bar Manolo.",
+    "emoji": "🍻",
+    "colores": {
+      "acento": "#f97316",
+      "acento2": "#fb923c",
+      "acentoClaro": "#c2410c",
+      "acento2Claro": "#ea580c",
+      "fondo": "#0b1120"
+    }
+  },
+  "despliegue": {
+    "base": "/",
+    "url": "https://barmanolo.example"
+  },
+  "supabase": {
+    "ref": "abcdefghijklmnopqrst",
+    "url": "https://abcdefghijklmnopqrst.supabase.co",
+    "anonKey": "eyJ...la-anon-key-de-ESTE-bar"
+  },
+  "backend": "v2",
+  "fiscal": "verifactu",
+  "modulos": {
+    "pagosOnline": false,
+    "reservas": true
+  }
+}

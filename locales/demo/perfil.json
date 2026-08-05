@@ -1,0 +1,24 @@
+{
+  "marca": {
+    "nombre": "TPV Hostelería",
+    "corto": "TPV",
+    "descripcion": "Demo de TPV para bar y restaurante: autopedido por QR, sala, cocina, caja y reservas — todo sincronizado en tiempo real.",
+    "emoji": "🍽"
+  },
+  "despliegue": {
+    "base": "/tpv-hosteleria/",
+    "url": "https://bryanliinaress.github.io/tpv-hosteleria/",
+    "salida": "dist"
+  },
+  "supabase": {
+    "ref": "sgyioiadkaswfohpeyjx",
+    "url": "https://sgyioiadkaswfohpeyjx.supabase.co",
+    "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNneWlvaWFka2Fzd2ZvaHBleWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NzIxOTUsImV4cCI6MjA5NzM0ODE5NX0.W4ZQlmeaf42JnqP5aN-QR_qA9oTnyZUjihK7BfkK2Kc"
+  },
+  "backend": "v1",
+  "fiscal": null,
+  "modulos": {
+    "pagosOnline": true,
+    "reservas": true
+  }
+}
