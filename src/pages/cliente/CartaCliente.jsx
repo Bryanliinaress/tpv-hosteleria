@@ -51,6 +51,15 @@ export default function CartaCliente() {
 
   useEffect(() => { if (yo) setYoVisto(true) }, [yo])
 
+  // Al escanear el QR de OTRA mesa, la ruta cambia pero el componente sigue
+  // montado: sin esto arrastraba la identidad de la mesa anterior y saltaba un
+  // falso «¡Cuenta pagada!». Cada mesa empieza de cero.
+  useEffect(() => {
+    setMiPersonaId(localStorage.getItem(`tpv-yo-${mesaId}`))
+    setYoVisto(false); setCerrada(false); setVista('carta')
+    setPidiendoPara(null); setIntento(null); setPers(null); setBusqueda('')
+  }, [mesaId])
+
   // Ya tiene nombre: retomamos lo que estaba intentando hacer (añadir el plato
   // que tocó, o abrir su pedido) sin que tenga que repetir el gesto.
   useEffect(() => {
