@@ -80,7 +80,7 @@ export default function PantallaBarra() {
                     {est.next && (
                       <button
                         onClick={() => actualizarEstadoBarra(p.id, est.next)}
-                        style={{ background: est.next === 'listo' ? '#f43f5e' : '#7c3aed', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.875rem', width: '100%' }}
+                        style={{ background: est.next === 'listo' ? '#f43f5e' : '#7c3aed', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.75rem 1rem', minHeight: '52px', cursor: 'pointer', fontWeight: 700, fontSize: '0.95rem', width: '100%' }}
                       >
                         {est.nextLabel}
                       </button>
