@@ -16,6 +16,8 @@ dist-ssr
 .env
 .env.*
 !.env.example
+# el de pruebas NO tiene claves (las deja vacías a propósito): se versiona
+!.env.pruebas
 
 # Temporales de la CLI de Supabase
 supabase/.temp/
