@@ -55,16 +55,57 @@ que está gitignorado y solo existe en el PC de Bryan).
    autenticarme con contraseñas, así que ese login lo tiene que hacer él.
 
 ### De código (se puede hacer sin nadie)
-- **Stripe Connect**: que cada bar cobre en **su** cuenta (hoy iría a una sola).
-  Es lo que falta para vender el pago online como SaaS. Ver [docs/PAGOS.md](docs/PAGOS.md).
+Ver la sección siguiente: la prioridad ha cambiado.
 - Informes más ricos (por producto/camarero/hora), backups y monitorización.
 - Reservas por franja con auto-asignación de mesa.
+- ~~Stripe Connect~~: **ya no es prioritario** — con una instancia por bar,
+  cada local pone directamente SUS claves de Stripe.
+
+## ⚠️ CAMBIO DE MODELO (2026-08-05)
+
+**Cada bar tendrá su propia instalación**, no un SaaS multi-tenant compartido.
+Decisión de Bryan. Cada local llevará **su proyecto Supabase, su despliegue, su
+dominio, su marca y sus funciones a medida** si las necesita.
+
+### Lo que NO se tira
+El backend multi-tenant sigue valiendo: el aislamiento por `local_id`,
+`registrar_local()` y `scripts/provisionar-produccion.mjs` son la base para dar
+de alta un bar nuevo rápido, aunque cada uno viva en su sitio.
+
+### Cómo hacerlo sin acabar con 8 copias divergentes
+Copiar el repo por bar parece cómodo y es una trampa: a los meses, arreglar un
+bug son N arreglos. El modelo acordado es **producto base + perfiles**:
+
+- **Un repo con el producto** (este), que evoluciona para todos.
+- **Un perfil por bar**: marca, dominio, claves y configuración.
+- **Funciones a medida como módulos opcionales**, cargados solo en ese bar
+  mediante puntos de extensión, sin ensuciar el núcleo.
+- **Una instancia desplegada por bar**.
+
+### Trabajo que esto implica (nueva prioridad)
+1. **Perfiles de local**: `locales/<slug>/` con marca (logo, colores, nombre),
+   dominio y claves. Build parametrizado: `LOCAL=bar-manolo npm run build`.
+2. **Alta industrializada**: un solo comando que cree el proyecto Supabase,
+   aplique las 10 migraciones, siembre la carta, registre el local y despliegue.
+   Base ya existente: `scripts/provisionar-produccion.mjs`.
+3. **Marca blanca**: que el logo y los colores del bar salgan en la carta QR,
+   el ticket y la PWA.
+4. **Puntos de extensión** para las funciones a medida por cliente.
+5. **Actualizar N instancias**: un comando que redespliegue todos los bares.
+
+### Lo que Bryan debe tener presente
+- Supabase Pro son **~23 €/mes por bar** (el free se pausa). Con 10 bares,
+  ~230 €/mes de infraestructura. Cobrando 25-40 €/bar el margen pasa de ~95%
+  a ~30-40%: sigue saliendo a cuenta, pero conviene fijar el precio sabiéndolo.
+- Cada mejora hay que desplegarla en cada bar: por eso el punto 5 no es opcional.
 
 ## Lo más valioso ahora (opinión)
 
-No es más código: es **poner esto en un bar real una tarde**, aunque sea de un
-amigo. Un servicio de verdad dirá en dos horas qué chirría, y eso vale más que
-cualquier lista de tareas. Lo único que hace falta antes es la impresora.
+Aun con el cambio de modelo, sigue siendo **poner esto en un bar real una
+tarde**, aunque sea de un amigo. Un servicio de verdad dirá en dos horas qué
+chirría, y eso vale más que cualquier lista de tareas. Lo único que hace falta
+antes es la impresora. El primer bar además sirve para estrenar el proceso de
+alta y ver cuánto cuesta de verdad montar uno.
 
 ## Detalles que ahorran tiempo
 
