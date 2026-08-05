@@ -66,7 +66,8 @@ que está gitignorado y solo existe en el PC de Bryan).
 2. **Impresora térmica 80 mm** (~60-100 €) para probar ESC/POS de verdad.
 3. **Cuenta de Stripe** real (+ activar Bizum) para el pago por QR.
 4. **NIF real en Verifacti** y pasar a su entorno de producción, cuando haya
-   un local de verdad.
+   un local de verdad. Pasar a producción **no toca código**: es cambiar el
+   secreto `VERIFACTI_API_KEY` (`vf_test_…` → `vf_prod_…`); la URL es la misma.
 5. **Probar el alta de un bar nuevo end-to-end** en `/app/`: yo no puedo
    autenticarme con contraseñas, así que ese login lo tiene que hacer él.
 
@@ -136,6 +137,15 @@ alta y ver cuánto cuesta de verdad montar uno.
   runner `scripts/provisionar-produccion.mjs`. No hace falta Docker.
 - **Edge Functions**: `npx supabase functions deploy <nombre> --project-ref <ref>`
   (con `--no-verify-jwt` para el webhook de Stripe). Tampoco necesita Docker.
+- **Calendario de Veri*Factu** (verificado el 05/08/2026, RDL 15/2025 lo aplazó
+  un año): obligatorio para **sociedades el 1-1-2027** y para **autónomos el
+  1-7-2027**. Ojo al argumentario de venta: a un bar autónomo aún le quedan
+  meses, así que **no se vende como «o multa»**, se vende como «ya resuelto».
+  Lo que **sí** aplica ya es al **fabricante de software**: lo comercializado
+  desde el 29-7-2025 debe ser conforme. Pendiente de confirmar con asesor la
+  **declaración responsable** que exige el reglamento al fabricante.
+- **Entornos de Verifacti**: misma URL para pruebas y producción; lo que cambia
+  es la API key (`vf_test_…` / `vf_prod_…`).
 - **Gotcha de Verifacti**: en factura simplificada (F2) **no** se envían
   `nif`/`nombre` — son del destinatario y la AEAT lo rechaza.
 - **Gotcha de supabase-js**: no lanza excepción en fallos de red, los devuelve
