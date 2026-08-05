@@ -8,6 +8,7 @@ import { useIdioma, tr } from '../../lib/i18n'
 import { useUnaVez } from '../../lib/unaVez'
 import { esMenu, menuCompleto, siguientePendiente, precioMenu, resumenElecciones, alternarOpcion } from '../../lib/menuDia'
 import { productosVisibles, descripcionUtil, lineaSimplePendiente, unidades, configDeItem, ultimaRonda } from '../../lib/carta'
+import { construirRecibo, lineasDeConsumo, guardarRecibo, leerRecibo, olvidarRecibo, descargarRecibo, reciboReciente } from '../../lib/recibo'
 
 export default function CartaCliente() {
   const { mesaId } = useParams()
@@ -71,6 +72,18 @@ export default function CartaCliente() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [yo, intento])
 
+  // Foto del consumo para el recibo del cliente. Se guarda MIENTRAS la mesa
+  // está viva: al cobrar, la mesa se libera y el consumo desaparece del estado.
+  useEffect(() => {
+    if (!yo || !yo.items?.length) return
+    const lineas = lineasDeConsumo(mesa, yo.id)
+    if (!lineas.length) return
+    guardarRecibo(mesaId, construirRecibo({
+      local, mesa, nombre: yo.nombre, lineas, propina: yo.propina || 0,
+      metodo: yo.pagado ? (yo.metodoPago || null) : null,
+    }))
+  }, [mesa, yo, local, mesaId])
+
   // La cabecera crece o encoge (avisos, «pedir para»): medimos su alto real
   // para colgar de ahí las categorías pegadas.
   useEffect(() => {
@@ -85,9 +98,12 @@ export default function CartaCliente() {
 
   // Pantalla de "cuenta pagada": solo si estuvimos activos y la mesa se reinició
   // (evita el falso positivo del estado por defecto antes de cargar Supabase).
+  // También cubre al que cierra la app tras pagar y la vuelve a abrir: si hay
+  // recibo de este servicio, lo suyo es enseñárselo, no la carta.
   useEffect(() => {
-    if (yoVisto && miPersonaId && mesa && !yo && mesa.estado === 'libre') setCerrada(true)
-  }, [yoVisto, miPersonaId, mesa, yo])
+    if (!miPersonaId || !mesa || yo || mesa.estado !== 'libre') return
+    if (yoVisto || reciboReciente(mesaId)) setCerrada(true)
+  }, [yoVisto, miPersonaId, mesa, yo, mesaId])
 
   // Al volver de Stripe Checkout: si el pago fue OK, marca esa parte como pagada.
   // Espera a que Supabase cargue el estado para no ser sobrescrito por la sync.
@@ -109,17 +125,38 @@ export default function CartaCliente() {
 
   const limpiarDispositivo = () => {
     localStorage.removeItem(`tpv-yo-${mesaId}`)
+    olvidarRecibo(mesaId)
     setMiPersonaId(null); setCerrada(false); setVista('carta'); setPidiendoPara(null)
   }
 
-  // ── Pantalla GRACIAS ──────────────────────────────────
+  // ── Pantalla GRACIAS + RECIBO ─────────────────────────
+  // Quien paga desde el móvil se iba sin nada. Aquí tiene el detalle de lo que
+  // ha pagado y se lo puede llevar.
   if (cerrada) {
+    const recibo = leerRecibo(mesaId)
     return (
-      <div style={centerScreen}>
-        <div style={{ fontSize: '4rem' }}>✅</div>
-        <h1 style={{ fontSize: '1.6rem', fontWeight: 800, textAlign: 'center' }}>{t('¡Cuenta pagada!')}</h1>
-        <p style={{ color: 'var(--color-muted)', textAlign: 'center' }}>{t('Gracias por tu visita a la Mesa')} {mesa.numero}. {t('¡Hasta pronto! 👋')}</p>
-        <button onClick={limpiarDispositivo} style={btnStyle('var(--color-accent)', { padding: '0.875rem 1.5rem', fontSize: '1rem' })}>{t('Empezar una nueva mesa')}</button>
+      <div style={{ maxWidth: '480px', margin: '0 auto', padding: '1.5rem 1.25rem 2.5rem', minHeight: '100vh' }}>
+        <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
+          <div style={{ fontSize: '3.5rem' }}>✅</div>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>{t('¡Cuenta pagada!')}</h1>
+          <p style={{ color: 'var(--color-muted)', fontSize: '0.9rem' }}>{t('Gracias por tu visita a la Mesa')} {mesa.numero}. {t('¡Hasta pronto! 👋')}</p>
+        </div>
+
+        {recibo && <ReciboCliente recibo={recibo} t={t} />}
+
+        <div className="no-print" style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginTop: '1.25rem' }}>
+          {recibo && <>
+            <button onClick={() => { descargarRecibo(recibo); toast(t('Recibo descargado'), 'success') }}
+              style={btnStyle('var(--color-accent)', { width: '100%', minHeight: `${TOQUE + 6}px`, fontSize: '1rem' })}>
+              📄 {t('Descargar mi recibo')}
+            </button>
+            <button onClick={() => window.print()}
+              style={btnStyle('var(--color-surface-2)', { width: '100%', minHeight: `${TOQUE}px`, fontSize: '0.92rem' })}>
+              🖨 {t('Imprimir o guardar como PDF')}
+            </button>
+          </>}
+          <button onClick={limpiarDispositivo} style={btnStyle('var(--color-surface-3)', { width: '100%', minHeight: `${TOQUE}px`, fontSize: '0.9rem' })}>{t('Empezar una nueva mesa')}</button>
+        </div>
       </div>
     )
   }
@@ -323,6 +360,17 @@ export default function CartaCliente() {
             </div>
           )
         })}
+
+        {/* Ya pagó lo suyo: que pueda llevarse el recibo sin esperar al cierre */}
+        {yo?.pagado && (
+          <button onClick={() => {
+            const r = leerRecibo(mesaId)
+            if (!r) return toast(t('El recibo estará listo al cerrar la mesa'), 'info')
+            descargarRecibo(r); toast(t('Recibo descargado'), 'success')
+          }} style={btnStyle('var(--color-surface-2)', { width: '100%', minHeight: `${TOQUE}px`, fontSize: '0.9rem', marginBottom: '1rem' })}>
+            📄 {t('Descargar mi recibo')}
+          </button>
+        )}
 
         <div style={{ ...cardStyle, borderColor: 'var(--color-accent)', marginBottom: '1rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1.1rem' }}>
@@ -803,6 +851,55 @@ export default function CartaCliente() {
 // Persona «en blanco» mientras se ojea la carta sin haber dado el nombre
 const SIN_PERSONA = { id: null, nombre: '', items: [] }
 
+// El recibo en pantalla, con la misma pinta que el ticket de papel. Lleva la
+// clase `ticket-print` para que al imprimir salga solo esto (ver index.css).
+function ReciboCliente({ recibo, t }) {
+  const f = (n) => n.toFixed(2)
+  const m = recibo.moneda
+  return (
+    <div className="ticket-print" style={{ ...cardStyle, fontFamily: 'ui-monospace, "Courier New", monospace', background: 'var(--color-surface)' }}>
+      <div style={{ textAlign: 'center', fontWeight: 800, fontSize: '1.05rem' }}>{recibo.local.nombre}</div>
+      {recibo.local.cif && <div style={{ textAlign: 'center', fontSize: '0.72rem', color: 'var(--color-muted)' }}>N.I.F.: {recibo.local.cif}</div>}
+      {recibo.local.direccion && <div style={{ textAlign: 'center', fontSize: '0.72rem', color: 'var(--color-muted)' }}>{recibo.local.direccion}</div>}
+
+      <div style={{ borderTop: '1px dashed var(--color-border)', margin: '0.6rem 0' }} />
+      <div style={filaRecibo}><span>{t('Fecha')}</span><span>{new Date(recibo.fecha).toLocaleString('es-ES')}</span></div>
+      {recibo.mesa.numero != null && <div style={filaRecibo}><span>{t('Mesa')}</span><span>{recibo.mesa.numero}{recibo.mesa.zona ? ` · ${recibo.mesa.zona}` : ''}</span></div>}
+      {recibo.nombre && <div style={filaRecibo}><span>{t('Cliente')}</span><span>{recibo.nombre}</span></div>}
+      <div style={{ borderTop: '1px dashed var(--color-border)', margin: '0.6rem 0' }} />
+
+      {recibo.lineas.map((l, i) => (
+        <div key={i} style={{ marginBottom: '0.3rem' }}>
+          <div style={filaRecibo}>
+            <span>{l.uds}× {l.nombre}</span>
+            <span style={{ fontWeight: 700 }}>{f(l.importe)} {m}</span>
+          </div>
+          {(l.extra || l.compartido) && (
+            <div style={{ fontSize: '0.68rem', color: 'var(--color-muted)' }}>
+              {[l.extra, l.compartido ? t('compartido') : ''].filter(Boolean).join(' · ')}
+            </div>
+          )}
+        </div>
+      ))}
+
+      <div style={{ borderTop: '1px dashed var(--color-border)', margin: '0.6rem 0' }} />
+      <div style={{ ...filaRecibo, color: 'var(--color-muted)', fontSize: '0.75rem' }}><span>{t('Base imponible')}</span><span>{f(recibo.base)} {m}</span></div>
+      <div style={{ ...filaRecibo, color: 'var(--color-muted)', fontSize: '0.75rem' }}><span>IVA ({recibo.ivaPct}%)</span><span>{f(recibo.iva)} {m}</span></div>
+      {recibo.propina > 0 && <div style={{ ...filaRecibo, color: 'var(--color-muted)', fontSize: '0.75rem' }}><span>{t('Propina')}</span><span>{f(recibo.propina)} {m}</span></div>}
+      <div style={{ ...filaRecibo, fontSize: '1.15rem', fontWeight: 800, marginTop: '0.3rem' }}>
+        <span>Total</span><span style={{ color: 'var(--color-accent)' }}>{f(recibo.total + recibo.propina)} {m}</span>
+      </div>
+
+      <div style={{ textAlign: 'center', fontSize: '0.72rem', color: 'var(--color-muted)', marginTop: '0.7rem' }}>{recibo.local.pie}</div>
+      <div style={{ textAlign: 'center', fontSize: '0.64rem', color: 'var(--color-faint)', marginTop: '0.5rem', lineHeight: 1.4 }}>
+        {t('Copia para el cliente de su consumo. No sustituye a la factura simplificada, que emite el establecimiento.')}
+      </div>
+    </div>
+  )
+}
+
+const filaRecibo = { display: 'flex', justifyContent: 'space-between', gap: '0.6rem', fontSize: '0.8rem' }
+
 // Barra de abajo: las tres cosas que hace un cliente en la mesa — mirar la
 // carta, ver cómo va lo suyo y pagar. Antes eran emojis sueltos en la cabecera
 // (🛒 💰) y nadie encontraba la cuenta.
@@ -832,7 +929,6 @@ function Pestanas({ vista, setVista, uds, enMarcha, listos, aPagar, pagado, t })
     </nav>
   )
 }
-const centerScreen = { minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', gap: '1.25rem' }
 const grabHandle = { width: '36px', height: '4px', borderRadius: '9999px', background: 'var(--color-border)', margin: '-0.25rem auto 0.85rem' }
 const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 50, animation: 'fadeIn 0.2s ease both' }
 // La hoja es una columna: cabecera y pie quietos, y el contenido scrollando en
