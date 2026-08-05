@@ -14,8 +14,8 @@ export default function BotonSalir({ oscuro = false }) {
         background: oscuro ? 'rgba(255,255,255,0.06)' : 'var(--color-surface-2)',
         color: oscuro ? 'var(--color-text-2)' : 'var(--color-text)',
         border: `1px solid ${oscuro ? 'rgba(255,255,255,0.12)' : 'var(--color-border)'}`,
-        borderRadius: '9999px', padding: '0.3rem 0.7rem', cursor: 'pointer',
-        fontSize: '0.78rem', fontWeight: 600,
+        borderRadius: '9999px', padding: '0.45rem 0.85rem', minHeight: '40px', cursor: 'pointer',
+        fontSize: '0.8rem', fontWeight: 600, whiteSpace: 'nowrap',
       }}
     >
       <span style={{ opacity: 0.85 }}>{emp.rol === 'admin' ? '🔐' : '👤'} {emp.nombre}</span>
