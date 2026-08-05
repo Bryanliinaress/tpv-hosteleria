@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.49.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.50.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-05. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**151 tests**, lint limpio, CI y deploy en verde.
+**174 tests**, lint limpio, CI y deploy en verde.
 
 ## Pendiente — y de quién depende
 
@@ -155,6 +155,12 @@ Todo lo que quedaba medido de la ronda anterior ya está:
 - ~~Alta de producto~~ ✅ nombre y precio; el resto en «Más opciones».
 - **Además**: el cliente tiene barra de pestañas fija (Carta · Mi pedido ·
   Pagar) con el importe a la vista, y seguimiento de cómo va lo suyo.
+- **Recibo del cliente (v0.50.0)**: al cerrar la mesa ya no sale solo «gracias»,
+  sale el detalle de lo que ha pagado y se lo puede **descargar** (fichero
+  independiente, se abre sin conexión) o imprimir/guardar como PDF. La foto del
+  consumo se guarda en su móvil ANTES de que la mesa se libere.
+  ⚠️ Es la **copia del cliente**, no la factura simplificada: esa la emite el
+  local con Veri*Factu, y así se dice en el propio recibo.
 
 ### Lo siguiente que yo miraría (sin medir aún)
 - **Repetir para toda la mesa desde el cliente** («lo mismo para todos»).
