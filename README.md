@@ -86,6 +86,17 @@ npm run preview  # previsualiza el build
 npm run lint     # ESLint
 ```
 
+### Una instalación por bar
+
+Cada bar tiene su propio Supabase, su dominio y su marca, pero **todos comparten
+este código**: lo que cambia es su perfil en [`locales/`](locales/README.md).
+
+```bash
+npm run locales                       # locales dados de alta
+npm run locales -- build bar-manolo   # compila ese bar (marca, base y claves suyas)
+npm run locales -- build --todos      # compila todos (lo que hace el deploy)
+```
+
 ## 📁 Estructura
 
 ```

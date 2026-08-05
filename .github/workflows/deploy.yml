@@ -24,23 +24,10 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npm run build
+      # Un build por local (locales/<slug>/perfil.json): cada uno con su marca,
+      # su base y su Supabase. Hoy: demo → dist/, casa-loli → dist/app/.
+      - run: npm run locales -- build --todos
         env:
-          VITE_SUPABASE_URL: https://sgyioiadkaswfohpeyjx.supabase.co
-          VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNneWlvaWFka2Fzd2ZvaHBleWp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NzIxOTUsImV4cCI6MjA5NzM0ODE5NX0.W4ZQlmeaf42JnqP5aN-QR_qA9oTnyZUjihK7BfkK2Kc
-          # la demo sí tiene desplegada la Edge Function de checkout (Stripe test)
-          VITE_PAGOS_ONLINE: '1'
-          VITE_EMAILJS_SERVICE_ID: ${{ secrets.VITE_EMAILJS_SERVICE_ID }}
-          VITE_EMAILJS_TEMPLATE_ID: ${{ secrets.VITE_EMAILJS_TEMPLATE_ID }}
-          VITE_EMAILJS_PUBLIC_KEY: ${{ secrets.VITE_EMAILJS_PUBLIC_KEY }}
-      # ── APP REAL (backend multi-tenant v2, Casa Loli) en /app/ ──
-      - run: npm run build -- --outDir dist/app
-        env:
-          VITE_BASE: /tpv-hosteleria/app/
-          VITE_BACKEND: v2
-          VITE_FISCAL: verifactu
-          VITE_SUPABASE_URL: https://tesilntyomnovjcuieho.supabase.co
-          VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlc2lsbnR5b21ub3ZqY3VpZWhvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwOTQxMTUsImV4cCI6MjA5OTY3MDExNX0.0KvPZzY58VkT0EKTQWPCE1aVI1LnNBvz2m-vgMfwVkc
           VITE_EMAILJS_SERVICE_ID: ${{ secrets.VITE_EMAILJS_SERVICE_ID }}
           VITE_EMAILJS_TEMPLATE_ID: ${{ secrets.VITE_EMAILJS_TEMPLATE_ID }}
           VITE_EMAILJS_PUBLIC_KEY: ${{ secrets.VITE_EMAILJS_PUBLIC_KEY }}

@@ -1,0 +1,23 @@
+{
+  "marca": {
+    "nombre": "Casa Loli",
+    "descripcion": "Carta, pedidos y reservas de Casa Loli.",
+    "emoji": "🍽"
+  },
+  "despliegue": {
+    "base": "/tpv-hosteleria/app/",
+    "url": "https://bryanliinaress.github.io/tpv-hosteleria/app/",
+    "salida": "dist/app"
+  },
+  "supabase": {
+    "ref": "tesilntyomnovjcuieho",
+    "url": "https://tesilntyomnovjcuieho.supabase.co",
+    "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlc2lsbnR5b21ub3ZqY3VpZWhvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwOTQxMTUsImV4cCI6MjA5OTY3MDExNX0.0KvPZzY58VkT0EKTQWPCE1aVI1LnNBvz2m-vgMfwVkc"
+  },
+  "backend": "v2",
+  "fiscal": "verifactu",
+  "modulos": {
+    "pagosOnline": false,
+    "reservas": true
+  }
+}
