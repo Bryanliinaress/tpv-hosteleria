@@ -833,50 +833,68 @@ function PersonalTab({ empleados, addEmpleado, updateEmpleado, removeEmpleado })
 
 function FormProducto({ carta, form, setForm, onGuardar, onCancelar, titulo }) {
   const set = (campo) => (e) => setForm(f => ({ ...f, [campo]: e.target.value }))
+  // Un bar da de alta un producto con NOMBRE y PRECIO. Lo demás (foto,
+  // alérgenos, tamaños, menú) es útil pero no puede estorbar al alta rápida:
+  // se despliega a mano, o solo si el producto ya lo trae relleno.
+  const traeAvanzado = !!(form.imagen || form.descripcion || (form.alergenos || []).length || form.conFormatos || form.menu?.grupos?.length)
+  const [verAvanzado, setVerAvanzado] = useState(traeAvanzado)
+  const puedeGuardar = form.nombre.trim() && (form.conFormatos
+    ? Object.values(form.precios || {}).some(v => String(v).trim())
+    : String(form.precio ?? '').trim())
   return (
     <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-accent)', borderRadius: '0.625rem', padding: '1rem', marginBottom: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.625rem', gridColumn: '1 / -1' }}>
       <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--color-accent)' }}>{titulo}</div>
+      {/* Lo imprescindible: nombre, precio y dónde va */}
       <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap' }}>
-        <input value={form.nombre} onChange={set('nombre')} placeholder="Nombre" style={{ ...inputStyle, flex: '2 1 180px' }} />
-        <button type="button" onClick={() => setForm(f => ({ ...f, conFormatos: !f.conFormatos }))}
-          style={{ background: form.conFormatos ? '#7c3aed' : 'var(--color-inset)', color: '#fff', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, flex: '0 0 auto' }}>
-          {form.conFormatos ? '📐 Por formatos' : '💶 Precio único'}
-        </button>
+        <input value={form.nombre} onChange={set('nombre')} placeholder="Nombre del producto" autoFocus style={{ ...inputStyle, flex: '2 1 180px', minHeight: '44px' }} />
         {form.conFormatos
           ? carta.formatos.map(f => (
-              <input key={f.id} value={form.precios[f.id] ?? ''} onChange={e => setForm(x => ({ ...x, precios: { ...x.precios, [f.id]: e.target.value } }))} placeholder={`€ ${f.nombre}`} type="number" step="0.10" style={{ ...inputStyle, flex: '1 1 90px' }} />
+              <input key={f.id} value={form.precios[f.id] ?? ''} onChange={e => setForm(x => ({ ...x, precios: { ...x.precios, [f.id]: e.target.value } }))} placeholder={`€ ${f.nombre}`} type="number" inputMode="decimal" step="0.10" style={{ ...inputStyle, flex: '1 1 90px', minHeight: '44px' }} />
             ))
-          : <input value={form.precio} onChange={set('precio')} placeholder="€ Precio" type="number" step="0.10" style={{ ...inputStyle, flex: '1 1 90px' }} />}
-        <select value={form.categoria} onChange={set('categoria')} style={{ ...inputStyle, flex: '1 1 140px' }}>
+          : <input value={form.precio} onChange={set('precio')} placeholder="€ Precio" type="number" inputMode="decimal" step="0.10" style={{ ...inputStyle, flex: '1 1 100px', minHeight: '44px' }} />}
+        <select value={form.categoria} onChange={set('categoria')} style={{ ...inputStyle, flex: '1 1 140px', minHeight: '44px' }}>
           {carta.categorias.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.nombre}</option>)}
         </select>
       </div>
-      <input value={form.descripcion} onChange={set('descripcion')} placeholder="Descripción" style={inputStyle} />
-      {/* Foto del producto (URL) */}
-      <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
-        <input value={form.imagen} onChange={set('imagen')} placeholder="📷 URL de la foto (opcional)" style={{ ...inputStyle, flex: 1 }} />
-        {form.imagen?.trim() && <img src={form.imagen} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ width: '2.6rem', height: '2.6rem', objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid var(--color-border)' }} />}
-      </div>
-      {/* Menú del día / combo (opcional) */}
-      <EditorMenu menu={form.menu} onChange={(m) => setForm(f => ({ ...f, menu: m }))} />
-      {/* Alérgenos (14 UE) */}
-      <div>
-        <p style={{ fontSize: '0.72rem', color: 'var(--color-muted)', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Alérgenos</p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-          {ALERGENOS.map(a => {
-            const on = (form.alergenos || []).includes(a.id)
-            return (
-              <button key={a.id} type="button" onClick={() => setForm(f => ({ ...f, alergenos: on ? f.alergenos.filter(x => x !== a.id) : [...(f.alergenos || []), a.id] }))}
-                style={{ background: on ? '#7c2d12' : 'var(--color-inset)', color: on ? '#fdba74' : 'var(--color-muted)', border: `1px solid ${on ? 'var(--color-accent)' : 'var(--color-border)'}`, borderRadius: '9999px', padding: '0.25rem 0.6rem', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}>
-                {a.emoji} {a.nombre}
-              </button>
-            )
-          })}
+
+      <button type="button" onClick={() => setVerAvanzado(v => !v)}
+        style={{ background: 'none', border: 'none', color: 'var(--color-muted)', cursor: 'pointer', fontSize: '0.82rem', textAlign: 'left', padding: '0.35rem 0', minHeight: '40px' }}>
+        {verAvanzado ? '▾' : '▸'} Más opciones (descripción, foto, alérgenos, tamaños, menú)
+      </button>
+
+      {verAvanzado && (<>
+        <button type="button" onClick={() => setForm(f => ({ ...f, conFormatos: !f.conFormatos }))}
+          style={{ background: form.conFormatos ? '#7c3aed' : 'var(--color-inset)', color: form.conFormatos ? '#fff' : 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', minHeight: '44px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, alignSelf: 'flex-start' }}>
+          {form.conFormatos ? '📐 Varios tamaños (pitufo, viena…)' : '💶 Precio único'}
+        </button>
+        <input value={form.descripcion} onChange={set('descripcion')} placeholder="Descripción (qué lleva)" style={{ ...inputStyle, minHeight: '44px' }} />
+        {/* Foto del producto (URL) */}
+        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+          <input value={form.imagen} onChange={set('imagen')} placeholder="📷 URL de la foto (opcional)" style={{ ...inputStyle, flex: 1, minHeight: '44px' }} />
+          {form.imagen?.trim() && <img src={form.imagen} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ width: '2.6rem', height: '2.6rem', objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid var(--color-border)' }} />}
         </div>
-      </div>
+        {/* Menú del día / combo (opcional) */}
+        <EditorMenu menu={form.menu} onChange={(m) => setForm(f => ({ ...f, menu: m }))} />
+        {/* Alérgenos (14 UE) */}
+        <div>
+          <p style={{ fontSize: '0.72rem', color: 'var(--color-muted)', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Alérgenos</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+            {ALERGENOS.map(a => {
+              const on = (form.alergenos || []).includes(a.id)
+              return (
+                <button key={a.id} type="button" onClick={() => setForm(f => ({ ...f, alergenos: on ? f.alergenos.filter(x => x !== a.id) : [...(f.alergenos || []), a.id] }))}
+                  style={{ background: on ? '#7c2d12' : 'var(--color-inset)', color: on ? '#fdba74' : 'var(--color-muted)', border: `1px solid ${on ? 'var(--color-accent)' : 'var(--color-border)'}`, borderRadius: '9999px', padding: '0.4rem 0.7rem', minHeight: '40px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}>
+                  {a.emoji} {a.nombre}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </>)}
       <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-        <button onClick={onCancelar} style={{ background: 'var(--color-surface-3)', color: 'var(--color-text)', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer', fontSize: '0.85rem' }}>Cancelar</button>
-        <button onClick={onGuardar} style={{ background: 'var(--color-accent)', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1.25rem', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}>Guardar</button>
+        <button onClick={onCancelar} style={{ background: 'var(--color-surface-3)', color: 'var(--color-text)', border: 'none', borderRadius: '0.5rem', padding: '0.6rem 1rem', minHeight: '44px', cursor: 'pointer', fontSize: '0.85rem' }}>Cancelar</button>
+        <button onClick={onGuardar} disabled={!puedeGuardar} title={puedeGuardar ? '' : 'Pon al menos nombre y precio'}
+          style={{ background: puedeGuardar ? 'var(--color-accent)' : 'var(--color-surface-3)', color: puedeGuardar ? 'white' : 'var(--color-faint)', border: 'none', borderRadius: '0.5rem', padding: '0.6rem 1.25rem', minHeight: '44px', cursor: puedeGuardar ? 'pointer' : 'not-allowed', fontSize: '0.85rem', fontWeight: 600 }}>Guardar</button>
       </div>
     </div>
   )
