@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useStore, TIEMPOS, normalizarExtra, etiquetasDe } from '../../store/useStore'
 import { pedirTexto } from '../../store/useUI'
+import { productosVisibles, descripcionUtil } from '../../lib/carta'
 
 // Toma de pedidos desde la PDA del camarero, para un comensal de la mesa.
 export default function PedirPda({ mesaId, onClose }) {
@@ -8,11 +9,13 @@ export default function PedirPda({ mesaId, onClose }) {
   const mesa = mesas.find(m => m.id === mesaId)
   const [personaId, setPersonaId] = useState(mesa?.personas[0]?.id || null)
   const [cat, setCat] = useState(carta.categorias[0].id)
+  const [busqueda, setBusqueda] = useState('')
   const [pers, setPers] = useState(null) // personalización de montadito
 
   if (!mesa) return null
   const persona = mesa.personas.find(p => p.id === personaId) || mesa.personas[0]
-  const productos = carta.productos.filter(p => p.categoria === cat && p.disponible)
+  // Con 60+ productos, teclear «cafe» gana siempre a bajar por la categoría.
+  const productos = productosVisibles(carta, { busqueda, categoria: cat })
   const pendientes = persona?.items.filter(i => i.estado === 'pendiente') || []
   const totalPend = pendientes.reduce((s, i) => s + i.precio * i.cantidad, 0)
 
@@ -52,25 +55,40 @@ export default function PedirPda({ mesaId, onClose }) {
         </div>
       </div>
 
-      {/* Categorías */}
-      <div style={{ display: 'flex', gap: '0.4rem', padding: '0.6rem 1rem', overflowX: 'auto', borderBottom: '1px solid var(--color-border)' }}>
-        {carta.categorias.map(c => (
-          <button key={c.id} onClick={() => setCat(c.id)} style={btn(cat === c.id ? 'var(--color-accent)' : 'var(--color-surface-2)', { whiteSpace: 'nowrap', fontSize: '0.8rem' })}>{c.emoji} {c.nombre}</button>
-        ))}
+      {/* Buscador: lo primero que hace un camarero con prisa */}
+      <div style={{ padding: '0.6rem 1rem 0', position: 'relative' }}>
+        <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="🔍 Buscar producto…"
+          style={{ background: 'var(--color-inset)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.6rem 0.75rem', color: 'var(--color-text)', width: '100%', fontSize: '0.9rem', minHeight: `${TOQUE}px` }} />
+        {busqueda && <button onClick={() => setBusqueda('')} aria-label="Limpiar búsqueda"
+          style={{ position: 'absolute', right: '1.1rem', top: '0.6rem', background: 'none', border: 'none', color: 'var(--color-muted)', cursor: 'pointer', width: `${TOQUE}px`, height: `${TOQUE}px`, fontSize: '1rem' }}>✕</button>}
       </div>
+
+      {/* Categorías (al buscar sobran: la búsqueda cruza toda la carta) */}
+      {!busqueda.trim() && (
+        <div style={{ display: 'flex', gap: '0.4rem', padding: '0.6rem 1rem', overflowX: 'auto', borderBottom: '1px solid var(--color-border)' }}>
+          {carta.categorias.map(c => (
+            <button key={c.id} onClick={() => setCat(c.id)} style={btn(cat === c.id ? 'var(--color-accent)' : 'var(--color-surface-2)', { whiteSpace: 'nowrap', fontSize: '0.85rem', minHeight: `${TOQUE}px` })}>{c.emoji} {c.nombre}</button>
+          ))}
+        </div>
+      )}
 
       {/* Productos */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        {productos.length === 0 && (
+          <p style={{ textAlign: 'center', color: 'var(--color-muted)', padding: '1.5rem', fontSize: '0.9rem' }}>
+            {busqueda.trim() ? `Nada que coincida con «${busqueda}»` : 'No hay productos disponibles en esta categoría'}
+          </p>
+        )}
         {productos.map(prod => {
           const esMont = !!prod.precios
           return (
             <div key={prod.id} style={{ ...card, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ flex: 1, marginRight: '0.5rem' }}>
                 <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{prod.nombre}</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>{prod.descripcion}</div>
+                {descripcionUtil(prod) && <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>{descripcionUtil(prod)}</div>}
                 <div style={{ fontWeight: 700, color: 'var(--color-accent)', fontSize: '0.85rem' }}>{esMont ? `desde ${Math.min(...Object.values(prod.precios || {}).map(Number)).toFixed(2)}` : prod.precio.toFixed(2)} €</div>
               </div>
-              <button onClick={() => esMont ? setPers({ producto: prod, formato: (carta.formatos.find(f => prod.precios[f.id] != null) || carta.formatos[0])?.id, tipo: carta.tiposPan[0]?.id, quitados: [], anadidos: [], nota: '' }) : agregarItem(mesaId, persona.id, { productoId: prod.id, nombre: prod.nombre, precio: prod.precio, tipo: prod.tipo })} style={btn('var(--color-accent)', { padding: '0.5rem 0.8rem' })}>+</button>
+              <button onClick={() => esMont ? setPers({ producto: prod, formato: (carta.formatos.find(f => prod.precios[f.id] != null) || carta.formatos[0])?.id, tipo: carta.tiposPan[0]?.id, quitados: [], anadidos: [], nota: '' }) : agregarItem(mesaId, persona.id, { productoId: prod.id, nombre: prod.nombre, precio: prod.precio, tipo: prod.tipo })} aria-label={`Añadir ${prod.nombre}`} style={btn('var(--color-accent)', cuadrado)}>+</button>
             </div>
           )
         })}
@@ -91,8 +109,8 @@ export default function PedirPda({ mesaId, onClose }) {
                       style={btn((it.tiempo || 1) > 1 ? '#7c3aed' : 'var(--color-surface-2)', { padding: '0.15rem 0.5rem', fontSize: '0.72rem' })}
                     >{TIEMPOS[it.tiempo || 1].label}</button>
                   )}
-                  <button onClick={() => cambiarCantidad(mesaId, persona.id, it.uid, -1)} style={btn('var(--color-surface-3)', { padding: '0.15rem 0.5rem' })}>−</button>
-                  <button onClick={() => cambiarCantidad(mesaId, persona.id, it.uid, 1)} style={btn('var(--color-surface-3)', { padding: '0.15rem 0.5rem' })}>+</button>
+                  <button onClick={() => cambiarCantidad(mesaId, persona.id, it.uid, -1)} aria-label={`Quitar una unidad de ${it.nombre}`} style={btn('var(--color-surface-3)', cuadrado)}>−</button>
+                  <button onClick={() => cambiarCantidad(mesaId, persona.id, it.uid, 1)} aria-label={`Añadir una unidad de ${it.nombre}`} style={btn('var(--color-surface-3)', cuadrado)}>+</button>
                   <span style={{ fontWeight: 600, fontSize: '0.82rem', minWidth: '3rem', textAlign: 'right' }}>{(it.precio * it.cantidad).toFixed(2)} €</span>
                 </div>
               </div>
@@ -107,12 +125,16 @@ export default function PedirPda({ mesaId, onClose }) {
       {/* Personalización */}
       {pers && (
         <div onClick={() => setPers(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 70, animation: 'fadeIn 0.2s ease both' }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--color-surface)', borderTopLeftRadius: 'var(--radius-lg)', borderTopRightRadius: 'var(--radius-lg)', padding: '1.1rem', width: '100%', maxWidth: '520px', maxHeight: '88vh', overflowY: 'auto', borderTop: '1px solid var(--color-border)', boxShadow: '0 -22px 50px -20px rgba(0,0,0,0.8)', animation: 'slideUp 0.28s cubic-bezier(0.16,1,0.3,1) both' }}>
-            <div style={{ width: '36px', height: '4px', borderRadius: '9999px', background: 'var(--color-border)', margin: '-0.15rem auto 0.7rem' }} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
-              <h3 style={{ fontWeight: 800, fontSize: '1.1rem' }}>{pers.producto.nombre}</h3>
-              <button onClick={() => setPers(null)} style={btn('var(--color-surface-3)', { padding: '0.25rem 0.6rem' })}>✕</button>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--color-surface)', borderTopLeftRadius: 'var(--radius-lg)', borderTopRightRadius: 'var(--radius-lg)', width: '100%', maxWidth: '520px', maxHeight: '88vh', display: 'flex', flexDirection: 'column', borderTop: '1px solid var(--color-border)', boxShadow: '0 -22px 50px -20px rgba(0,0,0,0.8)', animation: 'slideUp 0.28s cubic-bezier(0.16,1,0.3,1) both' }}>
+            <div style={{ padding: '1.1rem 1.1rem 0.6rem', borderBottom: '1px solid var(--color-border)' }}>
+              <div style={{ width: '36px', height: '4px', borderRadius: '9999px', background: 'var(--color-border)', margin: '-0.15rem auto 0.7rem' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <h3 style={{ fontWeight: 800, fontSize: '1.1rem' }}>{pers.producto.nombre}</h3>
+                <button onClick={() => setPers(null)} aria-label="Cerrar" style={btn('var(--color-surface-3)', cuadrado)}>✕</button>
+              </div>
             </div>
+            {/* cuerpo con scroll: el botón de añadir nunca se va de pantalla */}
+            <div style={{ padding: '0.9rem 1.1rem', overflowY: 'auto', flex: 1, minHeight: 0 }}>
             <p style={lbl}>{etiquetas.formatos}</p>
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.6rem', flexWrap: 'wrap' }}>
               {carta.formatos.filter(f => pers.producto.precios[f.id] != null).map(f => (
@@ -143,7 +165,10 @@ export default function PedirPda({ mesaId, onClose }) {
                 return <button key={ex.nombre} onClick={() => toggleEn('anadidos', ex.nombre)} style={btn(on ? '#065f46' : 'var(--color-surface-2)', { fontSize: '0.78rem', padding: '0.3rem 0.6rem' })}>{on ? '✓ ' : '+ '}{ex.nombre}{ex.precio > 0 ? ` +${ex.precio.toFixed(2)}€` : ''}</button>
               })}
             </div>
-            <button onClick={confirmarPers} style={btn('var(--color-accent)', { width: '100%', padding: '0.8rem', fontSize: '0.95rem' })}>Añadir · {precioPers.toFixed(2)} €</button>
+            </div>
+            <div style={{ padding: '0.85rem 1.1rem calc(0.85rem + env(safe-area-inset-bottom))', borderTop: '1px solid var(--color-border)' }}>
+              <button onClick={confirmarPers} style={btn('var(--color-accent)', { width: '100%', minHeight: `${TOQUE + 6}px`, fontSize: '0.95rem' })}>Añadir · {precioPers.toFixed(2)} €</button>
+            </div>
           </div>
         </div>
       )}
@@ -151,6 +176,9 @@ export default function PedirPda({ mesaId, onClose }) {
   )
 }
 
+// 44 px: el mínimo para no fallar el toque con el móvil en una mano
+const TOQUE = 44
+const cuadrado = { width: `${TOQUE}px`, height: `${TOQUE}px`, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }
 const card = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.7rem', boxShadow: 'var(--shadow-sm)' }
 const lbl = { fontSize: '0.72rem', color: 'var(--color-muted)', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.05em' }
 const btn = (bg, extra = {}) => ({ background: bg, color: /surface|inset|transparent|none|tint-[a-z]+-bg/.test(bg) ? 'var(--color-text)' : '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 0.85rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', ...extra })

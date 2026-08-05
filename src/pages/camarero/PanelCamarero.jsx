@@ -53,6 +53,8 @@ export default function PanelCamarero() {
   const [sobre, setSobre] = useState(null)             // id de la mesa sobre la que se suelta
   // Modo táctil (tablet): pulsación larga sobre una mesa → tocar la destino.
   const [tactil, setTactil] = useState(false)
+  // ¿es un dispositivo de dedo? cambia la pista de cómo juntar mesas
+  const hayTactil = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
   const touchTimer = useRef(null)
   const empezarPulsacionLarga = (m) => (e) => {
     if (e.pointerType !== 'touch') return
@@ -101,18 +103,18 @@ export default function PanelCamarero() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 20, background: 'linear-gradient(180deg, var(--color-surface), var(--color-surface-2))', borderBottom: '1px solid var(--color-border)', boxShadow: '0 6px 18px -10px rgba(0,0,0,0.6)', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 20, background: 'linear-gradient(180deg, var(--color-surface), var(--color-surface-2))', borderBottom: '1px solid var(--color-border)', boxShadow: '0 6px 18px -10px rgba(0,0,0,0.6)', padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.6rem' }}>
         <div>
           <h1 style={{ fontWeight: 800, fontSize: '1.25rem' }}>🧾 Mostrador · TPV</h1>
           <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>{mesas.filter(m => m.estado !== 'libre').length} ocupadas de {mesas.length} · {empleado?.nombre || ''}</p>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
           {totalCocina > 0 && <div style={{ background: 'var(--tint-success-bg)', color: 'var(--tint-success-fg)', borderRadius: '0.5rem', padding: '0.375rem 0.75rem', fontSize: '0.8rem', fontWeight: 700 }}>🍳 {totalCocina} listo(s)</div>}
           {totalBarra > 0 && <div style={{ background: 'var(--tint-danger-bg)', color: 'var(--tint-danger-fg)', borderRadius: '0.5rem', padding: '0.375rem 0.75rem', fontSize: '0.8rem', fontWeight: 700 }}>🍺 {totalBarra} listo(s)</div>}
-          <button onClick={() => setVerReservas(true)} style={{ background: reservasHoyN ? 'var(--tint-info-bg)' : 'var(--color-surface-2)', color: reservasHoyN ? 'var(--tint-info-fg)' : 'var(--color-text)', border: `1px solid ${reservasHoyN ? '#3b82f6' : 'var(--color-border)'}`, borderRadius: '0.5rem', padding: '0.45rem 0.85rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
+          <button onClick={() => setVerReservas(true)} style={{ background: reservasHoyN ? 'var(--tint-info-bg)' : 'var(--color-surface-2)', color: reservasHoyN ? 'var(--tint-info-fg)' : 'var(--color-text)', border: `1px solid ${reservasHoyN ? '#3b82f6' : 'var(--color-border)'}`, borderRadius: '0.5rem', padding: '0.5rem 0.85rem', minHeight: '44px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
             📅 Reservas{reservasHoyN > 0 ? ` (${reservasHoyN})` : ''}
           </button>
-          <button onClick={() => setVerHistorial(true)} style={{ background: 'var(--color-surface-2)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.45rem 0.85rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
+          <button onClick={() => setVerHistorial(true)} style={{ background: 'var(--color-surface-2)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.85rem', minHeight: '44px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
             🧾 Cerradas hoy{cerradasHoy.length > 0 ? ` (${cerradasHoy.length})` : ''}
           </button>
           <BotonSalir />
@@ -127,7 +129,7 @@ export default function PanelCamarero() {
             <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--color-surface-2)', border: '1px solid #f59e0b', borderRadius: '9999px', padding: '0.25rem 0.4rem 0.25rem 0.75rem' }}>
               <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>Mesa {a.mesaNumero}</span>
               {a.personaNombre && <span style={{ fontSize: '0.78rem', color: 'var(--color-muted)' }}>· {a.personaNombre}</span>}
-              <button onClick={() => atenderAviso(a.id)} title="Marcar atendido" style={{ background: '#10b981', color: 'white', border: 'none', borderRadius: '9999px', width: '1.5rem', height: '1.5rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem' }}>✓</button>
+              <button onClick={() => atenderAviso(a.id)} title="Marcar atendido" style={{ background: '#10b981', color: 'white', border: 'none', borderRadius: '9999px', width: '2.25rem', height: '2.25rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem', flexShrink: 0 }}>✓</button>
             </div>
           ))}
         </div>
@@ -149,7 +151,12 @@ export default function PanelCamarero() {
                 </span>
               )
             })}
-            <span style={{ marginLeft: 'auto', alignSelf: 'center', fontSize: '0.72rem', color: 'var(--color-faint)' }}>💡 Arrastra una mesa sobre otra para unirlas (una sola cuenta)</span>
+            {/* en táctil no se arrastra: se mantiene pulsado y se toca el destino */}
+            <span style={{ marginLeft: 'auto', alignSelf: 'center', fontSize: '0.75rem', color: 'var(--color-faint)' }}>
+              💡 {hayTactil
+                ? 'Mantén pulsada una mesa y toca otra para unirlas (una sola cuenta)'
+                : 'Arrastra una mesa sobre otra para unirlas (una sola cuenta)'}
+            </span>
           </div>
 
           {[...new Set(mesas.map(m => m.zona || 'Sala'))].map(zona => {
