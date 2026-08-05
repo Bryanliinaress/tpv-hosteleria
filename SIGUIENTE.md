@@ -71,6 +71,16 @@ que está gitignorado y solo existe en el PC de Bryan).
 5. **Probar el alta de un bar nuevo end-to-end** en `/app/`: yo no puedo
    autenticarme con contraseñas, así que ese login lo tiene que hacer él.
 
+### ⚠️ Bloqueos del PRIMER BAR REAL (no de hoy, pero antes de facturar)
+1. **Facturas rectificativas (R1-R5)**: hoy, si un ticket ya emitido y
+   registrado en la AEAT necesita devolución o corrección, no hay salida —
+   borrar no se puede (y está bien que no se pueda). Falta emitir la
+   rectificativa contra Verifacti y enlazarla al ticket original. En un bar
+   pasa: se cobra de más, el cliente reclama al día siguiente.
+2. **Declaración responsable del fabricante**: obligación de Bryan desde el
+   29-7-2025 por comercializar software de facturación. No es código;
+   confirmar con asesor qué formato exige.
+
 ### De código (se puede hacer sin nadie)
 Ver la sección siguiente: la prioridad ha cambiado.
 - Informes más ricos (por producto/camarero/hora), backups y monitorización.
