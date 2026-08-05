@@ -316,10 +316,10 @@ export default function PdaCamarero() {
                   <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{haceCuanto(ev.hora)}</div>
                 </div>
                 {ev.tipo === 'llamada' && (
-                  <button onClick={e2 => { e2.stopPropagation(); atenderAviso(ev.avisoId) }} style={btn('#10b981', { padding: '0.45rem 0.8rem' })}>✓ Atender</button>
+                  <button onClick={e2 => { e2.stopPropagation(); atenderAviso(ev.avisoId) }} style={btn('#10b981', { padding: '0.6rem 0.9rem', minHeight: '44px' })}>✓ Atender</button>
                 )}
                 {ev.tipo === 'listo' && (
-                  <button onClick={e2 => { e2.stopPropagation(); servirMesa(ev.mesaId) }} style={btn('#10b981', { padding: '0.45rem 0.8rem' })}>✓ Servir</button>
+                  <button onClick={e2 => { e2.stopPropagation(); servirMesa(ev.mesaId) }} style={btn('#10b981', { padding: '0.6rem 0.9rem', minHeight: '44px' })}>✓ Servir</button>
                 )}
               </div>
             )

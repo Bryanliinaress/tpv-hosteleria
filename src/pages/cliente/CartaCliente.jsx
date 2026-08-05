@@ -542,9 +542,9 @@ export default function CartaCliente() {
         {!ojeando && mesa.personas.length > 1 && (
           <div style={{ display: 'flex', gap: '0.375rem', overflowX: 'auto', marginTop: '0.6rem', paddingBottom: '0.25rem', alignItems: 'center' }}>
             <span style={{ fontSize: '0.7rem', color: 'var(--color-muted)', whiteSpace: 'nowrap', marginRight: '0.25rem' }}>{t('Pedir para:')}</span>
-            <button onClick={() => setPidiendoPara(null)} style={btnStyle(!pedirParaOtro ? 'var(--color-accent)' : 'var(--color-inset)', { fontSize: '0.8rem', padding: '0.4rem 0.7rem', whiteSpace: 'nowrap' })}>{yo.nombre} {t('(tú)')}</button>
+            <button onClick={() => setPidiendoPara(null)} style={btnStyle(!pedirParaOtro ? 'var(--color-accent)' : 'var(--color-inset)', { fontSize: '0.82rem', padding: '0.5rem 0.8rem', minHeight: '40px', whiteSpace: 'nowrap' })}>{yo.nombre} {t('(tú)')}</button>
             {mesa.personas.filter(p => p.id !== yo.id).map(p => (
-              <button key={p.id} onClick={() => setPidiendoPara(p.id)} style={btnStyle(pidiendoPara === p.id ? 'var(--color-accent)' : 'var(--color-inset)', { fontSize: '0.8rem', padding: '0.4rem 0.7rem', whiteSpace: 'nowrap' })}>{p.nombre}</button>
+              <button key={p.id} onClick={() => setPidiendoPara(p.id)} style={btnStyle(pidiendoPara === p.id ? 'var(--color-accent)' : 'var(--color-inset)', { fontSize: '0.82rem', padding: '0.5rem 0.8rem', minHeight: '40px', whiteSpace: 'nowrap' })}>{p.nombre}</button>
             ))}
           </div>
         )}
