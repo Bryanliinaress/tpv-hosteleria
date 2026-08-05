@@ -6,6 +6,7 @@ import Ticket from '../../components/Ticket'
 import MetodoPago from '../../components/MetodoPago'
 import PedirPda from './PedirPda'
 import CobroMesa from './CobroMesa'
+import { productosVisibles } from '../../lib/carta'
 
 // Pitido + vibración para avisar de eventos nuevos
 function alerta() {
@@ -37,6 +38,7 @@ export default function PdaCamarero() {
   const [sonido, setSonido] = useState(true)
   const prevIds = useRef(null)
   const [vista, setVista] = useState('avisos') // avisos | mesas
+  const [busquedaCarta, setBusquedaCarta] = useState('')
   const [mesaId, setMesaId] = useState(null)
   const [ticket, setTicket] = useState(null)
   const [pidiendo, setPidiendo] = useState(false)
@@ -148,13 +150,13 @@ export default function PdaCamarero() {
                   : p.items.map(it => (
                     <div key={it.uid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.82rem', color: 'var(--color-muted)', padding: '0.15rem 0', gap: '0.4rem' }}>
                       <span style={{ flex: 1 }}>{it.cantidad}× {it.nombre}{it.estado === 'pendiente' && ' ●'}</span>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
                         <button onClick={() => cambiarCantidad(mesa.id, p.id, it.uid, -1)} disabled={it.cantidad <= 1} title="Una menos" style={miniBtn(it.cantidad <= 1)}>−</button>
                         <button onClick={() => cambiarCantidad(mesa.id, p.id, it.uid, 1)} title="Una más" style={miniBtn(false)}>+</button>
                         {mesa.personas.length > 1 && (
                           <button onClick={() => setMoverLinea({ personaId: p.id, uid: it.uid, nombre: it.nombre })} title="Mover a otro comensal" style={miniBtn(false)}>⇄</button>
                         )}
-                        <button onClick={async () => { const motivo = await pedirTexto({ titulo: `Anular ${it.cantidad}× ${it.nombre}`, mensaje: 'Indica el motivo — queda registrado en la auditoría.', placeholder: 'Motivo (error, cliente cambió…)', confirmar: 'Anular' }); if (motivo === null) return; anularItem(mesa.id, p.id, it.uid, { motivo, por: camarero }); toast('Línea anulada', 'success') }} title="Anular" style={{ background: 'none', border: 'none', color: '#f43f5e', cursor: 'pointer', fontSize: '0.9rem', padding: '0 0.25rem' }}>✕</button>
+                        <button onClick={async () => { const motivo = await pedirTexto({ titulo: `Anular ${it.cantidad}× ${it.nombre}`, mensaje: 'Indica el motivo — queda registrado en la auditoría.', placeholder: 'Motivo (error, cliente cambió…)', confirmar: 'Anular' }); if (motivo === null) return; anularItem(mesa.id, p.id, it.uid, { motivo, por: camarero }); toast('Línea anulada', 'success') }} title="Anular" aria-label={`Anular ${it.nombre}`} style={{ ...miniBtn(false), background: 'none', border: '1px solid transparent', color: '#f43f5e' }}>✕</button>
                       </span>
                     </div>
                   ))}
@@ -258,8 +260,8 @@ export default function PdaCamarero() {
           <div style={{ fontWeight: 800, fontSize: '1.05rem' }}>📟 {camarero}</div>
           <div style={{ fontSize: '0.68rem', color: 'var(--color-muted)' }}>{ocupadas.length}/{mesas.length} mesas ocupadas</div>
         </div>
-        <button onClick={() => setSonido(s => !s)} title="Aviso sonoro" style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>{sonido ? '🔔' : '🔕'}</button>
-        <button onClick={clearSesion} title="Cerrar sesión" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem', color: 'var(--color-muted)' }}>⎋</button>
+        <button onClick={() => setSonido(s => !s)} title="Aviso sonoro" aria-label="Aviso sonoro" style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', width: '2.5rem', height: '2.5rem', flexShrink: 0 }}>{sonido ? '🔔' : '🔕'}</button>
+        <button onClick={clearSesion} title="Cerrar sesión" aria-label="Cerrar sesión" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem', color: 'var(--color-muted)', width: '2.5rem', height: '2.5rem', flexShrink: 0 }}>⎋</button>
       </div>
 
       {vista === 'avisos' && (
@@ -347,17 +349,20 @@ export default function PdaCamarero() {
       {vista === 'carta' && (
         <div style={{ padding: '0.875rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <p style={{ fontSize: '0.78rem', color: 'var(--color-muted)' }}>Marca un producto como agotado y desaparece al instante de la carta del cliente.</p>
-          {carta.categorias.map(cat => (
+          <input value={busquedaCarta} onChange={e => setBusquedaCarta(e.target.value)} placeholder="🔍 Buscar producto…"
+            style={{ background: 'var(--color-inset)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.6rem 0.75rem', color: 'var(--color-text)', width: '100%', fontSize: '0.9rem', minHeight: '44px' }} />
+          {busquedaCarta.trim() ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              {productosVisibles(carta, { busqueda: busquedaCarta, incluirNoDisponibles: true }).map(prod => (
+                <FilaAgotado key={prod.id} prod={prod} onToggle={() => toggleDisponible(prod.id)} />
+              ))}
+            </div>
+          ) : carta.categorias.map(cat => (
             <div key={cat.id}>
               <div style={{ fontWeight: 700, marginBottom: '0.5rem', color: 'var(--color-muted)' }}>{cat.emoji} {cat.nombre}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 {carta.productos.filter(p => p.categoria === cat.id).map(prod => (
-                  <div key={prod.id} style={{ ...card, display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: prod.disponible ? 1 : 0.55 }}>
-                    <span style={{ fontSize: '0.88rem', fontWeight: 600 }}>{prod.nombre}</span>
-                    <button onClick={() => toggleDisponible(prod.id)} style={btn(prod.disponible ? '#10b981' : '#7f1d1d', { fontSize: '0.78rem', padding: '0.3rem 0.7rem' })}>
-                      {prod.disponible ? 'Disponible' : '⛔ Agotado'}
-                    </button>
-                  </div>
+                  <FilaAgotado key={prod.id} prod={prod} onToggle={() => toggleDisponible(prod.id)} />
                 ))}
               </div>
             </div>
@@ -423,8 +428,22 @@ export default function PdaCamarero() {
   )
 }
 
+// Fila de «hay / no hay» de la pestaña Carta: se usa buscando y por categorías
+function FilaAgotado({ prod, onToggle }) {
+  return (
+    <div style={{ ...card, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.6rem', opacity: prod.disponible ? 1 : 0.55 }}>
+      <span style={{ fontSize: '0.88rem', fontWeight: 600 }}>{prod.nombre}</span>
+      <button onClick={onToggle} style={btn(prod.disponible ? '#10b981' : '#7f1d1d', { fontSize: '0.8rem', padding: '0.5rem 0.8rem', minHeight: '44px', whiteSpace: 'nowrap' })}>
+        {prod.disponible ? 'Disponible' : '⛔ Agotado'}
+      </button>
+    </div>
+  )
+}
+
 const cab = { position: 'sticky', top: 0, zIndex: 10, background: 'color-mix(in srgb, var(--color-surface) 88%, transparent)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', borderBottom: '1px solid var(--color-border)', boxShadow: '0 6px 18px -10px rgba(0,0,0,0.6)', padding: '0.875rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }
 const card = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.875rem', boxShadow: 'var(--shadow-sm)' }
 const inp = { background: 'var(--color-inset)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.55rem 0.7rem', color: 'var(--color-text)', fontSize: '0.9rem', width: '100%' }
 const btn = (bg, extra = {}) => ({ background: bg, color: /surface|inset|transparent|none|tint-[a-z]+-bg/.test(bg) ? 'var(--color-text)' : '#fff', border: 'none', borderRadius: '0.55rem', padding: '0.55rem 0.9rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', boxShadow: '0 1px 2px rgba(0,0,0,0.2)', ...extra })
-const miniBtn = (off) => ({ background: 'var(--color-surface-2)', color: off ? 'var(--color-faint)' : 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.4rem', width: '1.5rem', height: '1.5rem', lineHeight: 1, cursor: off ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontWeight: 700, padding: 0 })
+// 40 px de zona de toque (36 visibles + margen): antes eran 24 px pegados unos
+// a otros y el «✕ anular» caía justo al lado del «+», con el móvil en la mano.
+const miniBtn = (off) => ({ background: 'var(--color-surface-2)', color: off ? 'var(--color-faint)' : 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', width: '2.25rem', height: '2.25rem', lineHeight: 1, cursor: off ? 'not-allowed' : 'pointer', fontSize: '1rem', fontWeight: 700, padding: 0, flexShrink: 0 })

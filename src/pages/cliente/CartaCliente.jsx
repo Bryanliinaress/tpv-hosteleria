@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { useStore, owedPorPersona, ALERGENO_INFO, normalizarExtra, etiquetasDe } from '../../store/useStore'
 import { iniciarPagoOnline, leerResultadoPago, limpiarUrlPago, pagoOnlineDisponible } from '../../lib/pagos'
@@ -7,6 +7,7 @@ import { toast } from '../../store/useUI'
 import { useIdioma, tr } from '../../lib/i18n'
 import { useUnaVez } from '../../lib/unaVez'
 import { esMenu, menuCompleto, siguientePendiente, precioMenu, resumenElecciones, alternarOpcion } from '../../lib/menuDia'
+import { productosVisibles, descripcionUtil, lineaSimplePendiente, unidades } from '../../lib/carta'
 
 export default function CartaCliente() {
   const { mesaId } = useParams()
@@ -29,6 +30,14 @@ export default function CartaCliente() {
   const [dividiendo, setDividiendo] = useState(null)
   const [busqueda, setBusqueda] = useState('')
   const [mostrarResumen, setMostrarResumen] = useState(false)
+  // Las categorías se quedan pegadas justo debajo de la cabecera: en una carta
+  // larga, cambiar de categoría no puede obligar a subir hasta arriba.
+  const cabeceraRef = useRef(null)
+  const buscadorRef = useRef(null)
+  const [altoCabecera, setAltoCabecera] = useState(0)
+  // Lo que el cliente quería hacer cuando aún no había dado su nombre; se
+  // ejecuta solo en cuanto se une a la mesa.
+  const [intento, setIntento] = useState(null)
   // en un movil el doble toque enviaba la comanda dos veces
   const [enviarPedido, enviando] = useUnaVez(async () => {
     await Promise.resolve(confirmarPedido(mesaId))
@@ -41,6 +50,29 @@ export default function CartaCliente() {
   const yo = mesa?.personas.find(p => p.id === miPersonaId)
 
   useEffect(() => { if (yo) setYoVisto(true) }, [yo])
+
+  // Ya tiene nombre: retomamos lo que estaba intentando hacer (añadir el plato
+  // que tocó, o abrir su pedido) sin que tenga que repetir el gesto.
+  useEffect(() => {
+    if (!yo || !intento) return
+    if (intento.tipo === 'anadir') agregarItem(mesaId, yo.id, intento.config)
+    if (intento.tipo === 'opciones') setPers(intento.pers)
+    if (intento.tipo === 'vista') setVista(intento.vista)
+    setIntento(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [yo, intento])
+
+  // La cabecera crece o encoge (avisos, «pedir para»): medimos su alto real
+  // para colgar de ahí las categorías pegadas.
+  useEffect(() => {
+    const el = cabeceraRef.current
+    if (!el) return
+    const medir = () => setAltoCabecera(el.getBoundingClientRect().height)
+    medir()
+    const ro = new ResizeObserver(medir)
+    ro.observe(el)
+    return () => ro.disconnect()
+  })
 
   // Pantalla de "cuenta pagada": solo si estuvimos activos y la mesa se reinició
   // (evita el falso positivo del estado por defecto antes de cargar Supabase).
@@ -83,64 +115,46 @@ export default function CartaCliente() {
     )
   }
 
-  // ── Pantalla IDENTIFICACIÓN ───────────────────────────
-  if (!yo) {
-    const ocupada = mesa.estado !== 'libre'
-    const unirse = async () => {
-      // v1 devuelve el id síncrono; v2 (RPC) una promesa — cubrimos ambos
-      const id = await Promise.resolve(unirseAMesa(mesaId, nombre))
-      if (!id) return
-      localStorage.setItem(`tpv-yo-${mesaId}`, id)
-      setMiPersonaId(id); setNombre('')
-    }
-    return (
-      <div style={centerScreen}>
-        <button onClick={() => setIdioma(idioma === 'es' ? 'en' : 'es')} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '9999px', padding: '0.35rem 0.8rem', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700 }}>
-          {idioma === 'es' ? '🇬🇧 EN' : '🇪🇸 ES'}
-        </button>
-        <div style={{ fontSize: '3.5rem' }}>🥪</div>
-        {local?.nombre && <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--color-accent)', letterSpacing: '0.01em' }}>{local.nombre}</div>}
-        <h1 style={{ fontSize: '1.6rem', fontWeight: 800 }}>{t('Mesa')} {mesa.numero}</h1>
-        {ocupada ? (
-          <p style={{ color: 'var(--color-muted)', textAlign: 'center' }}>{t('Ya están en la mesa:')} <strong style={{ color: 'var(--color-text)' }}>{mesa.personas.map(p => p.nombre).join(', ')}</strong>.<br />{t('Únete escribiendo tu nombre.')}</p>
-        ) : (
-          <p style={{ color: 'var(--color-muted)', textAlign: 'center' }}>{t('¡Bienvenido/a! Escribe tu nombre para empezar a pedir.')}</p>
-        )}
-        <input value={nombre} onChange={e => setNombre(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && nombre.trim()) unirse() }} placeholder={t('Tu nombre')} autoFocus style={{ ...inputStyle, maxWidth: '300px', textAlign: 'center', fontSize: '1rem' }} />
-        <button onClick={unirse} disabled={!nombre.trim()} style={btnStyle(nombre.trim() ? 'var(--color-accent)' : 'var(--color-surface-3)', { width: '100%', maxWidth: '300px', padding: '0.875rem', fontSize: '1rem', cursor: nombre.trim() ? 'pointer' : 'not-allowed' })}>
-          {ocupada ? t('Unirme a la mesa') : t('Abrir mesa y pedir')}
-        </button>
-      </div>
-    )
+  // Quien escanea el QR ve la carta ANTES de dar su nombre: el nombre solo hace
+  // falta para pedir, y pedirlo de entrada espantaba al cliente (y abría mesas
+  // fantasma en el local).
+  const ojeando = !yo
+  const unirse = async () => {
+    // v1 devuelve el id síncrono; v2 (RPC) una promesa — cubrimos ambos
+    const id = await Promise.resolve(unirseAMesa(mesaId, nombre))
+    if (!id) return
+    localStorage.setItem(`tpv-yo-${mesaId}`, id)
+    setMiPersonaId(id); setNombre('')
   }
 
-  // ── Cliente identificado ──────────────────────────────
-  const personaActiva = mesa.personas.find(p => p.id === pidiendoPara) || yo
+  // ── Carta ─────────────────────────────────────────────
+  // Mientras se ojea no hay persona: una vacía evita comprobar `yo` en cada línea.
+  const personaActiva = mesa.personas.find(p => p.id === pidiendoPara) || yo || SIN_PERSONA
   const q = busqueda.trim().toLowerCase()
-  const productosFiltrados = q
-    ? carta.productos.filter(p => p.disponible && (p.nombre.toLowerCase().includes(q) || p.descripcion.toLowerCase().includes(q)))
-    : carta.productos.filter(p => p.categoria === categoriaActiva && p.disponible)
+  const productosFiltrados = productosVisibles(carta, { busqueda: busqueda, categoria: categoriaActiva })
   const itemsPendientes = personaActiva.items.filter(i => i.estado === 'pendiente')
   const itemsEnviados = personaActiva.items.filter(i => i.estado === 'enviado')
   const totalPendiente = itemsPendientes.reduce((s, i) => s + i.precio * i.cantidad, 0)
+  // el carrito cuenta UNIDADES, no líneas: 3 cafés son «3», no «1»
+  const udsPendientes = unidades(itemsPendientes)
   const totalMesa = mesa.personas.reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0)
   const owed = owedPorPersona(mesa)
   const totalPendienteMesa = mesa.personas.filter(p => !p.pagado).reduce((s, p) => s + owed[p.id], 0)
-  const pedirParaOtro = personaActiva.id !== yo.id
+  const pedirParaOtro = !!yo && personaActiva.id !== yo.id
 
   const ESTADO_ITEM = {
     recibido: { label: t('En cola'), color: '#f59e0b', emoji: '📥' },
     preparando: { label: t('Preparándose'), color: '#3b82f6', emoji: '👨‍🍳' },
     listo: { label: t('¡Listo!'), color: '#10b981', emoji: '✅' },
   }
-  const misPedidos = [...pedidosCocina, ...pedidosBarra].filter(p => p.personaId === yo.id)
+  const misPedidos = [...pedidosCocina, ...pedidosBarra].filter(p => p.personaId === yo?.id)
   const misListos = misPedidos.filter(p => p.estado === 'listo')
   const avisoMesa = avisos.find(a => a.mesaId === mesaId)
   const avisoActivo = !!avisoMesa
   // Llama al camarero; si ya está avisado, volver a tocar cancela el aviso.
   const toggleAviso = () => {
     if (avisoMesa) { atenderAviso(avisoMesa.id); toast(t('Aviso cancelado'), 'info') }
-    else { llamarCamarero(mesaId, yo.nombre); toast(t('Camarero avisado'), 'success') }
+    else { llamarCamarero(mesaId, yo?.nombre || `${t('Mesa')} ${mesa.numero}`); toast(t('Camarero avisado'), 'success') }
   }
 
   const descrItem = (item) => {
@@ -190,7 +204,8 @@ export default function CartaCliente() {
   }
 
   // ── Vista CUENTA ──────────────────────────────────────
-  if (vista === 'cuenta') {
+  // sin identificarse no hay cuenta ni pedido que enseñar
+  if (vista === 'cuenta' && !ojeando) {
     return (
       <div style={{ maxWidth: '480px', margin: '0 auto', padding: '1.25rem', minHeight: '100vh' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
@@ -324,7 +339,7 @@ export default function CartaCliente() {
   }
 
   // ── Vista MI PEDIDO ───────────────────────────────────
-  if (vista === 'pedido') {
+  if (vista === 'pedido' && !ojeando) {
     return (
       <div style={{ maxWidth: '480px', margin: '0 auto', padding: '1.25rem', minHeight: '100vh' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
@@ -425,11 +440,14 @@ export default function CartaCliente() {
     return { ...s, [setKey]: arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val] }
   })
   const confirmarPers = () => {
+    // agregarItem suma 1 y fusiona lo idéntico: N unidades son N llamadas
+    const uds = Math.max(1, pers.uds || 1)
+    const anadirNVeces = (config) => { for (let i = 0; i < uds; i++) agregarItem(mesaId, personaActiva.id, config) }
     // En un menú lo que importa es QUÉ ha elegido el cliente: eso es lo que
     // cocina tiene que preparar, así que va en la nota de la comanda.
     if (esMenu(pers.producto)) {
       const detalle = resumenElecciones(pers.elecciones || [])
-      agregarItem(mesaId, personaActiva.id, {
+      anadirNVeces({
         productoId: pers.producto.id, nombre: pers.producto.nombre,
         precio: precioPers, tipo: pers.producto.tipo,
         elecciones: pers.elecciones || [],
@@ -440,7 +458,7 @@ export default function CartaCliente() {
     }
     const fmt = carta.formatos.find(f => f.id === pers.formato)
     const tp = carta.tiposPan.find(t => t.id === pers.tipo)
-    agregarItem(mesaId, personaActiva.id, {
+    anadirNVeces({
       productoId: pers.producto.id, nombre: pers.producto.nombre, precio: precioPers, tipo: pers.producto.tipo,
       pan: { formato: pers.formato, tipo: pers.tipo, nombreFormato: fmt.nombre, nombreTipo: tp.nombre },
       quitados: pers.quitados, anadidos: pers.anadidos, nota: pers.nota.trim(),
@@ -451,26 +469,33 @@ export default function CartaCliente() {
   return (
     <div style={{ maxWidth: '480px', margin: '0 auto', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <div style={{ padding: '1rem 1.25rem', background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', position: 'sticky', top: 0, zIndex: 10 }}>
+      <div ref={cabeceraRef} style={{ padding: '1rem 1.25rem 0.75rem', background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', position: 'sticky', top: 0, zIndex: 10 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
           <div>
-            <span style={{ fontWeight: 800, fontSize: '1.1rem' }}>{t('Mesa')} {mesa.numero}</span>
-            <span style={{ marginLeft: '0.5rem', fontSize: '0.8rem', color: 'var(--color-accent)', fontWeight: 600 }}>{t('Hola,')} {yo.nombre} 👋</span>
+            <span style={{ fontWeight: 800, fontSize: '1.1rem' }}>{local?.nombre || t('Mesa') + ' ' + mesa.numero}</span>
+            <span style={{ marginLeft: '0.5rem', fontSize: '0.8rem', color: 'var(--color-accent)', fontWeight: 600 }}>
+              {ojeando ? `${t('Mesa')} ${mesa.numero}` : `${t('Hola,')} ${yo.nombre} 👋`}
+            </span>
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button onClick={() => setIdioma(idioma === 'es' ? 'en' : 'es')} title="Idioma / Language" style={btnStyle('var(--color-surface-2)', { fontSize: '0.75rem', padding: '0.375rem 0.6rem', fontWeight: 700 })}>{idioma === 'es' ? '🇬🇧' : '🇪🇸'}</button>
-            <button onClick={toggleAviso} title={avisoActivo ? t('Cancelar el aviso al camarero') : t('Llamar al camarero')} style={btnStyle(avisoActivo ? '#10b981' : 'var(--color-surface-2)', { fontSize: '0.8rem', padding: '0.375rem 0.75rem' })}>{avisoActivo ? `🔔 ${t('Avisado')} ✕` : '🔔'}</button>
-            <button onClick={() => setVista('pedido')} style={{ ...btnStyle('var(--color-surface-2)', { fontSize: '0.8rem', padding: '0.375rem 0.75rem' }), position: 'relative' }}>🛒 {itemsPendientes.length > 0 && <span style={badge}>{itemsPendientes.length}</span>}</button>
-            <button onClick={() => setVista('cuenta')} style={btnStyle('var(--color-surface-2)', { fontSize: '0.8rem', padding: '0.375rem 0.75rem' })}>💰</button>
+          <div style={{ display: 'flex', gap: '0.4rem' }}>
+            <button onClick={() => setIdioma(idioma === 'es' ? 'en' : 'es')} title="Idioma / Language" aria-label="Idioma / Language" style={btnStyle('var(--color-surface-2)', { ...paso, padding: 0, fontSize: '1rem' })}>{idioma === 'es' ? '🇬🇧' : '🇪🇸'}</button>
+            <button onClick={toggleAviso} title={avisoActivo ? t('Cancelar el aviso al camarero') : t('Llamar al camarero')} aria-label={t('Llamar al camarero')} style={btnStyle(avisoActivo ? '#10b981' : 'var(--color-surface-2)', { ...paso, padding: avisoActivo ? '0 0.75rem' : 0, width: avisoActivo ? 'auto' : `${TOQUE}px`, fontSize: '0.8rem' })}>{avisoActivo ? `🔔 ${t('Avisado')} ✕` : '🔔'}</button>
+            {!ojeando && <>
+              <button onClick={() => setVista('pedido')} aria-label={t('Ver pedido →')} style={{ ...btnStyle('var(--color-surface-2)', { ...paso, padding: 0, fontSize: '1rem' }), position: 'relative' }}>🛒 {udsPendientes > 0 && <span style={badge}>{udsPendientes}</span>}</button>
+              <button onClick={() => setVista('cuenta')} aria-label={t('Cuenta — Mesa')} style={btnStyle('var(--color-surface-2)', { ...paso, padding: 0, fontSize: '1rem' })}>💰</button>
+            </>}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '0.375rem', overflowX: 'auto', paddingBottom: '0.25rem', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.7rem', color: 'var(--color-muted)', whiteSpace: 'nowrap', marginRight: '0.25rem' }}>{t('Pedir para:')}</span>
-          <button onClick={() => setPidiendoPara(null)} style={btnStyle(!pedirParaOtro ? 'var(--color-accent)' : 'var(--color-inset)', { fontSize: '0.75rem', padding: '0.25rem 0.625rem', whiteSpace: 'nowrap' })}>{yo.nombre} {t('(tú)')}</button>
-          {mesa.personas.filter(p => p.id !== yo.id).map(p => (
-            <button key={p.id} onClick={() => setPidiendoPara(p.id)} style={btnStyle(pidiendoPara === p.id ? 'var(--color-accent)' : 'var(--color-inset)', { fontSize: '0.75rem', padding: '0.25rem 0.625rem', whiteSpace: 'nowrap' })}>{p.nombre}</button>
-          ))}
-        </div>
+        {/* «Pedir para» solo tiene sentido si hay más gente en la mesa */}
+        {!ojeando && mesa.personas.length > 1 && (
+          <div style={{ display: 'flex', gap: '0.375rem', overflowX: 'auto', marginTop: '0.6rem', paddingBottom: '0.25rem', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.7rem', color: 'var(--color-muted)', whiteSpace: 'nowrap', marginRight: '0.25rem' }}>{t('Pedir para:')}</span>
+            <button onClick={() => setPidiendoPara(null)} style={btnStyle(!pedirParaOtro ? 'var(--color-accent)' : 'var(--color-inset)', { fontSize: '0.8rem', padding: '0.4rem 0.7rem', whiteSpace: 'nowrap' })}>{yo.nombre} {t('(tú)')}</button>
+            {mesa.personas.filter(p => p.id !== yo.id).map(p => (
+              <button key={p.id} onClick={() => setPidiendoPara(p.id)} style={btnStyle(pidiendoPara === p.id ? 'var(--color-accent)' : 'var(--color-inset)', { fontSize: '0.8rem', padding: '0.4rem 0.7rem', whiteSpace: 'nowrap' })}>{p.nombre}</button>
+            ))}
+          </div>
+        )}
       </div>
 
       {misListos.length > 0 && (
@@ -482,20 +507,22 @@ export default function CartaCliente() {
         <div style={{ background: 'var(--tint-warning-bg)', color: 'var(--tint-warning-fg)', fontSize: '0.78rem', padding: '0.4rem 1.25rem', textAlign: 'center' }}>{t('Estás pidiendo para')} <strong>{personaActiva.nombre}</strong></div>
       )}
 
-      {/* Buscador */}
-      <div style={{ padding: '0.75rem 1.25rem 0.75rem', background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' }}>
+      {/* Buscador (se va con el scroll: el atajo 🔍 de las categorías lo trae) */}
+      <div style={{ padding: '0.75rem 1.25rem', background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' }}>
         <div style={{ position: 'relative' }}>
-          <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder={t('🔍 Buscar en la carta…')} style={{ ...inputStyle, fontSize: '0.85rem', padding: '0.5rem 0.75rem' }} />
-          {busqueda && <button onClick={() => setBusqueda('')} style={{ position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--color-muted)', cursor: 'pointer', fontSize: '1rem' }}>✕</button>}
+          <input ref={buscadorRef} value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder={t('🔍 Buscar en la carta…')} style={{ ...inputStyle, fontSize: '0.9rem', padding: '0.6rem 0.75rem' }} />
+          {busqueda && <button onClick={() => setBusqueda('')} aria-label={t('Cancelar')} style={{ position: 'absolute', right: '0.15rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--color-muted)', cursor: 'pointer', fontSize: '1rem', ...paso }}>✕</button>}
         </div>
         {q && <div style={{ fontSize: '0.78rem', color: 'var(--color-muted)', marginTop: '0.5rem' }}>{productosFiltrados.length} resultado(s) para «{busqueda}»</div>}
       </div>
 
-      {/* Categorías (ocultas al buscar) */}
+      {/* Categorías: se quedan pegadas bajo la cabecera al bajar por la carta */}
       {!q && (
-        <div style={{ display: 'flex', gap: '0.5rem', padding: '0.75rem 1.25rem', overflowX: 'auto', background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', padding: '0.6rem 1.25rem', overflowX: 'auto', background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)', position: 'sticky', top: altoCabecera, zIndex: 9 }}>
+          <button onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); buscadorRef.current?.focus() }} aria-label={t('🔍 Buscar en la carta…')}
+            style={btnStyle('var(--color-surface-2)', { ...paso, padding: 0, flexShrink: 0 })}>🔍</button>
           {carta.categorias.map(cat => (
-            <button key={cat.id} onClick={() => setCategoriaActiva(cat.id)} style={btnStyle(categoriaActiva === cat.id ? 'var(--color-accent)' : 'var(--color-surface-2)', { whiteSpace: 'nowrap', fontSize: '0.85rem', padding: '0.4rem 0.85rem' })}>
+            <button key={cat.id} onClick={() => { setCategoriaActiva(cat.id); window.scrollTo({ top: 0, behavior: 'smooth' }) }} style={btnStyle(categoriaActiva === cat.id ? 'var(--color-accent)' : 'var(--color-surface-2)', { whiteSpace: 'nowrap', fontSize: '0.88rem', padding: '0.5rem 0.9rem', minHeight: `${TOQUE}px` })}>
               {cat.emoji} {cat.nombre}
             </button>
           ))}
@@ -512,12 +539,18 @@ export default function CartaCliente() {
         )}
         {productosFiltrados.map(prod => {
           const esMontadito = !!prod.precios
+          const conOpciones = esMontadito || esMenu(prod)
+          // Un producto simple pedido «tal cual» se puede subir y bajar desde la
+          // propia tarjeta, sin pasar por el carrito.
+          const yaPedido = conOpciones ? null : lineaSimplePendiente(itemsPendientes, prod.id)
           return (
             <div key={prod.id} style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem' }}>
               {prod.imagen && <img src={prod.imagen} alt="" loading="lazy" onError={e => { e.currentTarget.style.display = 'none' }} style={{ width: '4rem', height: '4rem', objectFit: 'cover', borderRadius: '0.6rem', flexShrink: 0 }} />}
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 700, marginBottom: '0.2rem' }}>{prod.nombre}</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)', marginBottom: '0.25rem' }}>{prod.descripcion}</div>
+                {descripcionUtil(prod) && (
+                  <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)', marginBottom: '0.25rem' }}>{descripcionUtil(prod)}</div>
+                )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <span style={{ fontWeight: 700, color: 'var(--color-accent)' }}>{esMontadito ? `${t('desde')} ${minPrecio(prod).toFixed(2)} €` : `${prod.precio.toFixed(2)} €`}</span>
                   {(prod.alergenos || []).length > 0 && (
@@ -527,14 +560,28 @@ export default function CartaCliente() {
                   )}
                 </div>
               </div>
-              <button
-                onClick={() => (esMontadito || esMenu(prod))
-                  ? setPers({ producto: prod, formato: (carta.formatos.find(f => prod.precios?.[f.id] != null) || carta.formatos[0])?.id, tipo: carta.tiposPan[0]?.id, quitados: [], anadidos: [], nota: '', elecciones: [] })
-                  : agregarItem(mesaId, personaActiva.id, { productoId: prod.id, nombre: prod.nombre, precio: prod.precio, tipo: prod.tipo })}
-                style={btnStyle('var(--color-accent)', { padding: '0.5rem 0.9rem', whiteSpace: 'nowrap' })}
-              >
-                {(esMontadito || esMenu(prod)) ? t('Añadir') : t('+ Añadir')}
-              </button>
+              {yaPedido ? (
+                <div style={{ display: 'flex', alignItems: 'center', background: 'var(--color-inset)', border: '1px solid var(--color-accent)', borderRadius: '0.55rem', flexShrink: 0 }}>
+                  <button onClick={() => cambiarCantidad(mesaId, personaActiva.id, yaPedido.uid, -1)} aria-label={`${t('Quitar una unidad')} · ${prod.nombre}`}
+                    style={{ ...btnStyle('none', paso), color: 'var(--color-text)', boxShadow: 'none' }}>−</button>
+                  <span style={{ minWidth: '1.4rem', textAlign: 'center', fontWeight: 800, color: 'var(--color-accent)' }}>{yaPedido.cantidad}</span>
+                  <button onClick={() => agregarItem(mesaId, personaActiva.id, { productoId: prod.id, nombre: prod.nombre, precio: prod.precio, tipo: prod.tipo })} aria-label={`${t('Añadir una unidad')} · ${prod.nombre}`}
+                    style={{ ...btnStyle('none', paso), color: 'var(--color-text)', boxShadow: 'none' }}>+</button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    const persNueva = { producto: prod, formato: (carta.formatos.find(f => prod.precios?.[f.id] != null) || carta.formatos[0])?.id, tipo: carta.tiposPan[0]?.id, quitados: [], anadidos: [], nota: '', elecciones: [], uds: 1 }
+                    const config = { productoId: prod.id, nombre: prod.nombre, precio: prod.precio, tipo: prod.tipo }
+                    // sin nombre todavía: lo pedimos y luego seguimos solos
+                    if (ojeando) return setIntento(conOpciones ? { tipo: 'opciones', pers: persNueva } : { tipo: 'anadir', config })
+                    return conOpciones ? setPers(persNueva) : agregarItem(mesaId, personaActiva.id, config)
+                  }}
+                  style={btnStyle('var(--color-accent)', { padding: '0.5rem 0.9rem', minHeight: `${TOQUE}px`, whiteSpace: 'nowrap' })}
+                >
+                  {conOpciones ? t('Añadir') : t('+ Añadir')}
+                </button>
+              )}
             </div>
           )
         })}
@@ -543,20 +590,47 @@ export default function CartaCliente() {
       {/* Bottom bar */}
       {itemsPendientes.length > 0 && (
         <div style={{ padding: '1rem 1.25rem', background: 'var(--color-surface)', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', bottom: 0 }}>
-          <span style={{ color: 'var(--color-muted)', fontSize: '0.875rem' }}>{itemsPendientes.reduce((s, i) => s + i.cantidad, 0)} {t('producto(s)')} · {totalPendiente.toFixed(2)} €</span>
-          <button onClick={() => setVista('pedido')} style={btnStyle('var(--color-accent)', { padding: '0.625rem 1.25rem' })}>{t('Ver pedido →')}</button>
+          <span style={{ color: 'var(--color-muted)', fontSize: '0.875rem' }}>{udsPendientes} {t('producto(s)')} · {totalPendiente.toFixed(2)} €</span>
+          <button onClick={() => setVista('pedido')} style={btnStyle('var(--color-accent)', { padding: '0.625rem 1.25rem', minHeight: `${TOQUE}px` })}>{t('Ver pedido →')}</button>
+        </div>
+      )}
+
+      {/* Hoja del nombre: solo cuando el cliente ya ha decidido pedir algo */}
+      {intento && ojeando && (
+        <div onClick={() => setIntento(null)} style={overlay}>
+          <div onClick={e => e.stopPropagation()} style={hoja}>
+            <div style={grabHandle} />
+            <h3 style={{ fontWeight: 800, fontSize: '1.15rem', marginBottom: '0.3rem' }}>
+              {mesa.estado !== 'libre' ? t('Unirme a la mesa') : `${t('Mesa')} ${mesa.numero}`}
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--color-muted)', marginBottom: '0.9rem' }}>
+              {mesa.estado !== 'libre'
+                ? <>{t('Ya están en la mesa:')} <strong style={{ color: 'var(--color-text)' }}>{mesa.personas.map(p => p.nombre).join(', ')}</strong>. {t('Únete escribiendo tu nombre.')}</>
+                : t('Solo tu nombre, para que el camarero sepa de quién es cada plato.')}
+            </p>
+            <input value={nombre} onChange={e => setNombre(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && nombre.trim()) unirse() }} placeholder={t('Tu nombre')} autoFocus
+              style={{ ...inputStyle, fontSize: '1rem', marginBottom: '0.75rem' }} />
+            <button onClick={unirse} disabled={!nombre.trim()}
+              style={btnStyle(nombre.trim() ? 'var(--color-accent)' : 'var(--color-surface-3)', { width: '100%', minHeight: `${TOQUE + 6}px`, fontSize: '1rem', cursor: nombre.trim() ? 'pointer' : 'not-allowed' })}>
+              {mesa.estado !== 'libre' ? t('Unirme a la mesa') : t('Abrir mesa y pedir')}
+            </button>
+            <button onClick={() => setIntento(null)} style={{ background: 'none', border: 'none', color: 'var(--color-muted)', cursor: 'pointer', fontSize: '0.85rem', marginTop: '0.6rem', width: '100%', minHeight: `${TOQUE}px` }}>{t('Seguir mirando la carta')}</button>
+          </div>
         </div>
       )}
 
       {/* Hoja de personalización */}
       {pers && (
         <div onClick={() => setPers(null)} style={overlay}>
-          <div onClick={e => e.stopPropagation()} style={hoja}>
-            <div style={grabHandle} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.4rem' }}>
-              <h3 style={{ fontWeight: 800, fontSize: '1.15rem' }}>{pers.producto.nombre}</h3>
-              <button onClick={() => setPers(null)} style={btnStyle('var(--color-surface-3)', { padding: '0.25rem 0.6rem' })}>✕</button>
+          <div onClick={e => e.stopPropagation()} style={hojaCol}>
+            <div style={hojaCabecera}>
+              <div style={grabHandle} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <h3 style={{ fontWeight: 800, fontSize: '1.15rem' }}>{pers.producto.nombre}</h3>
+                <button onClick={() => setPers(null)} aria-label={t('Cerrar')} style={btnStyle('var(--color-surface-3)', { ...paso, padding: 0 })}>✕</button>
+              </div>
             </div>
+            <div style={hojaCuerpo}>
             {pers.producto.imagen && <img src={pers.producto.imagen} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ width: '100%', height: '9rem', objectFit: 'cover', borderRadius: '0.75rem', marginBottom: '0.75rem' }} />}
             {(pers.producto.alergenos || []).length > 0 && (
               <p style={{ fontSize: '0.74rem', color: 'var(--tint-warning-fg)', marginBottom: '0.75rem' }}>
@@ -645,14 +719,25 @@ export default function CartaCliente() {
               })}
             </div>
 
-            <input value={pers.nota} onChange={e => setPers(s => ({ ...s, nota: e.target.value }))} placeholder="📝 Otra indicación (opcional)" style={{ ...inputStyle, fontSize: '0.82rem', padding: '0.5rem 0.7rem', marginBottom: '0.9rem' }} />
+            <input value={pers.nota} onChange={e => setPers(s => ({ ...s, nota: e.target.value }))} placeholder="📝 Otra indicación (opcional)" style={{ ...inputStyle, fontSize: '0.82rem', padding: '0.5rem 0.7rem' }} />
+            </div>
 
-            <button onClick={confirmarPers} disabled={menuIncompleto}
-              style={btnStyle(menuIncompleto ? 'var(--color-surface-3)' : 'var(--color-accent)', { width: '100%', padding: '0.875rem', fontSize: '1rem', cursor: menuIncompleto ? 'not-allowed' : 'pointer' })}>
-              {menuIncompleto
-                ? `${t('Elige')} ${faltaGrupo?.titulo || ''}`
-                : `${t('Añadir al pedido')} · ${precioPers.toFixed(2)} €`}
-            </button>
+            {/* Pie quieto: cantidad + confirmar, siempre a la vista */}
+            <div style={hojaPie}>
+              <div style={{ display: 'flex', alignItems: 'center', background: 'var(--color-inset)', border: '1px solid var(--color-border)', borderRadius: '0.55rem', flexShrink: 0 }}>
+                <button onClick={() => setPers(s => ({ ...s, uds: Math.max(1, (s.uds || 1) - 1) }))} aria-label={t('Quitar una unidad')}
+                  style={{ ...btnStyle('none', paso), color: (pers.uds || 1) > 1 ? 'var(--color-text)' : 'var(--color-faint)', boxShadow: 'none' }}>−</button>
+                <span style={{ minWidth: '1.5rem', textAlign: 'center', fontWeight: 800 }}>{pers.uds || 1}</span>
+                <button onClick={() => setPers(s => ({ ...s, uds: (s.uds || 1) + 1 }))} aria-label={t('Añadir una unidad')}
+                  style={{ ...btnStyle('none', paso), color: 'var(--color-text)', boxShadow: 'none' }}>+</button>
+              </div>
+              <button onClick={confirmarPers} disabled={menuIncompleto}
+                style={btnStyle(menuIncompleto ? 'var(--color-surface-3)' : 'var(--color-accent)', { flex: 1, minHeight: `${TOQUE + 6}px`, fontSize: '1rem', cursor: menuIncompleto ? 'not-allowed' : 'pointer' })}>
+                {menuIncompleto
+                  ? `${t('Elige')} ${faltaGrupo?.titulo || ''}`
+                  : `${t('Añadir al pedido')} · ${(precioPers * (pers.uds || 1)).toFixed(2)} €`}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -660,10 +745,22 @@ export default function CartaCliente() {
   )
 }
 
+// Persona «en blanco» mientras se ojea la carta sin haber dado el nombre
+const SIN_PERSONA = { id: null, nombre: '', items: [] }
 const centerScreen = { minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', gap: '1.25rem' }
 const grabHandle = { width: '36px', height: '4px', borderRadius: '9999px', background: 'var(--color-border)', margin: '-0.25rem auto 0.85rem' }
 const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 50, animation: 'fadeIn 0.2s ease both' }
+// La hoja es una columna: cabecera y pie quietos, y el contenido scrollando en
+// medio. Así el botón de añadir NUNCA queda fuera de pantalla (antes había que
+// bajar por todos los extras para encontrarlo).
 const hoja = { background: 'var(--color-surface)', borderTopLeftRadius: 'var(--radius-lg)', borderTopRightRadius: 'var(--radius-lg)', padding: '1.25rem', width: '100%', maxWidth: '480px', maxHeight: '88vh', overflowY: 'auto', borderTop: '1px solid var(--color-border)', boxShadow: '0 -22px 50px -20px rgba(0,0,0,0.8)', animation: 'slideUp 0.28s cubic-bezier(0.16,1,0.3,1) both' }
+const hojaCol = { ...hoja, padding: 0, overflowY: 'visible', display: 'flex', flexDirection: 'column' }
+const hojaCabecera = { padding: '1.25rem 1.25rem 0.75rem', borderBottom: '1px solid var(--color-border)' }
+const hojaCuerpo = { padding: '0.9rem 1.25rem', overflowY: 'auto', flex: 1, minHeight: 0 }
+const hojaPie = { padding: '0.85rem 1.25rem calc(0.85rem + env(safe-area-inset-bottom))', borderTop: '1px solid var(--color-border)', background: 'var(--color-surface)', display: 'flex', alignItems: 'center', gap: '0.6rem' }
+// 44 px es el mínimo cómodo de toque en móvil (Apple HIG / Material)
+const TOQUE = 44
+const paso = { width: `${TOQUE}px`, height: `${TOQUE}px`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', flexShrink: 0 }
 
 const btnStyle = (bg, extra = {}) => ({ background: bg, color: /surface|inset|transparent|none|tint-[a-z]+-bg/.test(bg) ? 'var(--color-text)' : 'white', border: 'none', borderRadius: '0.55rem', padding: '0.5rem 1rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.875rem', boxShadow: '0 1px 2px rgba(0,0,0,0.2)', ...extra })
 const cardStyle = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '1rem', boxShadow: 'var(--shadow-sm)' }

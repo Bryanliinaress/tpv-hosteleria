@@ -8,6 +8,7 @@ import ReservasConfig from '../../components/ReservasConfig'
 import BotonSalir from '../../components/BotonSalir'
 import TemaToggle from '../../components/TemaToggle'
 import EstadoFiscal from '../../components/EstadoFiscal'
+import { productosVisibles } from '../../lib/carta'
 import ConfigImpresora from '../../components/ConfigImpresora'
 import EditorMenu from '../../components/EditorMenu'
 import Informes from './Informes'
@@ -19,6 +20,7 @@ export default function PanelAdmin() {
   const hoyStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
   const reservasHoy = reservas.filter(r => r.fecha === hoyStr && r.estado === 'confirmada').length
   const [tab, setTab] = useState('carta')
+  const [busquedaCarta, setBusquedaCarta] = useState('')
   const [editando, setEditando] = useState(null) // productoId en edición
   const [form, setForm] = useState(emptyForm)
   const [ticket, setTicket] = useState(null)
@@ -27,6 +29,8 @@ export default function PanelAdmin() {
   const [nuevoPan, setNuevoPan] = useState({ nombre: '', sup: '' })
   const [nuevoFormato, setNuevoFormato] = useState('')
   const etiquetas = etiquetasDe(carta)
+  // el admin sí ve lo agotado: es lo que viene a reactivar
+  const coincidencias = productosVisibles(carta, { busqueda: busquedaCarta, incluirNoDisponibles: true })
   const [contado, setContado] = useState('')
 
   // Tickets del mes en curso, agrupados por día (más reciente primero)
@@ -90,7 +94,7 @@ export default function PanelAdmin() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 20, background: 'linear-gradient(180deg, var(--color-surface), var(--color-surface-2))', borderBottom: '1px solid var(--color-border)', boxShadow: '0 6px 18px -10px rgba(0,0,0,0.6)', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 20, background: 'linear-gradient(180deg, var(--color-surface), var(--color-surface-2))', borderBottom: '1px solid var(--color-border)', boxShadow: '0 6px 18px -10px rgba(0,0,0,0.6)', padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.6rem' }}>
         <div>
           <h1 style={{ fontWeight: 800, fontSize: '1.25rem' }}>🛠 Panel Administración</h1>
           <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>{local.nombre || 'Gestión del local'}</p>
@@ -105,7 +109,7 @@ export default function PanelAdmin() {
       </div>
 
       {/* Stats rápidas */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-border)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(8.5rem, 1fr))', gap: '0.75rem', padding: '1rem 1.25rem', borderBottom: '1px solid var(--color-border)' }}>
         {[
           { label: 'Mesas ocupadas', value: `${mesasOcupadas}/${mesas.length}`, color: 'var(--tint-warning-fg)' },
           { label: 'Productos en carta', value: carta.productos.length, color: 'var(--tint-info-fg)' },
@@ -121,7 +125,7 @@ export default function PanelAdmin() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '0', borderBottom: '1px solid var(--color-border)', background: 'var(--color-surface)' }}>
+      <div style={{ display: 'flex', gap: '0', borderBottom: '1px solid var(--color-border)', background: 'var(--color-surface)', overflowX: 'auto', position: 'sticky', top: 0, zIndex: 15, scrollbarWidth: 'thin' }}>
         {[
           { id: 'carta', label: '📋 Carta' },
           { id: 'local', label: '🏪 Local' },
@@ -136,7 +140,7 @@ export default function PanelAdmin() {
           { id: 'qr', label: '📱 QR Codes' },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
-            background: 'none', border: 'none', padding: '0.875rem 1.5rem', cursor: 'pointer',
+            background: 'none', border: 'none', padding: '0.875rem 1.1rem', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, minHeight: '48px',
             color: tab === t.id ? 'var(--color-accent)' : 'var(--color-muted)',
             borderBottom: tab === t.id ? '2px solid var(--color-accent)' : '2px solid transparent',
             fontWeight: tab === t.id ? 700 : 400, fontSize: '0.875rem',
@@ -146,17 +150,34 @@ export default function PanelAdmin() {
         ))}
       </div>
 
-      <div style={{ flex: 1, padding: '1.5rem', overflowY: 'auto' }}>
+      <div style={{ flex: 1, padding: '1.25rem', overflowY: 'auto' }}>
         {/* Tab Carta */}
         {tab === 'carta' && (
           <div>
-            {carta.categorias.map(cat => (
+            {/* Con 50+ productos, encontrar «el mixto» no puede ser bajar 6.000 px */}
+            <div style={{ position: 'relative', marginBottom: '1rem' }}>
+              <input value={busquedaCarta} onChange={e => setBusquedaCarta(e.target.value)} placeholder="🔍 Buscar en la carta…"
+                style={{ background: 'var(--color-inset)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.65rem 0.85rem', color: 'var(--color-text)', width: '100%', fontSize: '0.9rem', minHeight: '44px' }} />
+              {busquedaCarta && <button onClick={() => setBusquedaCarta('')} aria-label="Limpiar búsqueda" style={{ ...iconBtn, position: 'absolute', right: '0.2rem', top: '50%', transform: 'translateY(-50%)' }}>✕</button>}
+            </div>
+            {busquedaCarta.trim() && (
+              <p style={{ fontSize: '0.8rem', color: 'var(--color-muted)', marginBottom: '0.75rem' }}>
+                {coincidencias.length} de {carta.productos.length} productos coinciden con «{busquedaCarta}»
+              </p>
+            )}
+            {carta.categorias.map(cat => {
+              const productosCat = busquedaCarta.trim()
+                ? coincidencias.filter(p => p.categoria === cat.id)
+                : carta.productos.filter(p => p.categoria === cat.id)
+              // buscando, una categoría sin resultados solo estorba
+              if (busquedaCarta.trim() && productosCat.length === 0) return null
+              return (
               <div key={cat.id} style={{ marginBottom: '1.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                   <span style={{ fontSize: '1.1rem' }}>{cat.emoji}</span>
                   <h3 style={{ fontWeight: 700, fontSize: '1rem' }}>{cat.nombre}</h3>
                   <span style={{ fontSize: '0.75rem', background: cat.tipo === 'comida' ? 'var(--tint-success-bg)' : 'var(--tint-danger-bg)', color: cat.tipo === 'comida' ? 'var(--tint-success-fg)' : 'var(--tint-danger-fg)', borderRadius: '9999px', padding: '0.15rem 0.5rem' }}>{cat.tipo}</span>
-                  <button onClick={() => empezarNuevo(cat.id)} style={{ marginLeft: 'auto', background: 'var(--color-accent)', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.3rem 0.75rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
+                  <button onClick={() => empezarNuevo(cat.id)} style={{ marginLeft: 'auto', background: 'var(--color-accent)', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 0.9rem', minHeight: '40px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
                     + Añadir
                   </button>
                 </div>
@@ -166,8 +187,8 @@ export default function PanelAdmin() {
                   <FormProducto carta={carta} form={form} setForm={setForm} onGuardar={guardar} onCancelar={cancelar} titulo="Nuevo producto" />
                 )}
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '0.625rem' }}>
-                  {carta.productos.filter(p => p.categoria === cat.id).map(prod => (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: '0.625rem' }}>
+                  {productosCat.map(prod => (
                     editando === prod.id ? (
                       <FormProducto key={prod.id} carta={carta} form={form} setForm={setForm} onGuardar={guardar} onCancelar={cancelar} titulo="Editar producto" />
                     ) : (
@@ -190,17 +211,19 @@ export default function PanelAdmin() {
                               ))
                             : <>{(prod.precio ?? 0).toFixed(2)} €</>}
                         </div>
-                        <div style={{ display: 'flex', gap: '0.25rem' }}>
-                          <button onClick={() => toggleDisponible(prod.id)} title={prod.disponible ? 'Marcar agotado' : 'Marcar disponible'} style={iconBtn}>{prod.disponible ? '🟢' : '⚪'}</button>
-                          <button onClick={() => empezarEdicion(prod)} title="Editar" style={iconBtn}>✏️</button>
-                          <button onClick={async () => { if (await confirmar({ titulo: 'Borrar producto', mensaje: `¿Borrar "${prod.nombre}" de la carta?`, peligro: true, confirmar: 'Borrar' })) { deleteProducto(prod.id); toast('Producto borrado', 'success') } }} title="Borrar" style={iconBtn}>🗑️</button>
+                        <div style={{ display: 'flex', gap: '0.2rem', alignItems: 'center' }}>
+                          <button onClick={() => toggleDisponible(prod.id)} title={prod.disponible ? 'Marcar agotado' : 'Marcar disponible'} aria-label={prod.disponible ? `Marcar ${prod.nombre} agotado` : `Marcar ${prod.nombre} disponible`} style={iconBtn}>{prod.disponible ? '🟢' : '⚪'}</button>
+                          <button onClick={() => empezarEdicion(prod)} title="Editar" aria-label={`Editar ${prod.nombre}`} style={iconBtn}>✏️</button>
+                          {/* separado del resto: es el único que no tiene vuelta atrás */}
+                          <button onClick={async () => { if (await confirmar({ titulo: 'Borrar producto', mensaje: `¿Borrar "${prod.nombre}" de la carta?`, peligro: true, confirmar: 'Borrar' })) { deleteProducto(prod.id); toast('Producto borrado', 'success') } }} title="Borrar" aria-label={`Borrar ${prod.nombre}`} style={{ ...iconBtn, marginLeft: '0.5rem' }}>🗑️</button>
                         </div>
                       </div>
                     )
                   ))}
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
         )}
 
@@ -869,13 +892,22 @@ const inputStyle = {
   width: '100%',
 }
 
+// Acciones de fila (agotado, editar, borrar). Eran de 29x23 px y pegadas: con
+// el dedo, «borrar» caía a un milímetro de «editar». Ahora 40x40 y con aire.
 const iconBtn = {
   background: 'none',
-  border: 'none',
+  border: '1px solid transparent',
+  borderRadius: '0.5rem',
   cursor: 'pointer',
-  fontSize: '0.95rem',
-  padding: '0.25rem',
+  fontSize: '1.05rem',
+  width: '2.5rem',
+  height: '2.5rem',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: 0,
   lineHeight: 1,
+  flexShrink: 0,
 }
 
 const lblCampo = { display: 'block', fontSize: '0.72rem', color: 'var(--color-muted)', marginBottom: '0.25rem' }

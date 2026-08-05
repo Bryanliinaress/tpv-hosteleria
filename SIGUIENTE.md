@@ -1,7 +1,13 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.45.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.48.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-05. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
+
+## Cómo probar la UI sin ensuciar la demo
+
+`npm run dev -- --mode pruebas` levanta la app **sin backend** (`.env.pruebas`
+deja las claves vacías): todo va a localStorage y el blob compartido de la demo
+no se toca. Es la forma segura de trastear pantallas.
 
 ## Lo primero, si algo no conecta
 
@@ -41,8 +47,16 @@ que está gitignorado y solo existe en el PC de Bryan).
   aforo en servidor, fichajes, arqueo de caja, modo claro, inglés.
 
 - **Perfiles de local**: un producto, una instalación por bar. Ver `locales/`.
+- **Repaso de usabilidad en móvil (v0.46-0.48)**, medido a 375 px:
+  - Cliente: ve la carta **antes** de dar su nombre; el botón de añadir de la
+    hoja ya no queda fuera de pantalla; categorías pegadas; cantidad en la
+    tarjeta; búsqueda sin tildes y por ingredientes.
+  - Personal: buscador en la PDA (tomar pedido y marcar agotados); botones de
+    cantidad de 24 px → 36-44 px; el mostrador ya no desborda a lo ancho.
+  - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
+    en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**122 tests**, lint limpio, CI y deploy en verde.
+**136 tests**, lint limpio, CI y deploy en verde.
 
 ## Pendiente — y de quién depende
 
@@ -93,9 +107,9 @@ bug son N arreglos. El modelo acordado es **producto base + perfiles**:
 2. **Alta industrializada**: un solo comando que cree el proyecto Supabase,
    aplique las 10 migraciones, siembre la carta, registre el local y despliegue.
    Base ya existente: `scripts/provisionar-produccion.mjs`.
-3. **Marca blanca**: ya sale en la **portada, la pestaña y la PWA** (nombre,
-   colores, logo e iconos del perfil). Falta llevarla a la **carta QR** y al
-   **ticket**, que todavía usan el nombre guardado en el estado del local.
+3. **Marca blanca**: ya sale en la **portada, la pestaña, la PWA** y la
+   **cabecera de la carta QR**. Falta el **ticket**, que sigue usando el nombre
+   guardado en el estado del local.
 4. **Puntos de extensión** para las funciones a medida por cliente.
 5. **Actualizar N instancias**: un comando que redespliegue todos los bares.
 
@@ -128,3 +142,15 @@ alta y ver cuánto cuesta de verdad montar uno.
   en `error`. Ojo al tratar reintentos.
 - **Apagar el `npm run dev` antes de pruebas largas**: si queda vivo y vuelve
   la conexión, reenvía su estado al blob compartido y ensucia la demo.
+
+## Deuda de usabilidad que queda (medida, no intuida)
+
+Lo que vi probando a 375 px y no entró en v0.46-0.48:
+
+- **El cliente no puede repetir un pedido ya enviado** («otra ronda»): hay que
+  buscar cada producto otra vez. Es lo que más se pide en una barra.
+- **El KDS no agrupa por mesa**: con 20 comandas, cocina lee tarjeta a tarjeta.
+- **Informes solo en pantalla grande**: las tablas se leen mal en móvil, y el
+  dueño mira la caja desde el móvil.
+- **El alta de producto pide muchos campos**: para un bar que solo quiere
+  «nombre y precio» debería bastar con eso y que el resto sea opcional plegado.

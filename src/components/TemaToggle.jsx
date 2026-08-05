@@ -15,7 +15,7 @@ export default function TemaToggle({ compacto = false }) {
         display: 'inline-flex', alignItems: 'center', gap: compacto ? 0 : '0.5rem',
         background: 'var(--color-surface-2)', color: 'var(--color-text)',
         border: '1px solid var(--color-border)', borderRadius: '9999px',
-        padding: compacto ? '0.5rem' : '0.5rem 0.9rem', cursor: 'pointer',
+        padding: compacto ? '0.5rem' : '0.5rem 0.9rem', minHeight: '40px', minWidth: compacto ? '40px' : undefined, justifyContent: 'center', cursor: 'pointer',
         fontSize: '0.85rem', fontWeight: 600, lineHeight: 1,
         boxShadow: 'var(--shadow-sm)',
       }}
