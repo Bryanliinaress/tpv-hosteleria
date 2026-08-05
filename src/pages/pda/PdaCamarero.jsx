@@ -260,8 +260,8 @@ export default function PdaCamarero() {
           <div style={{ fontWeight: 800, fontSize: '1.05rem' }}>📟 {camarero}</div>
           <div style={{ fontSize: '0.68rem', color: 'var(--color-muted)' }}>{ocupadas.length}/{mesas.length} mesas ocupadas</div>
         </div>
-        <button onClick={() => setSonido(s => !s)} title="Aviso sonoro" style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>{sonido ? '🔔' : '🔕'}</button>
-        <button onClick={clearSesion} title="Cerrar sesión" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem', color: 'var(--color-muted)' }}>⎋</button>
+        <button onClick={() => setSonido(s => !s)} title="Aviso sonoro" aria-label="Aviso sonoro" style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', width: '2.5rem', height: '2.5rem', flexShrink: 0 }}>{sonido ? '🔔' : '🔕'}</button>
+        <button onClick={clearSesion} title="Cerrar sesión" aria-label="Cerrar sesión" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem', color: 'var(--color-muted)', width: '2.5rem', height: '2.5rem', flexShrink: 0 }}>⎋</button>
       </div>
 
       {vista === 'avisos' && (
