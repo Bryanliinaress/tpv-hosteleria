@@ -48,3 +48,38 @@ export const lineaSimplePendiente = (items, productoId) => (items || []).find(i 
 
 /** Unidades totales (3 cafés son 3, no 1 línea). */
 export const unidades = (items) => (items || []).reduce((s, i) => s + (i.cantidad || 0), 0)
+
+/**
+ * Receta para volver a pedir una línea igual: se queda con lo que define el
+ * plato (producto, pan, extras, nota) y tira el estado, el uid y con quién se
+ * compartió, que son de aquella vez.
+ */
+export function configDeItem(item) {
+  const c = {
+    productoId: item.productoId, nombre: item.nombre,
+    precio: item.precio, tipo: item.tipo,
+  }
+  if (item.pan) c.pan = item.pan
+  if (item.quitados?.length) c.quitados = item.quitados
+  if (item.anadidos?.length) c.anadidos = item.anadidos
+  if (item.elecciones?.length) c.elecciones = item.elecciones
+  if (item.nota) c.nota = item.nota
+  if (item.tiempo && item.tiempo !== 1) c.tiempo = item.tiempo
+  return c
+}
+
+/**
+ * La última ronda: lo que se envió a cocina de una vez. Se agrupan por el
+ * momento del envío (al segundo) porque una comanda son varias líneas a la vez.
+ * Sin `enviadoEn` (datos viejos) cae a «todo lo enviado», que es lo razonable.
+ */
+export function ultimaRonda(items) {
+  const enviados = (items || []).filter(i => i.estado === 'enviado')
+  if (!enviados.length) return []
+  const sellos = enviados.map(i => i.enviadoEn).filter(Boolean)
+  if (!sellos.length) return enviados
+  const ultimo = sellos.sort().at(-1)
+  // mismo minuto = misma comanda: cocina las recibió juntas
+  const mismoMinuto = (a, b) => a && b && a.slice(0, 16) === b.slice(0, 16)
+  return enviados.filter(i => mismoMinuto(i.enviadoEn, ultimo))
+}

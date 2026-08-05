@@ -6,7 +6,7 @@ import Ticket from '../../components/Ticket'
 import MetodoPago from '../../components/MetodoPago'
 import PedirPda from './PedirPda'
 import CobroMesa from './CobroMesa'
-import { productosVisibles } from '../../lib/carta'
+import { productosVisibles, configDeItem, ultimaRonda } from '../../lib/carta'
 
 // Pitido + vibración para avisar de eventos nuevos
 function alerta() {
@@ -29,7 +29,7 @@ function haceCuanto(iso) {
 }
 
 export default function PdaCamarero() {
-  const { carta, mesas, pedidosCocina, pedidosBarra, avisos, historial, atenderAviso, pagarParte, cobrarMesa, liberarMesa, unirseAMesa, servirMesa, anularItem, toggleDisponible, fusionarMesa, transferirComensal, asignarCamarero, reservarMesa, cancelarReserva, sentarReserva, marcharSiguiente, cambiarCantidad, moverItem, fichajes, ficharEmpleado } = useStore()
+  const { carta, mesas, pedidosCocina, pedidosBarra, avisos, historial, atenderAviso, agregarItem, pagarParte, cobrarMesa, liberarMesa, unirseAMesa, servirMesa, anularItem, toggleDisponible, fusionarMesa, transferirComensal, asignarCamarero, reservarMesa, cancelarReserva, sentarReserva, marcharSiguiente, cambiarCantidad, moverItem, fichajes, ficharEmpleado } = useStore()
   const [mover, setMover] = useState(null) // { tipo:'mesa'|'comensal', personaId? }
   const [moverLinea, setMoverLinea] = useState(null) // { personaId, uid, nombre } línea a otro comensal
   const empleado = useEmpleadoActual()
@@ -86,6 +86,22 @@ export default function PdaCamarero() {
     llamada: { color: '#f59e0b', bg: 'var(--tint-warning-bg)', emoji: '🔔' },
     listo: { color: '#10b981', bg: 'var(--tint-success-bg)', emoji: '✅' },
     cuenta: { color: '#f43f5e', bg: 'var(--tint-danger-bg)', emoji: '💶' },
+  }
+
+  // «Lo mismo otra vez»: en una barra es la comanda más frecuente. Repite una
+  // línea ya enviada (o la última ronda entera) sin buscar nada en la carta.
+  const repetirLinea = (personaId, item) => {
+    const config = configDeItem(item)
+    for (let i = 0; i < (item.cantidad || 1); i++) agregarItem(mesa.id, personaId, config)
+    toast(`🔁 ${item.cantidad}× ${item.nombre} otra vez · sin enviar`, 'success')
+  }
+  const repetirRondaMesa = () => {
+    let n = 0
+    mesa.personas.forEach(p => ultimaRonda(p.items).forEach(item => {
+      const config = configDeItem(item)
+      for (let i = 0; i < (item.cantidad || 1); i++) { agregarItem(mesa.id, p.id, config); n++ }
+    }))
+    toast(n ? `🔁 ${n} producto(s) otra vez · revisa y envía` : 'Esta mesa aún no ha enviado nada', n ? 'success' : 'info')
   }
 
   // ── Detalle de mesa ───────────────────────────────────
@@ -153,6 +169,9 @@ export default function PdaCamarero() {
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
                         <button onClick={() => cambiarCantidad(mesa.id, p.id, it.uid, -1)} disabled={it.cantidad <= 1} title="Una menos" style={miniBtn(it.cantidad <= 1)}>−</button>
                         <button onClick={() => cambiarCantidad(mesa.id, p.id, it.uid, 1)} title="Una más" style={miniBtn(false)}>+</button>
+                        {it.estado === 'enviado' && (
+                          <button onClick={() => repetirLinea(p.id, it)} title={`Otro ${it.nombre}`} aria-label={`Otro ${it.nombre}`} style={miniBtn(false)}>🔁</button>
+                        )}
                         {mesa.personas.length > 1 && (
                           <button onClick={() => setMoverLinea({ personaId: p.id, uid: it.uid, nombre: it.nombre })} title="Mover a otro comensal" style={miniBtn(false)}>⇄</button>
                         )}
@@ -182,7 +201,13 @@ export default function PdaCamarero() {
                   </button>
                 )
               })()}
-              <button onClick={() => { asignarCamarero(mesa.id, camarero); setPidiendo(true) }} style={btn('var(--color-accent)', { width: '100%', padding: '0.75rem', fontSize: '0.95rem' })}>➕ Añadir pedido</button>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button onClick={() => { asignarCamarero(mesa.id, camarero); setPidiendo(true) }} style={btn('var(--color-accent)', { flex: 1, padding: '0.75rem', fontSize: '0.95rem' })}>➕ Añadir pedido</button>
+                {/* la comanda más frecuente en barra: lo mismo que la ronda anterior */}
+                {mesa.personas.some(p => p.items.some(i => i.estado === 'enviado')) && (
+                  <button onClick={repetirRondaMesa} title="Repetir la última ronda de la mesa" style={btn('var(--color-surface-2)', { padding: '0.75rem 0.9rem', fontSize: '0.95rem', whiteSpace: 'nowrap' })}>🔁 Otra ronda</button>
+                )}
+              </div>
               <button onClick={() => { asignarCamarero(mesa.id, camarero); setCobrando(true) }} style={btn('#10b981', { width: '100%', padding: '0.75rem', fontSize: '0.95rem' })}>💶 Cobrar mesa</button>
               <button onClick={() => setMover({ tipo: 'mesa' })} style={btn('var(--color-surface-2)', { width: '100%', fontSize: '0.9rem' })}>🔀 Mover / Juntar mesa</button>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -291,10 +316,10 @@ export default function PdaCamarero() {
                   <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{haceCuanto(ev.hora)}</div>
                 </div>
                 {ev.tipo === 'llamada' && (
-                  <button onClick={e2 => { e2.stopPropagation(); atenderAviso(ev.avisoId) }} style={btn('#10b981', { padding: '0.45rem 0.8rem' })}>✓ Atender</button>
+                  <button onClick={e2 => { e2.stopPropagation(); atenderAviso(ev.avisoId) }} style={btn('#10b981', { padding: '0.6rem 0.9rem', minHeight: '44px' })}>✓ Atender</button>
                 )}
                 {ev.tipo === 'listo' && (
-                  <button onClick={e2 => { e2.stopPropagation(); servirMesa(ev.mesaId) }} style={btn('#10b981', { padding: '0.45rem 0.8rem' })}>✓ Servir</button>
+                  <button onClick={e2 => { e2.stopPropagation(); servirMesa(ev.mesaId) }} style={btn('#10b981', { padding: '0.6rem 0.9rem', minHeight: '44px' })}>✓ Servir</button>
                 )}
               </div>
             )
