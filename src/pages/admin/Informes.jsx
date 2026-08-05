@@ -15,6 +15,15 @@ export default function Informes({ historial, moneda = '€' }) {
   const comensales = delMes.reduce((s, r) => s + (r.personas?.length || 0), 0)
   const ticketMedio = delMes.length ? total / delMes.length : 0
 
+  // ── Hoy ────────────────────────────────────────────────
+  // El dueño mira esto desde el móvil a media tarde: «¿cómo va el día?» es la
+  // pregunta, y antes había que deducirla del gráfico del mes.
+  const hoyStr = ahora.toDateString()
+  const deHoy = delMes.filter(r => new Date(r.cerradaEn).toDateString() === hoyStr)
+  const totalHoy = deHoy.reduce((s, r) => s + r.total, 0)
+  const propinasHoy = deHoy.reduce((s, r) => s + (r.propina || 0), 0)
+  const medioHoy = deHoy.length ? totalHoy / deHoy.length : 0
+
   // ── Ventas por día ─────────────────────────────────────
   const porDia = {}
   delMes.forEach(r => { const d = new Date(r.cerradaEn).getDate(); porDia[d] = (porDia[d] || 0) + r.total })
@@ -57,8 +66,24 @@ export default function Informes({ historial, moneda = '€' }) {
 
   return (
     <div>
-      {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.875rem', marginBottom: '1.5rem' }}>
+      {/* Hoy: lo primero que se mira desde el móvil */}
+      <div style={{ ...card, marginBottom: '1rem', borderColor: 'var(--color-accent)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.6rem' }}>
+          <h3 style={{ ...titulo, marginBottom: 0 }}>Hoy</h3>
+          <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>{ahora.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+        </div>
+        <div style={{ fontWeight: 900, fontSize: 'clamp(1.9rem, 9vw, 2.6rem)', color: 'var(--color-accent)', lineHeight: 1 }}>
+          {totalHoy.toFixed(2)} {moneda}
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem 1.1rem', marginTop: '0.6rem', fontSize: '0.85rem', color: 'var(--color-muted)' }}>
+          <span><strong style={{ color: 'var(--color-text)' }}>{deHoy.length}</strong> tickets</span>
+          <span>medio <strong style={{ color: 'var(--color-text)' }}>{medioHoy.toFixed(2)} {moneda}</strong></span>
+          {propinasHoy > 0 && <span>propinas <strong style={{ color: 'var(--color-success)' }}>{propinasHoy.toFixed(2)} {moneda}</strong></span>}
+        </div>
+      </div>
+
+      {/* KPIs del mes */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(9rem, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
         {[
           { l: `Facturado (${ahora.toLocaleDateString('es-ES', { month: 'long' })})`, v: `${total.toFixed(2)} ${moneda}`, c: 'var(--color-accent)' },
           { l: 'Tickets', v: delMes.length, c: '#3b82f6' },
@@ -74,15 +99,18 @@ export default function Informes({ historial, moneda = '€' }) {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem', alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 20rem), 1fr))', gap: '1.25rem', alignItems: 'start' }}>
         {/* Ventas por día */}
         <div style={card}>
           <h3 style={titulo}>Ventas por día</h3>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '120px' }}>
             {dias.map(d => (
               <div key={d} title={`Día ${d}: ${porDia[d].toFixed(2)} ${moneda}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%' }}>
-                <div style={{ height: `${Math.max(4, porDia[d] / maxDia * 100)}%`, background: 'linear-gradient(180deg, var(--color-accent-2), var(--color-accent))', borderRadius: '3px 3px 0 0' }} />
-                <div style={{ fontSize: '0.6rem', color: 'var(--color-faint)', textAlign: 'center', marginTop: '2px' }}>{d}</div>
+                <div style={{ height: `${Math.max(4, porDia[d] / maxDia * 100)}%`, background: d === ahora.getDate() ? 'var(--color-success)' : 'linear-gradient(180deg, var(--color-accent-2), var(--color-accent))', borderRadius: '3px 3px 0 0' }} />
+                {/* en un móvil no caben 31 etiquetas: se rotulan de 5 en 5 y hoy */}
+                <div style={{ fontSize: '0.6rem', color: d === ahora.getDate() ? 'var(--color-success)' : 'var(--color-faint)', textAlign: 'center', marginTop: '2px', fontWeight: d === ahora.getDate() ? 800 : 400 }}>
+                  {(dias.length <= 8 || d % 5 === 0 || d === ahora.getDate()) ? d : ' '}
+                </div>
               </div>
             ))}
           </div>
@@ -119,7 +147,7 @@ export default function Informes({ historial, moneda = '€' }) {
             {horas.map(h => (
               <div key={h} title={`${h}:00 · ${porHora[h].toFixed(2)} ${moneda}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%' }}>
                 <div style={{ height: `${Math.max(4, porHora[h] / maxHora * 100)}%`, background: 'linear-gradient(180deg, #22d3ee, #06b6d4)', borderRadius: '3px 3px 0 0' }} />
-                <div style={{ fontSize: '0.6rem', color: 'var(--color-faint)', textAlign: 'center', marginTop: '2px' }}>{h}h</div>
+                <div style={{ fontSize: '0.6rem', color: 'var(--color-faint)', textAlign: 'center', marginTop: '2px' }}>{horas.length <= 10 || h % 2 === 0 ? `${h}h` : ' '}</div>
               </div>
             ))}
           </div>

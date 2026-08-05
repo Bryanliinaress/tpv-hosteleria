@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.48.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.49.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-05. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**136 tests**, lint limpio, CI y deploy en verde.
+**151 tests**, lint limpio, CI y deploy en verde.
 
 ## Pendiente — y de quién depende
 
@@ -143,14 +143,21 @@ alta y ver cuánto cuesta de verdad montar uno.
 - **Apagar el `npm run dev` antes de pruebas largas**: si queda vivo y vuelve
   la conexión, reenvía su estado al blob compartido y ensucia la demo.
 
-## Deuda de usabilidad que queda (medida, no intuida)
+## Deuda de usabilidad: hecha en v0.49.0
 
-Lo que vi probando a 375 px y no entró en v0.46-0.48:
+Todo lo que quedaba medido de la ronda anterior ya está:
 
-- **El cliente no puede repetir un pedido ya enviado** («otra ronda»): hay que
-  buscar cada producto otra vez. Es lo que más se pide en una barra.
-- **El KDS no agrupa por mesa**: con 20 comandas, cocina lee tarjeta a tarjeta.
-- **Informes solo en pantalla grande**: las tablas se leen mal en móvil, y el
-  dueño mira la caja desde el móvil.
-- **El alta de producto pide muchos campos**: para un bar que solo quiere
-  «nombre y precio» debería bastar con eso y que el resto sea opcional plegado.
+- ~~Repetir pedido~~ ✅ «🔁 Otra ronda» en la carta del cliente y en la PDA, y
+  repetir línea suelta. Mantiene pan, extras y notas.
+- ~~KDS por mesa~~ ✅ cocina y barra agrupan por mesa (`ColaKDS`), la más vieja
+  arriba, y un botón mueve la mesa entera.
+- ~~Informes en móvil~~ ✅ tarjeta «Hoy» y gráficos rotulados para 375 px.
+- ~~Alta de producto~~ ✅ nombre y precio; el resto en «Más opciones».
+- **Además**: el cliente tiene barra de pestañas fija (Carta · Mi pedido ·
+  Pagar) con el importe a la vista, y seguimiento de cómo va lo suyo.
+
+### Lo siguiente que yo miraría (sin medir aún)
+- **Repetir para toda la mesa desde el cliente** («lo mismo para todos»).
+- **Aviso al cliente cuando su plato está listo** sin tener que mirar la app
+  (hoy solo se ve el punto verde al abrirla).
+- **Buscar en tickets/caja** igual que en la carta.

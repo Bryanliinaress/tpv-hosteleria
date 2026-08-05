@@ -7,7 +7,7 @@ import { toast } from '../../store/useUI'
 import { useIdioma, tr } from '../../lib/i18n'
 import { useUnaVez } from '../../lib/unaVez'
 import { esMenu, menuCompleto, siguientePendiente, precioMenu, resumenElecciones, alternarOpcion } from '../../lib/menuDia'
-import { productosVisibles, descripcionUtil, lineaSimplePendiente, unidades } from '../../lib/carta'
+import { productosVisibles, descripcionUtil, lineaSimplePendiente, unidades, configDeItem, ultimaRonda } from '../../lib/carta'
 
 export default function CartaCliente() {
   const { mesaId } = useParams()
@@ -50,6 +50,15 @@ export default function CartaCliente() {
   const yo = mesa?.personas.find(p => p.id === miPersonaId)
 
   useEffect(() => { if (yo) setYoVisto(true) }, [yo])
+
+  // Al escanear el QR de OTRA mesa, la ruta cambia pero el componente sigue
+  // montado: sin esto arrastraba la identidad de la mesa anterior y saltaba un
+  // falso «¡Cuenta pagada!». Cada mesa empieza de cero.
+  useEffect(() => {
+    setMiPersonaId(localStorage.getItem(`tpv-yo-${mesaId}`))
+    setYoVisto(false); setCerrada(false); setVista('carta')
+    setPidiendoPara(null); setIntento(null); setPers(null); setBusqueda('')
+  }, [mesaId])
 
   // Ya tiene nombre: retomamos lo que estaba intentando hacer (añadir el plato
   // que tocó, o abrir su pedido) sin que tenga que repetir el gesto.
@@ -149,12 +158,36 @@ export default function CartaCliente() {
   }
   const misPedidos = [...pedidosCocina, ...pedidosBarra].filter(p => p.personaId === yo?.id)
   const misListos = misPedidos.filter(p => p.estado === 'listo')
+  const misEnMarcha = misPedidos.filter(p => p.estado === 'recibido' || p.estado === 'preparando' || p.estado === 'espera')
+  // lo que me toca pagar a mí (con lo compartido ya repartido)
+  const miParte = yo ? (owed[yo.id] || 0) : 0
+  const pestanas = !ojeando && (
+    <Pestanas vista={vista} setVista={setVista} uds={udsPendientes} enMarcha={misEnMarcha.length}
+      listos={misListos.length} aPagar={miParte} pagado={!!yo?.pagado} t={t} />
+  )
   const avisoMesa = avisos.find(a => a.mesaId === mesaId)
   const avisoActivo = !!avisoMesa
   // Llama al camarero; si ya está avisado, volver a tocar cancela el aviso.
   const toggleAviso = () => {
     if (avisoMesa) { atenderAviso(avisoMesa.id); toast(t('Aviso cancelado'), 'info') }
     else { llamarCamarero(mesaId, yo?.nombre || `${t('Mesa')} ${mesa.numero}`); toast(t('Camarero avisado'), 'success') }
+  }
+
+  // «Otra ronda»: vuelve a poner en el carrito lo mismo que ya se pidió, sin
+  // tener que buscar cada cosa otra vez. Es lo que más se repite en una barra.
+  const repetirItem = (item) => {
+    const config = configDeItem(item)
+    for (let i = 0; i < (item.cantidad || 1); i++) agregarItem(mesaId, personaActiva.id, config)
+    toast(`🔁 ${item.cantidad}× ${item.nombre} ${t('otra vez en tu pedido')}`, 'success')
+  }
+  const repetirRonda = () => {
+    const ronda = ultimaRonda(personaActiva.items)
+    if (!ronda.length) return
+    ronda.forEach(item => {
+      const config = configDeItem(item)
+      for (let i = 0; i < (item.cantidad || 1); i++) agregarItem(mesaId, personaActiva.id, config)
+    })
+    toast(`🔁 ${unidades(ronda)} ${t('producto(s)')} ${t('otra vez en tu pedido')}`, 'success')
   }
 
   const descrItem = (item) => {
@@ -330,10 +363,12 @@ export default function CartaCliente() {
         )}
 
         {mesa.estado !== 'esperando_cobro' ? (
-          <button onClick={() => pedirCuenta(mesaId)} style={btnStyle('var(--color-surface-2)', { width: '100%', padding: '0.875rem', fontSize: '0.95rem' })}>{t('🧑‍🍳 Que cobre el camarero (efectivo/tarjeta)')}</button>
+          <button onClick={() => pedirCuenta(mesaId)} style={btnStyle('var(--color-surface-2)', { width: '100%', padding: '0.875rem', minHeight: `${TOQUE + 6}px`, fontSize: '0.95rem' })}>{t('🧑‍🍳 Que cobre el camarero (efectivo/tarjeta)')}</button>
         ) : (
           <div style={{ textAlign: 'center', padding: '1rem', background: 'var(--tint-success-bg)', borderRadius: '0.75rem', color: 'var(--tint-success-fg)', fontWeight: 700 }}>✅ {t('✅ El camarero viene a cobrar').replace('✅ ','')}</div>
         )}
+        <div style={huecoPestanas} />
+        {pestanas}
       </div>
     )
   }
@@ -346,6 +381,20 @@ export default function CartaCliente() {
           <button onClick={() => setVista('carta')} style={btnStyle('var(--color-surface-2)')}>←</button>
           <h2 style={{ fontWeight: 700, fontSize: '1.25rem' }}>{t('Pedido de')} {personaActiva.nombre}{!pedirParaOtro && ` ${t('(tú)')}`}</h2>
         </div>
+
+        {/* Cómo va lo mío, de un vistazo */}
+        {itemsEnviados.length > 0 && (
+          <div style={{ ...cardStyle, marginBottom: '1rem', borderColor: misListos.length ? 'var(--color-success)' : 'var(--color-border)' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              {misListos.length > 0 && <span style={chipEstado('var(--tint-success-bg)', 'var(--tint-success-fg)')}>✅ {misListos.reduce((s, p) => s + p.cantidad, 0)} {t('¡Listo!')}</span>}
+              {misEnMarcha.length > 0 && <span style={chipEstado('var(--tint-info-bg)', 'var(--tint-info-fg)')}>👨‍🍳 {misEnMarcha.reduce((s, p) => s + p.cantidad, 0)} {t('Preparándose')}</span>}
+              {misPedidos.length === 0 && <span style={{ fontSize: '0.82rem', color: 'var(--color-muted)' }}>{t('Ya enviado · seguimiento en vivo')}</span>}
+              <button onClick={repetirRonda} style={{ ...btnStyle('var(--color-surface-3)', { marginLeft: 'auto', padding: '0.5rem 0.85rem', minHeight: `${TOQUE}px`, fontSize: '0.82rem' }) }}>
+                🔁 {t('Otra ronda')}
+              </button>
+            </div>
+          </div>
+        )}
 
         {itemsEnviados.length > 0 && (
           <div style={{ marginBottom: '1rem' }}>
@@ -361,7 +410,11 @@ export default function CartaCliente() {
                     {item.pan && <div style={{ fontSize: '0.7rem', color: 'var(--color-muted)' }}>{descrItem(item)}</div>}
                     {est && <div style={{ fontSize: '0.72rem', color: est.color, fontWeight: 700, marginTop: '0.15rem' }}>{est.emoji} {est.label}</div>}
                   </div>
-                  <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{(item.precio * item.cantidad).toFixed(2)} €</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{(item.precio * item.cantidad).toFixed(2)} €</span>
+                    <button onClick={() => repetirItem(item)} title={`${t('Pedir otro')} ${item.nombre}`} aria-label={`${t('Pedir otro')} ${item.nombre}`}
+                      style={btnStyle('var(--color-surface-3)', { ...paso, padding: 0, fontSize: '0.95rem' })}>🔁</button>
+                  </div>
                 </div>
               )
             })}
@@ -419,10 +472,12 @@ export default function CartaCliente() {
                 <span>Total</span><span style={{ color: 'var(--color-accent)' }}>{totalPendiente.toFixed(2)} €</span>
               </div>
               <button onClick={enviarPedido} disabled={enviando} style={btnStyle(enviando ? 'var(--color-surface-3)' : 'var(--color-accent)', { width: '100%', padding: '0.875rem', fontSize: '1rem', marginBottom: '0.5rem', cursor: enviando ? 'wait' : 'pointer' })}>{enviando ? t('Enviando…') : t('Confirmar y enviar 🚀')}</button>
-              <button onClick={() => setMostrarResumen(false)} style={btnStyle('var(--color-surface-3)', { width: '100%', padding: '0.7rem', fontSize: '0.9rem' })}>{t('Seguir pidiendo')}</button>
+              <button onClick={() => setMostrarResumen(false)} style={btnStyle('var(--color-surface-3)', { width: '100%', padding: '0.7rem', minHeight: `${TOQUE}px`, fontSize: '0.9rem' })}>{t('Seguir pidiendo')}</button>
             </div>
           </div>
         )}
+        <div style={huecoPestanas} />
+        {pestanas}
       </div>
     )
   }
@@ -480,19 +535,16 @@ export default function CartaCliente() {
           <div style={{ display: 'flex', gap: '0.4rem' }}>
             <button onClick={() => setIdioma(idioma === 'es' ? 'en' : 'es')} title="Idioma / Language" aria-label="Idioma / Language" style={btnStyle('var(--color-surface-2)', { ...paso, padding: 0, fontSize: '1rem' })}>{idioma === 'es' ? '🇬🇧' : '🇪🇸'}</button>
             <button onClick={toggleAviso} title={avisoActivo ? t('Cancelar el aviso al camarero') : t('Llamar al camarero')} aria-label={t('Llamar al camarero')} style={btnStyle(avisoActivo ? '#10b981' : 'var(--color-surface-2)', { ...paso, padding: avisoActivo ? '0 0.75rem' : 0, width: avisoActivo ? 'auto' : `${TOQUE}px`, fontSize: '0.8rem' })}>{avisoActivo ? `🔔 ${t('Avisado')} ✕` : '🔔'}</button>
-            {!ojeando && <>
-              <button onClick={() => setVista('pedido')} aria-label={t('Ver pedido →')} style={{ ...btnStyle('var(--color-surface-2)', { ...paso, padding: 0, fontSize: '1rem' }), position: 'relative' }}>🛒 {udsPendientes > 0 && <span style={badge}>{udsPendientes}</span>}</button>
-              <button onClick={() => setVista('cuenta')} aria-label={t('Cuenta — Mesa')} style={btnStyle('var(--color-surface-2)', { ...paso, padding: 0, fontSize: '1rem' })}>💰</button>
-            </>}
+
           </div>
         </div>
         {/* «Pedir para» solo tiene sentido si hay más gente en la mesa */}
         {!ojeando && mesa.personas.length > 1 && (
           <div style={{ display: 'flex', gap: '0.375rem', overflowX: 'auto', marginTop: '0.6rem', paddingBottom: '0.25rem', alignItems: 'center' }}>
             <span style={{ fontSize: '0.7rem', color: 'var(--color-muted)', whiteSpace: 'nowrap', marginRight: '0.25rem' }}>{t('Pedir para:')}</span>
-            <button onClick={() => setPidiendoPara(null)} style={btnStyle(!pedirParaOtro ? 'var(--color-accent)' : 'var(--color-inset)', { fontSize: '0.8rem', padding: '0.4rem 0.7rem', whiteSpace: 'nowrap' })}>{yo.nombre} {t('(tú)')}</button>
+            <button onClick={() => setPidiendoPara(null)} style={btnStyle(!pedirParaOtro ? 'var(--color-accent)' : 'var(--color-inset)', { fontSize: '0.82rem', padding: '0.5rem 0.8rem', minHeight: '40px', whiteSpace: 'nowrap' })}>{yo.nombre} {t('(tú)')}</button>
             {mesa.personas.filter(p => p.id !== yo.id).map(p => (
-              <button key={p.id} onClick={() => setPidiendoPara(p.id)} style={btnStyle(pidiendoPara === p.id ? 'var(--color-accent)' : 'var(--color-inset)', { fontSize: '0.8rem', padding: '0.4rem 0.7rem', whiteSpace: 'nowrap' })}>{p.nombre}</button>
+              <button key={p.id} onClick={() => setPidiendoPara(p.id)} style={btnStyle(pidiendoPara === p.id ? 'var(--color-accent)' : 'var(--color-inset)', { fontSize: '0.82rem', padding: '0.5rem 0.8rem', minHeight: '40px', whiteSpace: 'nowrap' })}>{p.nombre}</button>
             ))}
           </div>
         )}
@@ -589,11 +641,14 @@ export default function CartaCliente() {
 
       {/* Bottom bar */}
       {itemsPendientes.length > 0 && (
-        <div style={{ padding: '1rem 1.25rem', background: 'var(--color-surface)', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', bottom: 0 }}>
+        <div style={{ padding: '0.75rem 1.25rem', background: 'var(--color-surface)', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.6rem', position: 'sticky', bottom: 'calc(62px + env(safe-area-inset-bottom))', zIndex: 12 }}>
           <span style={{ color: 'var(--color-muted)', fontSize: '0.875rem' }}>{udsPendientes} {t('producto(s)')} · {totalPendiente.toFixed(2)} €</span>
           <button onClick={() => setVista('pedido')} style={btnStyle('var(--color-accent)', { padding: '0.625rem 1.25rem', minHeight: `${TOQUE}px` })}>{t('Ver pedido →')}</button>
         </div>
       )}
+
+      <div style={huecoPestanas} />
+      {pestanas}
 
       {/* Hoja del nombre: solo cuando el cliente ya ha decidido pedir algo */}
       {intento && ojeando && (
@@ -747,6 +802,36 @@ export default function CartaCliente() {
 
 // Persona «en blanco» mientras se ojea la carta sin haber dado el nombre
 const SIN_PERSONA = { id: null, nombre: '', items: [] }
+
+// Barra de abajo: las tres cosas que hace un cliente en la mesa — mirar la
+// carta, ver cómo va lo suyo y pagar. Antes eran emojis sueltos en la cabecera
+// (🛒 💰) y nadie encontraba la cuenta.
+function Pestanas({ vista, setVista, uds, enMarcha, listos, aPagar, pagado, t }) {
+  const tabs = [
+    { id: 'carta', emoji: '🍽', label: t('Ver carta') },
+    { id: 'pedido', emoji: '🧾', label: t('Mi pedido'), badge: uds || null, punto: listos > 0 ? 'listo' : enMarcha > 0 ? 'marcha' : null },
+    { id: 'cuenta', emoji: '💳', label: t('Pagar'), pie: pagado ? `✓ ${t('Pagado')}` : aPagar > 0 ? `${aPagar.toFixed(2)} €` : null },
+  ]
+  return (
+    <nav style={barraPestanas}>
+      {tabs.map(tb => {
+        const activa = vista === tb.id
+        return (
+          <button key={tb.id} onClick={() => setVista(tb.id)} aria-current={activa ? 'page' : undefined}
+            style={{ ...pestana, color: activa ? 'var(--color-accent)' : 'var(--color-muted)', fontWeight: activa ? 800 : 600 }}>
+            <span style={{ position: 'relative', fontSize: '1.35rem', lineHeight: 1 }}>
+              {tb.emoji}
+              {tb.badge && <span style={badge}>{tb.badge}</span>}
+              {tb.punto && <span style={{ ...puntoEstado, background: tb.punto === 'listo' ? 'var(--color-success)' : 'var(--color-info)' }} />}
+            </span>
+            <span style={{ fontSize: '0.68rem' }}>{tb.label}</span>
+            {tb.pie && <span style={{ fontSize: '0.66rem', color: activa ? 'var(--color-accent)' : 'var(--color-faint)' }}>{tb.pie}</span>}
+          </button>
+        )
+      })}
+    </nav>
+  )
+}
 const centerScreen = { minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', gap: '1.25rem' }
 const grabHandle = { width: '36px', height: '4px', borderRadius: '9999px', background: 'var(--color-border)', margin: '-0.25rem auto 0.85rem' }
 const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 50, animation: 'fadeIn 0.2s ease both' }
@@ -765,5 +850,11 @@ const paso = { width: `${TOQUE}px`, height: `${TOQUE}px`, display: 'flex', align
 const btnStyle = (bg, extra = {}) => ({ background: bg, color: /surface|inset|transparent|none|tint-[a-z]+-bg/.test(bg) ? 'var(--color-text)' : 'white', border: 'none', borderRadius: '0.55rem', padding: '0.5rem 1rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.875rem', boxShadow: '0 1px 2px rgba(0,0,0,0.2)', ...extra })
 const cardStyle = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '1rem', boxShadow: 'var(--shadow-sm)' }
 const inputStyle = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.75rem 1rem', color: 'var(--color-text)', width: '100%' }
+const chipEstado = (bg, fg) => ({ background: bg, color: fg, borderRadius: '9999px', padding: '0.3rem 0.7rem', fontSize: '0.8rem', fontWeight: 700 })
 const labelMini = { fontSize: '0.75rem', color: 'var(--color-muted)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.05em' }
-const badge = { position: 'absolute', top: '-4px', right: '-4px', background: 'var(--color-accent)', color: 'white', borderRadius: '9999px', fontSize: '0.65rem', padding: '0 4px', fontWeight: 700 }
+const badge = { position: 'absolute', top: '-4px', right: '-8px', background: 'var(--color-accent)', color: 'white', borderRadius: '9999px', fontSize: '0.65rem', padding: '0 4px', fontWeight: 700, minWidth: '1rem', textAlign: 'center' }
+const puntoEstado = { position: 'absolute', top: '-1px', right: '-6px', width: '0.55rem', height: '0.55rem', borderRadius: '9999px', border: '2px solid var(--color-surface)' }
+const barraPestanas = { position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 40, maxWidth: '480px', margin: '0 auto', display: 'flex', background: 'var(--color-surface)', borderTop: '1px solid var(--color-border)', paddingBottom: 'env(safe-area-inset-bottom)', boxShadow: '0 -8px 24px -16px rgba(0,0,0,0.8)' }
+const pestana = { flex: 1, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.15rem', padding: '0.5rem 0.25rem', minHeight: '58px' }
+// hueco para que la barra fija no tape el final del contenido
+const huecoPestanas = { height: 'calc(62px + env(safe-area-inset-bottom))' }
