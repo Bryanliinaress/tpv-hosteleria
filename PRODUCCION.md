@@ -1,7 +1,8 @@
 # De demo a producto de mercado — hoja de ruta
 
 **META: salir al mercado lo antes posible.** Este documento es la fuente de
-verdad de lo que queda. Última actualización: 2026-08-04 (**v0.39.1**).
+verdad de lo que queda. Última actualización: 2026-08-04 (**v0.44.0**). Para retomar el trabajo:
+[SIGUIENTE.md](SIGUIENTE.md).
 
 ## Estado a 2026-07-03
 
@@ -58,8 +59,13 @@ llegará con el backend (Storage).
    Edge Function `registrar-fiscal` desplegada, migraciones 08-09 aplicadas.
    Ticket nº1 registrado de verdad en la AEAT de test (uuid + URL de cotejo).
    Falta: NIF real del local y pasar a entorno de producción de Verifacti.
-3. Cuenta **Stripe** real → webhook de pagos
-4. **Impresora térmica** 80mm (~80€) → fase ESC/POS
+3. Cuenta **Stripe** real → el webhook ya está hecho y verificado (v0.42.0);
+   solo faltan las claves y aplicar la migración 10.
+4. **Impresora térmica** 80mm (~60-100€) → ESC/POS ya está hecho (v0.41.0);
+   falta probarlo con hardware real.
+
+**➡️ Para retomar: [SIGUIENTE.md](SIGUIENTE.md)** (estado, qué falta y de quién
+depende cada cosa).
 
 Documentos hermanos: [COSTES.md](COSTES.md) (qué cuesta operar) ·
 [supabase/BACKEND.md](supabase/BACKEND.md) (diseño backend) ·
@@ -108,10 +114,13 @@ Documentos hermanos: [COSTES.md](COSTES.md) (qué cuesta operar) ·
 ### 4. Pagos de verdad
 - [x] ~~Bug returnUrl (el retorno de Stripe caía en la Home y el pago no se
   marcaba)~~ — arreglado en v0.13.1.
-- [ ] **Webhook de Stripe**: confirmar el pago en servidor; no fiarse del
-  retorno del navegador.
+- [x] ✅ **Webhook de Stripe** (v0.42.0): el cobro lo confirma el servidor con
+  la firma verificada, no el navegador. Idempotente (sus reintentos no
+  duplican cobros ni tickets). ⚠️ Falta aplicar la migración 10 y las claves
+  reales. Ver [docs/PAGOS.md](docs/PAGOS.md).
 - [ ] **Stripe Connect** para que el dinero llegue a la cuenta del restaurante
-  (⚠️ requiere alta/onboarding del negocio en Stripe).
+  (⚠️ requiere alta/onboarding del negocio en Stripe). **Es lo que falta para
+  poder venderlo como SaaS**: hoy los cobros irían a una sola cuenta.
 - [ ] Devoluciones/anulaciones de pago. Conciliación con datáfono físico.
 
 ### 5. RGPD
@@ -121,9 +130,10 @@ Documentos hermanos: [COSTES.md](COSTES.md) (qué cuesta operar) ·
 
 ## 🟠 Fase 0.5 — Imprescindible para operar el día a día
 
-6. **Impresión térmica real (ESC/POS)** fiable y sin diálogo (hoy:
-   `window.print()` + Chrome kiosko). Valorar un puente local (Node/agent) o
-   impresoras de red con cola.
+6. ✅ **Impresión térmica ESC/POS** (v0.41.0): comandas sin diálogo, corte
+   automático, QR nativo y cajón portamonedas. Tres modos elegibles por
+   dispositivo (USB / puente de red / navegador) con caída al navegador si
+   falla. ⚠️ Falta probarlo con una impresora física.
 7. **Resiliencia/offline**: PWA instalable ✅ (v0.15.0) + reintento de escrituras
    con backoff, aviso de conexión y reenvío al reconectar ✅ (v0.31.0). La **cola
    offline** completa ✅ (v0.37.0): las operaciones de servicio se guardan y se
@@ -131,20 +141,23 @@ Documentos hermanos: [COSTES.md](COSTES.md) (qué cuesta operar) ·
 8. **Alérgenos por plato** (14 UE) — obligatorio informarlos. ✅ v0.14.0.
 9. **Hardware**: tablets/PDAs, pantallas cocina, cajón portamonedas, TPV
    físico. ⚠️ Compra/instalación en el local.
-10. **Errores y casos límite**: reintentos, anulación con motivo, doble envío,
-    permisos finos por rol, recuperación de estados raros.
-11. **Backups y monitorización** de datos y caja.
+10. **Errores y casos límite**: reintentos ✅, anulación con motivo ✅, doble
+    envío ✅ (v0.43.0: 3 toques = 1 comanda), permisos por rol ✅.
+    🔜 Pendiente: recuperación de estados raros.
+11. 🔜 **Backups y monitorización** de datos y caja (los backups vienen con
+    Supabase Pro; falta avisar de errores y de descuadres).
 
 ## 🟡 Fase 1 — Para que personal y dueño estén contentos
 
-12. **Carta genérica**: variantes (tamaños) y modificadores configurables, no
-    solo el modelo pan Pitufo/Viena. Menú del día, combos, medias raciones.
-13. **Marchar por tiempos** (entrantes/principales/postres) y modificar pedidos
-    ya enviados.
-14. **Informes**: ventas por producto/camarero/hora/método, ticket medio.
-15. **Reservas por franja horaria real** con auto-asignación de mesa (ver
-    ROADMAP.md §1).
-16. Fichajes/turnos, descuentos con motivo, pagos mixtos en un ticket.
+12. ✅ **Carta genérica** con variantes y modificadores configurables, y
+    **menú del día / combos** de precio cerrado (v0.44.0). Las **medias
+    raciones** se cubren con los formatos del local ("Ración"/"Media").
+13. ✅ **Marchar por tiempos** y modificar pedidos ya enviados.
+14. **Informes**: hoy hay facturado, tickets, ticket medio, ventas por día y
+    desglose por método. 🔜 Falta por producto/camarero/hora.
+15. 🔜 **Reservas por franja horaria real** con auto-asignación de mesa (hoy la
+    mesa se asigna a mano desde la agenda; el aforo sí se valida en servidor).
+16. ✅ Fichajes/turnos, descuentos con motivo y pagos mixtos en un ticket.
 
 ## 🟢 Fase 2 — Producto y negocio
 
