@@ -526,6 +526,8 @@ export const useStore = create(persist((set, get) => ({
       })
     })
 
+    // sello del envío: es lo que agrupa una comanda y permite «repetir ronda»
+    const enviadoEn = new Date().toISOString()
     return {
       pedidosCocina: [...state.pedidosCocina, ...cocina],
       pedidosBarra: [...state.pedidosBarra, ...barra],
@@ -534,7 +536,7 @@ export const useStore = create(persist((set, get) => ({
         estado: 'ocupada',
         personas: m.personas.map(p => ({
           ...p,
-          items: p.items.map(i => i.estado === 'pendiente' ? { ...i, estado: 'enviado' } : i),
+          items: p.items.map(i => i.estado === 'pendiente' ? { ...i, estado: 'enviado', enviadoEn } : i),
         })),
       }),
     }
