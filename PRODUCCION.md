@@ -67,6 +67,12 @@ llegará con el backend (Storage).
 **➡️ Para retomar: [SIGUIENTE.md](SIGUIENTE.md)** (estado, qué falta y de quién
 depende cada cosa).
 
+⚠️ **CAMBIO DE MODELO (2026-08-05)**: cada bar tendrá **su propia instalación**
+(su Supabase, su dominio, su marca y sus funciones a medida), no un SaaS
+compartido. El backend multi-tenant sigue valiendo como base del alta. La nueva
+prioridad es **industrializar el alta y el despliegue por bar** y la **capa de
+marca**. Detalle y plan en SIGUIENTE.md.
+
 Documentos hermanos: [COSTES.md](COSTES.md) (qué cuesta operar) ·
 [supabase/BACKEND.md](supabase/BACKEND.md) (diseño backend) ·
 [docs/IMPRESION.md](docs/IMPRESION.md) (probar impresión hoy).
