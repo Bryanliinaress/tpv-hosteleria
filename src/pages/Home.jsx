@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore'
 import TemaToggle from '../components/TemaToggle'
+import { perfil, urlLogo } from '../lib/perfil'
 
 const grupos = (mesa1) => [
   {
@@ -52,14 +53,19 @@ export default function Home() {
             background: 'linear-gradient(145deg, rgba(249,115,22,0.18), rgba(249,115,22,0.04))',
             border: '1px solid rgba(249,115,22,0.35)', borderRadius: '1.25rem',
             boxShadow: '0 10px 30px -10px rgba(249,115,22,0.5)',
-          }}>🍽</div>
+            overflow: 'hidden',
+          }}>
+            {urlLogo()
+              ? <img src={urlLogo()} alt={perfil.nombre} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              : perfil.emoji}
+          </div>
           <h1 style={{
             fontSize: 'clamp(2rem, 5vw, 2.75rem)', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1.05,
             background: 'linear-gradient(120deg, var(--color-text) 25%, var(--color-accent))', WebkitBackgroundClip: 'text',
             backgroundClip: 'text', color: 'transparent', marginBottom: '0.6rem',
-          }}>TPV Hostelería</h1>
+          }}>{perfil.nombre}</h1>
           <p style={{ color: 'var(--color-muted)', fontSize: '1rem', maxWidth: '34rem', margin: '0 auto' }}>
-            Demo de TPV para bar y restaurante: autopedido por QR, sala, cocina, caja y reservas — todo sincronizado en tiempo real.
+            {perfil.descripcion}
           </p>
         </div>
 

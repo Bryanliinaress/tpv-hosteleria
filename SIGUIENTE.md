@@ -1,7 +1,7 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.44.0, todo desplegado, repo limpio y sincronizado.**
-Última sesión: 2026-08-04. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
+**Estado: v0.45.0, todo desplegado, repo limpio y sincronizado.**
+Última sesión: 2026-08-05. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Lo primero, si algo no conecta
 
@@ -40,7 +40,9 @@ que está gitignorado y solo existe en el PC de Bryan).
 - **Menú del día y combos**, pagos mixtos, grupos de mesas, reservas con
   aforo en servidor, fichajes, arqueo de caja, modo claro, inglés.
 
-**98 tests**, lint limpio, CI y deploy en verde.
+- **Perfiles de local**: un producto, una instalación por bar. Ver `locales/`.
+
+**122 tests**, lint limpio, CI y deploy en verde.
 
 ## Pendiente — y de quién depende
 
@@ -83,13 +85,17 @@ bug son N arreglos. El modelo acordado es **producto base + perfiles**:
 - **Una instancia desplegada por bar**.
 
 ### Trabajo que esto implica (nueva prioridad)
-1. **Perfiles de local**: `locales/<slug>/` con marca (logo, colores, nombre),
-   dominio y claves. Build parametrizado: `LOCAL=bar-manolo npm run build`.
+1. ~~**Perfiles de local**~~ ✅ **hecho (v0.45.0)**: `locales/<slug>/perfil.json`
+   con marca, dominio, claves y módulos. `npm run locales -- build <slug>` (o
+   `LOCAL=<slug> npm run build`). La demo y la app real ya salen de sus perfiles
+   (`locales/demo/` y `locales/casa-loli/`) y el deploy compila todos de golpe.
+   Manual: [locales/README.md](locales/README.md).
 2. **Alta industrializada**: un solo comando que cree el proyecto Supabase,
    aplique las 10 migraciones, siembre la carta, registre el local y despliegue.
    Base ya existente: `scripts/provisionar-produccion.mjs`.
-3. **Marca blanca**: que el logo y los colores del bar salgan en la carta QR,
-   el ticket y la PWA.
+3. **Marca blanca**: ya sale en la **portada, la pestaña y la PWA** (nombre,
+   colores, logo e iconos del perfil). Falta llevarla a la **carta QR** y al
+   **ticket**, que todavía usan el nombre guardado en el estado del local.
 4. **Puntos de extensión** para las funciones a medida por cliente.
 5. **Actualizar N instancias**: un comando que redespliegue todos los bares.
 

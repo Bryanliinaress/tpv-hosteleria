@@ -4,6 +4,10 @@ import './index.css'
 import App from './App.jsx'
 import { initSync } from './lib/sync'
 import { backendV2, initV2 } from './lib/v2'
+import { aplicarMarca } from './lib/perfil'
+
+// Colores del local (si esta instalación se compiló con LOCAL=<slug>)
+aplicarMarca()
 
 // Arranque de datos: backend multi-tenant (v2, tablas+RPC) si está activado,
 // o la sincronización clásica del blob (demo) si no.
