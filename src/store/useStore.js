@@ -44,6 +44,14 @@ export function alergenosDe(texto) {
 }
 
 // Firma de una línea de pedido (para fusionar ítems idénticos al añadir)
+// Redondeo a céntimos: el dinero no admite la basura decimal del float
+const cent = (x) => Math.round(x * 100) / 100
+
+// Identificadores únicos. Con `Date.now()` a secas, dos comensales que se unían
+// en el mismo milisegundo salían con el MISMO id: lo que pedía uno se le
+// cargaba también al otro y el cobro se duplicaba. El sufijo aleatorio lo evita.
+const crearId = (prefijo) => `${prefijo}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`
+
 const firma = (c) => [
   c.productoId,
   c.pan?.formato, c.pan?.tipo,
@@ -242,7 +250,7 @@ export const useStore = create(persist((set, get) => ({
   // abre (primer comensal). Si ya está ocupada, se suma como una persona más.
   // Devuelve el id de la persona creada para que el dispositivo lo recuerde.
   unirseAMesa: (mesaId, nombre) => {
-    const nuevoId = `p${Date.now()}`
+    const nuevoId = crearId('p')
     set(state => ({
       mesas: state.mesas.map(m => {
         if (m.id !== mesaId) return m
@@ -382,7 +390,7 @@ export const useStore = create(persist((set, get) => ({
           ...p,
           pagado: false,
           items: [...p.items, {
-            uid: `it${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
+            uid: crearId('it'),
             productoId: config.productoId,
             nombre: config.nombre,
             precio: Number(config.precio) || 0,
@@ -408,7 +416,7 @@ export const useStore = create(persist((set, get) => ({
     const mesa = state.mesas.find(m => m.id === mesaId)
     const item = mesa?.personas.find(p => p.id === personaId)?.items.find(i => i.uid === uid)
     const registro = item ? {
-      id: `an${Date.now()}`,
+      id: crearId('an'),
       fecha: new Date().toISOString(),
       mesaNumero: mesa.numero,
       nombre: item.nombre,
@@ -571,7 +579,7 @@ export const useStore = create(persist((set, get) => ({
     if (state.avisos.some(a => a.mesaId === mesaId)) return {}
     return {
       avisos: [...state.avisos, {
-        id: `aviso-${mesaId}-${Date.now()}`,
+        id: `aviso-${mesaId}-${crearId('')}`,
         mesaId,
         mesaNumero: mesa?.numero,
         personaNombre,
@@ -636,16 +644,18 @@ export const useStore = create(persist((set, get) => ({
     if (rec && (desglose || Number(descuento) > 0)) {
       // El snapshot no conoce descuentos ni desgloses: se recalculan aquí.
       // Lo ya pagado antes conserva su método; lo cobrado ahora usa el real.
+      // lo ya pagado antes se mide por lo que DEBÍA cada uno (platos
+      // compartidos incluidos), no por sus líneas propias
+      const owedPrevio = owedPorPersona(original)
       const previos = {}
       let prevSum = 0
       original.personas.filter(p => p.pagado).forEach(p => {
-        const sub = p.items.reduce((s, i) => s + i.precio * i.cantidad, 0)
-        if (sub > 0) { const k = p.metodoPago || 'efectivo'; previos[k] = (previos[k] || 0) + sub; prevSum += sub }
+        const sub = cent(owedPrevio[p.id] || 0)
+        if (sub > 0) { const k = p.metodoPago || 'efectivo'; previos[k] = cent((previos[k] || 0) + sub); prevSum = cent(prevSum + sub) }
       })
       const pendienteBruto = rec.total - prevSum
       const neto = Math.max(0, pendienteBruto - (Number(descuento) || 0))
       const pagos = { ...previos }
-      const cent = (x) => Math.round(x * 100) / 100
       if (desglose) Object.entries(desglose).forEach(([k, v]) => { const n = cent(Number(v) || 0); if (n > 0) pagos[k] = cent((pagos[k] || 0) + n) })
       else if (neto > 0) pagos[metodo] = cent((pagos[metodo] || 0) + neto)
       rec.pagos = pagos
@@ -736,7 +746,7 @@ export const useStore = create(persist((set, get) => ({
   // ── AGENDA DE RESERVAS (online) ────────────────────────
   // Crea una reserva del cliente (queda confirmada al instante).
   crearReserva: (datos) => {
-    const id = `rv${Date.now()}`
+    const id = crearId('rv')
     set(state => ({
       reservas: [...state.reservas, {
         id,
@@ -836,7 +846,7 @@ export const useStore = create(persist((set, get) => ({
     if (!n) return { ok: false, error: 'Escribe un nombre' }
     if (!/^\d{4}$/.test(p)) return { ok: false, error: 'El PIN debe tener 4 dígitos' }
     if (get().empleados.some(e => e.pin === p)) return { ok: false, error: 'Ese PIN ya está en uso' }
-    set(state => ({ empleados: [...state.empleados, { id: `emp${Date.now()}`, nombre: n, pin: p, rol: rol === 'admin' ? 'admin' : 'camarero', activo: true }] }))
+    set(state => ({ empleados: [...state.empleados, { id: crearId('emp'), nombre: n, pin: p, rol: rol === 'admin' ? 'admin' : 'camarero', activo: true }] }))
     return { ok: true }
   },
 
@@ -882,7 +892,7 @@ export const useStore = create(persist((set, get) => ({
       set(state => ({ fichajes: state.fichajes.map(f => f.id === abierto.id ? { ...f, salida: ahora } : f) }))
       return { ok: true, accion: 'salida' }
     }
-    set(state => ({ fichajes: [...state.fichajes, { id: `fj${Date.now()}`, empleadoId, nombre: e.nombre, entrada: ahora, salida: null }] }))
+    set(state => ({ fichajes: [...state.fichajes, { id: crearId('fj'), empleadoId, nombre: e.nombre, entrada: ahora, salida: null }] }))
     return { ok: true, accion: 'entrada' }
   },
 
@@ -918,15 +928,21 @@ export const useStore = create(persist((set, get) => ({
     const total = tickets.reduce((s, r) => s + r.total, 0)
     const propinas = tickets.reduce((s, r) => s + (r.propina || 0), 0)
     const pagos = {}
-    tickets.forEach(r => Object.entries(r.pagos || {}).forEach(([k, v]) => { pagos[k] = (pagos[k] || 0) + v }))
+    tickets.forEach(r => Object.entries(r.pagos || {}).forEach(([k, v]) => { pagos[k] = cent((pagos[k] || 0) + v) }))
+    // Propinas por método: las que se dejaron en efectivo ESTÁN en el cajón, así
+    // que hay que esperarlas al contar. Antes se ignoraban y el arqueo cantaba
+    // un sobrante falso cada vez que alguien dejaba propina en metálico.
+    const propinasPorMetodo = {}
+    tickets.forEach(r => Object.entries(r.propinas || {}).forEach(([k, v]) => { propinasPorMetodo[k] = cent((propinasPorMetodo[k] || 0) + v) }))
+    const efectivoEsperado = cent((pagos.efectivo || 0) + (propinasPorMetodo.efectivo || 0))
     const cont = contado === '' || contado == null ? null : Number(contado) || 0
-    const descuadre = cont == null ? null : cont - (pagos.efectivo || 0)
+    const descuadre = cont == null ? null : cent(cont - efectivoEsperado)
     return {
       cierres: [...state.cierres, {
-        id: `z${Date.now()}`,
+        id: crearId('z'),
         desde,
         hasta: new Date().toISOString(),
-        total, propinas, pagos,
+        total, propinas, pagos, propinasPorMetodo, efectivoEsperado,
         nTickets: tickets.length,
         contado: cont,
         descuadre,
@@ -961,7 +977,7 @@ export const useStore = create(persist((set, get) => ({
   addMesa: () => set(state => {
     const maxNum = state.mesas.reduce((mx, x) => Math.max(mx, x.numero), 0)
     const ultZona = state.mesas[state.mesas.length - 1]?.zona || 'Sala'
-    return { mesas: [...state.mesas, { id: `mesa-${Date.now()}`, numero: maxNum + 1, capacidad: 4, zona: ultZona, estado: 'libre', personas: [], abiertaDesde: null }] }
+    return { mesas: [...state.mesas, { id: crearId('mesa-'), numero: maxNum + 1, capacidad: 4, zona: ultZona, estado: 'libre', personas: [], abiertaDesde: null }] }
   }),
 
   removeMesa: (mesaId) => set(state => ({
@@ -980,7 +996,7 @@ export const useStore = create(persist((set, get) => ({
   // `producto.precios` = mapa {formatoId: precio} para productos con formatos;
   // `producto.precio` = precio único para el resto. Solo uno de los dos.
   addProducto: (producto) => set(state => {
-    const id = `p${Date.now()}`
+    const id = crearId('p')
     const conFormatos = producto.precios && Object.keys(producto.precios).length > 0
     return {
       carta: {
@@ -1045,7 +1061,7 @@ export const useStore = create(persist((set, get) => ({
 
   // ── CONFIG DE CARTA (categorías, panes, extras) ────────
   addCategoria: (nombre, tipo) => set(state => ({
-    carta: { ...state.carta, categorias: [...state.carta.categorias, { id: `cat${Date.now()}`, nombre: (nombre || '').trim() || 'Nueva', tipo: tipo || 'comida', emoji: tipo === 'bebida' ? '🥤' : '🍽' }] },
+    carta: { ...state.carta, categorias: [...state.carta.categorias, { id: crearId('cat'), nombre: (nombre || '').trim() || 'Nueva', tipo: tipo || 'comida', emoji: tipo === 'bebida' ? '🥤' : '🍽' }] },
   })),
   removeCategoria: (id) => set(state => ({
     carta: { ...state.carta, categorias: state.carta.categorias.filter(c => c.id !== id), productos: state.carta.productos.filter(p => p.categoria !== id) },
@@ -1061,7 +1077,7 @@ export const useStore = create(persist((set, get) => ({
   addFormato: (nombre) => set(state => {
     const n = (nombre || '').trim()
     if (!n) return {}
-    return { carta: { ...state.carta, formatos: [...state.carta.formatos, { id: `fm${Date.now()}`, nombre: n }] } }
+    return { carta: { ...state.carta, formatos: [...state.carta.formatos, { id: crearId('fm'), nombre: n }] } }
   }),
   removeFormato: (id) => set(state => {
     if (state.carta.formatos.length <= 1) return {} // siempre debe quedar uno
@@ -1120,16 +1136,23 @@ function snapshotMesa(mesa) {
   if (!mesa || !mesa.personas?.some(p => p.items.length)) return null
   const total = mesa.personas.reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0)
   const propina = mesa.personas.reduce((s, p) => s + (p.propina || 0), 0)
-  // Desglose del total por método de pago (lo no cobrado se marca 'sincobrar')
+  // Desglose por método de pago (lo no cobrado se marca 'sincobrar').
+  // OJO: se reparte por lo que DEBE cada uno, no por sus líneas propias. Con
+  // platos compartidos no coinciden: si Ana pide una paella que se parten dos y
+  // cada uno paga con un método distinto, cargarlo entero a Ana dejaba el
+  // efectivo del otro fuera del arqueo.
+  const owed = owedPorPersona(mesa)
   const pagos = {}
-  mesa.personas.forEach(p => {
-    const sub = p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0)
-    if (sub <= 0) return
+  const propinas = {}          // propina por método: el arqueo necesita saber
+  mesa.personas.forEach(p => {  // cuánta propina entró en el cajón
     const m = p.pagado ? (p.metodoPago || 'efectivo') : 'sincobrar'
-    pagos[m] = (pagos[m] || 0) + sub
+    const sub = cent(owed[p.id] || 0)
+    if (sub > 0) pagos[m] = cent((pagos[m] || 0) + sub)
+    const prop = cent(p.propina || 0)
+    if (prop > 0 && p.pagado) propinas[m] = cent((propinas[m] || 0) + prop)
   })
   const cobradoPor = mesa.personas.find(p => p.cobradoPor)?.cobradoPor || mesa.camarero || null
-  return { id: `t${Date.now()}-${mesa.numero}`, mesaNumero: mesa.numero, cerradaEn: new Date().toISOString(), total, propina, pagos, personas: mesa.personas, camarero: mesa.camarero || null, cobradoPor }
+  return { id: crearId(`t${mesa.numero}-`), mesaNumero: mesa.numero, cerradaEn: new Date().toISOString(), total, propina, pagos, propinas, personas: mesa.personas, camarero: mesa.camarero || null, cobradoPor }
 }
 
 // ── DISPONIBILIDAD DE RESERVAS ───────────────────────────

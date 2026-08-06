@@ -121,8 +121,21 @@ describe('ultimaRonda', () => {
     expect(ultimaRonda([it1, { estado: 'pendiente', nombre: 'Agua' }]).map(i => i.nombre)).toEqual(['Café'])
   })
 
-  it('con datos viejos sin sello, devuelve todo lo enviado', () => {
-    expect(ultimaRonda([{ estado: 'enviado', nombre: 'X' }]).map(i => i.nombre)).toEqual(['X'])
+  it('en el backend real agrupa por la fecha de creación de la línea', () => {
+    const v2 = [
+      { estado: 'enviado', nombre: 'Café', creadoEn: '2026-08-05T10:00:05Z' },
+      { estado: 'enviado', nombre: 'Caña', creadoEn: '2026-08-05T11:30:00Z' },
+      { estado: 'enviado', nombre: 'Tinto', creadoEn: '2026-08-05T11:30:20Z' },
+    ]
+    expect(ultimaRonda(v2).map(i => i.nombre)).toEqual(['Caña', 'Tinto'])
+  })
+
+  it('sin ninguna fecha repite solo lo último, no el servicio entero', () => {
+    const sinSello = [
+      { estado: 'enviado', nombre: 'Primero' },
+      { estado: 'enviado', nombre: 'Último' },
+    ]
+    expect(ultimaRonda(sinSello).map(i => i.nombre)).toEqual(['Último'])
   })
 
   it('sin nada enviado, nada que repetir', () => {

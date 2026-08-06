@@ -16,6 +16,8 @@ const desempaquetar = (l) => ({
   uid: l.id, id: l.id,                       // las pantallas usan uid; conservamos id real
   productoId: l.producto_id, nombre: l.nombre, precio: Number(l.precio),
   cantidad: l.cantidad, tipo: l.tipo, estado: l.estado, tiempo: l.tiempo,
+  // sin esto, «otra ronda» no sabe agrupar la última comanda y repetiría todo
+  creadoEn: l.creado_en ?? null,
   pan: l.personalizacion?.pan ?? null,
   quitados: l.personalizacion?.quitados ?? [],
   anadidos: l.personalizacion?.anadidos ?? [],
