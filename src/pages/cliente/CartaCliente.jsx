@@ -112,8 +112,12 @@ export default function CartaCliente() {
     if (!r.estado) return
     syncListo.then(() => {
       if (r.estado === 'ok' && r.mesaId === mesaId && r.personaId) {
-        if (r.personaId === '__todo__') pagarTodo(mesaId, { propina: r.propina, metodo: 'tarjeta', cobradoPor: 'Cliente' })
-        else pagarParte(mesaId, r.personaId, r.propina)
+        // El método importa: pasar solo la propina dejaba el pago como
+        // 'efectivo' (el valor por defecto) y el arqueo esperaba ese dinero en
+        // el cajón, cuando en realidad había entrado por Stripe.
+        const pago = { propina: r.propina, metodo: 'tarjeta', cobradoPor: 'Cliente' }
+        if (r.personaId === '__todo__') pagarTodo(mesaId, pago)
+        else pagarParte(mesaId, r.personaId, pago)
         localStorage.removeItem(`tpv-pago-${mesaId}-${r.personaId}`)
       }
       limpiarUrlPago(mesaId)
