@@ -71,15 +71,21 @@ export function configDeItem(item) {
 /**
  * La última ronda: lo que se envió a cocina de una vez. Se agrupan por el
  * momento del envío (al segundo) porque una comanda son varias líneas a la vez.
- * Sin `enviadoEn` (datos viejos) cae a «todo lo enviado», que es lo razonable.
+ * En el backend real no hay sello de envío: se usa la fecha de creación de la
+ * línea, que agrupa igual de bien la comanda.
  */
 export function ultimaRonda(items) {
   const enviados = (items || []).filter(i => i.estado === 'enviado')
   if (!enviados.length) return []
-  const sellos = enviados.map(i => i.enviadoEn).filter(Boolean)
-  if (!sellos.length) return enviados
+  // El backend v1 sella el envío (`enviadoEn`); el v2 solo tiene la fecha de
+  // creación de la línea, que sirve igual para agrupar la comanda.
+  const sello = (i) => i.enviadoEn || i.creadoEn || null
+  const sellos = enviados.map(sello).filter(Boolean)
+  // Sin ninguna fecha no se puede distinguir la última ronda: mejor repetir
+  // solo la última línea que arrastrar el servicio entero.
+  if (!sellos.length) return enviados.slice(-1)
   const ultimo = sellos.sort().at(-1)
   // mismo minuto = misma comanda: cocina las recibió juntas
   const mismoMinuto = (a, b) => a && b && a.slice(0, 16) === b.slice(0, 16)
-  return enviados.filter(i => mismoMinuto(i.enviadoEn, ultimo))
+  return enviados.filter(i => mismoMinuto(sello(i), ultimo))
 }
