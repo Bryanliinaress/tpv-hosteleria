@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useStore, owedPorPersona } from './useStore'
+import { mergeLog } from '../lib/sync'
 
 // ────────────────────────────────────────────────────────────────────────────
 // Pruebas del dinero: lo que acaba en el arqueo y en los informes.
@@ -121,5 +122,48 @@ describe('identificadores', () => {
     const mesa = mesaDe(9)
     expect(mesa.personas.find(p => p.id === ana).items).toHaveLength(1)
     expect(mesa.personas.find(p => p.id === luis).items).toHaveLength(0)
+  })
+})
+
+describe('no perder registros al sincronizar', () => {
+  it('un ticket recién cobrado sobrevive al estado que llega de otro dispositivo', () => {
+    const { mesaId, ana } = mesaConUno(10)
+    st().agregarItem(mesaId, ana, { productoId: 'cafe', nombre: 'Café', precio: 1.3, tipo: 'bebida' })
+    st().pagarParte(mesaId, ana, { metodo: 'efectivo' })
+    const ticket = st().historial.at(-1)
+
+    // El otro dispositivo aún no lo tiene: la fusión debe conservarlo.
+    expect(mergeLog([ticket], []).map(t => t.id)).toEqual([ticket.id])
+  })
+
+  it('un fichaje recién abierto tampoco se pierde', () => {
+    const emp = st().empleados[0]
+    st().ficharEmpleado(emp.id)
+    const fichaje = st().fichajes.at(-1)
+    expect(mergeLog([fichaje], [])).toHaveLength(1)
+  })
+})
+
+describe('pago online', () => {
+  it('el cobro por Stripe NO cuenta como efectivo en el cajón', () => {
+    const { mesaId, ana } = mesaConUno(11)
+    st().agregarItem(mesaId, ana, { productoId: 'menu', nombre: 'Menú', precio: 14, tipo: 'comida' })
+    // así lo registra la vuelta de Stripe
+    st().pagarParte(mesaId, ana, { propina: 1, metodo: 'tarjeta', cobradoPor: 'Cliente' })
+
+    const t = st().historial.at(-1)
+    expect(t.pagos.tarjeta).toBe(14)
+    expect(t.pagos.efectivo).toBeUndefined()
+    expect(t.propinas.tarjeta).toBe(1)
+
+    st().cerrarCaja(0)                       // cajón vacío: es correcto
+    expect(st().cierres.at(-1).descuadre).toBe(0)
+  })
+
+  it('pasar solo un número deja el pago en efectivo (compatibilidad antigua)', () => {
+    const { mesaId, ana } = mesaConUno(12)
+    st().agregarItem(mesaId, ana, { productoId: 'cafe', nombre: 'Café', precio: 2, tipo: 'bebida' })
+    st().pagarParte(mesaId, ana, 0.5)
+    expect(st().historial.at(-1).pagos.efectivo).toBe(2)
   })
 })

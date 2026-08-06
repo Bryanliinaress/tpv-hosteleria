@@ -9,6 +9,7 @@ import BotonSalir from '../../components/BotonSalir'
 import TemaToggle from '../../components/TemaToggle'
 import EstadoFiscal from '../../components/EstadoFiscal'
 import { productosVisibles } from '../../lib/carta'
+import { esDelMes, horasEntre } from '../../lib/fechas'
 import ConfigImpresora from '../../components/ConfigImpresora'
 import EditorMenu from '../../components/EditorMenu'
 import Informes from './Informes'
@@ -649,14 +650,16 @@ const isoALocal = (iso) => {
   return new Date(d - off).toISOString().slice(0, 16)
 }
 const localAIso = (v) => (v ? new Date(v).toISOString() : null)
-const horasEntre = (a, b) => (a && b ? Math.max(0, (new Date(b) - new Date(a)) / 3600000) : 0)
 const fmtH = (h) => `${Math.floor(h)}h ${Math.round((h % 1) * 60)}m`
 
 function FichajesTab({ fichajes, editarFichaje, borrarFichaje, local }) {
   const [mes, setMes] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` })
   const [edit, setEdit] = useState(null) // { id, entrada, salida } en formato datetime-local
 
-  const delMes = fichajes.filter(f => (f.entrada || '').slice(0, 7) === mes)
+  // ojo: comparar en LOCAL. Un turno que entra a la 01:00 del día 1 se guarda
+  // como las 23:00 del último día del mes anterior en UTC, y caía en la nómina
+  // del mes que no era.
+  const delMes = fichajes.filter(f => esDelMes(f.entrada, mes))
     .slice().sort((a, b) => new Date(b.entrada) - new Date(a.entrada))
 
   // Horas por empleado

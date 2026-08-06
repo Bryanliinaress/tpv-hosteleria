@@ -50,6 +50,9 @@ const cent = (x) => Math.round(x * 100) / 100
 // Identificadores únicos. Con `Date.now()` a secas, dos comensales que se unían
 // en el mismo milisegundo salían con el MISMO id: lo que pedía uno se le
 // cargaba también al otro y el cobro se duplicaba. El sufijo aleatorio lo evita.
+// Los registros «solo-añadir» (tickets, cierres, anulaciones, fichajes) llevan
+// además `_ts`: la fusión al sincronizar necesita saber si son recientes, y
+// desde que los ids llevan sufijo aleatorio ya no se puede deducir del id.
 const crearId = (prefijo) => `${prefijo}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`
 
 const firma = (c) => [
@@ -417,6 +420,7 @@ export const useStore = create(persist((set, get) => ({
     const item = mesa?.personas.find(p => p.id === personaId)?.items.find(i => i.uid === uid)
     const registro = item ? {
       id: crearId('an'),
+      _ts: Date.now(),
       fecha: new Date().toISOString(),
       mesaNumero: mesa.numero,
       nombre: item.nombre,
@@ -892,7 +896,7 @@ export const useStore = create(persist((set, get) => ({
       set(state => ({ fichajes: state.fichajes.map(f => f.id === abierto.id ? { ...f, salida: ahora } : f) }))
       return { ok: true, accion: 'salida' }
     }
-    set(state => ({ fichajes: [...state.fichajes, { id: crearId('fj'), empleadoId, nombre: e.nombre, entrada: ahora, salida: null }] }))
+    set(state => ({ fichajes: [...state.fichajes, { id: crearId('fj'), _ts: Date.now(), empleadoId, nombre: e.nombre, entrada: ahora, salida: null }] }))
     return { ok: true, accion: 'entrada' }
   },
 
@@ -940,6 +944,7 @@ export const useStore = create(persist((set, get) => ({
     return {
       cierres: [...state.cierres, {
         id: crearId('z'),
+        _ts: Date.now(),
         desde,
         hasta: new Date().toISOString(),
         total, propinas, pagos, propinasPorMetodo, efectivoEsperado,
@@ -1152,7 +1157,7 @@ function snapshotMesa(mesa) {
     if (prop > 0 && p.pagado) propinas[m] = cent((propinas[m] || 0) + prop)
   })
   const cobradoPor = mesa.personas.find(p => p.cobradoPor)?.cobradoPor || mesa.camarero || null
-  return { id: crearId(`t${mesa.numero}-`), mesaNumero: mesa.numero, cerradaEn: new Date().toISOString(), total, propina, pagos, propinas, personas: mesa.personas, camarero: mesa.camarero || null, cobradoPor }
+  return { id: crearId(`t${mesa.numero}-`), _ts: Date.now(), mesaNumero: mesa.numero, cerradaEn: new Date().toISOString(), total, propina, pagos, propinas, personas: mesa.personas, camarero: mesa.camarero || null, cobradoPor }
 }
 
 // ── DISPONIBILIDAD DE RESERVAS ───────────────────────────
@@ -1194,9 +1199,18 @@ export function ocupacionEn(reservas, config, fecha, hora, zona, excluirId) {
     .reduce((s, r) => s + (Number(r.personas) || 0), 0)
 }
 
-// ¿Caben `personas` en ese slot sin superar el aforo (de la zona si se indica)?
+// ¿Caben `personas` en ese slot?
+// Se comprueban DOS cosas, y las dos importan:
+//   1. El aforo TOTAL del local. Quien reserva «sin preferencia de zona» se
+//      sienta igualmente: si solo se miraba la zona pedida, esas reservas eran
+//      invisibles y el bar se sobrevendía (18 sin preferencia + 4 en terraza
+//      = 22 personas en un local de 20).
+//   2. El aforo de la zona concreta, si el cliente ha pedido una.
 export function slotDisponible(config, mesas, reservas, fecha, hora, personas, zona, excluirId) {
-  return ocupacionEn(reservas, config, fecha, hora, zona, excluirId) + Number(personas || 0) <= aforoZona(config, mesas, zona)
+  const n = Number(personas || 0)
+  if (ocupacionEn(reservas, config, fecha, hora, null, excluirId) + n > aforoTotal(config, mesas)) return false
+  if (!zona) return true
+  return ocupacionEn(reservas, config, fecha, hora, zona, excluirId) + n <= aforoZona(config, mesas, zona)
 }
 
 // ¿El día (YYYY-MM-DD) está cerrado según la config?
