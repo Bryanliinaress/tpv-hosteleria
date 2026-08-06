@@ -79,6 +79,36 @@ const EN = {
   'con': 'with',
   'de': 'from',
   'Estás pidiendo para': 'You are ordering for',
+
+  // Pestañas y seguimiento del pedido
+  'Mi pedido': 'My order',
+  'Pagado': 'Paid',
+  'Otra ronda': 'Same again',
+  'Pedir otro': 'Order another',
+  'otra vez en tu pedido': 'added to your order again',
+  'Añadir una unidad': 'Add one',
+  'Quitar una unidad': 'Remove one',
+  'Cerrar': 'Close',
+  'Enviando…': 'Sending…',
+  'Seguir mirando la carta': 'Keep browsing the menu',
+  'Solo tu nombre, para que el camarero sepa de quién es cada plato.': 'Just your name, so the waiter knows whose dish is whose.',
+
+  // Menú del día y combos
+  'Grupo': 'Course',
+  'Elige': 'Choose',
+  'elige uno': 'choose one',
+  'elige hasta': 'choose up to',
+
+  // Recibo del cliente
+  'Descargar mi recibo': 'Download my receipt',
+  'Imprimir o guardar como PDF': 'Print or save as PDF',
+  'Recibo descargado': 'Receipt downloaded',
+  'El recibo estará listo al cerrar la mesa': 'Your receipt will be ready once the table is closed',
+  'Fecha': 'Date',
+  'Cliente': 'Customer',
+  'Base imponible': 'Net amount',
+  'Propina': 'Tip',
+  'Copia para el cliente de su consumo. No sustituye a la factura simplificada, que emite el establecimiento.': 'Customer copy of your order. This is not the simplified invoice, which is issued by the venue.',
 }
 
 export const tr = (idioma, s) => (idioma === 'en' ? (EN[s] ?? s) : s)

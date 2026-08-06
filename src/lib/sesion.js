@@ -20,6 +20,18 @@ export function clearSesion() {
   bus.dispatchEvent(new Event('cambio'))
 }
 
+/**
+ * Resuelve la sesión guardada contra el padrón de empleados. Es la regla de
+ * seguridad del acceso, y por eso está aparte y probada: lo que vale es el rol
+ * del PADRÓN, nunca el que traiga la sesión guardada en el dispositivo (que
+ * cualquiera podría editar a mano). Devuelve null si el empleado ya no existe
+ * o está desactivado.
+ */
+export function resolverEmpleado(empleados, sesion) {
+  if (!sesion?.id) return null
+  return (empleados || []).find(e => e.id === sesion.id && e.activo) || null
+}
+
 // Empleado actualmente conectado en este dispositivo, validado contra el padrón
 // (devuelve null si ya no existe o está desactivado). Reacciona a login/logout
 // y a cambios del padrón.
@@ -32,6 +44,5 @@ export function useEmpleadoActual() {
     window.addEventListener('storage', h)
     return () => { bus.removeEventListener('cambio', h); window.removeEventListener('storage', h) }
   }, [])
-  if (!sesion) return null
-  return empleados.find(e => e.id === sesion.id && e.activo) || null
+  return resolverEmpleado(empleados, sesion)
 }
