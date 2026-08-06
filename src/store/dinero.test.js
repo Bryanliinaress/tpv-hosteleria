@@ -167,3 +167,123 @@ describe('pago online', () => {
     expect(st().historial.at(-1).pagos.efectivo).toBe(2)
   })
 })
+
+describe('céntimos al repartir', () => {
+  it('lo que suma el desglose es exactamente el total del ticket', () => {
+    // 20 € entre tres: 6,666… cada uno. Redondeando por separado sale 20,01 y
+    // el arqueo se va un céntimo en cada mesa compartida.
+    const mesa = mesaDe(1)
+    const a = st().unirseAMesa(mesa.id, 'Ana')
+    const b = st().unirseAMesa(mesa.id, 'Luis')
+    const c = st().unirseAMesa(mesa.id, 'Eva')
+    st().agregarItem(mesa.id, a, { productoId: 'paella', nombre: 'Paella', precio: 20, tipo: 'comida' })
+    const uid = mesaDe(1).personas.find(p => p.id === a).items[0].uid
+    st().toggleCompartir(mesa.id, a, uid, b)
+    st().toggleCompartir(mesa.id, a, uid, c)
+
+    st().pagarParte(mesa.id, a, { metodo: 'efectivo' })
+    st().pagarParte(mesa.id, b, { metodo: 'efectivo' })
+    st().pagarParte(mesa.id, c, { metodo: 'tarjeta' })
+
+    const t = st().historial.at(-1)
+    const suma = Object.values(t.pagos).reduce((s, v) => s + v, 0)
+    expect(Math.round(suma * 100)).toBe(Math.round(t.total * 100))
+  })
+})
+
+describe('reparto exacto en más casos', () => {
+  const reparteBien = (numero, precio, cuantos) => {
+    const mesa = mesaDe(numero)
+    const ids = []
+    for (let i = 0; i < cuantos; i++) ids.push(st().unirseAMesa(mesa.id, `C${i}`))
+    st().agregarItem(mesa.id, ids[0], { productoId: 'p', nombre: 'Plato', precio, tipo: 'comida' })
+    const uid = mesaDe(numero).personas.find(p => p.id === ids[0]).items[0].uid
+    ids.slice(1).forEach(id => st().toggleCompartir(mesa.id, ids[0], uid, id))
+    const owed = owedPorPersona(mesaDe(numero))
+    const suma = Object.values(owed).reduce((s, v) => s + v, 0)
+    return { suma: Math.round(suma * 100), esperado: Math.round(precio * 100), partes: Object.values(owed) }
+  }
+
+  it('10 € entre 3', () => {
+    const r = reparteBien(2, 10, 3)
+    expect(r.suma).toBe(r.esperado)
+  })
+
+  it('0,01 € entre 2 (el caso imposible)', () => {
+    const r = reparteBien(3, 0.01, 2)
+    expect(r.suma).toBe(1)
+    expect(r.partes.filter(v => v > 0)).toHaveLength(1)   // uno paga el céntimo
+  })
+
+  it('7,77 € entre 6', () => {
+    const r = reparteBien(4, 7.77, 6)
+    expect(r.suma).toBe(r.esperado)
+  })
+
+  it('ninguna parte sale negativa', () => {
+    const r = reparteBien(5, 13.33, 7)
+    expect(r.partes.every(v => v >= 0)).toBe(true)
+  })
+})
+
+describe('descuentos e invitaciones', () => {
+  it('una invitación deja el ticket a 0 y no mete dinero en caja', () => {
+    const { mesaId, ana } = mesaConUno(6)
+    st().agregarItem(mesaId, ana, { productoId: 'x', nombre: 'Ronda', precio: 12, tipo: 'bebida' })
+    st().cobrarMesa(mesaId, { descuento: 12, metodo: 'efectivo' })
+    const t = st().historial.at(-1)
+    expect(t.total).toBe(0)
+    expect(t.descuento).toBe(12)
+    expect(Object.values(t.pagos).reduce((s, v) => s + v, 0)).toBe(0)
+  })
+
+  it('un descuento mayor que la cuenta no genera dinero negativo', () => {
+    const { mesaId, ana } = mesaConUno(7)
+    st().agregarItem(mesaId, ana, { productoId: 'x', nombre: 'Café', precio: 2, tipo: 'bebida' })
+    st().cobrarMesa(mesaId, { descuento: 50, metodo: 'efectivo' })
+    const t = st().historial.at(-1)
+    expect(t.total).toBeGreaterThanOrEqual(0)
+    expect(Object.values(t.pagos).every(v => v >= 0)).toBe(true)
+  })
+
+  it('el desglose de un pago mixto suma lo cobrado', () => {
+    const { mesaId, ana } = mesaConUno(8)
+    st().agregarItem(mesaId, ana, { productoId: 'x', nombre: 'Cena', precio: 47.5, tipo: 'comida' })
+    st().cobrarMesa(mesaId, { desglose: { efectivo: 20, tarjeta: 27.5 } })
+    const t = st().historial.at(-1)
+    expect(t.pagos.efectivo).toBe(20)
+    expect(t.pagos.tarjeta).toBe(27.5)
+    expect(Object.values(t.pagos).reduce((s, v) => s + v, 0)).toBe(47.5)
+  })
+})
+
+describe('pagar toda la cuenta (uno invita al resto)', () => {
+  it('cierra la mesa y registra una sola propina', () => {
+    const mesa = mesaDe(9)
+    const a = st().unirseAMesa(mesa.id, 'Ana')
+    const b = st().unirseAMesa(mesa.id, 'Luis')
+    st().agregarItem(mesa.id, a, { productoId: 'x', nombre: 'Menú', precio: 12, tipo: 'comida' })
+    st().agregarItem(mesa.id, b, { productoId: 'y', nombre: 'Menú', precio: 12, tipo: 'comida' })
+    st().pagarTodo(mesa.id, { propina: 3, metodo: 'tarjeta', cobradoPor: 'Cliente' })
+
+    const t = st().historial.at(-1)
+    expect(t.total).toBe(24)
+    expect(t.propina).toBe(3)
+    expect(t.pagos.tarjeta).toBe(24)
+    expect(mesaDe(9).estado).toBe('libre')
+  })
+
+  it('respeta a quien ya había pagado su parte con otro método', () => {
+    const mesa = mesaDe(10)
+    const a = st().unirseAMesa(mesa.id, 'Ana')
+    const b = st().unirseAMesa(mesa.id, 'Luis')
+    st().agregarItem(mesa.id, a, { productoId: 'x', nombre: 'Menú', precio: 10, tipo: 'comida' })
+    st().agregarItem(mesa.id, b, { productoId: 'y', nombre: 'Menú', precio: 10, tipo: 'comida' })
+    st().pagarParte(mesa.id, a, { metodo: 'efectivo' })
+    st().pagarTodo(mesa.id, { metodo: 'tarjeta' })
+
+    const t = st().historial.at(-1)
+    expect(t.pagos.efectivo).toBe(10)
+    expect(t.pagos.tarjeta).toBe(10)
+  })
+})
