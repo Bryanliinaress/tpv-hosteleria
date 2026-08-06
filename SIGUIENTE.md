@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.52.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.53.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-05. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**210 tests**, lint limpio, CI y deploy en verde.
+**256 tests**, lint limpio, CI y deploy en verde.
 
 ## Auditoría del dinero (v0.51.0)
 
@@ -100,6 +100,30 @@ Cuatro fallos más, fuera del cobro:
    llamaba a `pagarParte` pasando solo la propina, así que el método caía al
    valor por defecto: el arqueo esperaba en el cajón un dinero que había
    entrado por tarjeta. Con el pago online activo, descuadre garantizado.
+
+## Tercera pasada: robustez y pulido (v0.53.0)
+
+9. **Precios negativos aceptados.** Teclear «-5» en un producto restaba del
+   ticket. Los precios se sanean: nunca negativos, nunca NaN, siempre a
+   céntimos.
+10. **Los céntimos no cuadraban al repartir.** 20 € entre tres daba tres partes
+    de 6,67 = 20,01: el desglose no coincidía con el total y el arqueo se iba un
+    céntimo en cada mesa compartida. Ahora el reparto es exacto (se redondea el
+    acumulado), probado con 0,01 € entre 2 y 7,77 € entre 6.
+11. **24 textos sin traducir** en la pantalla del cliente (las pestañas, el
+    recibo, «otra ronda»): un turista en inglés los veía en español. Traducidos,
+    y hay un **test que falla si alguien añade un texto sin traducción**.
+
+### Zonas que quedan probadas (no tenían test)
+- **Tiempos de cocina**: el 2º plato y el postre esperan a que sala los marche;
+  marchar saca solo el siguiente tiempo y no toca otras mesas.
+- **Control de acceso**: un rol falseado en el dispositivo NO da permisos (manda
+  el padrón), y un empleado desactivado pierde el acceso al instante.
+  Verificado también en la app: sesión de camarero con `rol:'admin'` → bloqueado.
+- **Robustez**: mesas ocupadas no se borran, siempre queda un admin, no se
+  reconfigura la sala con gente sentada, PIN de 4 dígitos y único.
+- **Descuentos e invitaciones**: ticket a 0 sin dinero en caja, y un descuento
+  mayor que la cuenta no genera importes negativos.
 
 ## Pendiente — y de quién depende
 

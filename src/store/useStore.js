@@ -50,6 +50,10 @@ const cent = (x) => Math.round(x * 100) / 100
 // Identificadores únicos. Con `Date.now()` a secas, dos comensales que se unían
 // en el mismo milisegundo salían con el MISMO id: lo que pedía uno se le
 // cargaba también al otro y el cobro se duplicaba. El sufijo aleatorio lo evita.
+// Precio saneado: ni negativo, ni NaN, ni con más de dos decimales. Un «-5»
+// tecleado por error restaba del ticket en vez de sumar.
+const precioValido = (v) => cent(Math.max(0, Number(v) || 0))
+
 // Los registros «solo-añadir» (tickets, cierres, anulaciones, fichajes) llevan
 // además `_ts`: la fusión al sincronizar necesita saber si son recientes, y
 // desde que los ids llevan sufijo aleatorio ya no se puede deducir del id.
@@ -1011,8 +1015,8 @@ export const useStore = create(persist((set, get) => ({
           id,
           nombre: producto.nombre,
           ...(conFormatos
-            ? { precios: Object.fromEntries(Object.entries(producto.precios).map(([k, v]) => [k, Number(v) || 0])) }
-            : { precio: Number(producto.precio) || 0 }),
+            ? { precios: Object.fromEntries(Object.entries(producto.precios).map(([k, v]) => [k, precioValido(v)])) }
+            : { precio: precioValido(producto.precio) }),
           categoria: producto.categoria,
           tipo: state.carta.categorias.find(c => c.id === producto.categoria)?.tipo || 'comida',
           descripcion: producto.descripcion || '',
@@ -1039,14 +1043,14 @@ export const useStore = create(persist((set, get) => ({
         }
         if (cambios.precios !== undefined) {
           if (cambios.precios && Object.keys(cambios.precios).length > 0) {
-            next.precios = Object.fromEntries(Object.entries(cambios.precios).map(([k, v]) => [k, Number(v) || 0]))
+            next.precios = Object.fromEntries(Object.entries(cambios.precios).map(([k, v]) => [k, precioValido(v)]))
             delete next.precio
           } else if (cambios.precio !== undefined) {
-            next.precio = Number(cambios.precio) || 0
+            next.precio = precioValido(cambios.precio)
             delete next.precios
           }
         } else if (cambios.precio !== undefined) {
-          next.precio = Number(cambios.precio) || 0
+          next.precio = precioValido(cambios.precio)
           delete next.precios
         }
         if (cambios.alergenos !== undefined) next.alergenos = cambios.alergenos
@@ -1230,15 +1234,27 @@ export function empleadoPorPin(empleados, pin, soloAdmin = false) {
 
 // Lo que debe cada comensal, repartiendo a partes iguales los platos compartidos.
 export function owedPorPersona(mesa) {
-  const res = {}
-  mesa.personas.forEach(p => { res[p.id] = 0 })
+  const bruto = {}
+  mesa.personas.forEach(p => { bruto[p.id] = 0 })
   mesa.personas.forEach(owner => {
     owner.items.forEach(item => {
-      const sharers = [owner.id, ...(item.compartidoCon || [])].filter(id => id in res)
+      const sharers = [owner.id, ...(item.compartidoCon || [])].filter(id => id in bruto)
       const importe = item.precio * item.cantidad
       const cuota = importe / (sharers.length || 1)
-      sharers.forEach(id => { res[id] += cuota })
+      sharers.forEach(id => { bruto[id] += cuota })
     })
+  })
+  // Reparto EXACTO en céntimos: redondear cada parte por su cuenta hacía que
+  // 20 € entre tres sumaran 20,01 y el arqueo se fuera un céntimo en cada mesa
+  // compartida. Redondeando el acumulado, las partes suman siempre el total.
+  const res = {}
+  let acumulado = 0
+  let acumuladoRedondeado = 0
+  Object.keys(bruto).forEach(id => {
+    acumulado += bruto[id]
+    const redondeado = cent(acumulado)
+    res[id] = cent(redondeado - acumuladoRedondeado)
+    acumuladoRedondeado = redondeado
   })
   return res
 }
