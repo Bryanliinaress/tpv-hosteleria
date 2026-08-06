@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.51.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.52.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-05. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**183 tests**, lint limpio, CI y deploy en verde.
+**210 tests**, lint limpio, CI y deploy en verde.
 
 ## Auditoría del dinero (v0.51.0)
 
@@ -78,6 +78,28 @@ de regresión en `src/store/dinero.test.js`:
 4. **«Otra ronda» en el backend real repetía el servicio entero**: v2 no tiene
    sello de envío. Ahora agrupa por la fecha de creación de la línea, y sin
    ninguna fecha repite solo la última línea (nunca todo).
+
+## Segunda pasada de auditoría (v0.52.0)
+
+Cuatro fallos más, fuera del cobro:
+
+5. **Overbooking en reservas.** Quien reservaba «sin preferencia de zona» no
+   contaba en el aforo al comprobar una zona concreta: con 46 de 48 plazas
+   reservadas sin preferencia, el bar seguía aceptando una mesa de 4 en terraza
+   (50 personas en un local de 48). Ahora se comprueba **siempre el aforo total**
+   y además el de la zona si se pide una.
+6. **Fichajes en el mes equivocado.** El filtro cortaba el texto ISO (UTC) y el
+   selector usaba hora local: un turno que entra a la 01:00 del día 1 caía en la
+   nómina del mes anterior. Fechas del negocio ya centralizadas en
+   `src/lib/fechas.js`, siempre en hora local.
+7. **Regresión propia del arreglo de ids (v0.51.0).** La fusión al sincronizar
+   deducía la antigüedad del id; con el sufijo aleatorio dejó de poder, y un
+   ticket o fichaje recién creado podía perderse al llegar el estado de otro
+   dispositivo. Los registros «solo-añadir» llevan ya `_ts` propio.
+8. **El pago por QR se registraba como EFECTIVO.** Al volver de Stripe se
+   llamaba a `pagarParte` pasando solo la propina, así que el método caía al
+   valor por defecto: el arqueo esperaba en el cajón un dinero que había
+   entrado por tarjeta. Con el pago online activo, descuadre garantizado.
 
 ## Pendiente — y de quién depende
 

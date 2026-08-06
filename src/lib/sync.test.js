@@ -30,3 +30,33 @@ describe('mergeLog (fusión de logs solo-añadir al sincronizar)', () => {
     expect(tsRegistro({ id: 'sin-numero' })).toBe(0)
   })
 })
+
+describe('mergeLog con los ids nuevos (con sufijo aleatorio)', () => {
+  it('conserva un fichaje recién creado aunque su id no sea un número', () => {
+    const ahora = Date.now()
+    // id nuevo: prefijo + base36 + aleatorio. La hora va en `_ts`.
+    const local = [{ id: 'fjmfq3k8x9abc', _ts: ahora, nombre: 'María' }]
+    const remoto = [{ id: 'fj1000', nombre: 'Juan' }]
+    expect(mergeLog(local, remoto).map(x => x.nombre)).toEqual(['Juan', 'María'])
+  })
+
+  it('un ticket recién cobrado no se pierde al llegar el estado de otro dispositivo', () => {
+    const local = [{ id: 't3-mfq3k8x9abc', _ts: Date.now(), total: 42 }]
+    expect(mergeLog(local, []).map(t => t.total)).toEqual([42])
+  })
+
+  it('sigue sin resucitar lo viejo', () => {
+    const local = [{ id: 'fjmfq3k8x9abc', _ts: Date.now() - 10 * 60000 }]
+    expect(mergeLog(local, [])).toEqual([])
+  })
+})
+
+describe('el fallo que esto evita', () => {
+  it('sin `_ts`, un id con sufijo aleatorio se daba por antiguo y se perdía', () => {
+    // Así quedaban los registros al cambiar los ids a base36: `tsRegistro`
+    // buscaba dígitos en el id y encontraba basura (o nada).
+    const sinSello = { id: 'fjmfq3k8x9abc', nombre: 'María' }
+    expect(tsRegistro(sinSello)).toBeLessThan(Date.now() - 90000)
+    expect(mergeLog([sinSello], [])).toEqual([])
+  })
+})
