@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.50.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.51.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-05. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,28 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**174 tests**, lint limpio, CI y deploy en verde.
+**183 tests**, lint limpio, CI y deploy en verde.
+
+## Auditoría del dinero (v0.51.0)
+
+Repaso a fondo de la lógica de cobro. Cuatro fallos reales, los cuatro con test
+de regresión en `src/store/dinero.test.js`:
+
+1. **Los platos compartidos falseaban el desglose por método.** El ticket
+   cargaba el importe a quien pidió el plato, no a quien lo pagó: Ana paga 10 €
+   con tarjeta y Luis 10 € en efectivo → el ticket anotaba «tarjeta 20» y el
+   efectivo de Luis no aparecía. **El cajón cuadraba mal cada vez que alguien
+   compartía plato y pagaban por separado.**
+2. **El arqueo ignoraba las propinas en efectivo**, que sí están en el cajón:
+   cantaba un sobrante falso. Ahora el panel enseña «ventas en efectivo +
+   propinas en efectivo = esperado en el cajón».
+3. **Ids por `Date.now()`**: dos comensales que se unían en el mismo
+   milisegundo salían con el MISMO id, y lo que pedía uno se le cargaba también
+   al otro (y el cobro se duplicaba). Ahora todos los ids llevan sufijo
+   aleatorio.
+4. **«Otra ronda» en el backend real repetía el servicio entero**: v2 no tiene
+   sello de envío. Ahora agrupa por la fecha de creación de la línea, y sin
+   ninguna fecha repite solo la última línea (nunca todo).
 
 ## Pendiente — y de quién depende
 

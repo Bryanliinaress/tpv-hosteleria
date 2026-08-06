@@ -57,7 +57,11 @@ export default function PanelAdmin() {
   ticketsCaja.forEach(r => Object.entries(r.pagos || {}).forEach(([k, v]) => { cajaPagos[k] = (cajaPagos[k] || 0) + v }))
   const cajaPorCamarero = {}
   ticketsCaja.forEach(r => { const c = r.cobradoPor || r.camarero || '—'; cajaPorCamarero[c] = (cajaPorCamarero[c] || 0) + r.total })
-  const efectivoEsperado = cajaPagos.efectivo || 0
+  // Las propinas dejadas EN EFECTIVO también están en el cajón: si no se
+  // esperan, el arqueo canta un sobrante que no existe.
+  const cajaPropinasEfectivo = ticketsCaja.reduce((s, r) => s + ((r.propinas || {}).efectivo || 0), 0)
+  const efectivoVentas = cajaPagos.efectivo || 0
+  const efectivoEsperado = efectivoVentas + cajaPropinasEfectivo
   const descuadre = contado === '' ? null : (Number(contado) || 0) - efectivoEsperado
   const hacerCierre = async () => {
     if (ticketsCaja.length === 0) return
@@ -328,7 +332,13 @@ export default function PanelAdmin() {
               </p>
               <label style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Efectivo contado (opcional)</label>
               <input value={contado} onChange={e => setContado(e.target.value)} inputMode="decimal" placeholder="€ en el cajón" style={{ ...inputStyle, marginTop: '0.25rem', marginBottom: '0.5rem' }} />
-              <div style={ajusteFila}><span>Efectivo esperado</span><strong>{efectivoEsperado.toFixed(2)} €</strong></div>
+              <div style={ajusteFila}><span>Ventas en efectivo</span><strong>{efectivoVentas.toFixed(2)} €</strong></div>
+              {cajaPropinasEfectivo > 0 && (
+                <div style={{ ...ajusteFila, color: 'var(--color-muted)' }}>
+                  <span>+ propinas en efectivo</span><strong>{cajaPropinasEfectivo.toFixed(2)} €</strong>
+                </div>
+              )}
+              <div style={{ ...ajusteFila, fontWeight: 700 }}><span>Efectivo esperado en el cajón</span><strong>{efectivoEsperado.toFixed(2)} €</strong></div>
               {descuadre != null && (
                 <div style={{ ...ajusteFila, color: Math.abs(descuadre) < 0.005 ? '#10b981' : '#f43f5e' }}>
                   <span>Descuadre</span><strong>{descuadre >= 0 ? '+' : ''}{descuadre.toFixed(2)} €</strong>
