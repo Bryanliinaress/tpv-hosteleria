@@ -18,10 +18,15 @@ let procesando = false
 let temporizador = null
 
 const leer = () => { try { return JSON.parse(localStorage.getItem(KEY) || '[]') } catch { return [] } }
+
+// Devuelve false si NO se pudo guardar (almacenamiento lleno o modo privado).
+// Importante avisar: el camarero cree que el pedido está a salvo y no lo está.
 const escribir = (c) => {
-  try { localStorage.setItem(KEY, JSON.stringify(c)) } catch { /* almacenamiento lleno */ }
+  let guardado = true
+  try { localStorage.setItem(KEY, JSON.stringify(c)) } catch { guardado = false }
   useUI.getState().setPendientes(c.length)
   useUI.getState().setConexion(c.length ? 'sin-conexion' : 'ok')
+  return guardado
 }
 
 export const pendientes = () => leer().length
@@ -35,8 +40,14 @@ export function esFalloDeRed(e) {
 export function encolar(fn, args) {
   const cola = leer()
   cola.push({ id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, fn, args, ts: Date.now() })
-  escribir(cola)
+  if (!escribir(cola)) {
+    // Sin sitio para guardarlo, callarse sería lo peor: el pedido se pierde y
+    // nadie se entera hasta que el cliente reclama.
+    useUI.getState().toast('No se pudo guardar el pedido sin conexión: repítelo cuando haya línea', 'error', 8000)
+    return false
+  }
   programar(3000)
+  return true
 }
 
 // Reenvía en orden; si vuelve a fallar por red, se detiene y reintenta luego.
@@ -57,18 +68,34 @@ export async function procesar() {
           // tratasen como rechazo, se perdería el pedido del cliente.
           if (esFalloDeRed(error)) { programar(8000); break }
           // rechazo real del servidor (mesa ya cobrada, producto retirado…):
-          // descartarla, o bloquearía el resto de la cola para siempre.
+          // descartarla, o bloquearía el resto de la cola para siempre. Pero
+          // se avisa: es un pedido del cliente que NO ha llegado.
           console.warn('cola v2: operación descartada por el servidor', op.fn, error.message)
+          avisarDescartada(op, error.message)
         }
       } catch (e) {
         if (esFalloDeRed(e)) { programar(8000); break }  // sigue sin haber red
         console.warn('cola v2: error no reintentable', op.fn, e)
+        avisarDescartada(op, e?.message)
       }
       escribir(leer().filter(x => x.id !== op.id))
     }
   } finally {
     procesando = false
   }
+}
+
+// Qué se le dice al camarero cuando una operación encolada no se pudo aplicar.
+const QUE_ERA = {
+  agregar_linea: 'un producto del pedido',
+  confirmar_pedido: 'el envío de una comanda a cocina',
+  cambiar_cantidad: 'un cambio de cantidad',
+  anular_linea: 'una anulación',
+  marcar_estado_comanda: 'un cambio de estado en cocina',
+}
+function avisarDescartada(op, motivo) {
+  const que = QUE_ERA[op.fn] || 'una operación'
+  useUI.getState().toast(`No se pudo aplicar ${que} que quedó pendiente${motivo ? ` (${motivo})` : ''}. Revísalo.`, 'error', 8000)
 }
 
 function programar(ms) {

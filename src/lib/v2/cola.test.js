@@ -95,3 +95,44 @@ describe('qué operaciones se encolan', () => {
     expect(pendientes()).toBe(1)
   })
 })
+
+describe('avisos al camarero', () => {
+  it('avisa si el pedido no se puede ni guardar (almacenamiento lleno)', async () => {
+    const { useUI } = await import('../../store/useUI')
+    useUI.setState({ toasts: [] })
+    const original = globalThis.localStorage.setItem
+    globalThis.localStorage.setItem = () => { throw new Error('QuotaExceeded') }
+    const ok = encolar('agregar_linea', { x: 1 })
+    globalThis.localStorage.setItem = original
+
+    expect(ok).toBe(false)
+    expect(useUI.getState().toasts.some(t => /no se pudo guardar/i.test(t.mensaje))).toBe(true)
+  })
+
+  it('avisa cuando el servidor rechaza una operación encolada', async () => {
+    const { useUI } = await import('../../store/useUI')
+    useUI.setState({ toasts: [] })
+    redCaida = true
+    encolar('agregar_linea', { producto: 'x' })
+    redCaida = false
+    rechazarFn = 'agregar_linea'
+    await procesar()
+
+    expect(pendientes()).toBe(0)                       // no bloquea la cola
+    const avisos = useUI.getState().toasts.map(t => t.mensaje).join(' | ')
+    expect(avisos).toMatch(/un producto del pedido/)   // dice QUÉ se ha perdido
+    expect(avisos).toMatch(/mesa_cerrada/)             // y por qué
+  })
+
+  it('lo que se envía bien no genera avisos', async () => {
+    const { useUI } = await import('../../store/useUI')
+    useUI.setState({ toasts: [] })
+    redCaida = true
+    encolar('confirmar_pedido', { mesa: 1 })
+    redCaida = false
+    await procesar()
+
+    expect(pendientes()).toBe(0)
+    expect(useUI.getState().toasts).toEqual([])
+  })
+})
