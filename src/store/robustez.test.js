@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { useStore } from './useStore'
+import { useStore, CARTA_EJEMPLO } from './useStore'
 
 // ────────────────────────────────────────────────────────────────────────────
 // Casos raros y datos malos. Un bar no teclea siempre bien, y el TPV no puede
@@ -111,5 +111,33 @@ describe('precios saneados al editar', () => {
     const precio = st().carta.productos.find(p => p.nombre === 'Redondeo').precio
     expect(precio).toBe(1.24)
     expect(String(precio).split('.')[1]?.length ?? 0).toBeLessThanOrEqual(2)
+  })
+})
+
+describe('carta de ejemplo', () => {
+  it('vaciar y restaurar devuelve los productos', () => {
+    st().vaciarCarta()
+    expect(st().carta.productos).toHaveLength(0)
+    const r = st().sembrarCarta()
+    expect(r.ok).toBe(true)
+    // se restaura la plantilla completa, esté como esté la carta actual
+    expect(st().carta.productos).toHaveLength(CARTA_EJEMPLO.productos.length)
+  })
+
+  it('restaurar no deja referencias compartidas con la plantilla', () => {
+    st().sembrarCarta()
+    const prod = st().carta.productos[0]
+    st().updateProducto(prod.id, { nombre: 'Tocado' })
+    st().sembrarCarta()
+    // si compartieran objeto, el nombre tocado seguiría ahí
+    expect(st().carta.productos[0].nombre).not.toBe('Tocado')
+  })
+
+  it('también devuelve las categorías si se borraron', () => {
+    const cat = st().carta.categorias[0]
+    st().removeCategoria(cat.id)
+    expect(st().carta.categorias.find(c => c.id === cat.id)).toBeUndefined()
+    st().sembrarCarta()
+    expect(st().carta.categorias.find(c => c.id === cat.id)).toBeTruthy()
   })
 })
