@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.56.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.57.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-05. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**291 tests**, lint limpio, CI y deploy en verde.
+**310 tests**, lint limpio, CI y deploy en verde.
 
 ## Auditoría del dinero (v0.51.0)
 
@@ -177,6 +177,26 @@ Hay un simulador de papel en el scratchpad que dibuja el ticket como saldría;
 **Capa v2 verificada**: se compararon las **29 llamadas RPC** del cliente y de
 las Edge Functions contra las firmas del SQL (nombres y parámetros). Sin
 discrepancias: el contrato cliente↔servidor es correcto.
+
+## El navegador se llenaba en mes y medio (v0.57.0)
+
+17. **El estado guardado crecía sin límite.** Medido: **1.800 tickets (un mes a
+    60/día) = 4,1 MB** y el navegador corta en ~5 MB. Al pasarse, zustand deja
+    de guardar **en silencio**: se sigue trabajando y al recargar falta el día.
+    Un año llegaba a 13,5 MB.
+    Ahora se guarda solo la ventana útil (45 días de tickets, 550 de fichajes
+    porque son nómina) y los tickets de más de una semana se **adelgazan**:
+    se quitan pan, extras, notas e ids de línea, que solo importan el día del
+    servicio. Los informes siguen viendo el mes completo. **Un año: 2,6 MB.**
+    Y si aun así el navegador se llena, **se avisa en pantalla** en vez de
+    perder datos callando.
+18. **Los descuentos dejaban medios céntimos.** Un 5% sobre 13,70 € guardaba el
+    ticket con `13.014999999999999 €`: ni cuadraba con los pagos ni se puede
+    imprimir. Todo el cobro se redondea ya en el store, dé igual quién llame.
+19. **Al asignar mesa a una reserva, la zona pesaba más que la capacidad**: a un
+    grupo de 6 se le ofrecía antes una mesa de 2 en su zona preferida que una de
+    6 en otra. Ahora manda el tamaño (la zona es preferencia) y, entre las que
+    caben, la más justa.
 
 ## Pendiente — y de quién depende
 
