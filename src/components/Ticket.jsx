@@ -179,7 +179,10 @@ async function imprimir({ tipo, mesa, persona, local, fiscal }) {
   } else {
     const personas = persona ? [persona] : mesa.personas
     const filas = consolidar(personas)
+    // El cajón solo se abre si ha entrado dinero físico
+    const conEfectivo = personas.some(p => p.pagado && ['efectivo', 'mixto'].includes(p.metodoPago || 'efectivo'))
     bytes = ticketESCPOS({
+      abrirCajon: conEfectivo,
       local, mesa,
       lineas: filas.map(l => ({ nombre: l.nombre, cantidad: l.uds, precio: l.precio, nota: l.extra })),
       total: filas.reduce((s, l) => s + l.precio * l.uds, 0),
