@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.55.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.56.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-05. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**279 tests**, lint limpio, CI y deploy en verde.
+**291 tests**, lint limpio, CI y deploy en verde.
 
 ## Auditoría del dinero (v0.51.0)
 
@@ -158,6 +158,25 @@ acento ocupa un byte — si no, las columnas se descuadrarían.
 
 Hay un simulador de papel en el scratchpad que dibuja el ticket como saldría;
 útil si hay que volver a tocar el formato.
+
+## Reservas, alta del local y capa v2 (v0.56.0)
+
+14. **Se podía reservar sobre un hueco ya lleno.** La pantalla solo ofrece
+    huecos libres, pero entre que se pinta y se confirma pueden pasar minutos
+    (o reservar otro cliente a la vez): `crearReserva` no comprobaba nada.
+    Ahora valida aforo y día cerrado al **crear y al editar**, y devuelve null
+    con el motivo — igual que ya hacía el backend real.
+15. **«Crear carta de ejemplo» mentía en la demo.** La acción solo existía en el
+    backend v2; en v1 no hacía nada y el mensaje decía que sí. Ahora la carta de
+    ejemplo se guarda como plantilla (`CARTA_EJEMPLO`) y se puede **restaurar**:
+    útil si el dueño vacía la carta y se arrepiente.
+16. **Rehacer la sala invalidaba los QR en silencio.** `configurarSala` renumera
+    las mesas, así que los QR ya pegados dejan de apuntar a su mesa. El
+    asistente ahora avisa cuando es una reconfiguración, no una alta nueva.
+
+**Capa v2 verificada**: se compararon las **29 llamadas RPC** del cliente y de
+las Edge Functions contra las firmas del SQL (nombres y parámetros). Sin
+discrepancias: el contrato cliente↔servidor es correcto.
 
 ## Pendiente — y de quién depende
 

@@ -30,6 +30,8 @@ export default function Onboarding() {
   const [nuevoEmp, setNuevoEmp] = useState({ nombre: '', pin: '', rol: 'camarero' })
 
   const PASOS = ['Local', 'Sala', 'Personal', 'Carta', 'Listo']
+  // ¿es una reconfiguración? (el asistente también se abre desde Admin)
+  const [yaHabiaSala] = useState(() => useStore.getState().local?.onboarded === true)
 
   const siguienteIdentidad = () => {
     if (!ident.nombre.trim()) { toast('Ponle nombre a tu local', 'error'); return }
@@ -116,6 +118,15 @@ export default function Onboarding() {
           <>
             <h2 style={titulo}>🍽 Tu sala</h2>
             <p style={nota}>Zonas del local y cuántas mesas tiene cada una. Los QR de mesa se generan solos.</p>
+            {/* Rehacer la sala renumera las mesas: los QR ya pegados dejarían
+                de apuntar a su mesa. Hay que avisarlo, no descubrirlo el sábado. */}
+            {yaHabiaSala && (
+              <div style={{ background: 'var(--tint-warning-bg)', border: '1px solid var(--tint-warning-bd)', color: 'var(--tint-warning-fg)', borderRadius: 'var(--radius)', padding: '0.75rem 0.9rem', fontSize: '0.85rem', marginBottom: '0.9rem' }}>
+                ⚠️ Ya tienes una sala configurada. Si la rehaces, <strong>las mesas se renumeran</strong> y
+                los <strong>QR que ya hayas impreso dejarán de servir</strong>: habrá que volver a imprimirlos
+                desde Admin → 📱 QR Codes.
+              </div>
+            )}
             {zonas.map((z, i) => (
               <div key={i} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', marginBottom: '0.6rem' }}>
                 <div style={{ flex: 2 }}>
