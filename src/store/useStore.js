@@ -1,8 +1,9 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
 
 // Aviso al usuario desde el store. Import perezoso para no acoplar el estado a
 // la interfaz (y que los tests en Node no arrastren la UI).
+let avisoDeMemoriaDado = false      // una sola vez por sesión, no en bucle
 const avisar = (mensaje, tipo = 'info') => {
   import('./useUI').then(m => m.toast(mensaje, tipo)).catch(() => {})
 }
@@ -59,6 +60,43 @@ const cent = (x) => Math.round(x * 100) / 100
 // Precio saneado: ni negativo, ni NaN, ni con más de dos decimales. Un «-5»
 // tecleado por error restaba del ticket en vez de sumar.
 const precioValido = (v) => cent(Math.max(0, Number(v) || 0))
+
+// Ventanas de lo que se guarda en el navegador (ver `partialize` abajo).
+const DIAS_TICKETS = 45      // cubre el mes en curso entero, con margen
+const DIAS_LARGOS = 550      // cierres y fichajes: nómina y cuadres de año
+const MAX_TICKETS = 8000     // techo duro por si un día es una locura
+const DIAS_DETALLE = 7       // más allá, el ticket se guarda adelgazado
+
+/**
+ * Ticket «adelgazado» para guardar. Los informes solo necesitan qué se vendió,
+ * cuánto y cómo se pagó; el detalle de personalización (pan, extras, notas,
+ * ids de línea) solo importa el día del servicio. Quitarlo baja el tamaño de un
+ * ticket de ~1,5 KB a ~0,4 KB, y es lo que permite guardar el mes completo.
+ */
+export function compactarTicket(t) {
+  if (!t || t.compacto) return t
+  return {
+    ...t,
+    compacto: true,
+    personas: (t.personas || []).map(p => ({
+      nombre: p.nombre, pagado: p.pagado, metodoPago: p.metodoPago, propina: p.propina,
+      items: (p.items || []).map(i => ({ nombre: i.nombre, cantidad: i.cantidad, precio: i.precio })),
+    })),
+  }
+}
+
+// Se queda con lo reciente: `dias` hacia atrás y como mucho `max` registros.
+// Sin fecha válida, el registro se conserva (mejor guardar de más que perderlo).
+export function recientes(arr, campoFecha, dias, max) {
+  const lista = arr || []
+  if (lista.length <= max && !dias) return lista
+  const limite = Date.now() - dias * 86400000
+  const dentro = lista.filter(x => {
+    const t = new Date(x?.[campoFecha]).getTime()
+    return Number.isNaN(t) ? true : t >= limite
+  })
+  return dentro.length > max ? dentro.slice(-max) : dentro
+}
 
 // Los registros «solo-añadir» (tickets, cierres, anulaciones, fichajes) llevan
 // además `_ts`: la fusión al sincronizar necesita saber si son recientes, y
@@ -671,14 +709,18 @@ export const useStore = create(persist((set, get) => ({
         const sub = cent(owedPrevio[p.id] || 0)
         if (sub > 0) { const k = p.metodoPago || 'efectivo'; previos[k] = cent((previos[k] || 0) + sub); prevSum = cent(prevSum + sub) }
       })
-      const pendienteBruto = rec.total - prevSum
-      const neto = Math.max(0, pendienteBruto - (Number(descuento) || 0))
+      // Todo a céntimos: un 5% sobre 13,70 € da 0,685 y el ticket se guardaba
+      // con 13,014999999999999 €, que ni cuadra con los pagos ni se puede
+      // imprimir. El redondeo va aquí para que dé igual quién llame.
+      const dto = cent(Math.max(0, Number(descuento) || 0))
+      const pendienteBruto = cent(rec.total - prevSum)
+      const neto = cent(Math.max(0, pendienteBruto - dto))
       const pagos = { ...previos }
       if (desglose) Object.entries(desglose).forEach(([k, v]) => { const n = cent(Number(v) || 0); if (n > 0) pagos[k] = cent((pagos[k] || 0) + n) })
       else if (neto > 0) pagos[metodo] = cent((pagos[metodo] || 0) + neto)
       rec.pagos = pagos
-      rec.descuento = Number(descuento) || 0
-      rec.total = prevSum + neto
+      rec.descuento = dto
+      rec.total = cent(prevSum + neto)
     }
     const grupo = idsGrupo(mesa)
     return {
@@ -1129,8 +1171,29 @@ export const useStore = create(persist((set, get) => ({
   },
 }), {
   name: import.meta.env.VITE_BACKEND === 'v2' ? 'tpv-hosteleria-v2' : 'tpv-hosteleria',
+  // Si el navegador se queda sin sitio, zustand solo escribe un aviso en la
+  // consola que nadie mira. Aquí se avisa EN PANTALLA: es la diferencia entre
+  // enterarse y descubrirlo al recargar con el día perdido.
+  storage: createJSONStorage(() => ({
+    getItem: (k) => { try { return localStorage.getItem(k) } catch { return null } },
+    removeItem: (k) => { try { localStorage.removeItem(k) } catch { /* noop */ } },
+    setItem: (k, v) => {
+      try { localStorage.setItem(k, v) } catch {
+        if (!avisoDeMemoriaDado) {
+          avisoDeMemoriaDado = true
+          avisar('El navegador se ha quedado sin espacio: cierra y vuelve a abrir la app. Avisa si se repite.', 'error')
+        }
+      }
+    },
+  })),
   version: 8, // v8: extras con precio propio + etiquetas de personalización
   migrate: () => undefined, // si cambia el formato de carta, descarta lo viejo y usa el por defecto
+  // El navegador solo guarda ~5 MB por origen. Un bar con 60 tickets al día
+  // llegaba a ese techo en MES Y MEDIO (1.800 tickets ≈ 4,1 MB), y al pasarse
+  // el guardado falla EN SILENCIO: se sigue trabajando y al recargar falta
+  // todo lo del día. Por eso se guarda solo la ventana reciente; el histórico
+  // completo vive en el backend real. En memoria, durante el servicio, sigue
+  // estando todo: esto solo limita lo que se escribe en el disco del navegador.
   partialize: (state) => ({
     local: state.local,
     empleados: state.empleados,
@@ -1139,10 +1202,12 @@ export const useStore = create(persist((set, get) => ({
     pedidosCocina: state.pedidosCocina,
     pedidosBarra: state.pedidosBarra,
     avisos: state.avisos,
-    historial: state.historial,
-    cierres: state.cierres,
-    anulaciones: state.anulaciones,
-    fichajes: state.fichajes,
+    historial: recientes(state.historial, 'cerradaEn', DIAS_TICKETS, MAX_TICKETS)
+      .map(t => (Date.now() - new Date(t.cerradaEn).getTime() > DIAS_DETALLE * 86400000 ? compactarTicket(t) : t)),
+    cierres: recientes(state.cierres, 'hasta', DIAS_LARGOS, 500),
+    anulaciones: recientes(state.anulaciones, 'fecha', DIAS_TICKETS, 1000),
+    // los fichajes son NÓMINA: se conservan mucho más y ocupan poquísimo
+    fichajes: recientes(state.fichajes, 'entrada', DIAS_LARGOS, 5000),
     reservas: state.reservas,
     reservasConfig: state.reservasConfig,
   }),
@@ -1253,6 +1318,29 @@ function actualizarReservaSinValidar(set, id, cambios) {
       mesas: state.mesas.map(m => (m.id === r.mesaId && m.estado === 'reservada') ? { ...m, estado: 'libre', reserva: null } : m),
     }
   })
+}
+
+/**
+ * Mesas que se le pueden asignar a una reserva, de mejor a peor.
+ * El orden importa: la CAPACIDAD manda sobre la zona. Seis personas no caben
+ * en una mesa de dos aunque sea la terraza que pidieron; la zona es una
+ * preferencia, el tamaño no.
+ */
+export function mesasCandidatas(mesas, reserva) {
+  const personas = Number(reserva?.personas) || 1
+  return (mesas || [])
+    .filter(m => m.estado === 'libre' || m.id === reserva?.mesaId)
+    .slice()
+    .sort((a, b) => {
+      const cabeA = a.capacidad >= personas ? 0 : 1
+      const cabeB = b.capacidad >= personas ? 0 : 1
+      if (cabeA !== cabeB) return cabeA - cabeB              // primero, que quepan
+      const zonaA = (!reserva?.zona || a.zona === reserva.zona) ? 0 : 1
+      const zonaB = (!reserva?.zona || b.zona === reserva.zona) ? 0 : 1
+      if (zonaA !== zonaB) return zonaA - zonaB              // luego, la zona pedida
+      if (cabeA === 0 && a.capacidad !== b.capacidad) return a.capacidad - b.capacidad
+      return a.numero - b.numero                             // la más justa, y por número
+    })
 }
 
 // ¿Caben `personas` en ese slot?

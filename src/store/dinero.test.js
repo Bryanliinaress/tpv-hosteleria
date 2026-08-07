@@ -287,3 +287,27 @@ describe('pagar toda la cuenta (uno invita al resto)', () => {
     expect(t.pagos.tarjeta).toBe(10)
   })
 })
+
+describe('descuentos con decimales sucios', () => {
+  it('un 5% sobre 13,70 € deja el ticket cuadrado al céntimo', () => {
+    const { mesaId, ana } = mesaConUno(11)
+    st().agregarItem(mesaId, ana, { productoId: 'x', nombre: 'Comida', precio: 13.7, tipo: 'comida' })
+    // 5% de 13,70 = 0,685 € → ni el descuento ni el total pueden quedar en medio céntimo
+    st().cobrarMesa(mesaId, { descuento: 13.7 * 0.05, metodo: 'efectivo' })
+
+    const t = st().historial.at(-1)
+    const suma = Object.values(t.pagos).reduce((s, v) => s + v, 0)
+    expect(Math.round(t.total * 100)).toBe(Math.round(suma * 100))
+    expect(t.total).toBe(Math.round(t.total * 100) / 100)      // sin colas decimales
+    expect(t.descuento).toBe(Math.round(t.descuento * 100) / 100)
+  })
+
+  it('el pago mixto con decimales también cuadra', () => {
+    const { mesaId, ana } = mesaConUno(12)
+    st().agregarItem(mesaId, ana, { productoId: 'x', nombre: 'Cena', precio: 33.33, tipo: 'comida' })
+    st().cobrarMesa(mesaId, { desglose: { efectivo: 11.11, tarjeta: 22.22 } })
+    const t = st().historial.at(-1)
+    const suma = Object.values(t.pagos).reduce((s, v) => s + v, 0)
+    expect(Math.round(suma * 100)).toBe(Math.round(t.total * 100))
+  })
+})

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useStore, generarSlots, aforoTotal, ocupacionEn } from '../store/useStore'
+import { useStore, generarSlots, aforoTotal, ocupacionEn, mesasCandidatas } from '../store/useStore'
 import { enviarEmailReserva } from '../lib/email'
 import { confirmar, toast } from '../store/useUI'
 
@@ -52,17 +52,8 @@ export default function ReservasManager({ onSentada }) {
 
   const pendientesHoy = reservas.filter(r => r.fecha === hoy && r.estado === 'confirmada').length
 
-  // Mesas candidatas para asignar a una reserva: libres (+ la ya asignada),
-  // ordenadas por coincidencia de zona y capacidad suficiente.
-  const candidatas = (r) => mesas
-    .filter(m => m.estado === 'libre' || m.id === r.mesaId)
-    .sort((a, b) => {
-      const za = (a.zona === r.zona ? 0 : 1), zb = (b.zona === r.zona ? 0 : 1)
-      if (za !== zb) return za - zb
-      const fa = a.capacidad >= r.personas ? 0 : 1, fb = b.capacidad >= r.personas ? 0 : 1
-      if (fa !== fb) return fa - fb
-      return a.numero - b.numero
-    })
+  // Mesas candidatas (la regla vive en el store y está probada)
+  const candidatas = (r) => mesasCandidatas(mesas, r)
 
   const sentar = (id) => { const pid = sentarReservaAgenda(id); const r = reservas.find(x => x.id === id); if (pid && onSentada) onSentada(r?.mesaId) }
 
