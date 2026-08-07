@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { config, guardarConfig, elegirImpresoraUSB, imprimirPrueba, usbDisponible, MODOS } from '../lib/impresora'
+import { config, guardarConfig, elegirImpresoraUSB, imprimirPrueba, usbDisponible, abrirCajon, MODOS } from '../lib/impresora'
 import { toast } from '../store/useUI'
 
 // Configuración de impresión por dispositivo (cada terminal puede imprimir
@@ -18,6 +18,11 @@ export default function ConfigImpresora() {
     } catch (e) {
       if (!/cancel/i.test(e.message)) toast(e.message, 'error')
     }
+  }
+
+  const abrirCajonAhora = async () => {
+    try { await abrirCajon(); toast('Cajón abierto', 'success') }
+    catch (e) { toast(`No se pudo abrir el cajón: ${e.message}`, 'error') }
   }
 
   const probar = async () => {
@@ -77,6 +82,13 @@ export default function ConfigImpresora() {
 
       <button onClick={probar} disabled={probando || cfg.modo === 'navegador'} style={{ ...btn, opacity: cfg.modo === 'navegador' ? 0.5 : 1 }}>
         {probando ? 'Enviando…' : '🧾 Imprimir ticket de prueba'}
+      </button>
+
+      {/* El cajón se abre solo al cobrar en efectivo; este botón es para
+          comprobarlo al instalar y para dar cambio fuera de un cobro. */}
+      <button onClick={abrirCajonAhora} disabled={cfg.modo === 'navegador'}
+        style={{ ...btn, background: 'var(--color-surface-2)', color: 'var(--color-text)', marginTop: '0.5rem', opacity: cfg.modo === 'navegador' ? 0.5 : 1 }}>
+        💶 Abrir cajón
       </button>
     </div>
   )

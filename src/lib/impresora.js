@@ -102,6 +102,13 @@ export async function imprimirESCPOS(bytes, { alternativa, destino } = {}) {
   return { via: 'ninguna' }
 }
 
+// Abre el cajón portamonedas sin imprimir nada (botón manual y cobro en
+// efectivo). Va por la impresora de caja, que es donde está el cajón.
+export async function abrirCajon() {
+  const { abrirCajonESCPOS } = await import('./escpos')
+  return imprimirESCPOS(abrirCajonESCPOS(), { destino: 'caja' })
+}
+
 // Ticket de prueba para comprobar la instalación desde Ajustes.
 export async function imprimirPrueba() {
   const { crearTicket } = await import('./escpos')
