@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { aforoTotal, aforoZona, ocupacionEn, slotDisponible, generarSlots, diaCerrado } from './useStore'
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -73,5 +73,102 @@ describe('agenda', () => {
   it('sabe qué días cierra el local', () => {
     expect(diaCerrado(CONFIG, '2026-08-10')).toBe(true)   // lunes
     expect(diaCerrado(CONFIG, '2026-08-11')).toBe(false)  // martes
+  })
+})
+
+// ── Ciclo de vida de una reserva, contra el store real ──────────────────────
+import { useStore } from './useStore'
+
+const st = () => useStore.getState()
+const manana = () => {
+  const d = new Date(Date.now() + 86400000)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+describe('crear reserva', () => {
+  beforeEach(() => {
+    useStore.setState(s => ({
+      reservas: [],
+      mesas: s.mesas.map(m => ({ ...m, estado: 'libre', personas: [], reserva: null })),
+      reservasConfig: { ...s.reservasConfig, diasCerrados: [] },
+    }))
+  })
+
+  it('una reserva normal entra y queda confirmada', () => {
+    const id = st().crearReserva({ fecha: manana(), hora: '13:00', personas: 4, nombre: 'Ana' })
+    expect(id).toBeTruthy()
+    expect(st().reservas.at(-1).estado).toBe('confirmada')
+    expect(st().reservas.at(-1).token).toBeTruthy()
+  })
+
+  it('NO entra si el hueco ya está lleno (dos clientes a la vez)', () => {
+    const cfg = st().reservasConfig
+    const aforo = aforoTotal(cfg, st().mesas)
+    // el primero se lleva casi todo el aforo
+    expect(st().crearReserva({ fecha: manana(), hora: '13:00', personas: aforo - 1, nombre: 'Grupo' })).toBeTruthy()
+    // el segundo ya no cabe, aunque su pantalla le ofreciera el hueco
+    expect(st().crearReserva({ fecha: manana(), hora: '13:00', personas: 4, nombre: 'Tarde' })).toBeNull()
+    expect(st().reservas).toHaveLength(1)
+  })
+
+  it('NO entra un día que el local cierra', () => {
+    const f = manana()
+    const dia = new Date(f + 'T12:00:00').getDay()
+    useStore.setState(s => ({ reservasConfig: { ...s.reservasConfig, diasCerrados: [dia] } }))
+    expect(st().crearReserva({ fecha: f, hora: '13:00', personas: 2, nombre: 'Ana' })).toBeNull()
+  })
+
+  it('sin hora no se crea a medias', () => {
+    expect(st().crearReserva({ fecha: manana(), personas: 2, nombre: 'Ana' })).toBeNull()
+  })
+
+  it('cada reserva tiene su localizador', () => {
+    const a = st().crearReserva({ fecha: manana(), hora: '13:00', personas: 2, nombre: 'A' })
+    const b = st().crearReserva({ fecha: manana(), hora: '13:30', personas: 2, nombre: 'B' })
+    const tokens = st().reservas.map(r => r.token)
+    expect(a).not.toBe(b)
+    expect(new Set(tokens).size).toBe(2)
+  })
+})
+
+describe('editar y cancelar', () => {
+  beforeEach(() => {
+    useStore.setState(s => ({
+      reservas: [],
+      mesas: s.mesas.map(m => ({ ...m, estado: 'libre', personas: [], reserva: null })),
+      reservasConfig: { ...s.reservasConfig, diasCerrados: [] },
+    }))
+  })
+
+  it('ampliar la reserva se comprueba contra el aforo', () => {
+    const cfg = st().reservasConfig
+    const aforo = aforoTotal(cfg, st().mesas)
+    const id = st().crearReserva({ fecha: manana(), hora: '13:00', personas: 2, nombre: 'Ana' })
+    // pasar de 2 a más del aforo no puede colar
+    expect(st().actualizarReserva(id, { personas: aforo + 5 })).toBeNull()
+    expect(st().reservas.find(r => r.id === id).personas).toBe(2)
+  })
+
+  it('ampliar dentro del aforo sí se guarda', () => {
+    const id = st().crearReserva({ fecha: manana(), hora: '13:00', personas: 2, nombre: 'Ana' })
+    expect(st().actualizarReserva(id, { personas: 4 })).toBe(id)
+    expect(st().reservas.find(r => r.id === id).personas).toBe(4)
+  })
+
+  it('al editar NO se cuenta a sí misma como ocupación', () => {
+    const cfg = st().reservasConfig
+    const aforo = aforoTotal(cfg, st().mesas)
+    const id = st().crearReserva({ fecha: manana(), hora: '13:00', personas: aforo, nombre: 'Lleno' })
+    // cambiar la hora de la reserva que ocupa TODO debe poder hacerse
+    expect(st().actualizarReserva(id, { hora: '13:30' })).toBe(id)
+  })
+
+  it('cancelar libera el hueco', () => {
+    const cfg = st().reservasConfig
+    const aforo = aforoTotal(cfg, st().mesas)
+    const id = st().crearReserva({ fecha: manana(), hora: '13:00', personas: aforo, nombre: 'Lleno' })
+    expect(st().crearReserva({ fecha: manana(), hora: '13:00', personas: 2, nombre: 'Otro' })).toBeNull()
+    st().cambiarEstadoReserva(id, 'cancelada')
+    expect(st().crearReserva({ fecha: manana(), hora: '13:00', personas: 2, nombre: 'Otro' })).toBeTruthy()
   })
 })

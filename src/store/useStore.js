@@ -1,6 +1,12 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
+// Aviso al usuario desde el store. Import perezoso para no acoplar el estado a
+// la interfaz (y que los tests en Node no arrastren la UI).
+const avisar = (mensaje, tipo = 'info') => {
+  import('./useUI').then(m => m.toast(mensaje, tipo)).catch(() => {})
+}
+
 // Métodos de pago disponibles al cobrar (configurable para cualquier local)
 export const METODOS_PAGO = [
   { id: 'efectivo', label: 'Efectivo', emoji: '💵' },
@@ -80,9 +86,9 @@ export const normalizarExtra = (e) => (typeof e === 'string' ? { nombre: e, prec
 export const ETIQUETAS_DEFECTO = { formatos: 'Pan', tiposPan: 'Tipo de pan', extras: 'Extras' }
 export const etiquetasDe = (carta) => ({ ...ETIQUETAS_DEFECTO, ...(carta.etiquetas || {}) })
 
-export const useStore = create(persist((set, get) => ({
-  // ── CARTA (Casa Loli · Desayunos) ──────────────────────
-  carta: {
+// Carta de ejemplo del arranque. Se guarda aparte para poder RESTAURARLA:
+// si el dueño vacía la carta y se arrepiente, «carta de ejemplo» la devuelve.
+export const CARTA_EJEMPLO = {
     categorias: [
       { id: 'desayunos', nombre: 'Desayunos', tipo: 'comida', emoji: '🥪' },
       { id: 'cafes', nombre: 'Cafés', tipo: 'bebida', emoji: '☕' },
@@ -177,7 +183,11 @@ export const useStore = create(persist((set, get) => ({
         { id: 'be25', nombre: 'Vaso de leche', precio: 1.30, descripcion: 'Caliente o fría' },
       ].map(p => ({ ...p, categoria: 'bebidas', tipo: 'bebida', disponible: true, alergenos: alergenosDe(p.nombre + ' ' + p.descripcion) })),
     ),
-  },
+  }
+
+export const useStore = create(persist((set, get) => ({
+  // ── CARTA (Casa Loli · Desayunos) ──────────────────────
+  carta: structuredClone(CARTA_EJEMPLO),
 
   // ── IDENTIDAD DEL LOCAL (configurable para cualquier bar) ─
   // Datos del negocio que aparecen en tickets, cabeceras y reservas.
@@ -752,8 +762,15 @@ export const useStore = create(persist((set, get) => ({
   },
 
   // ── AGENDA DE RESERVAS (online) ────────────────────────
-  // Crea una reserva del cliente (queda confirmada al instante).
+  // Crea una reserva del cliente. Devuelve el id, o null con el motivo si ya no
+  // cabe: la pantalla solo ofrece huecos libres, pero entre que se pinta y se
+  // confirma pueden pasar minutos (o reservar otro cliente a la vez). Sin esta
+  // comprobación, el bar se sobrevendía sin que nadie se enterara.
   crearReserva: (datos) => {
+    const st = get()
+    const personas = Math.max(1, Number(datos.personas) || 2)
+    const motivo = motivoNoReservable(st, { ...datos, personas })
+    if (motivo) { avisar(motivo, 'error'); return null }
     const id = crearId('rv')
     set(state => ({
       reservas: [...state.reservas, {
@@ -761,7 +778,7 @@ export const useStore = create(persist((set, get) => ({
         token: Math.random().toString(36).slice(2, 10), // localizador para gestionar la reserva desde el email
         fecha: datos.fecha,                 // 'YYYY-MM-DD'
         hora: datos.hora || '',             // 'HH:MM'
-        personas: Math.max(1, Number(datos.personas) || 2),
+        personas,
         nombre: (datos.nombre || '').trim() || 'Cliente',
         email: (datos.email || '').trim(),
         telefono: (datos.telefono || '').trim(),
@@ -810,25 +827,18 @@ export const useStore = create(persist((set, get) => ({
 
   // Modifica una reserva (fecha/hora/personas/zona/datos). Al cambiar la hora o
   // la zona, la mesa asignada deja de valer: se libera y se quita la asignación.
-  actualizarReserva: (id, cambios) => set(state => {
-    const r = state.reservas.find(x => x.id === id)
-    if (!r) return {}
-    return {
-      reservas: state.reservas.map(x => x.id !== id ? x : {
-        ...x,
-        fecha: cambios.fecha ?? x.fecha,
-        hora: cambios.hora ?? x.hora,
-        personas: cambios.personas ?? x.personas,
-        zona: cambios.zona ?? x.zona,
-        nombre: (cambios.nombre ?? x.nombre),
-        email: (cambios.email ?? x.email),
-        telefono: (cambios.telefono ?? x.telefono),
-        notas: (cambios.notas ?? x.notas),
-        mesaId: null,
-      }),
-      mesas: state.mesas.map(m => (m.id === r.mesaId && m.estado === 'reservada') ? { ...m, estado: 'libre', reserva: null } : m),
-    }
-  }),
+  actualizarReserva: (id, cambios) => {
+    const st = get()
+    const r0 = st.reservas.find(x => x.id === id)
+    if (!r0) { avisar('La reserva ya no existe', 'error'); return null }
+    // al cambiar fecha, hora o personas hay que volver a mirar si cabe
+    const propuesta = { ...r0, ...cambios, personas: Math.max(1, Number(cambios.personas ?? r0.personas) || 1) }
+    const motivo = motivoNoReservable(st, propuesta, id)
+    if (motivo) { avisar(motivo, 'error'); return null }
+    actualizarReservaSinValidar(set, id, cambios)
+    return id
+  },
+
 
   // Actualiza la configuración de disponibilidad de reservas.
   updateReservasConfig: (cambios) => set(state => ({
@@ -982,6 +992,13 @@ export const useStore = create(persist((set, get) => ({
   // Deja la carta sin productos (para empezar de cero desde el onboarding);
   // conserva categorías, formatos, extras y etiquetas.
   vaciarCarta: () => set(state => ({ carta: { ...state.carta, productos: [] } })),
+
+  // Restaura la carta de ejemplo. Antes solo existía en el backend real: en la
+  // demo el botón no hacía NADA y aun así decía «carta de ejemplo creada».
+  sembrarCarta: () => {
+    set(() => ({ carta: structuredClone(CARTA_EJEMPLO) }))
+    return { ok: true, productos: CARTA_EJEMPLO.productos.length }
+  },
 
   addMesa: () => set(state => {
     const maxNum = state.mesas.reduce((mx, x) => Math.max(mx, x.numero), 0)
@@ -1201,6 +1218,41 @@ export function ocupacionEn(reservas, config, fecha, hora, zona, excluirId) {
     .filter(r => !zona || r.zona === zona)
     .filter(r => { const ri = minDe(r.hora), rf = ri + dur; return ri < fin && rf > ini })
     .reduce((s, r) => s + (Number(r.personas) || 0), 0)
+}
+
+// Por qué NO se puede reservar (null = se puede). Se usa al crear y al editar.
+function motivoNoReservable(st, datos, excluirId) {
+  const cfg = st.reservasConfig
+  if (!datos.fecha || !datos.hora) return 'Falta la fecha o la hora'
+  if (diaCerrado(cfg, datos.fecha)) return 'Ese día el local está cerrado'
+  const personas = Math.max(1, Number(datos.personas) || 1)
+  if (!slotDisponible(cfg, st.mesas, st.reservas, datos.fecha, datos.hora, personas, datos.zona, excluirId)) {
+    return 'Ese hueco acaba de llenarse. Elige otra hora, por favor'
+  }
+  return null
+}
+
+// El cambio en sí, ya validado (la validación vive en `actualizarReserva`).
+function actualizarReservaSinValidar(set, id, cambios) {
+  set(state => {
+    const r = state.reservas.find(x => x.id === id)
+    if (!r) return {}
+    return {
+      reservas: state.reservas.map(x => x.id !== id ? x : {
+        ...x,
+        fecha: cambios.fecha ?? x.fecha,
+        hora: cambios.hora ?? x.hora,
+        personas: Math.max(1, Number(cambios.personas ?? x.personas) || 1),
+        zona: cambios.zona ?? x.zona,
+        nombre: (cambios.nombre ?? x.nombre),
+        email: (cambios.email ?? x.email),
+        telefono: (cambios.telefono ?? x.telefono),
+        notas: (cambios.notas ?? x.notas),
+        mesaId: null,
+      }),
+      mesas: state.mesas.map(m => (m.id === r.mesaId && m.estado === 'reservada') ? { ...m, estado: 'libre', reserva: null } : m),
+    }
+  })
 }
 
 // ¿Caben `personas` en ese slot?
