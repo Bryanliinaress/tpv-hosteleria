@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { aforoTotal, aforoZona, ocupacionEn, slotDisponible, generarSlots, diaCerrado } from './useStore'
+import { aforoTotal, aforoZona, ocupacionEn, slotDisponible, generarSlots, diaCerrado, mesasCandidatas } from './useStore'
 
 // ────────────────────────────────────────────────────────────────────────────
 // Reservas: aquí un fallo se paga con gente de pie en la puerta un sábado.
@@ -170,5 +170,49 @@ describe('editar y cancelar', () => {
     expect(st().crearReserva({ fecha: manana(), hora: '13:00', personas: 2, nombre: 'Otro' })).toBeNull()
     st().cambiarEstadoReserva(id, 'cancelada')
     expect(st().crearReserva({ fecha: manana(), hora: '13:00', personas: 2, nombre: 'Otro' })).toBeTruthy()
+  })
+})
+
+describe('sugerir mesa para una reserva', () => {
+  const SALA = [
+    { id: 'm1', numero: 1, capacidad: 2, zona: 'Terraza', estado: 'libre' },
+    { id: 'm2', numero: 2, capacidad: 6, zona: 'Interior', estado: 'libre' },
+    { id: 'm3', numero: 3, capacidad: 8, zona: 'Terraza', estado: 'libre' },
+    { id: 'm4', numero: 4, capacidad: 6, zona: 'Terraza', estado: 'ocupada' },
+  ]
+
+  it('una mesa donde CABEN va antes que una de su zona donde no caben', () => {
+    // 6 personas que piden terraza: la de 2 de terraza no vale, por bonita que sea
+    const orden = mesasCandidatas(SALA, { personas: 6, zona: 'Terraza' }).map(m => m.numero)
+    expect(orden[0]).toBe(3)          // terraza y caben
+    expect(orden.indexOf(2)).toBeLessThan(orden.indexOf(1))  // interior de 6 antes que terraza de 2
+  })
+
+  it('entre las que caben, primero la de su zona', () => {
+    const orden = mesasCandidatas(SALA, { personas: 2, zona: 'Interior' }).map(m => m.numero)
+    expect(orden[0]).toBe(2)          // interior, aunque sobre sitio
+  })
+
+  it('entre las que caben en la zona, la más justa', () => {
+    const sala = [
+      { id: 'a', numero: 1, capacidad: 8, zona: 'Terraza', estado: 'libre' },
+      { id: 'b', numero: 2, capacidad: 4, zona: 'Terraza', estado: 'libre' },
+    ]
+    expect(mesasCandidatas(sala, { personas: 3, zona: 'Terraza' })[0].numero).toBe(2)
+  })
+
+  it('no ofrece mesas ocupadas, pero sí la ya asignada', () => {
+    expect(mesasCandidatas(SALA, { personas: 4 }).map(m => m.id)).not.toContain('m4')
+    expect(mesasCandidatas(SALA, { personas: 4, mesaId: 'm4' }).map(m => m.id)).toContain('m4')
+  })
+
+  it('sin preferencia de zona, no penaliza a nadie por zona', () => {
+    const orden = mesasCandidatas(SALA, { personas: 6, zona: '' }).map(m => m.numero)
+    expect(orden[0]).toBe(2)          // la de 6, la más justa
+  })
+
+  it('aguanta una sala vacía', () => {
+    expect(mesasCandidatas([], { personas: 2 })).toEqual([])
+    expect(mesasCandidatas(undefined, { personas: 2 })).toEqual([])
   })
 })
