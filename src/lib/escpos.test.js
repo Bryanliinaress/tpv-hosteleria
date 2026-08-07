@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { codificar, crearTicket, comandaESCPOS, ticketESCPOS } from './escpos'
+import { codificar, crearTicket, comandaESCPOS, ticketESCPOS, abrirCajonESCPOS } from './escpos'
 
 const bytesDe = (u8) => Array.from(u8)
 const texto = (u8) => bytesDe(u8).map(b => (b >= 32 && b < 127 ? String.fromCharCode(b) : '·')).join('')
@@ -103,5 +103,132 @@ describe('documentos del TPV', () => {
   it('sin registro fiscal no se inventa ningún QR de la AEAT', () => {
     const t = texto(ticketESCPOS({ local: {}, mesa: { numero: 1 }, lineas: [], total: 5 }))
     expect(t).not.toContain('VERI*FACTU')
+  })
+})
+
+// Quita las secuencias de control ESC/POS y deja solo lo que se imprime en el
+// papel, que es lo que queremos medir.
+const soloTexto = (bytes) => {
+  const a = [...bytes]
+  const out = []
+  for (let i = 0; i < a.length; i++) {
+    const b = a[i]
+    if (b === 0x1b) {                        // ESC …
+      const c = a[i + 1]
+      if (c === 0x40) { i += 1; continue }                     // ESC @
+      if ([0x74, 0x45, 0x61, 0x2d, 0x70].includes(c)) { i += (c === 0x70 ? 4 : 2); continue }
+      i += 1; continue
+    }
+    if (b === 0x1d) {                        // GS …
+      const c = a[i + 1]
+      if (c === 0x21) { i += 2; continue }                     // GS ! n
+      if (c === 0x56) { i += 3; continue }                     // GS V m n
+      i += 1; continue
+    }
+    out.push(b)
+  }
+  return Buffer.from(out).toString('latin1')
+}
+
+describe('anchura según el tamaño de letra', () => {
+  const texto = soloTexto
+
+  it('en tamaño doble, la fila se ajusta a la mitad de columnas', () => {
+    // 48 columnas normales → 24 en doble ancho. Si no se tiene en cuenta, la
+    // línea del TOTAL se parte en dos en el papel.
+    const t = crearTicket().tamano(2, 2).fila('TOTAL', '12.50 EUR')
+    const linea = texto(t.bytes()).split('\n')[0]
+    expect(linea.length).toBe(24)
+    expect(linea.startsWith('TOTAL')).toBe(true)
+    expect(linea.endsWith('12.50 EUR')).toBe(true)
+  })
+
+  it('en tamaño normal sigue usando las 48', () => {
+    const t = crearTicket().fila('Base imponible', '10.00')
+    const linea = texto(t.bytes()).split('\n')[0]
+    expect(linea.length).toBe(48)
+  })
+
+  it('el separador también se adapta', () => {
+    const doble = texto(crearTicket().tamano(2, 1).separador().bytes()).split('\n')[0]
+    expect(doble.length).toBe(24)
+  })
+
+  it('volver a tamaño normal restaura el ancho', () => {
+    const t = crearTicket().tamano(2, 2).fila('A', 'B').tamano(1, 1).fila('C', 'D')
+    const lineas = texto(t.bytes()).split('\n').map(l => l)
+    expect(lineas[0].length).toBe(24)
+    expect(lineas[1].length).toBe(48)
+  })
+
+  it('el TOTAL del ticket real cabe en su línea', () => {
+    const bytes = ticketESCPOS({
+      local: { nombre: 'Bar Manolo', ivaPct: 10, moneda: 'EUR' },
+      mesa: { numero: 3 }, total: 12.5, comensales: 1,
+      lineas: [{ nombre: 'Mixto', cantidad: 2, precio: 2.5 }],
+    })
+    const linea = texto(bytes).split('\n').find(l => l.includes('TOTAL'))
+    expect(linea.length).toBeLessThanOrEqual(24)
+  })
+})
+
+describe('cajón portamonedas', () => {
+  const CAJON = [0x1b, 0x70, 0x00, 0x19, 0xfa]
+  const contiene = (bytes, seq) => {
+    const a = [...bytes]
+    return a.some((_, i) => seq.every((v, j) => a[i + j] === v))
+  }
+
+  it('cobrando en EFECTIVO, el ticket abre el cajón', () => {
+    const bytes = ticketESCPOS({ local: {}, mesa: { numero: 1 }, total: 5, lineas: [], abrirCajon: true })
+    expect(contiene(bytes, CAJON)).toBe(true)
+  })
+
+  it('cobrando con tarjeta NO se abre (no entra dinero físico)', () => {
+    const bytes = ticketESCPOS({ local: {}, mesa: { numero: 1 }, total: 5, lineas: [], abrirCajon: false })
+    expect(contiene(bytes, CAJON)).toBe(false)
+  })
+
+  it('se abre DESPUÉS de cortar: primero sale el ticket', () => {
+    const bytes = [...ticketESCPOS({ local: {}, mesa: { numero: 1 }, total: 5, lineas: [], abrirCajon: true })]
+    const corte = bytes.findIndex((b, i) => b === 0x1d && bytes[i + 1] === 0x56)
+    const cajon = bytes.findIndex((b, i) => b === 0x1b && bytes[i + 1] === 0x70)
+    expect(corte).toBeGreaterThan(-1)
+    expect(cajon).toBeGreaterThan(corte)
+  })
+
+  it('el botón manual manda solo la apertura', () => {
+    expect(contiene(abrirCajonESCPOS(), CAJON)).toBe(true)
+  })
+})
+
+describe('acentos y alineación', () => {
+  it('cada carácter acentuado ocupa UN byte (si no, se descuadran las columnas)', () => {
+    expect(codificar('Café')).toEqual([67, 97, 102, 130])
+    expect(codificar('ñ')).toEqual([164])
+    expect(codificar('€')).toEqual([213])
+    expect(codificar('¿Qué?')).toHaveLength(5)
+  })
+
+  it('una línea con acentos mide lo mismo que una sin ellos', () => {
+    const con = crearTicket().columnas('CAFÉ CON LECHE', 3, '1.40', '4.20').bytes()
+    const sin = crearTicket().columnas('CAFE CON LECHE', 3, '1.40', '4.20').bytes()
+    expect(con.length).toBe(sin.length)
+    expect(con.length).toBe(49)                  // 48 columnas + salto de línea
+  })
+
+  it('lo que no está en la tabla se transcribe sin tilde, no a basura', () => {
+    expect(codificar('Ŵ')).toEqual([87])         // W
+    expect(String.fromCharCode(...codificar('piñón'))).toHaveLength(5)
+  })
+
+  it('un emoji en el nombre no rompe el ticket', () => {
+    const bytes = codificar('Café 🍺')
+    expect(bytes.every(b => b >= 0 && b <= 255)).toBe(true)
+  })
+
+  it('la página de códigos es CP858 (la que trae € y ñ)', () => {
+    const init = [...crearTicket().init().bytes()]
+    expect(init).toEqual([0x1b, 0x40, 0x1b, 0x74, 19])
   })
 })

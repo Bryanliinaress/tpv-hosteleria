@@ -44,6 +44,11 @@ export function codificar(texto) {
 export function crearTicket({ ancho = 48 } = {}) {
   const bytes = []
   const push = (...b) => { bytes.push(...b.flat()) }
+  // En tamaño doble caben la MITAD de caracteres por línea. Sin tenerlo en
+  // cuenta, la fila del TOTAL se rellenaba a 48 y se partía en dos justo en la
+  // línea más importante del ticket.
+  let escala = 1
+  const columnasUtiles = () => Math.max(8, Math.floor(ancho / escala))
   const api = {
     // ESC @ — deja la impresora en un estado conocido y fija la página CP858
     init() { push(ESC, 0x40, ESC, 0x74, 19); return api },
@@ -56,14 +61,17 @@ export function crearTicket({ ancho = 48 } = {}) {
     subrayado(on = true) { push(ESC, 0x2d, on ? 1 : 0); return api },
     // 1 = normal, 2 = doble, 3 = triple…
     tamano(anchoX = 1, altoX = 1) {
-      const n = ((Math.min(anchoX, 8) - 1) << 4) | (Math.min(altoX, 8) - 1)
+      escala = Math.min(Math.max(1, anchoX), 8)
+      const n = ((escala - 1) << 4) | (Math.min(altoX, 8) - 1)
       push(GS, 0x21, n); return api
     },
-    separador(ch = '-') { return api.linea(ch.repeat(ancho)) },
+    // Cuántos caracteres caben AHORA MISMO en una línea (según el tamaño)
+    columnasUtiles,
+    separador(ch = '-') { return api.linea(ch.repeat(columnasUtiles())) },
     // Fila con etiqueta a la izquierda e importe a la derecha, alineado
     fila(izq, der) {
       const i = String(izq), d = String(der)
-      const hueco = Math.max(1, ancho - i.length - d.length)
+      const hueco = Math.max(1, columnasUtiles() - i.length - d.length)
       return api.linea(i + ' '.repeat(hueco) + d)
     },
     // Fila de 4 columnas (descripción, uds, precio, importe)
@@ -71,7 +79,7 @@ export function crearTicket({ ancho = 48 } = {}) {
       const c4 = String(importe).padStart(8)
       const c3 = String(precio).padStart(8)
       const c2 = String(uds).padStart(4)
-      const restante = ancho - 20
+      const restante = Math.max(6, columnasUtiles() - 20)
       const d = String(desc).slice(0, restante).padEnd(restante)
       return api.linea(d + c2 + c3 + c4)
     },
@@ -116,7 +124,7 @@ export function comandaESCPOS({ mesa, destino = 'COCINA', lineas = [], hora = ne
 
 // Ticket de cuenta con todos los datos fiscales y el QR de Veri*Factu.
 export function ticketESCPOS({ local = {}, mesa, lineas = [], total, propina = 0,
-  comensales = 1, pagado = false, fiscal = null, fecha = new Date() }) {
+  comensales = 1, pagado = false, fiscal = null, fecha = new Date(), abrirCajon = false }) {
   const ivaPct = Number(local.ivaPct ?? 10)
   const base = Number(total) / (1 + ivaPct / 100)
   const t = crearTicket().init()
@@ -161,5 +169,15 @@ export function ticketESCPOS({ local = {}, mesa, lineas = [], total, propina = 0
   }
 
   t.salto().linea(local.pieTicket || 'Gracias por su visita!')
-  return t.cortar().bytes()
+  t.cortar()
+  // El cajón se abre al cobrar en EFECTIVO, después de cortar (así el ticket
+  // ya ha salido cuando el camarero mete el dinero).
+  if (abrirCajon) t.abrirCajon()
+  return t.bytes()
+}
+
+// Solo los bytes de apertura del cajón: para el botón manual de Ajustes y para
+// abrirlo al cobrar sin necesidad de reimprimir el ticket.
+export function abrirCajonESCPOS() {
+  return crearTicket().init().abrirCajon().bytes()
 }

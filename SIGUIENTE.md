@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.54.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.55.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-05. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**265 tests**, lint limpio, CI y deploy en verde.
+**279 tests**, lint limpio, CI y deploy en verde.
 
 ## Auditoría del dinero (v0.51.0)
 
@@ -138,6 +138,26 @@ impresora era una por DISPOSITIVO, así que hacía falta un PC por estación.
   (`\\localhost\Cocina`) y el puente les manda los bytes en crudo (`copy /b`),
   sin pasar por el driver, que convertiría el ESC/POS en basura.
 - Manual completo con los tres montajes: [docs/IMPRESION.md](docs/IMPRESION.md).
+
+## Auditoría del ESC/POS antes de tener la impresora (v0.55.0)
+
+Repaso byte a byte contra la especificación, para no perder la sesión de
+pruebas con la impresora depurando lo evidente. Dos fallos:
+
+12. **El TOTAL se partía en dos líneas.** `fila()` rellenaba a 48 columnas
+    estando en tamaño DOBLE, donde solo caben 24: la línea más importante del
+    ticket habría salido rota y descuadrada. El generador conoce ya la escala.
+13. **El cajón portamonedas no se abría nunca.** `abrirCajon()` estaba escrito
+    y probado, pero **no lo llamaba nadie**: era código muerto y la función
+    figuraba como hecha. Ahora se abre al cobrar en **efectivo o mixto** (nunca
+    con tarjeta), después de cortar, y hay un botón manual en Ajustes.
+
+**Comprobado y correcto** (no tocado): página de códigos CP858 (`ESC t 19`),
+comandos de QR nativo, corte parcial `GS V 66`, pulso del cajón, y que cada
+acento ocupa un byte — si no, las columnas se descuadrarían.
+
+Hay un simulador de papel en el scratchpad que dibuja el ticket como saldría;
+útil si hay que volver a tocar el formato.
 
 ## Pendiente — y de quién depende
 
