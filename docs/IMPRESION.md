@@ -38,6 +38,44 @@ Admin → Ajustes → Impresión → **Puente de red**. Comprueba con
 Ventajas: una sola impresora sirve a varias tablets/PDAs, y no depende de que
 ese navegador tenga permisos USB.
 
+### Varias impresoras: cocina, barra y caja
+
+Lo normal en un restaurante montado: las comandas de comida salen por la
+impresora de cocina, las de bebida por la de barra, y el ticket del cliente por
+la de caja. Se declara una impresora por destino:
+
+```bash
+IMPRESORA_COCINA=192.168.1.50 IMPRESORA_BARRA=192.168.1.51 IMPRESORA_CAJA=192.168.1.52   node scripts/puente-impresion.mjs
+```
+
+La app manda el destino en cada impresión; el puente decide la máquina. Un
+destino sin impresora configurada cae en `IMPRESORA` (o en la primera que haya):
+**nunca se pierde una comanda por un destino sin declarar**.
+
+### Dos impresoras USB en el MISMO PC
+
+Es el montaje típico de un bar pequeño: las dos térmicas enchufadas al ordenador
+de la barra. Se comparten en Windows (clic derecho sobre la impresora →
+Propiedades → Compartir → nombre corto y sin espacios) y se declaran por nombre:
+
+```bash
+IMPRESORA_COCINA="\\localhost\Cocina" IMPRESORA_BARRA="\\localhost\Barra" node scripts/puente-impresion.mjs
+```
+
+El puente les manda los bytes **en crudo** (`copy /b`), sin pasar por el driver:
+si pasaran por él, los comandos ESC/POS se convertirían en texto y saldría
+basura en vez del ticket.
+
+### Para probar con UNA sola impresora
+
+No hace falta comprar dos para validar el reparto: apunta los dos destinos a la
+misma máquina y verás salir por ella las comandas de cocina y las de barra, cada
+una con su cabecera.
+
+```bash
+IMPRESORA_COCINA=192.168.1.50 IMPRESORA_BARRA=192.168.1.50   node scripts/puente-impresion.mjs
+```
+
 ## Opción 3 · Diálogo del navegador (lo de siempre)
 
 Sigue disponible y **es el modo por defecto**. Además funciona como red de
