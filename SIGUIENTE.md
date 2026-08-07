@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.53.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.54.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-05. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**256 tests**, lint limpio, CI y deploy en verde.
+**265 tests**, lint limpio, CI y deploy en verde.
 
 ## Auditoría del dinero (v0.51.0)
 
@@ -124,6 +124,20 @@ Cuatro fallos más, fuera del cobro:
   reconfigura la sala con gente sentada, PIN de 4 dígitos y único.
 - **Descuentos e invitaciones**: ticket a 0 sin dinero en caja, y un descuento
   mayor que la cuenta no genera importes negativos.
+
+## Impresión con varias impresoras (v0.54.0)
+
+El montaje real de un bar: comandas de comida a la impresora de **cocina**, las
+de bebida a la de **barra**, y el ticket del cliente a la de **caja**. Antes la
+impresora era una por DISPOSITIVO, así que hacía falta un PC por estación.
+
+- La app manda el **destino** en cada impresión; el puente elige la máquina.
+- `IMPRESORA_COCINA`, `IMPRESORA_BARRA`, `IMPRESORA_CAJA` en el puente. Un
+  destino sin declarar cae en la de defecto: nunca se pierde una comanda.
+- **Dos impresoras USB en el mismo PC**: se comparten en Windows
+  (`\\localhost\Cocina`) y el puente les manda los bytes en crudo (`copy /b`),
+  sin pasar por el driver, que convertiría el ESC/POS en basura.
+- Manual completo con los tres montajes: [docs/IMPRESION.md](docs/IMPRESION.md).
 
 ## Pendiente — y de quién depende
 
