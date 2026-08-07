@@ -60,7 +60,8 @@ export default function PrintStation() {
           destino: estacion === 'barra' ? 'BARRA' : 'COCINA',
           lineas: actual.items.map(i => ({ cantidad: i.cantidad, nombre: i.nombre, nota: i.nota, persona: i.personaNombre })),
         })
-        imprimirESCPOS(bytes, { alternativa: () => { try { window.print() } catch { /* noop */ } } })
+        // el destino le dice al puente por cuál de las impresoras sacarlo
+        imprimirESCPOS(bytes, { destino: estacion === 'barra' ? 'barra' : 'cocina', alternativa: () => { try { window.print() } catch { /* noop */ } } })
       }
       setTimeout(() => { setCola(c => c.slice(1)); imprimiendo.current = false }, 700)
     }, 250)

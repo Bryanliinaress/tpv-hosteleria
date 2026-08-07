@@ -69,10 +69,15 @@ async function imprimirUSB(bytes) {
 
 // ── Puente local (para impresoras de red) ───────────────────────────────────
 
-async function imprimirPuente(bytes) {
+// `destino` ('cocina' | 'barra' | 'caja') le dice al puente POR CUÁL de las
+// impresoras del local tiene que sacarlo. Así un solo PC con dos impresoras
+// manda las comandas de cocina a una y las de barra a otra. Si el puente no
+// tiene esa impresora configurada, usa la suya por defecto.
+async function imprimirPuente(bytes, destino) {
   const { puenteUrl } = config()
   if (!puenteUrl) throw new Error('Falta la dirección del puente de impresión')
-  const res = await fetch(puenteUrl.replace(/\/$/, '') + '/imprimir', {
+  const url = puenteUrl.replace(/\/$/, '') + '/imprimir' + (destino ? `?destino=${encodeURIComponent(destino)}` : '')
+  const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/octet-stream' },
     body: bytes,
@@ -84,11 +89,11 @@ async function imprimirPuente(bytes) {
 
 // Imprime bytes ESC/POS. Si falla el camino elegido, avisa y cae al navegador
 // para no dejar al camarero sin comanda.
-export async function imprimirESCPOS(bytes, { alternativa } = {}) {
+export async function imprimirESCPOS(bytes, { alternativa, destino } = {}) {
   const { modo } = config()
   try {
     if (modo === 'usb') { await imprimirUSB(bytes); return { via: 'usb' } }
-    if (modo === 'puente') { await imprimirPuente(bytes); return { via: 'puente' } }
+    if (modo === 'puente') { await imprimirPuente(bytes, destino); return { via: 'puente' } }
   } catch (e) {
     console.warn('impresión ESC/POS:', e)
     toast(`No se pudo imprimir: ${e.message}`, 'error')
