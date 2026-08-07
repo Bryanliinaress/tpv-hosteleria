@@ -189,7 +189,9 @@ async function imprimir({ tipo, mesa, persona, local, fiscal }) {
       fiscal,
     })
   }
-  await imprimirESCPOS(bytes, { alternativa: () => window.print() })
+  // comanda → cocina/barra; cuenta → la impresora de caja
+  const destino = tipo === 'comanda' ? 'cocina' : 'caja'
+  await imprimirESCPOS(bytes, { destino, alternativa: () => window.print() })
 }
 
 export default function Ticket({ tipo, mesa, persona, onClose, fiscal }) {
