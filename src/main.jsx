@@ -5,9 +5,13 @@ import App from './App.jsx'
 import { initSync } from './lib/sync'
 import { backendV2, initV2 } from './lib/v2'
 import { aplicarMarca } from './lib/perfil'
+import { registrarActualizaciones } from './lib/actualizaciones'
 
 // Colores del local (si esta instalación se compiló con LOCAL=<slug>)
 aplicarMarca()
+
+// Vigila si hay versión nueva: un TPV abierto toda la semana no se enteraba
+registrarActualizaciones()
 
 // Arranque de datos: backend multi-tenant (v2, tablas+RPC) si está activado,
 // o la sincronización clásica del blob (demo) si no.

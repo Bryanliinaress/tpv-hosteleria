@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.57.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.58.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-05. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**310 tests**, lint limpio, CI y deploy en verde.
+**313 tests**, lint limpio, CI y deploy en verde.
 
 ## Auditoría del dinero (v0.51.0)
 
@@ -197,6 +197,74 @@ discrepancias: el contrato cliente↔servidor es correcto.
     grupo de 6 se le ofrecía antes una mesa de 2 en su zona preferida que una de
     6 en otra. Ahora manda el tamaño (la zona es preferencia) y, entre las que
     caben, la más justa.
+
+## Aviso de versión nueva (v0.58.0)
+
+20. **Un TPV abierto toda la semana no se enteraba de las actualizaciones.** El
+    service worker solo comprobaba si había versión nueva al CARGAR la página,
+    así que un arreglo desplegado el martes podía no llegar nunca al bar.
+    Ahora se pregunta **cada 30 minutos** y, cuando hay versión, sale un aviso
+    «✨ Hay una versión nueva · Actualizar».
+    Se cambió a modo `prompt` a propósito: **recargar solo en mitad de una
+    comanda es peor que esperar**, así que decide el personal cuándo.
+
+## 🔴 EMPEZAR POR AQUÍ: el menú del día NO se puede pedir desde la PDA
+
+**Fallo 21, encontrado y NO arreglado** (se dejó a medias y se revirtió para no
+dejar código roto). Es el primer trabajo de la próxima sesión.
+
+**El problema.** En `src/pages/pda/PedirPda.jsx`, la hoja de personalización
+decide qué enseñar con `const esMont = !!prod.precios`. Un menú del día
+**también** tiene `precios` (`{ base: 12 }`), así que entra por esa rama y el
+camarero ve **pan y formatos** en lugar de los grupos del menú (primero,
+segundo, postre). Resultado: la línea llega a cocina **sin las elecciones**, y
+allí no saben qué preparar. En un bar con menú al mediodía, eso es el 80% del
+servicio.
+
+La carta del cliente (QR) **sí** lo hace bien: `CartaCliente.jsx` usa `esMenu()`
+y guarda `elecciones` + el resumen en la nota. El fallo es solo de la PDA.
+
+**Cómo arreglarlo** (media hora, el patrón ya existe):
+1. `esMont = !!prod.precios && !esMenu(prod)` y `conOpciones = esMont || esMenu(prod)`.
+2. En la hoja, si `esMenu(pers.producto)`: pintar `producto.menu.grupos` con sus
+   opciones (usar `alternarOpcion`) en vez de formatos/tiposPan.
+3. Precio con `precioMenu(producto, elecciones)`.
+4. Bloquear «Añadir» con `menuCompleto()` y decir qué falta con
+   `siguientePendiente()`.
+5. Al confirmar, mandar `elecciones` y meter `resumenElecciones()` en la nota.
+6. Copiarlo de `CartaCliente.jsx` (líneas del bloque `esMenu(pers.producto)`),
+   que es exactamente esto ya resuelto.
+
+Conviene además **un test** de que un menú pedido desde la PDA llega a cocina
+con su primero y su segundo en la nota.
+
+## 🖨 EL LUNES: llegan las impresoras (dos, 80 mm)
+
+Todo el código está escrito y probado sin papel. Plan de la sesión:
+
+1. **Enchufar** las dos al router (o al PC si son USB).
+2. **Sacar su IP**: apagar, mantener FEED y encender → imprime un auto-test con
+   la dirección.
+3. **Levantar el puente** con una impresora por destino:
+   ```bash
+   IMPRESORA_COCINA=192.168.1.50 IMPRESORA_BARRA=192.168.1.51      node scripts/puente-impresion.mjs
+   ```
+   (si son USB en el mismo PC: compartirlas en Windows y usar
+   `IMPRESORA_COCINA="\\localhost\Cocina"`)
+4. **Admin → Ajustes → Impresión** → «Puente de red» + la dirección que imprime
+   el script.
+5. **Comprobar, en este orden**:
+   - `🧾 Imprimir ticket de prueba` → sale, corta y **el TOTAL cabe en su línea**
+   - `💶 Abrir cajón` → el cajón salta
+   - Pedido de comida desde la PDA → sale por **cocina**
+   - Pedido de bebida → sale por **barra**
+   - Cobrar en efectivo → ticket con **QR** y cajón abierto
+   - Mirar acentos y el € en el papel (CP858): «Café», «Ñ», «12 €»
+
+**Lo único que puede fallar y no he podido probar**: que la impresora genérica
+no implemente el QR nativo (`GS ( k`). Si el ticket sale perfecto pero **sin
+QR**, no es un fallo de formato: hay que dibujar el QR como imagen y mandarlo en
+mapa de bits. Está identificado y es un rato de trabajo.
 
 ## Pendiente — y de quién depende
 

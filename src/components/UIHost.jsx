@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useActualizacion } from '../lib/actualizaciones'
 import { useUI } from '../store/useUI'
 
 const TIPO = {
@@ -14,8 +15,29 @@ export default function UIHost() {
   const { toasts, cerrarToast, dialogo, responder } = useUI()
   const conexion = useUI(s => s.conexion)
   const pendientes = useUI(s => s.pendientes)
+  const hayNueva = useActualizacion(s => s.hayNueva)
+  const aplicar = useActualizacion(s => s.aplicar)
   return (
     <>
+      {/* Versión nueva disponible: se aplica cuando el personal quiera, no en
+          mitad de un pedido */}
+      {hayNueva && (
+        <div className="no-print anim-fade" style={{
+          position: 'fixed', top: '0.75rem', left: '50%', transform: 'translateX(-50%)', zIndex: 260,
+          display: 'flex', alignItems: 'center', gap: '0.6rem',
+          background: 'var(--tint-info-bg)', color: 'var(--tint-info-fg)',
+          border: '1px solid var(--color-info)', borderRadius: '9999px',
+          padding: '0.4rem 0.5rem 0.4rem 0.9rem', boxShadow: 'var(--shadow)',
+          fontSize: '0.85rem', fontWeight: 600, maxWidth: 'calc(100vw - 2rem)',
+        }}>
+          <span>✨ Hay una versión nueva</span>
+          <button onClick={aplicar} style={{
+            background: 'var(--color-info)', color: '#fff', border: 'none', borderRadius: '9999px',
+            padding: '0.4rem 0.9rem', minHeight: '36px', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem',
+          }}>Actualizar</button>
+        </div>
+      )}
+
       {/* Aviso de sincronización: solo visible si algo no se está guardando */}
       {conexion === 'sin-conexion' && (
         <div className="no-print anim-fade" style={{
