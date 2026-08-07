@@ -65,7 +65,9 @@ export default defineConfig(({ command }) => ({
     tailwindcss(),
     pluginMarca(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt' y no 'autoUpdate': recargar solo en mitad de una comanda es
+      // peor que esperar. El aviso lo da la app y decide el personal.
+      registerType: 'prompt',
       includeAssets: ['icon-192.png', 'icon-512.png'],
       manifest: {
         name: marca.nombre,
