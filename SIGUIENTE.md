@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.60.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.61.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-08. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**330 tests**, lint limpio, CI y deploy en verde.
+**331 tests**, lint limpio, CI y deploy en verde.
 
 ## Auditoría del dinero (v0.51.0)
 
@@ -224,19 +224,42 @@ línea del pedido viven **en un solo sitio** (`src/lib/menuDia.js`):
 Probado también en el navegador: menú con solomillo → cocina recibe
 «Primero: Sopa · Segundo: Solomillo · Postre: Flan» y 14,00 €.
 
-## 🔴 En la app REAL los cafés se cobraban a 0 € (v0.60.0)
+## En la app REAL, pedir un café pasaba por la hoja del pan (v0.60.0)
 
-22. **Todo producto de precio único valía 0,00 € en el backend v2.** La columna
-    `precios` es un mapa, así que un café se guarda como `{ base: 1.30 }` y
-    volvía tal cual al store. Las pantallas lo tomaban por un producto **con
-    formatos**: se abría la hoja del pan (vacía, porque ningún formato casa con
-    «base») y la línea se añadía a **0,00 €**. Afecta a cafés, refrescos,
-    cervezas… el grueso de los tickets de un bar, y **solo en la app real**
-    (`/app/`), que es justo donde no se había pedido todavía. En la demo (v1) no
-    pasa porque ahí el precio único se guarda en `precio`.
+22. **Todo producto de precio único parecía un producto con formatos.** La
+    columna `precios` del backend v2 es un mapa, así que un café se guarda como
+    `{ base: 1.30 }` y volvía tal cual al store. Las pantallas lo tomaban por un
+    producto **con formatos**: al pedirlo se abría la hoja del pan —vacía,
+    porque ningún formato casa con «base»— con el botón **«Añadir · 0,00 €»**, y
+    la línea salía con un pan inventado en la comanda («Pitufo · Normal» en un
+    café). En Admin, editar ese producto abría el formulario en modo formatos.
+    Ojo al alcance: **el ticket no se cobraba mal**, porque en v2 el precio lo
+    pone el servidor (ver fallo 23); lo que estaba mal era la pantalla, la
+    comanda y el formulario. Solo en `/app/`; en la demo (v1) no pasa.
     Arreglado en el **borde** (`preciosDeProducto` en `src/lib/v2/estado.js`):
     `base` → `precio`, que es el shape que documenta el store. De paso, editar
     solo el nombre de un café ya no le borra el precio.
+
+## 🔴 PENDIENTE DE APLICAR: los suplementos no se cobran en la app real
+
+23. **`qr_agregar_linea` cobraba solo el precio del producto.** Todo lo que la
+    app suma por encima se perdía en el backend real: el **tipo de pan** (sin
+    gluten, +1,20 €), los **extras** (+0,20 € cada uno) y el **suplemento del
+    menú** (solomillo, +2 €). El cliente ve 3,70 € en pantalla y el bar cobra
+    2,50 €. Con extras en media docena de comandas por servicio, es dinero
+    perdido todos los días — y en la demo (v1) no se ve, porque ahí el precio
+    lo calcula la propia app.
+
+    Está escrito en `supabase/migrations/20260808T11_suplementos.sql`: el precio
+    lo sigue calculando **el servidor** (si lo mandara el cliente, cualquiera
+    podría pedirse el menú a 0 €), pero ahora mira también la personalización y
+    contrasta cada suplemento con la carta del local y con los grupos del propio
+    producto. El cliente ya manda las `elecciones` del menú, que hacían falta
+    para cobrar el suplemento.
+
+    ⚠️ **Falta aplicarla** (necesita el token de Supabase, igual que la 10) y
+    comprobar contra la BBDD: bocadillo sin gluten con queso, y menú con
+    solomillo. Hasta entonces, el fallo sigue vivo en `/app/`.
 
 ## 🖨 EL LUNES: llegan las impresoras (dos, 80 mm)
 
@@ -269,8 +292,9 @@ mapa de bits. Está identificado y es un rato de trabajo.
 ## Pendiente — y de quién depende
 
 ### De Bryan (sin esto no se avanza)
-1. **Aplicar la migración 10** (`20260804T10_pagos_online.sql`): hace falta un
-   token nuevo de Supabase. Es 1 minuto.
+1. **Aplicar las migraciones 10 y 11** (`20260804T10_pagos_online.sql` y
+   `20260808T11_suplementos.sql`, esta última **cobra los suplementos**, fallo
+   23): hace falta un token nuevo de Supabase. Es 1 minuto.
 2. **Impresora térmica 80 mm** (~60-100 €) para probar ESC/POS de verdad.
 3. **Cuenta de Stripe** real (+ activar Bizum) para el pago por QR.
 4. **NIF real en Verifacti** y pasar a su entorno de producción, cuando haya
