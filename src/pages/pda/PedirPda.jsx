@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useStore, TIEMPOS, normalizarExtra, etiquetasDe } from '../../store/useStore'
 import { pedirTexto } from '../../store/useUI'
 import { productosVisibles, descripcionUtil } from '../../lib/carta'
+import { esMenu, conFormatos, conOpciones, menuCompleto, siguientePendiente, precioMenu, lineaDeMenu, alternarOpcion } from '../../lib/menuDia'
 
 // Toma de pedidos desde la PDA del camarero, para un comensal de la mesa.
 export default function PedirPda({ mesaId, onClose }) {
@@ -29,9 +30,19 @@ export default function PedirPda({ mesaId, onClose }) {
   const etiquetas = etiquetasDe(carta)
   const extrasNorm = (carta.extras || []).map(normalizarExtra)
   const precioExtra = (nombre) => extrasNorm.find(x => x.nombre === nombre)?.precio || 0
-  const precioPers = pers ? ((pers.producto.precios[pers.formato] ?? 0) + (carta.tiposPan.find(t => t.id === pers.tipo)?.sup || 0) + pers.anadidos.reduce((s, n) => s + precioExtra(n), 0)) : 0
+  const precioPers = !pers ? 0 : esMenu(pers.producto)
+    ? precioMenu(pers.producto, pers.elecciones || [])
+    : ((pers.producto.precios?.[pers.formato] ?? 0) + (carta.tiposPan.find(t => t.id === pers.tipo)?.sup || 0) + pers.anadidos.reduce((s, n) => s + precioExtra(n), 0))
+  // un menú a medias no se manda: cocina no sabría qué preparar
+  const menuIncompleto = pers ? !menuCompleto(pers.producto, pers.elecciones || []) : false
+  const faltaGrupo = pers && menuIncompleto ? siguientePendiente(pers.producto, pers.elecciones || []) : null
   const toggleEn = (setKey, val) => setPers(s => { const a = s[setKey]; return { ...s, [setKey]: a.includes(val) ? a.filter(x => x !== val) : [...a, val] } })
   const confirmarPers = () => {
+    if (esMenu(pers.producto)) {
+      agregarItem(mesaId, persona.id, lineaDeMenu(pers.producto, pers.elecciones || [], pers.nota))
+      setPers(null)
+      return
+    }
     const fmt = carta.formatos.find(f => f.id === pers.formato)
     const tp = carta.tiposPan.find(t => t.id === pers.tipo)
     agregarItem(mesaId, persona.id, { productoId: pers.producto.id, nombre: pers.producto.nombre, precio: precioPers, tipo: pers.producto.tipo, pan: { formato: pers.formato, tipo: pers.tipo, nombreFormato: fmt.nombre, nombreTipo: tp.nombre }, quitados: pers.quitados, anadidos: pers.anadidos, nota: pers.nota.trim() })
@@ -80,15 +91,16 @@ export default function PedirPda({ mesaId, onClose }) {
           </p>
         )}
         {productos.map(prod => {
-          const esMont = !!prod.precios
+          const esMont = conFormatos(prod)
+          const abreHoja = conOpciones(prod)
           return (
             <div key={prod.id} style={{ ...card, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ flex: 1, marginRight: '0.5rem' }}>
                 <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{prod.nombre}</div>
                 {descripcionUtil(prod) && <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>{descripcionUtil(prod)}</div>}
-                <div style={{ fontWeight: 700, color: 'var(--color-accent)', fontSize: '0.85rem' }}>{esMont ? `desde ${Math.min(...Object.values(prod.precios || {}).map(Number)).toFixed(2)}` : prod.precio.toFixed(2)} €</div>
+                <div style={{ fontWeight: 700, color: 'var(--color-accent)', fontSize: '0.85rem' }}>{esMont ? `desde ${Math.min(...Object.values(prod.precios || {}).map(Number)).toFixed(2)}` : esMenu(prod) ? precioMenu(prod).toFixed(2) : (prod.precio ?? 0).toFixed(2)} €</div>
               </div>
-              <button onClick={() => esMont ? setPers({ producto: prod, formato: (carta.formatos.find(f => prod.precios[f.id] != null) || carta.formatos[0])?.id, tipo: carta.tiposPan[0]?.id, quitados: [], anadidos: [], nota: '' }) : agregarItem(mesaId, persona.id, { productoId: prod.id, nombre: prod.nombre, precio: prod.precio, tipo: prod.tipo })} aria-label={`Añadir ${prod.nombre}`} style={btn('var(--color-accent)', cuadrado)}>+</button>
+              <button onClick={() => abreHoja ? setPers({ producto: prod, formato: (carta.formatos.find(f => prod.precios?.[f.id] != null) || carta.formatos[0])?.id, tipo: carta.tiposPan[0]?.id, quitados: [], anadidos: [], nota: '', elecciones: [] }) : agregarItem(mesaId, persona.id, { productoId: prod.id, nombre: prod.nombre, precio: prod.precio, tipo: prod.tipo })} aria-label={`Añadir ${prod.nombre}`} style={btn('var(--color-accent)', cuadrado)}>+</button>
             </div>
           )
         })}
@@ -135,9 +147,38 @@ export default function PedirPda({ mesaId, onClose }) {
             </div>
             {/* cuerpo con scroll: el botón de añadir nunca se va de pantalla */}
             <div style={{ padding: '0.9rem 1.1rem', overflowY: 'auto', flex: 1, minHeight: 0 }}>
+            {/* Menú del día / combo: elegir de cada grupo (primero, segundo, postre) */}
+            {esMenu(pers.producto) && pers.producto.menu.grupos.map((g, gi) => {
+              const titulo = g.titulo || `Grupo ${gi + 1}`
+              const elegidas = (pers.elecciones || []).filter(e => e.grupo === titulo)
+              return (
+                <div key={gi} style={{ marginBottom: '0.7rem' }}>
+                  <p style={lbl}>
+                    {titulo}
+                    <span style={{ marginLeft: '0.4rem', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>
+                      {(g.max ?? 1) > 1 ? `(elige hasta ${g.max})` : ''}
+                      {elegidas.length === 0 && <span style={{ color: 'var(--tint-warning-fg)' }}> · elige uno</span>}
+                    </span>
+                  </p>
+                  <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                    {(g.opciones || []).map((o, oi) => {
+                      const sel = elegidas.some(e => e.opcion === o.nombre)
+                      return (
+                        <button key={oi} onClick={() => setPers(s => ({ ...s, elecciones: alternarOpcion({ ...g, titulo }, o, s.elecciones || []) }))}
+                          style={btn(sel ? 'var(--color-accent)' : 'var(--color-surface-2)', { fontSize: '0.82rem', padding: '0.5rem 0.75rem' })}>
+                          {o.nombre}{o.sup ? ` +${Number(o.sup).toFixed(2)} €` : ''}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
+
+            {!esMenu(pers.producto) && <>
             <p style={lbl}>{etiquetas.formatos}</p>
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.6rem', flexWrap: 'wrap' }}>
-              {carta.formatos.filter(f => pers.producto.precios[f.id] != null).map(f => (
+              {carta.formatos.filter(f => pers.producto.precios?.[f.id] != null).map(f => (
                 <button key={f.id} onClick={() => setPers(s => ({ ...s, formato: f.id }))} style={btn(pers.formato === f.id ? 'var(--color-accent)' : 'var(--color-surface-2)', { flex: 1, minWidth: '7rem', padding: '0.55rem' })}>{f.nombre} · {(pers.producto.precios[f.id] ?? 0).toFixed(2)}€</button>
               ))}
             </div>
@@ -147,7 +188,8 @@ export default function PedirPda({ mesaId, onClose }) {
                 <button key={t.id} onClick={() => setPers(s => ({ ...s, tipo: t.id }))} style={btn(pers.tipo === t.id ? '#7c3aed' : 'var(--color-surface-2)', { fontSize: '0.78rem', padding: '0.3rem 0.6rem' })}>{t.nombre}{t.sup > 0 ? ` +${t.sup.toFixed(2)}€` : ''}</button>
               ))}
             </div>
-            {pers.producto.ingredientes.length > 0 && (
+            </>}
+            {(pers.producto.ingredientes || []).length > 0 && (
               <>
                 <p style={lbl}>Lleva (toca para quitar)</p>
                 <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginBottom: '0.6rem' }}>
@@ -167,7 +209,10 @@ export default function PedirPda({ mesaId, onClose }) {
             </div>
             </div>
             <div style={{ padding: '0.85rem 1.1rem calc(0.85rem + env(safe-area-inset-bottom))', borderTop: '1px solid var(--color-border)' }}>
-              <button onClick={confirmarPers} style={btn('var(--color-accent)', { width: '100%', minHeight: `${TOQUE + 6}px`, fontSize: '0.95rem' })}>Añadir · {precioPers.toFixed(2)} €</button>
+              <button onClick={confirmarPers} disabled={menuIncompleto}
+                style={btn(menuIncompleto ? 'var(--color-surface-3)' : 'var(--color-accent)', { width: '100%', minHeight: `${TOQUE + 6}px`, fontSize: '0.95rem', cursor: menuIncompleto ? 'not-allowed' : 'pointer' })}>
+                {menuIncompleto ? `Elige ${faltaGrupo?.titulo || ''}` : `Añadir · ${precioPers.toFixed(2)} €`}
+              </button>
             </div>
           </div>
         </div>

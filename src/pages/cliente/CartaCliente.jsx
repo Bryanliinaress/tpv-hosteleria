@@ -6,7 +6,7 @@ import { syncListo } from '../../lib/sync'
 import { toast } from '../../store/useUI'
 import { useIdioma, tr } from '../../lib/i18n'
 import { useUnaVez } from '../../lib/unaVez'
-import { esMenu, menuCompleto, siguientePendiente, precioMenu, resumenElecciones, alternarOpcion } from '../../lib/menuDia'
+import { esMenu, conFormatos, conOpciones, lineaDeMenu, menuCompleto, siguientePendiente, precioMenu, alternarOpcion } from '../../lib/menuDia'
 import { productosVisibles, descripcionUtil, lineaSimplePendiente, unidades, configDeItem, ultimaRonda } from '../../lib/carta'
 import { construirRecibo, lineasDeConsumo, guardarRecibo, leerRecibo, olvidarRecibo, descargarRecibo, reciboReciente } from '../../lib/recibo'
 
@@ -553,13 +553,7 @@ export default function CartaCliente() {
     // En un menú lo que importa es QUÉ ha elegido el cliente: eso es lo que
     // cocina tiene que preparar, así que va en la nota de la comanda.
     if (esMenu(pers.producto)) {
-      const detalle = resumenElecciones(pers.elecciones || [])
-      anadirNVeces({
-        productoId: pers.producto.id, nombre: pers.producto.nombre,
-        precio: precioPers, tipo: pers.producto.tipo,
-        elecciones: pers.elecciones || [],
-        nota: [detalle, pers.nota.trim()].filter(Boolean).join(' · '),
-      })
+      anadirNVeces(lineaDeMenu(pers.producto, pers.elecciones || [], pers.nota))
       setPers(null)
       return
     }
@@ -642,11 +636,11 @@ export default function CartaCliente() {
           </div>
         )}
         {productosFiltrados.map(prod => {
-          const esMontadito = !!prod.precios
-          const conOpciones = esMontadito || esMenu(prod)
+          const esMontadito = conFormatos(prod)
+          const pideOpciones = conOpciones(prod)
           // Un producto simple pedido «tal cual» se puede subir y bajar desde la
           // propia tarjeta, sin pasar por el carrito.
-          const yaPedido = conOpciones ? null : lineaSimplePendiente(itemsPendientes, prod.id)
+          const yaPedido = pideOpciones ? null : lineaSimplePendiente(itemsPendientes, prod.id)
           return (
             <div key={prod.id} style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem' }}>
               {prod.imagen && <img src={prod.imagen} alt="" loading="lazy" onError={e => { e.currentTarget.style.display = 'none' }} style={{ width: '4rem', height: '4rem', objectFit: 'cover', borderRadius: '0.6rem', flexShrink: 0 }} />}
@@ -656,7 +650,7 @@ export default function CartaCliente() {
                   <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)', marginBottom: '0.25rem' }}>{descripcionUtil(prod)}</div>
                 )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <span style={{ fontWeight: 700, color: 'var(--color-accent)' }}>{esMontadito ? `${t('desde')} ${minPrecio(prod).toFixed(2)} €` : `${prod.precio.toFixed(2)} €`}</span>
+                  <span style={{ fontWeight: 700, color: 'var(--color-accent)' }}>{esMontadito ? `${t('desde')} ${minPrecio(prod).toFixed(2)} €` : esMenu(prod) ? `${precioMenu(prod).toFixed(2)} €` : `${(prod.precio ?? 0).toFixed(2)} €`}</span>
                   {(prod.alergenos || []).length > 0 && (
                     <span title={'Alérgenos: ' + prod.alergenos.map(a => ALERGENO_INFO[a]?.nombre || a).join(', ')} style={{ fontSize: '0.72rem', letterSpacing: '0.1em', opacity: 0.85 }}>
                       {prod.alergenos.map(a => ALERGENO_INFO[a]?.emoji || '•').join('')}
@@ -678,12 +672,12 @@ export default function CartaCliente() {
                     const persNueva = { producto: prod, formato: (carta.formatos.find(f => prod.precios?.[f.id] != null) || carta.formatos[0])?.id, tipo: carta.tiposPan[0]?.id, quitados: [], anadidos: [], nota: '', elecciones: [], uds: 1 }
                     const config = { productoId: prod.id, nombre: prod.nombre, precio: prod.precio, tipo: prod.tipo }
                     // sin nombre todavía: lo pedimos y luego seguimos solos
-                    if (ojeando) return setIntento(conOpciones ? { tipo: 'opciones', pers: persNueva } : { tipo: 'anadir', config })
-                    return conOpciones ? setPers(persNueva) : agregarItem(mesaId, personaActiva.id, config)
+                    if (ojeando) return setIntento(pideOpciones ? { tipo: 'opciones', pers: persNueva } : { tipo: 'anadir', config })
+                    return pideOpciones ? setPers(persNueva) : agregarItem(mesaId, personaActiva.id, config)
                   }}
                   style={btnStyle('var(--color-accent)', { padding: '0.5rem 0.9rem', minHeight: `${TOQUE}px`, whiteSpace: 'nowrap' })}
                 >
-                  {conOpciones ? t('Añadir') : t('+ Añadir')}
+                  {pideOpciones ? t('Añadir') : t('+ Añadir')}
                 </button>
               )}
             </div>
