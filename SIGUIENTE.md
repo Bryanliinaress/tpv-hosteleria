@@ -1,7 +1,7 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.58.0, todo desplegado, repo limpio y sincronizado.**
-Última sesión: 2026-08-05. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
+**Estado: v0.59.0, todo desplegado, repo limpio y sincronizado.**
+Última sesión: 2026-08-08. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
 
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**313 tests**, lint limpio, CI y deploy en verde.
+**324 tests**, lint limpio, CI y deploy en verde.
 
 ## Auditoría del dinero (v0.51.0)
 
@@ -208,35 +208,21 @@ discrepancias: el contrato cliente↔servidor es correcto.
     Se cambió a modo `prompt` a propósito: **recargar solo en mitad de una
     comanda es peor que esperar**, así que decide el personal cuándo.
 
-## 🔴 EMPEZAR POR AQUÍ: el menú del día NO se puede pedir desde la PDA
+## El menú del día ya se puede pedir desde la PDA (v0.59.0)
 
-**Fallo 21, encontrado y NO arreglado** (se dejó a medias y se revirtió para no
-dejar código roto). Es el primer trabajo de la próxima sesión.
+21. **El camarero no podía tomar un menú del día.** La hoja de la PDA decidía
+    qué enseñar con `!!prod.precios`, y un menú **también** los tiene
+    (`{ base: 12 }`): salían pan y formatos en vez de primero, segundo y
+    postre, y la comanda llegaba a cocina **sin las elecciones**. En un bar con
+    menú al mediodía, eso es el grueso del servicio.
+    Ahora la PDA pinta los grupos del menú, cobra los suplementos y **no deja
+    enviarlo a medias** («Elige Segundo» hasta que esté completo).
 
-**El problema.** En `src/pages/pda/PedirPda.jsx`, la hoja de personalización
-decide qué enseñar con `const esMont = !!prod.precios`. Un menú del día
-**también** tiene `precios` (`{ base: 12 }`), así que entra por esa rama y el
-camarero ve **pan y formatos** en lugar de los grupos del menú (primero,
-segundo, postre). Resultado: la línea llega a cocina **sin las elecciones**, y
-allí no saben qué preparar. En un bar con menú al mediodía, eso es el 80% del
-servicio.
-
-La carta del cliente (QR) **sí** lo hace bien: `CartaCliente.jsx` usa `esMenu()`
-y guarda `elecciones` + el resumen en la nota. El fallo es solo de la PDA.
-
-**Cómo arreglarlo** (media hora, el patrón ya existe):
-1. `esMont = !!prod.precios && !esMenu(prod)` y `conOpciones = esMont || esMenu(prod)`.
-2. En la hoja, si `esMenu(pers.producto)`: pintar `producto.menu.grupos` con sus
-   opciones (usar `alternarOpcion`) en vez de formatos/tiposPan.
-3. Precio con `precioMenu(producto, elecciones)`.
-4. Bloquear «Añadir» con `menuCompleto()` y decir qué falta con
-   `siguientePendiente()`.
-5. Al confirmar, mandar `elecciones` y meter `resumenElecciones()` en la nota.
-6. Copiarlo de `CartaCliente.jsx` (líneas del bloque `esMenu(pers.producto)`),
-   que es exactamente esto ya resuelto.
-
-Conviene además **un test** de que un menú pedido desde la PDA llega a cocina
-con su primero y su segundo en la nota.
+Para que no vuelvan a divergir la PDA y la carta del cliente, la decisión y la
+línea del pedido viven **en un solo sitio** (`src/lib/menuDia.js`):
+`conFormatos()`, `conOpciones()` y `lineaDeMenu()`. Las dos pantallas las usan.
+Probado también en el navegador: menú con solomillo → cocina recibe
+«Primero: Sopa · Segundo: Solomillo · Postre: Flan» y 14,00 €.
 
 ## 🖨 EL LUNES: llegan las impresoras (dos, 80 mm)
 

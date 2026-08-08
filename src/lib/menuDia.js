@@ -15,6 +15,13 @@ export const esMenu = (producto) => Array.isArray(producto?.menu?.grupos) && pro
 
 export const grupoVacio = (titulo = '') => ({ titulo, min: 1, max: 1, opciones: [] })
 
+// Un producto con `precios` se pide eligiendo formato (pan, tamaño)… salvo que
+// sea un menú, que TAMBIÉN los tiene (`{ base: 12 }`) y se pide eligiendo de
+// sus grupos. Confundirlos manda la comanda a cocina sin saber qué preparar.
+export const conFormatos = (producto) => !!producto?.precios && !esMenu(producto)
+// ¿Hace falta abrir la hoja de opciones antes de añadirlo al pedido?
+export const conOpciones = (producto) => conFormatos(producto) || esMenu(producto)
+
 // ¿La selección actual cumple lo que pide cada grupo?
 export function menuCompleto(producto, elecciones = []) {
   if (!esMenu(producto)) return true
@@ -43,6 +50,21 @@ export function precioMenu(producto, elecciones = [], base = null) {
 // Texto para la comanda de cocina: sin esto, el cocinero no sabe qué preparar.
 export function resumenElecciones(elecciones = []) {
   return elecciones.map(e => `${e.grupo}: ${e.opcion}`).join(' · ')
+}
+
+// La línea que se manda al pedido cuando se pide un menú. Vale igual para la
+// carta del cliente y para la PDA del camarero: el precio lleva los
+// suplementos y las elecciones van en la NOTA, que es lo que lee cocina.
+export function lineaDeMenu(producto, elecciones = [], nota = '') {
+  const detalle = resumenElecciones(elecciones)
+  return {
+    productoId: producto.id,
+    nombre: producto.nombre,
+    precio: precioMenu(producto, elecciones),
+    tipo: producto.tipo,
+    elecciones,
+    nota: [detalle, (nota || '').trim()].filter(Boolean).join(' · '),
+  }
 }
 
 // Alterna una opción respetando el máximo del grupo (si max=1, sustituye).
