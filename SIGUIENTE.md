@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.61.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.62.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-08. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**331 tests**, lint limpio, CI y deploy en verde.
+**341 tests**, lint limpio, CI y deploy en verde.
 
 ## Auditoría del dinero (v0.51.0)
 
@@ -260,6 +260,49 @@ Probado también en el navegador: menú con solomillo → cocina recibe
     ⚠️ **Falta aplicarla** (necesita el token de Supabase, igual que la 10) y
     comprobar contra la BBDD: bocadillo sin gluten con queso, y menú con
     solomillo. Hasta entonces, el fallo sigue vivo en `/app/`.
+
+## Cosas de la app real que «se deshacían solas» (v0.62.0)
+
+El backend v2 sustituye las acciones del store **una por una**; la que no está
+en la lista se queda con la versión de la demo, que solo hace `setState`. Como
+la sala se rehidrata del servidor en cada evento, el cambio duraba segundos y
+luego volvía atrás, sin ningún error. Comparadas las 81 acciones del store con
+las 61 implementadas en v2, aparecieron cuatro huecos con pantalla propia:
+
+24. **Juntar mesas desde el Mostrador no llegaba al servidor.** Desde la PDA sí
+    (`fusionarMesa` → RPC), desde el Mostrador no (`agruparMesas`): la misma
+    operación, dos nombres, uno de ellos sin backend. Juntar dos mesas de 4 para
+    un grupo de 8 es de todos los días.
+25. **Mover un cliente de mesa** (`transferirComensal`) tampoco. Ahora se lleva
+    sus líneas y **sus comandas** —que cuelgan de la mesa: sin eso, cocina
+    seguiría cantando la mesa vieja— y libera la de origen si se queda vacía.
+26. **La zona y la capacidad de una mesa**, en Admin, se perdían. Además se
+    guardaban **en cada tecla**: en la app real eso era una escritura en la
+    BBDD por pulsación y el cursor saltaba al valor viejo al recargar la sala.
+    Ahora se guardan al salir del campo.
+27. **Los rótulos de la carta** (Pan / Tipo de pan / Extras, lo que una pizzería
+    llamaría Tamaño / Masa / Ingredientes) no se guardaban.
+
+Y dos más, del mismo repaso:
+
+28. **Un tipo de pan creado en la app real no cobraba su suplemento.** `addTipoPan`
+    guardaba la clave `suplemento` y toda la app (y el servidor al cobrar) lee
+    `sup`: el «sin gluten +1,20 €» ni se enseñaba ni se cobraba. Los que vienen
+    en la carta de ejemplo sí funcionan; solo fallaban los creados a mano.
+29. **«↺ Reiniciar datos» borraba el día sin preguntar.** Un clic de más en la
+    cabecera de Admin se llevaba mesas abiertas, tickets, fichajes y arqueo, sin
+    diálogo. Ahora confirma, y en la app real dice la verdad: allí solo vacía la
+    copia de **este dispositivo** y la vuelve a bajar del servidor.
+
+### ⚠️ Queda uno igual, y necesita servidor: compartir plato
+
+`toggleCompartir` (el cliente marca «este plato lo compartimos con Luis») **no
+existe en v2**. La columna `lineas_pedido.compartido_con` está creada pero no la
+escribe ni la lee nadie: en la app real el botón no hace nada y el reparto de la
+cuenta sale como si el plato fuera de uno solo — justo el fallo 1 de la auditoría
+del dinero, que en la demo sí está resuelto. Lo pide el **cliente anónimo**, así
+que hace falta un RPC (migración 12), no vale escribir la tabla desde el móvil.
+Mientras no esté: o se implementa, o ese botón no debería salir en `/app/`.
 
 ## 🖨 EL LUNES: llegan las impresoras (dos, 80 mm)
 
