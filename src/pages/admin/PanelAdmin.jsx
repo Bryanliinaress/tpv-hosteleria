@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { useStore, METODO_LABEL, METODO_EMOJI, ALERGENOS, normalizarExtra, etiquetasDe, ETIQUETAS_DEFECTO } from '../../store/useStore'
 import { confirmar, toast } from '../../store/useUI'
@@ -106,7 +106,20 @@ export default function PanelAdmin() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
           <TemaToggle compacto />
-          <button onClick={resetDatos} title="Borra todos los datos guardados y recarga" style={{ background: 'var(--color-surface-2)', color: 'var(--color-muted)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.875rem', cursor: 'pointer', fontSize: '0.8rem' }}>
+          <button onClick={async () => {
+            // Un clic de más borraba el día entero (mesas abiertas, tickets,
+            // fichajes y arqueo) sin preguntar nada.
+            const enServidor = import.meta.env.VITE_BACKEND === 'v2'
+            const ok = await confirmar({
+              titulo: 'Reiniciar datos',
+              mensaje: enServidor
+                ? 'Vacía la copia guardada en ESTE dispositivo y la vuelve a bajar del servidor. Los datos del local no se tocan.'
+                : 'Borra TODOS los datos de este dispositivo: mesas abiertas, tickets del día, fichajes y arqueo. No se puede deshacer.',
+              peligro: !enServidor,
+              confirmar: enServidor ? 'Recargar' : 'Borrar todo',
+            })
+            if (ok) resetDatos()
+          }} title={import.meta.env.VITE_BACKEND === 'v2' ? 'Vuelve a bajar los datos del servidor' : 'Borra los datos guardados en este dispositivo'} style={{ background: 'var(--color-surface-2)', color: 'var(--color-muted)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.875rem', cursor: 'pointer', fontSize: '0.8rem' }}>
             ↺ Reiniciar datos
           </button>
           <BotonSalir />
@@ -249,9 +262,9 @@ export default function PanelAdmin() {
                       <span style={{ fontSize: '0.7rem', fontWeight: 700, color: libre ? '#10b981' : '#f59e0b' }}>{libre ? 'Libre' : 'Ocupada'}</span>
                     </div>
                     <label style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Zona</label>
-                    <input value={m.zona || ''} onChange={e => updateMesa(m.id, { zona: e.target.value })} list="zonas-list" placeholder="Zona" style={{ ...inputStyle, marginBottom: '0.5rem' }} />
+                    <CampoMesa valor={m.zona || ''} onGuardar={v => updateMesa(m.id, { zona: v })} list="zonas-list" placeholder="Zona" style={{ ...inputStyle, marginBottom: '0.5rem' }} />
                     <label style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Capacidad</label>
-                    <input value={m.capacidad} onChange={e => updateMesa(m.id, { capacidad: e.target.value })} type="number" min="1" style={{ ...inputStyle, marginBottom: '0.625rem' }} />
+                    <CampoMesa valor={m.capacidad} onGuardar={v => updateMesa(m.id, { capacidad: v })} type="number" min="1" style={{ ...inputStyle, marginBottom: '0.625rem' }} />
                     <button onClick={async () => { if (libre && await confirmar({ titulo: 'Borrar mesa', mensaje: `¿Borrar la mesa ${m.numero}?`, peligro: true, confirmar: 'Borrar' })) { removeMesa(m.id); toast('Mesa borrada', 'success') } }} disabled={!libre} style={{ width: '100%', background: libre ? '#7f1d1d' : 'var(--color-surface-2)', color: libre ? '#fff' : '#64748b', border: 'none', borderRadius: '0.5rem', padding: '0.4rem', cursor: libre ? 'pointer' : 'not-allowed', fontSize: '0.78rem' }}>{libre ? '🗑️ Borrar mesa' : 'Ocupada'}</button>
                   </div>
                 )
@@ -651,6 +664,20 @@ const isoALocal = (iso) => {
 }
 const localAIso = (v) => (v ? new Date(v).toISOString() : null)
 const fmtH = (h) => `${Math.floor(h)}h ${Math.round((h % 1) * 60)}m`
+
+// Zona y capacidad se guardan al SALIR del campo, no en cada tecla: en la app
+// real cada pulsación era una escritura en la BBDD, y la recarga de la sala
+// devolvía el cursor al valor viejo mientras se escribía.
+function CampoMesa({ valor, onGuardar, ...props }) {
+  const [txt, setTxt] = useState(String(valor ?? ''))
+  useEffect(() => { setTxt(String(valor ?? '')) }, [valor])
+  return (
+    <input {...props} value={txt}
+      onChange={e => setTxt(e.target.value)}
+      onBlur={() => { if (txt !== String(valor ?? '')) onGuardar(txt) }}
+      onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }} />
+  )
+}
 
 function FichajesTab({ fichajes, editarFichaje, borrarFichaje, local }) {
   const [mes, setMes] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` })

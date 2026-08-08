@@ -117,6 +117,41 @@ export function accionesV2b() {
     removeMesa: async (mesaId) => {
       try { await t('mesas').delete().eq('id', mesaId).eq('estado', 'libre'); cargarSala() } catch (e) { err(e) }
     },
+    // Zona y capacidad de una mesa. Sin esto, el admin de la app real las
+    // cambiaba «en pantalla» y la siguiente sincronización las devolvía.
+    updateMesa: async (mesaId, cambios) => {
+      const parche = {}
+      if (cambios.capacidad !== undefined) parche.capacidad = Math.max(1, Number(cambios.capacidad) || 1)
+      if (cambios.zona !== undefined) parche.zona = (cambios.zona || '').trim() || 'Sala'
+      if (!Object.keys(parche).length) return
+      try { await t('mesas').update(parche).eq('id', mesaId); cargarSala() } catch (e) { err(e) }
+    },
+    // El Mostrador junta mesas con `agruparMesas` y la PDA con `fusionarMesa`:
+    // son la misma operación y las dos tienen que llegar al servidor.
+    agruparMesas: (principalId, secundariaId) => {
+      personal.agruparMesas(principalId, secundariaId).then(cargarSala).catch(err)
+    },
+    // Mover a un cliente de mesa: se lleva sus líneas (cuelgan de él) y sus
+    // comandas (que cuelgan de la mesa: si no, cocina sigue viendo la vieja).
+    transferirComensal: async (origenId, personaId, destinoId) => {
+      if (origenId === destinoId) return
+      const origen = st().mesas.find(m => m.id === origenId)
+      const destino = st().mesas.find(m => m.id === destinoId)
+      const persona = origen?.personas.find(p => p.id === personaId)
+      if (!persona || !destino) return
+      try {
+        await t('comensales').update({ mesa_id: destinoId }).eq('id', personaId)
+        const lineas = (persona.items || []).map(i => i.uid).filter(Boolean)
+        if (lineas.length) await t('comandas').update({ mesa_id: destinoId }).in('linea_id', lineas)
+        if (destino.estado === 'libre') {
+          await t('mesas').update({ estado: 'ocupada', abierta_desde: new Date().toISOString() }).eq('id', destinoId)
+        }
+        if (origen.personas.filter(p => p.id !== personaId).length === 0) {
+          await t('mesas').update({ estado: 'libre', abierta_desde: null, camarero_id: null }).eq('id', origenId)
+        }
+        cargarSala(); cargarComandas()
+      } catch (e) { err(e) }
+    },
     configurarSala: (zonas) => {
       const ocupadas = st().mesas.some(m => m.estado !== 'libre')
       if (ocupadas) return { ok: false, error: 'Hay mesas ocupadas: cierra la sala antes de reconfigurarla' }
@@ -173,7 +208,10 @@ export function accionesV2b() {
     addFormato: (nombre) => actualizarConfig({ carta: { formatos: [...(cartaCfg().formatos || []), { id: nombre.toLowerCase().replace(/\W+/g, '-'), nombre }] } }).catch(err),
     removeFormato: (id) => actualizarConfig({ carta: { formatos: (cartaCfg().formatos || []).filter(f => f.id !== id) } }).catch(err),
     renombrarFormato: (id, nombre) => actualizarConfig({ carta: { formatos: (cartaCfg().formatos || []).map(f => f.id === id ? { ...f, nombre } : f) } }).catch(err),
-    addTipoPan: (nombre, sup) => actualizarConfig({ carta: { tiposPan: [...(cartaCfg().tiposPan || []), { id: nombre.toLowerCase().replace(/\W+/g, '-'), nombre, suplemento: Number(sup) || 0 }] } }).catch(err),
+    // `sup`, no `suplemento`: es la clave que leen las pantallas (y el servidor
+    // al cobrar). Con el nombre viejo, el «sin gluten +1,20 €» creado desde la
+    // app real ni se enseñaba ni se cobraba.
+    addTipoPan: (nombre, sup) => actualizarConfig({ carta: { tiposPan: [...(cartaCfg().tiposPan || []), { id: nombre.toLowerCase().replace(/\W+/g, '-'), nombre, sup: Number(sup) || 0 }] } }).catch(err),
     removeTipoPan: (id) => actualizarConfig({ carta: { tiposPan: (cartaCfg().tiposPan || []).filter(x => x.id !== id) } }).catch(err),
     addExtra: (nombre, precio = 0.2) => actualizarConfig({ carta: { extras: [...(cartaCfg().extras || []), { nombre, precio }] } }).catch(err),
     removeExtra: (nombre) => actualizarConfig({ carta: { extras: (cartaCfg().extras || []).filter(e => (e.nombre || e) !== nombre) } }).catch(err),
@@ -201,6 +239,7 @@ export function accionesV2b() {
 
     // ── Local / reservas config ─────────────────────────────────
     updateLocal: (cambios) => actualizarConfig(cambios).catch(err),
+    updateEtiquetas: (cambios) => actualizarConfig({ carta: { etiquetas: { ...(cartaCfg().etiquetas || {}), ...cambios } } }).catch(err),
     updateReservasConfig: (cambios) => actualizarConfig({ reservas: cambios }).catch(err),
 
     // ── Fichajes (correcciones del admin) ───────────────────────
