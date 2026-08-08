@@ -34,6 +34,19 @@ const notaDe = (l) => {
   return p.join(' · ')
 }
 
+// Un producto SIN formatos (un café, un refresco) se guarda en la BBDD como
+// `precios: { base: 1.30 }`, porque la columna es un mapa. Devolverlo tal cual
+// hacía que el resto de la app lo tomara por un producto CON formatos: la hoja
+// de pan salía vacía (ningún formato casa con «base») y la línea se añadía a
+// **0,00 €**. Se traduce aquí, en el borde: `base` → `precio`, que es el shape
+// que documenta el store («o `precios`, o `precio`, nunca los dos»).
+export function preciosDeProducto(precios) {
+  const mapa = precios && typeof precios === 'object' ? precios : {}
+  const claves = Object.keys(mapa)
+  const sinFormatos = claves.length === 0 || (claves.length === 1 && claves[0] === 'base')
+  return sinFormatos ? { precio: Number(mapa.base) || 0 } : { precios: mapa }
+}
+
 async function q(tabla, select, filtro = {}) {
   let query = supabase.from(tabla).select(select)
   for (const [k, v] of Object.entries(filtro)) query = query.eq(k, v)
@@ -80,7 +93,7 @@ export async function cargarCarta() {
       categorias: cats.map(c => ({ id: c.id, nombre: c.nombre, tipo: c.tipo, emoji: c.emoji })),
       productos: prods.map(p => ({
         id: p.id, categoria: p.categoria_id, nombre: p.nombre, tipo: cats.find(c => c.id === p.categoria_id)?.tipo || 'comida',
-        descripcion: p.descripcion, precios: p.precios, alergenos: p.alergenos || [],
+        descripcion: p.descripcion, ...preciosDeProducto(p.precios), alergenos: p.alergenos || [],
         disponible: p.disponible,
         ingredientes: p.modificadores?.ingredientes || [],
         imagen: p.modificadores?.imagen || '',

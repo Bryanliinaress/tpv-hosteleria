@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.59.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.60.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-08. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**324 tests**, lint limpio, CI y deploy en verde.
+**330 tests**, lint limpio, CI y deploy en verde.
 
 ## Auditoría del dinero (v0.51.0)
 
@@ -223,6 +223,20 @@ línea del pedido viven **en un solo sitio** (`src/lib/menuDia.js`):
 `conFormatos()`, `conOpciones()` y `lineaDeMenu()`. Las dos pantallas las usan.
 Probado también en el navegador: menú con solomillo → cocina recibe
 «Primero: Sopa · Segundo: Solomillo · Postre: Flan» y 14,00 €.
+
+## 🔴 En la app REAL los cafés se cobraban a 0 € (v0.60.0)
+
+22. **Todo producto de precio único valía 0,00 € en el backend v2.** La columna
+    `precios` es un mapa, así que un café se guarda como `{ base: 1.30 }` y
+    volvía tal cual al store. Las pantallas lo tomaban por un producto **con
+    formatos**: se abría la hoja del pan (vacía, porque ningún formato casa con
+    «base») y la línea se añadía a **0,00 €**. Afecta a cafés, refrescos,
+    cervezas… el grueso de los tickets de un bar, y **solo en la app real**
+    (`/app/`), que es justo donde no se había pedido todavía. En la demo (v1) no
+    pasa porque ahí el precio único se guarda en `precio`.
+    Arreglado en el **borde** (`preciosDeProducto` en `src/lib/v2/estado.js`):
+    `base` → `precio`, que es el shape que documenta el store. De paso, editar
+    solo el nombre de un café ya no le borra el precio.
 
 ## 🖨 EL LUNES: llegan las impresoras (dos, 80 mm)
 

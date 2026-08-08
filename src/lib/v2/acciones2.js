@@ -150,7 +150,9 @@ export function accionesV2b() {
         await t('productos').update({
           categoria_id: c.categoria ?? p.categoria, nombre: c.nombre ?? p.nombre,
           descripcion: c.descripcion ?? p.descripcion,
-          precios: c.precios ?? (c.precio != null ? { base: c.precio } : p.precios),
+          // sin el último fallback, editar solo el nombre de un café (que ya no
+          // lleva `precios`, ver preciosDeProducto) le borraba el precio
+          precios: c.precios ?? (c.precio != null ? { base: c.precio } : p.precios ?? { base: p.precio ?? 0 }),
           modificadores: { ingredientes: c.ingredientes ?? p.ingredientes, imagen: c.imagen ?? p.imagen, menu: c.menu !== undefined ? c.menu : p.menu ?? null },
           alergenos: c.alergenos ?? p.alergenos,
         }).eq('id', id); cargarCarta()
