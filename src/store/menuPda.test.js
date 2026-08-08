@@ -76,6 +76,11 @@ describe('un menú pedido desde la PDA llega a cocina con sus elecciones', () =>
     expect(lineaDeMenu(MENU, []).precio).toBe(12)
   })
 
+  it('la línea lleva las elecciones aparte de la nota: el backend real las necesita para cobrar el suplemento', () => {
+    const elecciones = [{ grupo: 'Segundo', opcion: 'Solomillo', sup: 2 }]
+    expect(lineaDeMenu(MENU, elecciones).elecciones).toEqual(elecciones)
+  })
+
   it('dos menús con elecciones distintas NO se funden en una línea', () => {
     const mesa = st().mesas[1]
     const personaId = st().unirseAMesa(mesa.id, 'Mesa 2')

@@ -39,6 +39,9 @@ export function accionesV2() {
       const personalizacion = {
         pan: config.pan || null, quitados: config.quitados || [],
         anadidos: config.anadidos || [], nota: config.nota || '',
+        // el precio lo pone el servidor: sin las elecciones no puede cobrar el
+        // suplemento del menú (el solomillo, +2 €) — ver migración 11
+        ...(config.elecciones?.length ? { elecciones: config.elecciones } : {}),
       }
       qr.agregarLinea(personaId, config.productoId, {
         variante, personalizacion, tiempo: config.tiempo || 1, cantidad: 1,
