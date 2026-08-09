@@ -18,7 +18,11 @@ const CLAVE = (mesaId) => `tpv-recibo-${mesaId}`
 export function construirRecibo({ local, mesa, nombre, lineas, propina = 0, metodo = null, fecha = new Date() }) {
   const total = lineas.reduce((s, l) => s + l.importe, 0)
   const ivaPct = local?.ivaPct ?? 10
-  const base = total / (1 + ivaPct / 100)
+  // La cuota se saca de la base YA redondeada. Calculando las dos por separado,
+  // «base + IVA» podía imprimirse un céntimo por encima del total: en un papel
+  // que el cliente compara con lo que ha pagado, eso es una reclamación.
+  const cent = (n) => Math.round(n * 100) / 100
+  const base = cent(total / (1 + ivaPct / 100))
   return {
     v: 1,
     local: {
@@ -37,7 +41,7 @@ export function construirRecibo({ local, mesa, nombre, lineas, propina = 0, meto
     propina,
     ivaPct,
     base,
-    iva: total - base,
+    iva: cent(total - base),
     metodo,
     fecha: (fecha instanceof Date ? fecha : new Date(fecha)).toISOString(),
   }

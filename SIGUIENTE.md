@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.64.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.65.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-08. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**347 tests**, lint limpio, CI y deploy en verde.
+**349 tests**, lint limpio, CI y deploy en verde.
 
 ## Auditoría del dinero (v0.51.0)
 
@@ -349,6 +349,31 @@ Se arregla con una **clave de idempotencia** (`p_idem uuid` + tabla de
 operaciones ya aplicadas): el id de la operación en cola ya existe y serviría.
 No lo he implementado porque toca el servidor y hay tres migraciones sin
 aplicar; se probaría contra la BBDD en la misma sesión.
+
+## Repaso del registro fiscal (v0.65.0)
+
+34. **El botón «Reintentar» no reintentaba los tickets en ERROR.** El filtro del
+    lote en la Edge Function hacía, cuando no venía `localId` —que es como lo
+    llama el panel—, `.in(estado, [pendiente, error])` **y además**
+    `.eq(estado, 'pendiente')`: los tickets en error quedaban fuera para
+    siempre. Y en error es justo donde caen los del primer día, los que
+    fallaron por **«Falta el CIF/NIF del local»**: el dueño lo configura, pulsa
+    reintentar… y no pasa nada.
+35. **La función fiscal no comprobaba de quién era el ticket.** Trabaja con
+    `service_role` (se salta RLS) y aceptaba cualquier `localId` en el cuerpo:
+    con la clave anon —que es pública por diseño— se podía disparar el reintento
+    en lote **de otro local** y recibir sus UUID y sus QR de la AEAT. Ahora el
+    local sale del JWT, nunca del cuerpo, y un ticket suelto pedido con sesión
+    tiene que ser del local de esa sesión.
+36. **«Base imponible + IVA» podía no sumar el total.** Se calculaban por
+    separado y cada uno se redondeaba al imprimir. Ahora la cuota se saca de la
+    base **ya redondeada**, en el recibo del cliente y en la factura que se
+    manda a Verifacti. Hay un test que recorre los 6.000 importes de 0,01 € a
+    60 € con los tres tipos de IVA (4, 10 y 21) y exige que cuadren.
+
+⚠️ Los puntos 34 y 35 son de la **Edge Function**: están en el repo pero
+**falta desplegarla** (`npx supabase functions deploy registrar-fiscal
+--project-ref <ref>`), y eso necesita token. Hasta entonces siguen vivos.
 
 ## 🖨 EL LUNES: llegan las impresoras (dos, 80 mm)
 
