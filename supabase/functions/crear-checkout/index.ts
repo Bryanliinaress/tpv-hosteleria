@@ -2,11 +2,19 @@
 // cobrar "la parte" de un comensal. La clave secreta de Stripe vive aquí como
 // secreto del proyecto (STRIPE_SECRET_KEY), nunca en el cliente.
 import Stripe from 'https://esm.sh/stripe@16.12.0?target=deno'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
   apiVersion: '2024-06-20',
   httpClient: Stripe.createFetchHttpClient(),
 })
+
+// Para preguntarle a la BBDD cuánto se debe: el importe NO puede venir del
+// navegador (si el cliente elige cuánto paga, paga 0,50 € de una cuenta de 45).
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+)
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -22,11 +30,26 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'Método no permitido' }, 405)
 
   try {
-    const { importe, descripcion, mesaId, personaId, returnUrl, localId, propina } = await req.json()
-    const cents = Math.round(Number(importe) * 100)
+    const { descripcion, mesaId, personaId, returnUrl, localId, propina } = await req.json()
+    if (!mesaId) return json({ error: 'Falta la mesa' }, 400)
+
+    // Lo que se cobra lo dice el servidor; del cliente solo se acepta la
+    // propina, que es un extra voluntario por encima de la cuenta.
+    const { data: pendiente, error: eP } = await supabase.rpc('pendiente_de_pago', {
+      p_mesa: mesaId,
+      p_comensal: personaId && personaId !== '__todo__' ? personaId : null,
+    })
+    if (eP) return json({ error: 'No se pudo calcular la cuenta' }, 400)
+    const extra = Math.max(0, Number(propina) || 0)
+    const cents = Math.round((Number(pendiente ?? 0) + extra) * 100)
     if (!cents || cents < 50) return json({ error: 'Importe inválido (mínimo 0,50 €)' }, 400)
 
-    const base = String(returnUrl || '').split('#')[0].split('?')[0]
+    // El retorno tiene que ser al sitio desde el que se paga: si lo eligiera el
+    // cuerpo de la petición, se podría devolver al cliente a otro dominio.
+    const origen = req.headers.get('Origin') ?? ''
+    const pedido = String(returnUrl || '')
+    if (origen && !pedido.startsWith(origen)) return json({ error: 'Retorno no válido' }, 400)
+    const base = pedido.split('#')[0].split('?')[0]
     const q = `pago=ok&mesa=${encodeURIComponent(mesaId)}&persona=${encodeURIComponent(personaId)}`
 
     const session = await stripe.checkout.sessions.create({

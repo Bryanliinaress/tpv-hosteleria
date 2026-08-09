@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.65.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.66.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-08. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -374,6 +374,28 @@ aplicar; se probaría contra la BBDD en la misma sesión.
 ⚠️ Los puntos 34 y 35 son de la **Edge Function**: están en el repo pero
 **falta desplegarla** (`npx supabase functions deploy registrar-fiscal
 --project-ref <ref>`), y eso necesita token. Hasta entonces siguen vivos.
+
+## 🔴 El cliente elegía cuánto pagaba (v0.66.0)
+
+37. **El importe del pago por QR lo ponía el navegador.** `crear-checkout`
+    aceptaba `importe` del cuerpo de la petición y `registrar_pago_online`
+    marcaba al comensal como **pagado** sin comprobar que ese dinero cubriera su
+    consumo. Con la cuenta en 45 €, una llamada con `importe: 0.50` daba un
+    cobro legítimo y firmado por Stripe: el webhook marcaba pagado y, si era el
+    último, **cerraba la mesa y emitía el ticket**. La cuenta entera perdida.
+    - El importe lo calcula ahora **el servidor** (`pendiente_de_pago`), y del
+      cliente solo se acepta la **propina**, que es un extra voluntario.
+    - Y aunque llegue un pago corto, `registrar_pago_online` **no da la cuenta
+      por saldada**: registra el cobro (el dinero ha entrado) y devuelve
+      `insuficiente` con lo que falta.
+    - De paso: el `returnUrl` venía del cuerpo, así que se podía devolver al
+      cliente a otro dominio tras pagar. Ahora tiene que coincidir con el
+      `Origin` de la petición.
+
+    Todavía no había pasado en la calle porque el pago online **no está
+    activo** (falta la migración 10 y Stripe). Justo por eso conviene que quede
+    cerrado **antes** de encenderlo. El arreglo va en la propia migración 10,
+    que aún no se ha aplicado, y en `crear-checkout` (falta desplegarla).
 
 ## 🖨 EL LUNES: llegan las impresoras (dos, 80 mm)
 
