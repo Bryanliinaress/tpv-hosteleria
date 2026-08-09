@@ -262,9 +262,9 @@ export default function PanelAdmin() {
                       <span style={{ fontSize: '0.7rem', fontWeight: 700, color: libre ? '#10b981' : '#f59e0b' }}>{libre ? 'Libre' : 'Ocupada'}</span>
                     </div>
                     <label style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Zona</label>
-                    <CampoMesa valor={m.zona || ''} onGuardar={v => updateMesa(m.id, { zona: v })} list="zonas-list" placeholder="Zona" style={{ ...inputStyle, marginBottom: '0.5rem' }} />
+                    <CampoGuardado valor={m.zona || ''} onGuardar={v => updateMesa(m.id, { zona: v })} list="zonas-list" placeholder="Zona" style={{ ...inputStyle, marginBottom: '0.5rem' }} />
                     <label style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Capacidad</label>
-                    <CampoMesa valor={m.capacidad} onGuardar={v => updateMesa(m.id, { capacidad: v })} type="number" min="1" style={{ ...inputStyle, marginBottom: '0.625rem' }} />
+                    <CampoGuardado valor={m.capacidad} onGuardar={v => updateMesa(m.id, { capacidad: v })} type="number" min="1" style={{ ...inputStyle, marginBottom: '0.625rem' }} />
                     <button onClick={async () => { if (libre && await confirmar({ titulo: 'Borrar mesa', mensaje: `¿Borrar la mesa ${m.numero}?`, peligro: true, confirmar: 'Borrar' })) { removeMesa(m.id); toast('Mesa borrada', 'success') } }} disabled={!libre} style={{ width: '100%', background: libre ? '#7f1d1d' : 'var(--color-surface-2)', color: libre ? '#fff' : '#64748b', border: 'none', borderRadius: '0.5rem', padding: '0.4rem', cursor: libre ? 'pointer' : 'not-allowed', fontSize: '0.78rem' }}>{libre ? '🗑️ Borrar mesa' : 'Ocupada'}</button>
                   </div>
                 )
@@ -514,19 +514,19 @@ export default function PanelAdmin() {
               <h3 style={ajusteTitulo}>Datos del local</h3>
               <p style={{ fontSize: '0.8rem', color: 'var(--color-muted)', marginBottom: '0.9rem' }}>Aparecen en los tickets, las cabeceras y la página de reservas.</p>
               <label style={lblCampo}>Nombre del local</label>
-              <input value={local.nombre} onChange={e => updateLocal({ nombre: e.target.value })} placeholder="Mi Bar" style={{ ...inputStyle, marginBottom: '0.7rem' }} />
+              <CampoGuardado valor={local.nombre || ''} onGuardar={v => updateLocal({ nombre: v })} placeholder="Mi Bar" style={{ ...inputStyle, marginBottom: '0.7rem' }} />
               <label style={lblCampo}>Subtítulo</label>
-              <input value={local.subtitulo} onChange={e => updateLocal({ subtitulo: e.target.value })} placeholder="Bar · Cafetería" style={{ ...inputStyle, marginBottom: '0.7rem' }} />
+              <CampoGuardado valor={local.subtitulo || ''} onGuardar={v => updateLocal({ subtitulo: v })} placeholder="Bar · Cafetería" style={{ ...inputStyle, marginBottom: '0.7rem' }} />
               <label style={lblCampo}>Dirección</label>
-              <input value={local.direccion} onChange={e => updateLocal({ direccion: e.target.value })} placeholder="Calle, número, ciudad" style={{ ...inputStyle, marginBottom: '0.7rem' }} />
+              <CampoGuardado valor={local.direccion || ''} onGuardar={v => updateLocal({ direccion: v })} placeholder="Calle, número, ciudad" style={{ ...inputStyle, marginBottom: '0.7rem' }} />
               <div style={{ display: 'flex', gap: '0.6rem' }}>
                 <div style={{ flex: 1 }}>
                   <label style={lblCampo}>Teléfono</label>
-                  <input value={local.telefono} onChange={e => updateLocal({ telefono: e.target.value })} placeholder="600 000 000" style={inputStyle} />
+                  <CampoGuardado valor={local.telefono || ''} onGuardar={v => updateLocal({ telefono: v })} placeholder="600 000 000" style={inputStyle} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <label style={lblCampo}>CIF / NIF</label>
-                  <input value={local.cif} onChange={e => updateLocal({ cif: e.target.value })} placeholder="B12345678" style={inputStyle} />
+                  <CampoGuardado valor={local.cif || ''} onGuardar={v => updateLocal({ cif: v })} placeholder="B12345678" style={inputStyle} />
                 </div>
               </div>
             </div>
@@ -536,21 +536,21 @@ export default function PanelAdmin() {
               <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '0.7rem' }}>
                 <div style={{ flex: 1 }}>
                   <label style={lblCampo}>IVA incluido (%)</label>
-                  <input value={local.ivaPct} onChange={e => updateLocal({ ivaPct: e.target.value })} type="number" min="0" step="1" style={inputStyle} />
+                  <CampoGuardado valor={local.ivaPct || ''} onGuardar={v => updateLocal({ ivaPct: v })} type="number" min="0" step="1" style={inputStyle} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <label style={lblCampo}>Moneda</label>
-                  <input value={local.moneda} onChange={e => updateLocal({ moneda: e.target.value })} placeholder="€" style={inputStyle} />
+                  <CampoGuardado valor={local.moneda || ''} onGuardar={v => updateLocal({ moneda: v })} placeholder="€" style={inputStyle} />
                 </div>
               </div>
               <label style={lblCampo}>Razón social (ticket)</label>
-              <input value={local.razonSocial || ''} onChange={e => updateLocal({ razonSocial: e.target.value })} placeholder="Si difiere del nombre comercial" style={{ ...inputStyle, marginBottom: '0.7rem' }} />
+              <CampoGuardado valor={local.razonSocial || ''} onGuardar={v => updateLocal({ razonSocial: v })} placeholder="Si difiere del nombre comercial" style={{ ...inputStyle, marginBottom: '0.7rem' }} />
               <label style={lblCampo}>Dirección fiscal (ticket)</label>
-              <input value={local.direccionFiscal || ''} onChange={e => updateLocal({ direccionFiscal: e.target.value })} placeholder="Si difiere de la dirección" style={{ ...inputStyle, marginBottom: '0.7rem' }} />
+              <CampoGuardado valor={local.direccionFiscal || ''} onGuardar={v => updateLocal({ direccionFiscal: v })} placeholder="Si difiere de la dirección" style={{ ...inputStyle, marginBottom: '0.7rem' }} />
               <label style={lblCampo}>URL de reseñas (QR del ticket)</label>
-              <input value={local.urlResena || ''} onChange={e => updateLocal({ urlResena: e.target.value })} placeholder="https://g.page/r/... (vacío = QR a la carta)" style={{ ...inputStyle, marginBottom: '0.7rem' }} />
+              <CampoGuardado valor={local.urlResena || ''} onGuardar={v => updateLocal({ urlResena: v })} placeholder="https://g.page/r/... (vacío = QR a la carta)" style={{ ...inputStyle, marginBottom: '0.7rem' }} />
               <label style={lblCampo}>Pie del ticket</label>
-              <input value={local.pieTicket} onChange={e => updateLocal({ pieTicket: e.target.value })} placeholder="¡Gracias por su visita!" style={{ ...inputStyle, marginBottom: '1rem' }} />
+              <CampoGuardado valor={local.pieTicket || ''} onGuardar={v => updateLocal({ pieTicket: v })} placeholder="¡Gracias por su visita!" style={{ ...inputStyle, marginBottom: '1rem' }} />
 
               {/* Vista previa del encabezado del ticket */}
               <div style={{ background: '#fff', color: '#111', borderRadius: '0.4rem', padding: '0.9rem', fontFamily: '"Courier New", monospace', textAlign: 'center', boxShadow: 'var(--shadow-sm)' }}>
@@ -665,10 +665,10 @@ const isoALocal = (iso) => {
 const localAIso = (v) => (v ? new Date(v).toISOString() : null)
 const fmtH = (h) => `${Math.floor(h)}h ${Math.round((h % 1) * 60)}m`
 
-// Zona y capacidad se guardan al SALIR del campo, no en cada tecla: en la app
-// real cada pulsación era una escritura en la BBDD, y la recarga de la sala
-// devolvía el cursor al valor viejo mientras se escribía.
-function CampoMesa({ valor, onGuardar, ...props }) {
+// Se guarda al SALIR del campo, no en cada tecla. En la app real cada pulsación
+// era una escritura en la BBDD; y en los datos del local, además, un
+// leer-modificar-escribir por letra: dos campos seguidos se pisaban entre sí.
+function CampoGuardado({ valor, onGuardar, ...props }) {
   const [txt, setTxt] = useState(String(valor ?? ''))
   useEffect(() => { setTxt(String(valor ?? '')) }, [valor])
   return (
