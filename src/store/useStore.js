@@ -15,8 +15,20 @@ export const METODOS_PAGO = [
   { id: 'tarjeta', label: 'Tarjeta', emoji: '💳' },
   { id: 'bizum', label: 'Bizum', emoji: '📲' },
 ]
-export const METODO_LABEL = { ...Object.fromEntries(METODOS_PAGO.map(m => [m.id, m.label])), sincobrar: 'Sin cobrar' }
-export const METODO_EMOJI = { ...Object.fromEntries(METODOS_PAGO.map(m => [m.id, m.emoji])), sincobrar: '🚫' }
+// `online` no se ofrece al camarero (lo escribe el webhook de Stripe cuando
+// paga el cliente por QR) pero tiene que saber pintarse igual que los demás.
+export const METODO_LABEL = { ...Object.fromEntries(METODOS_PAGO.map(m => [m.id, m.label])), online: 'Pago online', sincobrar: 'Sin cobrar' }
+export const METODO_EMOJI = { ...Object.fromEntries(METODOS_PAGO.map(m => [m.id, m.emoji])), online: '📱', sincobrar: '🚫' }
+
+/** Métodos presentes en un desglose, en orden estable y sin perder ninguno. */
+export function metodosDe(pagos = {}) {
+  const conocidos = [...METODOS_PAGO.map(m => m.id), 'online', 'sincobrar']
+  const claves = Object.keys(pagos).filter(k => pagos[k])
+  return [
+    ...conocidos.filter(k => claves.includes(k)),
+    ...claves.filter(k => !conocidos.includes(k)).sort(),   // métodos futuros
+  ]
+}
 
 // Los 14 alérgenos de declaración obligatoria en la UE (Reglamento 1169/2011)
 export const ALERGENOS = [

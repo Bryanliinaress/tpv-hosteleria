@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.66.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.67.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-08. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**349 tests**, lint limpio, CI y deploy en verde.
+**354 tests**, lint limpio, CI y deploy en verde.
 
 ## Auditoría del dinero (v0.51.0)
 
@@ -396,6 +396,17 @@ aplicar; se probaría contra la BBDD en la misma sesión.
     activo** (falta la migración 10 y Stripe). Justo por eso conviene que quede
     cerrado **antes** de encenderlo. El arreglo va en la propia migración 10,
     que aún no se ha aplicado, y en `crear-checkout` (falta desplegarla).
+
+## El desglose de caja se dejaba fuera el pago por QR (v0.67.0)
+
+38. **Un cobro online no aparecía en «Desglose por método».** La pantalla de
+    Caja recorría una lista escrita a mano —`efectivo`, `tarjeta`, `bizum`,
+    `sincobrar`— y el pago por QR se guarda como `online`: ese dinero estaba en
+    la caja pero **no se pintaba**, así que el desglose no sumaba lo cobrado.
+    Y con el método a medio pintar, la etiqueta salía como `undefined`.
+    Ahora se recorre lo que hay (`metodosDe`), en orden estable, y un método
+    que nadie haya previsto también sale. El arqueo **no** estaba afectado:
+    solo cuenta lo etiquetado como efectivo, que es lo que hay en el cajón.
 
 ## 🖨 EL LUNES: llegan las impresoras (dos, 80 mm)
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
-import { useStore, METODO_LABEL, METODO_EMOJI, ALERGENOS, normalizarExtra, etiquetasDe, ETIQUETAS_DEFECTO } from '../../store/useStore'
+import { useStore, METODO_LABEL, METODO_EMOJI, metodosDe, ALERGENOS, normalizarExtra, etiquetasDe, ETIQUETAS_DEFECTO } from '../../store/useStore'
 import { confirmar, toast } from '../../store/useUI'
 import Ticket from '../../components/Ticket'
 import ReservasManager from '../../components/ReservasManager'
@@ -319,11 +319,11 @@ export default function PanelAdmin() {
               </div>
 
               <h4 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--color-muted)' }}>Desglose por método</h4>
-              {['efectivo', 'tarjeta', 'bizum', 'sincobrar'].filter(k => cajaPagos[k]).length === 0
+              {metodosDe(cajaPagos).length === 0
                 ? <p style={{ fontSize: '0.82rem', color: 'var(--color-muted)' }}>Sin cobros todavía.</p>
-                : ['efectivo', 'tarjeta', 'bizum', 'sincobrar'].filter(k => cajaPagos[k]).map(k => (
+                : metodosDe(cajaPagos).map(k => (
                   <div key={k} style={ajusteFila}>
-                    <span>{METODO_EMOJI[k]} {METODO_LABEL[k]}</span>
+                    <span>{METODO_EMOJI[k] || '💰'} {METODO_LABEL[k] || k}</span>
                     <strong>{cajaPagos[k].toFixed(2)} €</strong>
                   </div>
                 ))}
@@ -373,7 +373,7 @@ export default function PanelAdmin() {
                       </div>
                       <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>
                         {z.nTickets} ticket(s)
-                        {['efectivo', 'tarjeta', 'bizum'].filter(k => z.pagos?.[k]).map(k => ` · ${METODO_EMOJI[k]} ${z.pagos[k].toFixed(2)}`).join('')}
+                        {metodosDe(z.pagos).map(k => ` · ${METODO_EMOJI[k] || '💰'} ${z.pagos[k].toFixed(2)}`).join('')}
                         {z.descuadre != null && Math.abs(z.descuadre) >= 0.005 && <span style={{ color: '#f43f5e' }}> · descuadre {z.descuadre >= 0 ? '+' : ''}{z.descuadre.toFixed(2)} €</span>}
                       </div>
                     </div>
