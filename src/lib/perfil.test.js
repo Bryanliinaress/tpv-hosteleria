@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { leerPerfil, cssDeMarca, aplicarMarca, urlLogo, PERFIL_GENERICO } from './perfil'
+import { leerPerfil, cssDeMarca, aplicarMarca, urlLogo, nombreDeLocalPorDefecto, PERFIL_GENERICO } from './perfil'
 
 describe('leerPerfil', () => {
   it('sin perfil inyectado usa la marca genérica', () => {
@@ -64,5 +64,19 @@ describe('urlLogo', () => {
 
   it('sin logo propio devuelve null', () => {
     expect(urlLogo({ logo: null }, '/')).toBeNull()
+  })
+})
+
+// El ticket y el recibo salían con «Mi Local» hasta que el dueño rellenaba
+// Admin → Local, aunque la instalación fuera de marca blanca y ya supiera de
+// qué bar es. El nombre por defecto sale ahora del perfil.
+describe('nombre por defecto del local', () => {
+  it('una instalación de marca usa su nombre', () => {
+    expect(nombreDeLocalPorDefecto(leerPerfil('{"slug":"casa-loli","nombre":"Casa Loli"}'))).toBe('Casa Loli')
+  })
+
+  it('la demo genérica NO se apropia del ticket', () => {
+    expect(nombreDeLocalPorDefecto(leerPerfil(null))).toBe('Mi Local')
+    expect(nombreDeLocalPorDefecto(undefined)).toBe('Mi Local')
   })
 })

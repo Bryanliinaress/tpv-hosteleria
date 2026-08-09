@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.63.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.64.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-08. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**344 tests**, lint limpio, CI y deploy en verde.
+**347 tests**, lint limpio, CI y deploy en verde.
 
 ## Auditoría del dinero (v0.51.0)
 
@@ -323,6 +323,33 @@ Mientras no esté: o se implementa, o ese botón no debería salir en `/app/`.
     pisarse entre sí. Ahora se guarda al salir del campo (mismo componente que
     las mesas).
 
+## Cola offline y marca en el ticket (v0.64.0)
+
+32. **Los avisos de la cola offline no decían qué se había perdido.** Las claves
+    de los textos (`agregar_linea`…) no son los nombres reales de los RPC
+    (`qr_agregar_linea`…), así que **ninguna** casaba: cuando una operación
+    guardada sin conexión no se podía aplicar, el camarero leía «no se pudo
+    aplicar una operación», sin más. Los tests usaban los mismos nombres
+    inventados, así que el fallo estaba consolidado. Hay ahora un test que
+    compara la lista de encolables con la de textos: si se añade una operación y
+    nadie escribe su aviso, falla.
+33. **El ticket ponía «Mi Local»** hasta que el dueño rellenaba Admin → Local,
+    aunque la instalación fuera la suya y ya llevara su marca en la portada, la
+    pestaña y la carta QR. El nombre de arranque sale ya del perfil
+    (`nombreDeLocalPorDefecto`); la demo genérica sigue con el neutro, que no
+    debe apropiarse de un ticket. Era el punto 3 del trabajo de marca blanca.
+
+### ⚠️ Riesgo conocido de la cola: reenviar puede duplicar un producto
+
+Si la petición **llega al servidor pero la respuesta se pierde** (timeout con la
+línea ya insertada), la cola la reenvía y `qr_agregar_linea` fusiona con la
+línea pendiente idéntica **sumando cantidad**: el cliente acaba con dos cafés
+donde pidió uno. No es frecuente, pero el wifi de un bar es justo el escenario.
+Se arregla con una **clave de idempotencia** (`p_idem uuid` + tabla de
+operaciones ya aplicadas): el id de la operación en cola ya existe y serviría.
+No lo he implementado porque toca el servidor y hay tres migraciones sin
+aplicar; se probaría contra la BBDD en la misma sesión.
+
 ## 🖨 EL LUNES: llegan las impresoras (dos, 80 mm)
 
 Todo el código está escrito y probado sin papel. Plan de la sesión:
@@ -413,9 +440,9 @@ bug son N arreglos. El modelo acordado es **producto base + perfiles**:
 2. **Alta industrializada**: un solo comando que cree el proyecto Supabase,
    aplique las 10 migraciones, siembre la carta, registre el local y despliegue.
    Base ya existente: `scripts/provisionar-produccion.mjs`.
-3. **Marca blanca**: ya sale en la **portada, la pestaña, la PWA** y la
-   **cabecera de la carta QR**. Falta el **ticket**, que sigue usando el nombre
-   guardado en el estado del local.
+3. ~~**Marca blanca**~~ ✅ portada, pestaña, PWA, carta QR y **ticket**: el
+   nombre de arranque del local sale del perfil (v0.64.0). Si el dueño escribe
+   otro en Admin → Local, manda el suyo, que es el dato fiscal.
 4. **Puntos de extensión** para las funciones a medida por cliente.
 5. **Actualizar N instancias**: un comando que redespliegue todos los bares.
 

@@ -86,12 +86,17 @@ export async function procesar() {
 }
 
 // Qué se le dice al camarero cuando una operación encolada no se pudo aplicar.
-const QUE_ERA = {
-  agregar_linea: 'un producto del pedido',
-  confirmar_pedido: 'el envío de una comanda a cocina',
-  cambiar_cantidad: 'un cambio de cantidad',
-  anular_linea: 'una anulación',
-  marcar_estado_comanda: 'un cambio de estado en cocina',
+// Las claves son los nombres REALES de los RPC (ver ENCOLABLES en repo.js). Con
+// los nombres a medias, el aviso salía siempre como «una operación» justo en el
+// momento en que el camarero necesita saber qué se ha perdido.
+export const QUE_ERA = {
+  qr_agregar_linea: 'un producto del pedido',
+  qr_confirmar_pedido: 'el envío de una comanda a cocina',
+  qr_cambiar_cantidad: 'un cambio de cantidad',
+  qr_llamar_camarero: 'un aviso de mesa',
+  qr_cancelar_aviso: 'la retirada de un aviso',
+  qr_pedir_cuenta: 'una petición de cuenta',
+  marchar_siguiente: 'un «marchar» de cocina',
 }
 function avisarDescartada(op, motivo) {
   const que = QUE_ERA[op.fn] || 'una operación'

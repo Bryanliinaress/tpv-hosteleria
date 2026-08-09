@@ -102,7 +102,7 @@ describe('avisos al camarero', () => {
     useUI.setState({ toasts: [] })
     const original = globalThis.localStorage.setItem
     globalThis.localStorage.setItem = () => { throw new Error('QuotaExceeded') }
-    const ok = encolar('agregar_linea', { x: 1 })
+    const ok = encolar('qr_agregar_linea', { x: 1 })
     globalThis.localStorage.setItem = original
 
     expect(ok).toBe(false)
@@ -113,9 +113,9 @@ describe('avisos al camarero', () => {
     const { useUI } = await import('../../store/useUI')
     useUI.setState({ toasts: [] })
     redCaida = true
-    encolar('agregar_linea', { producto: 'x' })
+    encolar('qr_agregar_linea', { producto: 'x' })
     redCaida = false
-    rechazarFn = 'agregar_linea'
+    rechazarFn = 'qr_agregar_linea'
     await procesar()
 
     expect(pendientes()).toBe(0)                       // no bloquea la cola
@@ -128,11 +128,22 @@ describe('avisos al camarero', () => {
     const { useUI } = await import('../../store/useUI')
     useUI.setState({ toasts: [] })
     redCaida = true
-    encolar('confirmar_pedido', { mesa: 1 })
+    encolar('qr_confirmar_pedido', { mesa: 1 })
     redCaida = false
     await procesar()
 
     expect(pendientes()).toBe(0)
     expect(useUI.getState().toasts).toEqual([])
+  })
+})
+
+// Los nombres de las operaciones viven en repo.js y los textos en cola.js: si
+// se añade una encolable y nadie escribe su aviso, el camarero recibe «una
+// operación» en el peor momento. Este test lo impide.
+describe('cada operación encolable sabe explicarse', () => {
+  it('no falta ningún aviso, ni sobra ninguno inventado', async () => {
+    const { ENCOLABLES } = await import('../repo')
+    const { QUE_ERA } = await import('./cola')
+    expect([...ENCOLABLES].sort()).toEqual(Object.keys(QUE_ERA).sort())
   })
 })
