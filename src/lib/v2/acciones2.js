@@ -152,19 +152,33 @@ export function accionesV2b() {
         cargarSala(); cargarComandas()
       } catch (e) { err(e) }
     },
+    // El asistente de alta manda `{nombre, mesas, capacidad}`. Aquí se leía
+    // `z.n`, que no existe: `Array.from({length: undefined})` da [], así que el
+    // alta de un bar BORRABA la sala y no creaba ninguna mesa — y encima el
+    // aviso decía «Sala configurada: undefined mesas».
     configurarSala: (zonas) => {
       const ocupadas = st().mesas.some(m => m.estado !== 'libre')
       if (ocupadas) return { ok: false, error: 'Hay mesas ocupadas: cierra la sala antes de reconfigurarla' }
+      const plan = (zonas || []).map(z => ({
+        nombre: (z.nombre || 'Sala').trim() || 'Sala',
+        n: Math.max(0, Number(z.mesas ?? z.n) || 0),
+        capacidad: Math.max(1, Number(z.capacidad) || 4),
+      }))
+      const total = plan.reduce((s, z) => s + z.n, 0)
+      // sin mesas que crear no se borra nada: dejar al bar sin sala es peor
+      if (!total) return { ok: false, error: 'Configura al menos una mesa' }
       ;(async () => {
         try {
           await t('mesas').delete().eq('local_id', getLocalId())
           let n = 1
-          const filas = zonas.flatMap(z => Array.from({ length: z.n }, () => ({ local_id: getLocalId(), numero: n++, zona: z.nombre, capacidad: z.capacidad || 4 })))
-          if (filas.length) await t('mesas').insert(filas)
+          const filas = plan.flatMap(z => Array.from({ length: z.n }, () => ({
+            local_id: getLocalId(), numero: n++, zona: z.nombre, capacidad: z.capacidad,
+          })))
+          await t('mesas').insert(filas)
           cargarSala()
         } catch (e) { err(e) }
       })()
-      return { ok: true }
+      return { ok: true, total }
     },
 
     // ── Carta (admin) ───────────────────────────────────────────
