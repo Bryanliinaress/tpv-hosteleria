@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.62.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.63.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-08. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**341 tests**, lint limpio, CI y deploy en verde.
+**344 tests**, lint limpio, CI y deploy en verde.
 
 ## Auditoría del dinero (v0.51.0)
 
@@ -304,6 +304,25 @@ del dinero, que en la demo sí está resuelto. Lo pide el **cliente anónimo**, 
 que hace falta un RPC (migración 12), no vale escribir la tabla desde el móvil.
 Mientras no esté: o se implementa, o ese botón no debería salir en `/app/`.
 
+## 🔴 Privacidad: los datos de las reservas los veía cualquiera (v0.63.0)
+
+30. **El móvil de un cliente se bajaba el nombre y el teléfono de las reservas.**
+    `mesas` es de lectura pública —el QR y la página de reservas necesitan
+    número, zona y estado— pero la tabla tiene una columna `reserva` con
+    `{nombre, teléfono, hora, personas}`. La hidratación pedía **todas** las
+    columnas también sin sesión, así que la agenda del día acababa en el estado
+    (y en el `localStorage`) de cualquiera que abriese la carta. Con la clave
+    anon, que es pública por diseño, se sacaba de una sola petición.
+    - **Cliente (ya desplegado)**: sin sesión se piden solo las columnas
+      públicas; `abierta_desde` y `camarero_id` tampoco bajan.
+    - **Servidor**: `20260808T12_privacidad_anon.sql` corta por privilegios de
+      columna (RLS filtra filas, no columnas). ⚠️ **Pendiente de aplicar.**
+31. **Los datos del local se guardaban letra a letra.** Cada tecla en Admin →
+    Local era, en la app real, un leer-modificar-escribir entero de la config:
+    escribir la dirección eran ~30 escrituras y dos campos seguidos podían
+    pisarse entre sí. Ahora se guarda al salir del campo (mismo componente que
+    las mesas).
+
 ## 🖨 EL LUNES: llegan las impresoras (dos, 80 mm)
 
 Todo el código está escrito y probado sin papel. Plan de la sesión:
@@ -335,9 +354,10 @@ mapa de bits. Está identificado y es un rato de trabajo.
 ## Pendiente — y de quién depende
 
 ### De Bryan (sin esto no se avanza)
-1. **Aplicar las migraciones 10 y 11** (`20260804T10_pagos_online.sql` y
-   `20260808T11_suplementos.sql`, esta última **cobra los suplementos**, fallo
-   23): hace falta un token nuevo de Supabase. Es 1 minuto.
+1. **Aplicar las migraciones 10, 11 y 12** (`20260804T10_pagos_online.sql` y
+   `20260808T11_suplementos.sql` **cobra los suplementos** (fallo 23) y
+   `20260808T12_privacidad_anon.sql` **tapa los datos de las reservas**
+   (fallo 30)): hace falta un token nuevo de Supabase. Es 1 minuto.
 2. **Impresora térmica 80 mm** (~60-100 €) para probar ESC/POS de verdad.
 3. **Cuenta de Stripe** real (+ activar Bizum) para el pago por QR.
 4. **NIF real en Verifacti** y pasar a su entorno de producción, cuando haya

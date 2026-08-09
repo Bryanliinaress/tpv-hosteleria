@@ -47,6 +47,16 @@ export function preciosDeProducto(precios) {
   return sinFormatos ? { precio: Number(mapa.base) || 0 } : { precios: mapa }
 }
 
+// El cliente que entra por el QR NO tiene sesión, y no debe bajarse columnas
+// con datos de terceros: `mesas.reserva` lleva el NOMBRE Y EL TELÉFONO de quien
+// reservó, y acababa guardado en el móvil de cualquiera que abriera la carta.
+const COLS_MESA_PUBLICAS = 'id, numero, zona, capacidad, estado, unida_a'
+const COLS_MESA_PERSONAL = `${COLS_MESA_PUBLICAS}, abierta_desde, camarero_id, reserva`
+async function conSesion() {
+  const { data } = await supabase.auth.getSession()
+  return !!data?.session
+}
+
 async function q(tabla, select, filtro = {}) {
   let query = supabase.from(tabla).select(select)
   for (const [k, v] of Object.entries(filtro)) query = query.eq(k, v)
@@ -104,8 +114,9 @@ export async function cargarCarta() {
 }
 
 export async function cargarSala() {
+  const personal = await conSesion()
   const [mesas, comensales, lineas, empleados] = await Promise.all([
-    q('mesas', 'id, numero, zona, capacidad, estado, unida_a, abierta_desde, camarero_id, reserva'),
+    q('mesas', personal ? COLS_MESA_PERSONAL : COLS_MESA_PUBLICAS),
     q('comensales', 'id, mesa_id, nombre, pagado, propina, metodo_pago, creado_en'),
     q('lineas_pedido', 'id, comensal_id, producto_id, nombre, precio, cantidad, tipo, estado, tiempo, personalizacion, creado_en'),
     q('empleados', 'id, nombre, rol, activo'),
@@ -128,9 +139,9 @@ export async function cargarSala() {
       id: m.id, numero: m.numero, zona: m.zona, capacidad: m.capacidad,
       estado: m.estado, unidaA: m.unida_a,
       unidas: mesas.filter(x => x.unida_a === m.id).map(x => x.id),
-      abiertaDesde: m.abierta_desde,
+      abiertaDesde: m.abierta_desde ?? null,
       camarero: empleados.find(e => e.id === m.camarero_id)?.nombre || null,
-      reserva: m.reserva,
+      reserva: m.reserva ?? null,
       personas: personasDe[m.id] || [],
     })),
   })
@@ -140,7 +151,7 @@ export async function cargarComandas() {
   const [comandas, lineas, mesas, comensales] = await Promise.all([
     q('comandas', 'id, mesa_id, linea_id, destino, estado, tiempo, hora_entrada'),
     q('lineas_pedido', 'id, comensal_id, nombre, cantidad, personalizacion'),
-    q('mesas', 'id, numero, camarero_id'),
+    q('mesas', await conSesion() ? 'id, numero, camarero_id' : 'id, numero'),
     q('comensales', 'id, nombre'),
   ])
   const linea = Object.fromEntries(lineas.map(l => [l.id, l]))
