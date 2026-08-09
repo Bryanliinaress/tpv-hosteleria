@@ -31,6 +31,14 @@ export function leerPerfil(bruto) {
 
 export const perfil = leerPerfil(import.meta.env.VITE_PERFIL)
 
+/**
+ * Nombre con el que arranca el local mientras el dueño no rellene Admin → Local.
+ * Una instalación de marca blanca ya sabe de qué bar es; la demo genérica no
+ * debe apropiarse del ticket, así que ahí se queda el neutro.
+ */
+export const nombreDeLocalPorDefecto = (p = perfil) =>
+  (p?.slug && p.slug !== 'generico' && p.nombre) ? p.nombre : 'Mi Local'
+
 /** ¿Está activo un módulo opcional de este local? */
 export const modulo = (nombre) => !!perfil.modulos[nombre]
 

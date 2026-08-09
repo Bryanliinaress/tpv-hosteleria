@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
+import { nombreDeLocalPorDefecto } from '../lib/perfil'
 
 // Aviso al usuario desde el store. Import perezoso para no acoplar el estado a
 // la interfaz (y que los tests en Node no arrastren la UI).
@@ -230,7 +231,10 @@ export const useStore = create(persist((set, get) => ({
   // ── IDENTIDAD DEL LOCAL (configurable para cualquier bar) ─
   // Datos del negocio que aparecen en tickets, cabeceras y reservas.
   local: {
-    nombre: 'Mi Local',
+    // Una instalación de marca blanca ya sabe de qué bar es: sin esto, hasta
+    // que el dueño rellenaba Admin → Local, el ticket y el recibo del cliente
+    // salían con «Mi Local» impreso.
+    nombre: nombreDeLocalPorDefecto(),
     subtitulo: 'Bar · Cafetería',
     direccion: '',
     telefono: '',

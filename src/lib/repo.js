@@ -20,7 +20,7 @@ export const backendV2 = import.meta.env.VITE_BACKEND === 'v2'
 
 // Operaciones de servicio que pueden esperar a que vuelva el wifi. Los cobros
 // y cierres NO están aquí: reenviarlos a ciegas podría duplicar un ticket.
-const ENCOLABLES = new Set([
+export const ENCOLABLES = new Set([
   'qr_agregar_linea', 'qr_cambiar_cantidad', 'qr_confirmar_pedido',
   'qr_llamar_camarero', 'qr_cancelar_aviso', 'qr_pedir_cuenta',
   'marchar_siguiente',
