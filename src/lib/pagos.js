@@ -22,6 +22,10 @@ export async function iniciarPagoOnline({ mesaId, personaId, importe, propina = 
 
   const returnUrl = `${window.location.origin}${import.meta.env.BASE_URL}`
 
+  // `importe` se sigue mandando solo por compatibilidad con la versión anterior
+  // de la Edge Function: la actual lo IGNORA y pregunta a la BBDD lo que se
+  // debe (`pendiente_de_pago`). El navegador no puede decidir cuánto paga.
+
   let res
   try {
     res = await fetch(`${SUPABASE_URL}/functions/v1/crear-checkout`, {

@@ -28,6 +28,20 @@ drop policy if exists tenant_all on pagos_online;
 create policy tenant_all on pagos_online for all to authenticated
   using (local_id = local_actual()) with check (local_id = local_actual());
 
+-- Lo que queda por cobrar de una mesa (o de un comensal concreto). El importe
+-- del pago NO puede salir del navegador: si el cliente elige cuánto paga, paga
+-- 0,50 € de una cuenta de 45 € y se marca como saldado. Esto es la referencia.
+create or replace function pendiente_de_pago(p_mesa uuid, p_comensal uuid default null)
+returns numeric
+language sql security definer set search_path = public stable as $$
+  select coalesce(sum(l.precio * l.cantidad), 0)
+  from comensales c
+  join lineas_pedido l on l.comensal_id = c.id
+  where c.mesa_id = any(_grupo_de(p_mesa))
+    and not c.pagado
+    and (p_comensal is null or c.id = p_comensal)
+$$;
+
 -- Registra el cobro y cierra lo que corresponda. La llama el webhook con
 -- service_role (por eso no se concede a anon ni a authenticated).
 create or replace function registrar_pago_online(
@@ -39,6 +53,7 @@ declare
   v_local uuid;
   v_grupo uuid[];
   v_ticket bigint;
+  v_pendiente numeric;
   v_cerrada boolean := false;
 begin
   -- idempotencia: si ya procesamos este pago, devolvemos lo mismo sin repetir
@@ -50,6 +65,18 @@ begin
 
   select local_id into v_local from mesas where id = p_mesa;
   if v_local is null then raise exception 'mesa_no_existe'; end if;
+
+  -- ¿el dinero que ha entrado cubre lo que se debía? La propina no cuenta:
+  -- es un extra, no parte de la cuenta. Si no llega, el pago se registra
+  -- igualmente (el dinero está cobrado) pero la cuenta NO se da por saldada.
+  v_pendiente := pendiente_de_pago(p_mesa, p_comensal);
+  if coalesce(p_importe, 0) - coalesce(p_propina, 0) + 0.01 < v_pendiente then
+    insert into pagos_online (local_id, mesa_id, comensal_id, importe, propina, referencia, ticket)
+    values (v_local, p_mesa, p_comensal, p_importe, coalesce(p_propina, 0), p_referencia, null);
+    return jsonb_build_object(
+      'insuficiente', true,
+      'pendiente', round(v_pendiente - (coalesce(p_importe, 0) - coalesce(p_propina, 0)), 2));
+  end if;
 
   if p_comensal is not null then
     -- pago de "mi parte": marcar ese comensal
