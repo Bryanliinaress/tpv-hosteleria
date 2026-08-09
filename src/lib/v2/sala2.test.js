@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest'
 
 // ────────────────────────────────────────────────────────────────────────────
 // Fallo 24: acciones de sala que en la app REAL solo tocaban la pantalla.
@@ -57,8 +57,11 @@ const MESA_2 = { id: 'm2', numero: 2, estado: 'libre', zona: 'Terraza', capacida
 // mesa con un solo cliente: al moverlo, la mesa se queda vacía
 const MESA_3 = { id: 'm3', numero: 3, estado: 'ocupada', zona: 'Sala', capacidad: 2, personas: [{ id: 'c3', nombre: 'Sole', items: [{ uid: 'l9' }] }] }
 
+// la sala del mock es mutable: hay pruebas con el bar en servicio y otras con
+// el local recién dado de alta, todavía sin mesas
+let salaMock = [MESA_1, MESA_2, MESA_3]
 vi.mock('../../store/useStore', () => ({
-  useStore: { getState: () => ({ mesas: [MESA_1, MESA_2, MESA_3], carta: config.carta }) },
+  useStore: { getState: () => ({ mesas: salaMock, carta: config.carta }) },
 }))
 
 const { accionesV2b } = await import('./acciones2')
@@ -136,3 +139,38 @@ describe('config de la carta', () => {
     expect(upd.valores.config.carta.tiposPan).toEqual([{ id: 'sin-gluten', nombre: 'Sin gluten', sup: 1.2 }])
   })
 })
+
+// El asistente de alta manda las zonas como {nombre, mesas, capacidad}; la
+// capa v2 leía `z.n`, que no existe. Resultado: al dar de alta un bar se
+// borraban las mesas, no se creaba ninguna y el aviso decía «Sala configurada:
+// undefined mesas». Es el primer contacto de un cliente con el producto.
+describe('configurar la sala en el alta de un bar', () => {
+  beforeEach(() => { salaMock = [] })          // local nuevo: aún no hay sala
+  const zonasDelAsistente = [
+    { nombre: 'Sala', mesas: 8, capacidad: 4 },
+    { nombre: ' Terraza ', mesas: 2, capacidad: 6 },
+  ]
+
+  it('crea las mesas que se han pedido, numeradas y con su zona', async () => {
+    const r = acciones.configurarSala(zonasDelAsistente)
+    expect(r).toEqual({ ok: true, total: 10 })
+    await new Promise(res => setTimeout(res, 0))
+    const insert = escrituraEn('mesas').find(e => e.op === 'insert')
+    expect(insert.valores).toHaveLength(10)
+    expect(insert.valores[0]).toMatchObject({ numero: 1, zona: 'Sala', capacidad: 4 })
+    expect(insert.valores[9]).toMatchObject({ numero: 10, zona: 'Terraza', capacidad: 6 })
+  })
+
+  it('sin mesas que crear NO se borra la sala', async () => {
+    const r = acciones.configurarSala([{ nombre: 'Sala', mesas: 0, capacidad: 4 }])
+    expect(r.ok).toBe(false)
+    await new Promise(res => setTimeout(res, 0))
+    expect(escrituraEn('mesas')).toHaveLength(0)
+  })
+
+  it('también entiende la forma antigua (`n`) por si queda algún llamante', () => {
+    expect(acciones.configurarSala([{ nombre: 'Sala', n: 3, capacidad: 2 }])).toEqual({ ok: true, total: 3 })
+  })
+})
+
+afterAll(() => { salaMock = [MESA_1, MESA_2, MESA_3] })

@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.67.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.68.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-08. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**354 tests**, lint limpio, CI y deploy en verde.
+**357 tests**, lint limpio, CI y deploy en verde.
 
 ## Auditoría del dinero (v0.51.0)
 
@@ -408,6 +408,20 @@ aplicar; se probaría contra la BBDD en la misma sesión.
     que nadie haya previsto también sale. El arqueo **no** estaba afectado:
     solo cuenta lo etiquetado como efectivo, que es lo que hay en el cajón.
 
+## 🔴 El alta de un bar dejaba el local SIN MESAS (v0.68.0)
+
+39. **«Configurar sala», en la app real, borraba la sala y no creaba nada.** El
+    asistente de alta manda las zonas como `{nombre, mesas, capacidad}` y la
+    capa v2 leía `z.n`, que no existe: `Array.from({length: undefined})` da una
+    lista vacía, así que se ejecutaba el `delete` de las mesas y el `insert` se
+    saltaba. El aviso remataba con **«Sala configurada: undefined mesas»** y el
+    dueño se quedaba con un TPV sin una sola mesa, en su primer minuto de uso.
+    Es justo el camino que no se había podido probar entero (el alta necesita
+    login con contraseña).
+    Ahora se acepta la forma del asistente (y `n` por compatibilidad), se
+    valida que haya al menos una mesa **antes de borrar nada**, y se devuelve el
+    total de verdad. Tres tests nuevos.
+
 ## 🖨 EL LUNES: llegan las impresoras (dos, 80 mm)
 
 Todo el código está escrito y probado sin papel. Plan de la sesión:
@@ -450,6 +464,8 @@ mapa de bits. Está identificado y es un rato de trabajo.
    secreto `VERIFACTI_API_KEY` (`vf_test_…` → `vf_prod_…`); la URL es la misma.
 5. **Probar el alta de un bar nuevo end-to-end** en `/app/`: yo no puedo
    autenticarme con contraseñas, así que ese login lo tiene que hacer él.
+   ⚠️ Más urgente desde el fallo 39: el alta dejaba el local sin mesas. Está
+   arreglado y probado con tests, pero conviene verlo de verdad una vez.
 
 ### ⚠️ Bloqueos del PRIMER BAR REAL (no de hoy, pero antes de facturar)
 1. **Facturas rectificativas (R1-R5)**: hoy, si un ticket ya emitido y
