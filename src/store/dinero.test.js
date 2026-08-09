@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { useStore, owedPorPersona } from './useStore'
+import { useStore, owedPorPersona, metodosDe, METODO_LABEL, METODO_EMOJI } from './useStore'
 import { mergeLog } from '../lib/sync'
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -309,5 +309,33 @@ describe('descuentos con decimales sucios', () => {
     const t = st().historial.at(-1)
     const suma = Object.values(t.pagos).reduce((s, v) => s + v, 0)
     expect(Math.round(suma * 100)).toBe(Math.round(t.total * 100))
+  })
+})
+
+// El desglose por método de la caja llevaba la lista escrita a mano
+// (efectivo/tarjeta/bizum/sincobrar). Un cobro por QR se guarda como `online`,
+// así que ese dinero NO aparecía en el desglose: el dueño veía un reparto que
+// no sumaba lo cobrado. Y con un método nuevo pasaría lo mismo.
+describe('desglose por método de pago', () => {
+  it('no se deja fuera ningún método cobrado', () => {
+    expect(metodosDe({ efectivo: 10, online: 12.5 })).toEqual(['efectivo', 'online'])
+  })
+
+  it('mantiene un orden estable y conocido', () => {
+    expect(metodosDe({ sincobrar: 3, bizum: 2, efectivo: 1 })).toEqual(['efectivo', 'bizum', 'sincobrar'])
+  })
+
+  it('un método futuro que nadie previó también sale', () => {
+    expect(metodosDe({ efectivo: 5, cripto: 1 })).toEqual(['efectivo', 'cripto'])
+  })
+
+  it('los importes a cero no ensucian el desglose', () => {
+    expect(metodosDe({ efectivo: 0, tarjeta: 4 })).toEqual(['tarjeta'])
+    expect(metodosDe()).toEqual([])
+  })
+
+  it('el pago online sabe pintarse (antes salía «undefined»)', () => {
+    expect(METODO_LABEL.online).toBe('Pago online')
+    expect(METODO_EMOJI.online).toBeTruthy()
   })
 })
