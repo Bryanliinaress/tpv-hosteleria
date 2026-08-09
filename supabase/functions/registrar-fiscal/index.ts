@@ -27,6 +27,24 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
 )
 
+// Esta función trabaja con service_role: se salta RLS. Sin comprobar de qué
+// local es quien llama, cualquiera con la clave anon (que es pública) podía
+// pedir el reintento en lote de OTRO local y llevarse sus UUID y sus QR.
+// Devuelve el local del JWT del llamante, o null si viene como anónimo.
+async function localDelLlamante(req: Request): Promise<string | null> {
+  const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
+  if (!token || token === (Deno.env.get('SUPABASE_ANON_KEY') ?? '')) return null
+  const comoUsuario = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+    { global: { headers: { Authorization: `Bearer ${token}` } } },
+  )
+  const { data, error } = await comoUsuario.rpc('mi_local')
+  if (error) return null
+  const fila = Array.isArray(data) ? data[0] : data
+  return (fila as Record<string, string>)?.local_id ?? null
+}
+
 // dd-mm-aaaa, como espera Verifacti
 const fechaES = (iso: string) => {
   const d = new Date(iso)
@@ -41,8 +59,10 @@ function componerFactura(t: Record<string, unknown>) {
   const emisor = t.emisor as Record<string, string>
   const total = Number(t.total)
   const ivaPct = Number(emisor.ivaPct ?? 10)
-  const base = total / (1 + ivaPct / 100)
-  const cuota = total - base
+  // la cuota se saca de la base YA redondeada: si no, base + cuota podía
+  // quedarse a un céntimo del total y la factura no cuadra
+  const base = Math.round((total / (1 + ivaPct / 100)) * 100) / 100
+  const cuota = Math.round((total - base) * 100) / 100
 
   // OJO: en factura simplificada (F2) NO se identifica al destinatario; los
   // campos nif/nombre son del CLIENTE y la AEAT los rechaza aquí. El emisor
@@ -114,16 +134,19 @@ Deno.serve(async (req) => {
   if (!API_KEY) return json({ error: 'VERIFACTI_API_KEY no configurada' }, 500)
 
   try {
-    const { ticketId, pendientes, localId } = await req.json()
+    const { ticketId, pendientes } = await req.json()
 
     // reintento en lote de lo que quedó sin registrar
     if (pendientes) {
+      // el local sale del JWT, NUNCA del cuerpo de la petición
+      const local = await localDelLlamante(req)
+      if (!local) return json({ error: 'Hace falta sesión del local' }, 401)
       const { data } = await supabase
         .from('tickets')
         .select('id')
         .in('fiscal_estado', ['pendiente', 'error'])
         .lt('fiscal_intentos', 10)
-        .eq(localId ? 'local_id' : 'fiscal_estado', localId ?? 'pendiente')
+        .eq('local_id', local)
         .limit(25)
       const ids = (data ?? []).map((r: { id: string }) => r.id)
       const res = []
@@ -132,6 +155,14 @@ Deno.serve(async (req) => {
     }
 
     if (!ticketId) return json({ error: 'Falta ticketId' }, 400)
+    // el cliente que paga su parte por QR va como anónimo y no tiene local:
+    // ahí no hay nada que comprobar (el id del ticket es un uuid que solo
+    // conoce quien acaba de cobrarlo). Si hay sesión, el ticket debe ser suyo.
+    const local = await localDelLlamante(req)
+    if (local) {
+      const { data: duenio } = await supabase.from('tickets').select('local_id').eq('id', ticketId).single()
+      if (duenio && duenio.local_id !== local) return json({ error: 'Ese ticket no es de tu local' }, 403)
+    }
     const r = await registrar(ticketId)
     return json(r, r.ok ? 200 : 202)   // 202: aceptado pero pendiente de reintento
   } catch (e) {

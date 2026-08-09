@@ -183,3 +183,29 @@ describe('reciboReciente', () => {
     expect(reciboReciente('mesa-3', { ahora, store: vacio })).toBeNull()
   })
 })
+
+// El desglose fiscal tiene que cuadrar al céntimo: si «base + IVA» no suma
+// exactamente el total impreso, el papel se contradice a sí mismo. Se consigue
+// redondeando la base y sacando la cuota DE ESA base ya redondeada.
+describe('base imponible e IVA cuadran siempre', () => {
+  const tiposDeIva = [4, 10, 21]   // pan, hostelería, alcohol
+  const dosDecimales = (n) => Math.abs(n * 100 - Math.round(n * 100)) < 1e-9
+
+  it('los dos importes vienen ya en céntimos exactos, y suman el total', () => {
+    const fallos = []
+    for (const ivaPct of tiposDeIva) {
+      for (let cent = 1; cent <= 6000; cent++) {
+        const total = cent / 100
+        const r = construirRecibo({ local: { ivaPct }, mesa: {}, lineas: [{ importe: total }] })
+        if (!dosDecimales(r.base) || !dosDecimales(r.iva)) fallos.push(`${total} € al ${ivaPct}%: base ${r.base}, iva ${r.iva}`)
+        else if (Math.round((r.base + r.iva) * 100) !== cent) fallos.push(`${total} € al ${ivaPct}% no suma`)
+      }
+    }
+    expect(fallos.slice(0, 5)).toEqual([])
+  })
+
+  it('lo que se imprime cuadra con el total', () => {
+    const r = construirRecibo({ local: { ivaPct: 10 }, mesa: {}, lineas: [{ importe: 13.7 }] })
+    expect(Number(r.base.toFixed(2)) + Number(r.iva.toFixed(2))).toBeCloseTo(13.7, 10)
+  })
+})
