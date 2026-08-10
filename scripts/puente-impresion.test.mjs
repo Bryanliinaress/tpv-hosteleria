@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { leerDestinos, impresoraDe, esImpresoraWindows } from './puente-impresion.mjs'
+import { leerDestinos, impresoraDe, esImpresoraWindows, enviarConReintentos, enColaDe } from './puente-impresion.mjs'
 
 // ────────────────────────────────────────────────────────────────────────────
 // Reparto de comandas entre varias impresoras. Un fallo aquí manda las cañas a
@@ -64,5 +64,51 @@ describe('dos impresoras USB en el mismo PC', () => {
     const d = leerDestinos({ IMPRESORA_COCINA: '192.168.1.50', IMPRESORA_BARRA: '\\\\localhost\\Barra' })
     expect(esImpresoraWindows(impresoraDe(d, 'cocina'))).toBe(false)
     expect(esImpresoraWindows(impresoraDe(d, 'barra'))).toBe(true)
+  })
+})
+
+// Con las impresoras de verdad delante: una térmica puede estar un segundo
+// ocupada y dos comandas a la vez por el mismo socket salen mezcladas.
+describe('reintentos', () => {
+  it('insiste cuando la impresora no contesta a la primera', async () => {
+    let intentos = 0
+    const enviarFn = async () => { intentos++; if (intentos < 3) throw new Error('ocupada') }
+    await enviarConReintentos('192.168.1.50', Buffer.from('x'), { enviarFn, dormir: async () => {} })
+    expect(intentos).toBe(3)
+  })
+
+  it('se rinde con el último error, no en silencio', async () => {
+    const enviarFn = async () => { throw new Error('sin papel') }
+    await expect(enviarConReintentos('x', Buffer.from('x'), { enviarFn, intentos: 2, dormir: async () => {} }))
+      .rejects.toThrow('sin papel')
+  })
+
+  it('si sale a la primera no reintenta', async () => {
+    let intentos = 0
+    await enviarConReintentos('x', Buffer.from('x'), { enviarFn: async () => { intentos++ }, dormir: async () => {} })
+    expect(intentos).toBe(1)
+  })
+})
+
+describe('una cosa cada vez por impresora', () => {
+  it('dos comandas a la misma impresora no se solapan', async () => {
+    const orden = []
+    const tarea = (id, ms) => () => new Promise(r => setTimeout(() => { orden.push(id); r(id) }, ms))
+    const a = enColaDe('cocina', tarea('primera', 30))
+    const b = enColaDe('cocina', tarea('segunda', 1))
+    await Promise.all([a, b])
+    expect(orden).toEqual(['primera', 'segunda'])   // sin cola saldría al revés
+  })
+
+  it('impresoras distintas no se esperan entre sí', async () => {
+    const orden = []
+    const tarea = (id, ms) => () => new Promise(r => setTimeout(() => { orden.push(id); r() }, ms))
+    await Promise.all([enColaDe('cocina', tarea('lenta', 25)), enColaDe('barra', tarea('rapida', 1))])
+    expect(orden).toEqual(['rapida', 'lenta'])
+  })
+
+  it('un fallo no atasca la cola de esa impresora', async () => {
+    await enColaDe('caja', async () => { throw new Error('boom') }).catch(() => {})
+    await expect(enColaDe('caja', async () => 'ok')).resolves.toBe('ok')
   })
 })

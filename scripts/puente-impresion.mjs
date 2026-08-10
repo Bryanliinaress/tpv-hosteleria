@@ -54,10 +54,19 @@ export const esImpresoraWindows = (destino) => /^\\\\/.test(String(destino || ''
 const enviarRed = (destino, datos) => new Promise((resolve, reject) => {
   const [host, puerto] = String(destino).split(':')
   const s = new Socket()
-  const fin = (err) => { s.destroy(); err ? reject(err) : resolve() }
-  s.setTimeout(5000, () => fin(new Error('la impresora no responde')))
+  let acabado = false
+  const fin = (err) => {
+    if (acabado) return
+    acabado = true
+    s.destroy()
+    err ? reject(err) : resolve()
+  }
+  s.setTimeout(8000, () => fin(new Error('la impresora no responde')))
   s.on('error', fin)
-  s.connect(Number(puerto) || PUERTO_IMPRESORA, host, () => s.write(datos, () => fin()))
+  // `end` cierra cuando los bytes han salido de verdad; con `write` + destroy
+  // inmediato, un ticket largo podía quedarse a medias
+  s.on('close', () => fin())
+  s.connect(Number(puerto) || PUERTO_IMPRESORA, host, () => s.end(datos))
 })
 
 // ── Envío a una impresora de Windows (copia en crudo, sin driver) ───────────
@@ -81,6 +90,34 @@ const enviarWindows = async (destino, datos) => {
 
 export const enviar = (destino, datos) =>
   esImpresoraWindows(destino) ? enviarWindows(destino, datos) : enviarRed(destino, datos)
+
+// ── Una cosa cada vez por impresora ─────────────────────────────────────────
+// Dos comandas a la vez por el mismo socket salen mezcladas en el papel (o la
+// segunda se pierde). En hora punta eso pasa. Cada impresora tiene su turno.
+const colas = new Map()
+export function enColaDe(impresora, tarea) {
+  const previa = colas.get(impresora) || Promise.resolve()
+  const actual = previa.then(tarea, tarea)
+  colas.set(impresora, actual.then(() => {}, () => {}))
+  return actual
+}
+
+// ── Reintentos ──────────────────────────────────────────────────────────────
+// La térmica puede estar un segundo ocupada, o el cable flojo. Perder una
+// comanda es un plato que no sale, así que se insiste antes de rendirse.
+export async function enviarConReintentos(destino, datos, { intentos = 3, espera = 400, enviarFn = enviar, dormir } = {}) {
+  const pausa = dormir || ((ms) => new Promise(r => setTimeout(r, ms)))
+  let ultimo
+  for (let i = 1; i <= intentos; i++) {
+    try {
+      return await enviarFn(destino, datos)
+    } catch (e) {
+      ultimo = e
+      if (i < intentos) await pausa(espera * i)
+    }
+  }
+  throw ultimo
+}
 
 // ── Servidor ────────────────────────────────────────────────────────────────
 if (process.env.NODE_ENV !== 'test') {
@@ -110,7 +147,8 @@ if (process.env.NODE_ENV !== 'test') {
     const trozos = []
     for await (const t of req) trozos.push(t)
     try {
-      await enviar(impresora, Buffer.concat(trozos))
+      const datos = Buffer.concat(trozos)
+      await enColaDe(impresora, () => enviarConReintentos(impresora, datos))
       const bytes = trozos.reduce((s, t) => s + t.length, 0)
       console.log(new Date().toLocaleTimeString(), `→ ${bytes} bytes a ${destino} (${impresora})`)
       res.writeHead(200).end('ok')
