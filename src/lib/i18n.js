@@ -109,6 +109,94 @@ const EN = {
   'Base imponible': 'Net amount',
   'Propina': 'Tip',
   'Copia para el cliente de su consumo. No sustituye a la factura simplificada, que emite el establecimiento.': 'Customer copy of your order. This is not the simplified invoice, which is issued by the venue.',
+  'Total': 'Total',
+  'Cerrado': 'Closed',
+  'Pagas la cuenta': 'You are paying the',
+  'completa': 'whole bill',
+  'de la mesa': 'for this table',
+  '{n} comensales': '{n} people',
+  // ── Reservas online (la pantalla la ve cualquiera, también un turista) ──
+  'Reservar mesa': 'Book a table',
+  'Modificar reserva': 'Change booking',
+  '¿Cuántas personas?': 'How many people?',
+  '¿Sois más de {n}? Llámanos y lo organizamos. 📞': 'More than {n}? Give us a call and we will sort it out. 📞',
+  '¿Dónde prefieres sentarte?': 'Where would you like to sit?',
+  '🪑 Me da igual': '🪑 Anywhere',
+  '· la mejor mesa libre': '· the best free table',
+  '¿Qué día?': 'Which day?',
+  'Hoy': 'Today',
+  'Mañana': 'Tomorrow',
+  '¿A qué hora?': 'What time?',
+  'Horas libres en {zona}': 'Free times in {zona}',
+  'Horas libres': 'Free times',
+  'para {n} personas': 'for {n} people',
+  '🔒 Ese día está cerrado.': '🔒 We are closed that day.',
+  'Elige otro día': 'Pick another day',
+  '😕 No quedan horas libres{zona} para {n} personas ese día.': '😕 No free times{zona} for {n} people that day.',
+  ' en {zona}': ' in {zona}',
+  'Prueba otro día': 'Try another day',
+  'cambia de zona': 'change area',
+  'Tus datos': 'Your details',
+  'Nombre y apellidos *': 'Full name *',
+  'Email * (te enviamos la confirmación)': 'Email * (we send you the confirmation)',
+  'Teléfono (opcional)': 'Phone (optional)',
+  'Alergias, trona, celebración… (opcional)': 'Allergies, high chair, celebration… (optional)',
+  'Confirmar reserva ✓': 'Confirm booking ✓',
+  'Guardar cambios ✓': 'Save changes ✓',
+  'Escribe tu nombre': 'Type your name',
+  'Escribe un email válido': 'Type a valid email',
+  'para terminar.': 'to finish.',
+  'Al confirmar aceptas que usemos estos datos': 'By confirming you agree to us using this data',
+  'solo para gestionar tu reserva': 'only to manage your booking',
+  '(confirmación, cambios y recordatorio).': '(confirmation, changes and reminder).',
+  'Más información sobre tus datos': 'More about your data',
+  'Responsable: el establecimiento{local}. Finalidad: gestionar la reserva. Conservación: los datos se eliminan automáticamente {dias} días después de la fecha de la reserva. No se ceden a terceros ni se usan para publicidad. Puedes cancelar o modificar la reserva (y tus datos) desde el enlace del email de confirmación.':
+    'Data controller: the venue{local}. Purpose: managing your booking. Retention: data is deleted automatically {dias} days after the booking date. It is never shared with third parties or used for advertising. You can cancel or change your booking (and your data) from the link in the confirmation email.',
+  '¡Reserva confirmada!': 'Booking confirmed!',
+  '¡Reserva modificada!': 'Booking updated!',
+  'Te esperamos, {nombre}.': 'See you soon, {nombre}.',
+  '📅 Día': '📅 Day',
+  '🕐 Hora': '🕐 Time',
+  '👥 Personas': '👥 People',
+  '📍 Zona': '📍 Area',
+  '👤 Nombre': '👤 Name',
+  '📧 Te hemos enviado la confirmación a {email}': '📧 Confirmation sent to {email}',
+  '📧 Confirmación a {email}': '📧 Confirmation to {email}',
+  '📆 Añadir a mi calendario': '📆 Add to my calendar',
+  'Hacer otra reserva': 'Make another booking',
+  'Hacer una nueva reserva': 'Make a new booking',
+  'Hacer una reserva': 'Make a booking',
+  'Reserva cancelada': 'Booking cancelled',
+  'Tu reserva del {fecha} a las {hora} se ha cancelado.': 'Your booking on {fecha} at {hora} has been cancelled.',
+  ' Te hemos enviado un correo de confirmación.': ' We have sent you a confirmation email.',
+  'Cargando tu reserva…': 'Loading your booking…',
+  'No encontramos esa reserva': 'We cannot find that booking',
+  'El enlace no es válido o la reserva ya estaba cancelada.': 'The link is not valid or the booking was already cancelled.',
+  'Tu reserva': 'Your booking',
+  '✏️ Modificar reserva': '✏️ Change booking',
+  '🗑️ Cancelar reserva': '🗑️ Cancel booking',
+  'Cancelar reserva': 'Cancel booking',
+  '¿Seguro que quieres cancelar tu reserva?': 'Are you sure you want to cancel your booking?',
+  '¿Cancelar esta reserva?': 'Cancel this booking?',
+  'Sí, cancelar': 'Yes, cancel',
+  'Volver': 'Back',
+  '🔔 Tienes {n} reserva(s)': '🔔 You have {n} booking(s)',
+  'ocultar': 'hide',
+  'gestionar': 'manage',
 }
 
-export const tr = (idioma, s) => (idioma === 'en' ? (EN[s] ?? s) : s)
+/**
+ * Traduce y sustituye los huecos: tr('en', 'para {n} personas', { n: 4 }).
+ * Los huecos van con nombre para que cada idioma pueda ordenarlos a su manera.
+ */
+export const tr = (idioma, s, vars) => {
+  const base = idioma === 'en' ? (EN[s] ?? s) : s
+  if (!vars) return base
+  return base.replace(/\{(\w+)\}/g, (_, k) => (k in vars ? String(vars[k]) : `{${k}}`))
+}
+
+/** Nombres cortos de los días, para las etiquetas de fecha. */
+export const diasSemana = (idioma) =>
+  idioma === 'en'
+    ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    : ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
