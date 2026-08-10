@@ -209,3 +209,41 @@ describe('base imponible e IVA cuadran siempre', () => {
     expect(Number(r.base.toFixed(2)) + Number(r.iva.toFixed(2))).toBeCloseTo(13.7, 10)
   })
 })
+
+// El cliente se descarga el recibo y se lo lleva: tiene que estar en SU idioma
+// y con los platos que él leyó, no con los nombres de la comanda de cocina.
+describe('recibo descargable en el idioma del cliente', () => {
+  const recibo = construirRecibo({
+    local: { nombre: 'Bar Manolo', ivaPct: 10, moneda: '€' },
+    mesa: { numero: 4 }, nombre: 'Ann',
+    lineas: [{ nombre: 'Jamón york y mantequilla', uds: 1, importe: 2, compartido: true }],
+    propina: 1, metodo: 'efectivo', metodoLabel: 'Efectivo',
+  })
+  const en = (s) => ({ 'Fecha': 'Date', 'Cliente': 'Customer', 'Descripción': 'Description', 'Uds': 'Qty', 'Importe': 'Amount', 'Base imponible': 'Net amount', 'IVA': 'VAT', 'Propina': 'Tip', 'Total': 'Total', 'Pagado con': 'Paid with', 'Efectivo': 'Cash', 'compartido': 'shared', 'Recibo': 'Receipt', 'Mesa': 'Table' }[s] ?? s)
+
+  it('en español sale como siempre', () => {
+    const html = reciboHTML(recibo)
+    expect(html).toContain('Base imponible')
+    expect(html).toContain('Jamón york y mantequilla')
+    expect(html).toContain('lang="es"')
+  })
+
+  it('en inglés se traducen las etiquetas Y los platos', () => {
+    const html = reciboHTML(recibo, { t: en, idioma: 'en' })
+    expect(html).toContain('Net amount')
+    expect(html).toContain('Cooked ham and butter')   // el plato, no solo el rótulo
+    expect(html).toContain('shared')
+    expect(html).toContain('lang="en"')
+    expect(html).not.toContain('Base imponible')
+  })
+
+  it('el método de pago sale legible, no en crudo', () => {
+    expect(reciboHTML(recibo)).toContain('Efectivo')
+    expect(reciboHTML(recibo, { t: en, idioma: 'en' })).toContain('Cash')
+  })
+
+  it('un recibo viejo sin etiqueta no se queda sin método', () => {
+    const antiguo = { ...recibo, metodoLabel: null }
+    expect(reciboHTML(antiguo)).toContain('efectivo')
+  })
+})

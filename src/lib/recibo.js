@@ -1,3 +1,4 @@
+import { traducirCarta } from './cartaI18n'
 // ────────────────────────────────────────────────────────────────────────────
 // El comprobante que se lleva el cliente.
 //
@@ -15,7 +16,7 @@ const CLAVE = (mesaId) => `tpv-recibo-${mesaId}`
  * Foto del consumo de una persona, lista para enseñar y descargar.
  * `lineas` viene ya repartido (un plato compartido cuenta su parte).
  */
-export function construirRecibo({ local, mesa, nombre, lineas, propina = 0, metodo = null, fecha = new Date() }) {
+export function construirRecibo({ local, mesa, nombre, lineas, propina = 0, metodo = null, metodoLabel = null, fecha = new Date() }) {
   const total = lineas.reduce((s, l) => s + l.importe, 0)
   const ivaPct = local?.ivaPct ?? 10
   // La cuota se saca de la base YA redondeada. Calculando las dos por separado,
@@ -43,6 +44,8 @@ export function construirRecibo({ local, mesa, nombre, lineas, propina = 0, meto
     base,
     iva: cent(total - base),
     metodo,
+    // etiqueta legible («Efectivo»), que en el papel quedaba como «efectivo»
+    metodoLabel: metodoLabel || null,
     fecha: (fecha instanceof Date ? fecha : new Date(fecha)).toISOString(),
   }
 }
@@ -93,21 +96,23 @@ const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<':
  * guarda como PDF desde el propio navegador. Sin imágenes ni fuentes externas
  * para que siga viéndose igual dentro de un año.
  */
-export function reciboHTML(recibo) {
+export function reciboHTML(recibo, { t = (x) => x, idioma = 'es' } = {}) {
   const f = (n) => n.toFixed(2)
   const m = esc(recibo.moneda)
-  const fecha = new Date(recibo.fecha).toLocaleString('es-ES')
+  // el cliente se lleva el papel: va en SU idioma, con su formato de fecha
+  const fecha = new Date(recibo.fecha).toLocaleString(idioma === 'en' ? 'en-GB' : 'es-ES')
+  const nombreLinea = (l) => esc(traducirCarta(idioma, l.nombre))
   const filas = recibo.lineas.map(l => `
       <tr>
-        <td>${esc(l.nombre)}${l.extra ? `<div class="extra">${esc(l.extra)}</div>` : ''}${l.compartido ? '<div class="extra">compartido</div>' : ''}</td>
+        <td>${nombreLinea(l)}${l.extra ? `<div class="extra">${esc(traducirCarta(idioma, l.extra))}</div>` : ''}${l.compartido ? `<div class="extra">${esc(t('compartido'))}</div>` : ''}</td>
         <td class="num">${l.uds}</td>
         <td class="num">${f(l.importe)}</td>
       </tr>`).join('')
 
   return `<!doctype html>
-<html lang="es"><head><meta charset="utf-8">
+<html lang="${idioma === 'en' ? 'en' : 'es'}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Recibo · ${esc(recibo.local.nombre)}</title>
+<title>${esc(t('Recibo'))} · ${esc(recibo.local.nombre)}</title>
 <style>
   body { font-family: ui-monospace, "Courier New", monospace; background: #f4f4f5; color: #111; margin: 0; padding: 1.5rem; }
   .hoja { max-width: 22rem; margin: 0 auto; background: #fff; padding: 1.25rem; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,.12); }
@@ -132,28 +137,28 @@ export function reciboHTML(recibo) {
   ${recibo.local.direccion ? `<div class="sub">${esc(recibo.local.direccion)}</div>` : ''}
   ${recibo.local.telefono ? `<div class="sub">Tel.: ${esc(recibo.local.telefono)}</div>` : ''}
   <hr>
-  <div class="tot"><span>Fecha</span><span>${esc(fecha)}</span></div>
-  ${recibo.mesa.numero ? `<div class="tot"><span>Mesa</span><span>${esc(recibo.mesa.numero)}${recibo.mesa.zona ? ` · ${esc(recibo.mesa.zona)}` : ''}</span></div>` : ''}
-  ${recibo.nombre ? `<div class="tot"><span>Cliente</span><span>${esc(recibo.nombre)}</span></div>` : ''}
+  <div class="tot"><span>${esc(t('Fecha'))}</span><span>${esc(fecha)}</span></div>
+  ${recibo.mesa.numero ? `<div class="tot"><span>${esc(t('Mesa'))}</span><span>${esc(recibo.mesa.numero)}${recibo.mesa.zona ? ` · ${esc(recibo.mesa.zona)}` : ''}</span></div>` : ''}
+  ${recibo.nombre ? `<div class="tot"><span>${esc(t('Cliente'))}</span><span>${esc(recibo.nombre)}</span></div>` : ''}
   <hr>
   <table>
-    <thead><tr><th>Descripción</th><th class="num">Uds</th><th class="num">Importe</th></tr></thead>
-    <tbody>${filas || '<tr><td colspan="3">Sin consumo</td></tr>'}</tbody>
+    <thead><tr><th>${esc(t('Descripción'))}</th><th class="num">${esc(t('Uds'))}</th><th class="num">${esc(t('Importe'))}</th></tr></thead>
+    <tbody>${filas || `<tr><td colspan="3">${esc(t('Sin consumo'))}</td></tr>`}</tbody>
   </table>
   <hr>
-  <div class="tot"><span>Base imponible</span><span>${f(recibo.base)} ${m}</span></div>
-  <div class="tot"><span>IVA (${recibo.ivaPct}%)</span><span>${f(recibo.iva)} ${m}</span></div>
-  ${recibo.propina > 0 ? `<div class="tot"><span>Propina</span><span>${f(recibo.propina)} ${m}</span></div>` : ''}
-  <div class="tot total"><span>Total</span><span>${f(recibo.total + recibo.propina)} ${m}</span></div>
-  ${recibo.metodo ? `<div class="tot"><span>Pagado con</span><span>${esc(recibo.metodo)}</span></div>` : ''}
+  <div class="tot"><span>${esc(t('Base imponible'))}</span><span>${f(recibo.base)} ${m}</span></div>
+  <div class="tot"><span>${esc(t('IVA'))} (${recibo.ivaPct}%)</span><span>${f(recibo.iva)} ${m}</span></div>
+  ${recibo.propina > 0 ? `<div class="tot"><span>${esc(t('Propina'))}</span><span>${f(recibo.propina)} ${m}</span></div>` : ''}
+  <div class="tot total"><span>${esc(t('Total'))}</span><span>${f(recibo.total + recibo.propina)} ${m}</span></div>
+  ${recibo.metodo ? `<div class="tot"><span>${esc(t('Pagado con'))}</span><span>${esc(t(recibo.metodoLabel || recibo.metodo))}</span></div>` : ''}
   <div class="pie">${esc(recibo.local.pie)}</div>
-  <div class="aviso">Copia para el cliente de su consumo.<br>No sustituye a la factura simplificada, que emite el establecimiento.</div>
+  <div class="aviso">${esc(t('Copia para el cliente de su consumo.'))}<br>${esc(t('No sustituye a la factura simplificada, que emite el establecimiento.'))}</div>
 </div></body></html>`
 }
 
 /** Descarga el recibo como fichero, sin servidor ni dependencias. */
-export function descargarRecibo(recibo, doc = document) {
-  const blob = new Blob([reciboHTML(recibo)], { type: 'text/html;charset=utf-8' })
+export function descargarRecibo(recibo, doc = document, opciones = {}) {
+  const blob = new Blob([reciboHTML(recibo, opciones)], { type: 'text/html;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const a = doc.createElement('a')
   a.href = url

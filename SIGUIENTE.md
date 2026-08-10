@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.73.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.74.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-08. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**398 tests**, lint limpio, CI y deploy en verde.
+**410 tests**, lint limpio, CI y deploy en verde.
 
 ## Auditoría del dinero (v0.51.0)
 
@@ -525,6 +525,24 @@ Además:
   traducción. Antes, con la carta en inglés, no salía nada.
 
 19 tests nuevos. La traducción se guarda igual en la demo y en el backend real.
+
+## El recibo del cliente y la estación de impresión (v0.74.0)
+
+48. **El recibo que el cliente se descarga estaba entero en español**, aunque
+    tuviera la app en inglés: es un fichero aparte que se genera con otro
+    código (`recibo.js`) y se quedó fuera de la traducción. Ahora sale en su
+    idioma —etiquetas, fecha y **los platos**— y el `lang` del HTML acompaña.
+49. **El método de pago salía en crudo en el papel**: «efectivo» en minúscula,
+    tal cual el identificador interno. Ahora va la etiqueta («Efectivo» /
+    «Cash»). Un recibo viejo sin etiqueta sigue enseñando lo que tenía.
+50. 🖨 **En modo «Ambas», la estación de impresión mandaba las bebidas a la
+    impresora de COCINA.** El destino se decidía por la estación elegida y no
+    por la comanda, así que con las dos impresoras montadas —justo el plan del
+    lunes— la barra no recibía nada y a cocina le salía todo. Ahora cada
+    comanda lleva su destino, y la comida y la bebida de una misma mesa son
+    **dos papeles**, uno para cada máquina. La lógica está en
+    `src/lib/estacion.js`, con 8 tests: era código de pantalla que no se podía
+    probar.
 
 ## 🖨 EL LUNES: llegan las impresoras (dos, 80 mm)
 

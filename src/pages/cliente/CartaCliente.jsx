@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
-import { useStore, owedPorPersona, ALERGENO_INFO, normalizarExtra, etiquetasDe } from '../../store/useStore'
+import { useStore, owedPorPersona, ALERGENO_INFO, METODO_LABEL, normalizarExtra, etiquetasDe } from '../../store/useStore'
 import { iniciarPagoOnline, leerResultadoPago, limpiarUrlPago, pagoOnlineDisponible } from '../../lib/pagos'
 import { syncListo } from '../../lib/sync'
 import { toast } from '../../store/useUI'
@@ -82,6 +82,7 @@ export default function CartaCliente() {
     guardarRecibo(mesaId, construirRecibo({
       local, mesa, nombre: yo.nombre, lineas, propina: yo.propina || 0,
       metodo: yo.pagado ? (yo.metodoPago || null) : null,
+      metodoLabel: yo.pagado ? (METODO_LABEL[yo.metodoPago] || null) : null,
     }))
   }, [mesa, yo, local, mesaId])
 
@@ -147,11 +148,11 @@ export default function CartaCliente() {
           <p style={{ color: 'var(--color-muted)', fontSize: '0.9rem' }}>{t('Gracias por tu visita a la Mesa')} {mesa.numero}. {t('¡Hasta pronto! 👋')}</p>
         </div>
 
-        {recibo && <ReciboCliente recibo={recibo} t={t} />}
+        {recibo && <ReciboCliente recibo={recibo} t={t} idioma={idioma} />}
 
         <div className="no-print" style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginTop: '1.25rem' }}>
           {recibo && <>
-            <button onClick={() => { descargarRecibo(recibo); toast(t('Recibo descargado'), 'success') }}
+            <button onClick={() => { descargarRecibo(recibo, document, { t, idioma }); toast(t('Recibo descargado'), 'success') }}
               style={btnStyle('var(--color-accent)', { width: '100%', minHeight: `${TOQUE + 6}px`, fontSize: '1rem' })}>
               📄 {t('Descargar mi recibo')}
             </button>
@@ -375,7 +376,7 @@ export default function CartaCliente() {
           <button onClick={() => {
             const r = leerRecibo(mesaId)
             if (!r) return toast(t('El recibo estará listo al cerrar la mesa'), 'info')
-            descargarRecibo(r); toast(t('Recibo descargado'), 'success')
+            descargarRecibo(r, document, { t, idioma }); toast(t('Recibo descargado'), 'success')
           }} style={btnStyle('var(--color-surface-2)', { width: '100%', minHeight: `${TOQUE}px`, fontSize: '0.9rem', marginBottom: '1rem' })}>
             📄 {t('Descargar mi recibo')}
           </button>
@@ -856,7 +857,7 @@ const SIN_PERSONA = { id: null, nombre: '', items: [] }
 
 // El recibo en pantalla, con la misma pinta que el ticket de papel. Lleva la
 // clase `ticket-print` para que al imprimir salga solo esto (ver index.css).
-function ReciboCliente({ recibo, t }) {
+function ReciboCliente({ recibo, t, idioma = 'es' }) {
   const f = (n) => n.toFixed(2)
   const m = recibo.moneda
   return (
@@ -866,7 +867,7 @@ function ReciboCliente({ recibo, t }) {
       {recibo.local.direccion && <div style={{ textAlign: 'center', fontSize: '0.72rem', color: 'var(--color-muted)' }}>{recibo.local.direccion}</div>}
 
       <div style={{ borderTop: '1px dashed var(--color-border)', margin: '0.6rem 0' }} />
-      <div style={filaRecibo}><span>{t('Fecha')}</span><span>{new Date(recibo.fecha).toLocaleString('es-ES')}</span></div>
+      <div style={filaRecibo}><span>{t('Fecha')}</span><span>{new Date(recibo.fecha).toLocaleString(idioma === 'en' ? 'en-GB' : 'es-ES')}</span></div>
       {recibo.mesa.numero != null && <div style={filaRecibo}><span>{t('Mesa')}</span><span>{recibo.mesa.numero}{recibo.mesa.zona ? ` · ${recibo.mesa.zona}` : ''}</span></div>}
       {recibo.nombre && <div style={filaRecibo}><span>{t('Cliente')}</span><span>{recibo.nombre}</span></div>}
       <div style={{ borderTop: '1px dashed var(--color-border)', margin: '0.6rem 0' }} />
@@ -874,12 +875,12 @@ function ReciboCliente({ recibo, t }) {
       {recibo.lineas.map((l, i) => (
         <div key={i} style={{ marginBottom: '0.3rem' }}>
           <div style={filaRecibo}>
-            <span>{l.uds}× {l.nombre}</span>
+            <span>{l.uds}× {traducirCarta(idioma, l.nombre)}</span>
             <span style={{ fontWeight: 700 }}>{f(l.importe)} {m}</span>
           </div>
           {(l.extra || l.compartido) && (
             <div style={{ fontSize: '0.68rem', color: 'var(--color-muted)' }}>
-              {[l.extra, l.compartido ? t('compartido') : ''].filter(Boolean).join(' · ')}
+              {[traducirCarta(idioma, l.extra), l.compartido ? t('compartido') : ''].filter(Boolean).join(' · ')}
             </div>
           )}
         </div>
