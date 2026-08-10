@@ -3,6 +3,7 @@ import { useStore } from '../../store/useStore'
 import BotonSalir from '../../components/BotonSalir'
 import { imprimirESCPOS, config as configImpresora } from '../../lib/impresora'
 import { comandaESCPOS } from '../../lib/escpos'
+import { comandasDeEstacion, ticketsDeComandas } from '../../lib/estacion'
 
 // Estación de impresión automática. Pensada para un PC en cocina/barra con la
 // impresora térmica como predeterminada y Chrome en modo "kiosk-printing"
@@ -17,7 +18,8 @@ export default function PrintStation() {
   const inicial = useRef(false)
   const imprimiendo = useRef(false)
 
-  const relevantes = estacion === 'cocina' ? pedidosCocina : estacion === 'barra' ? pedidosBarra : [...pedidosCocina, ...pedidosBarra]
+  // Cada comanda se queda con SU destino (ver lib/estacion.js)
+  const relevantes = comandasDeEstacion(estacion, pedidosCocina, pedidosBarra)
 
   const guardarSeen = () => localStorage.setItem('tpv-print-seen', JSON.stringify([...seen.current].slice(-300)))
 
@@ -38,9 +40,9 @@ export default function PrintStation() {
     nuevos.forEach(p => seen.current.add(p.id))
     guardarSeen()
     if (!auto) return
-    const grupos = {}
-    nuevos.forEach(p => { (grupos[p.mesaId] ||= []).push(p) })
-    const tickets = Object.values(grupos).map(items => ({ id: 'tk' + Date.now() + items[0].mesaId, mesaNumero: items[0].mesaNumero, items, hora: new Date().toISOString() }))
+    // una comanda por mesa Y destino: la comida y la bebida de la misma mesa
+    // son dos tickets, cada uno para su impresora
+    const tickets = ticketsDeComandas(nuevos)
     setCola(c => [...c, ...tickets])
     setLog(l => [...tickets, ...l].slice(0, 25))
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -55,13 +57,14 @@ export default function PrintStation() {
       if (configImpresora().modo === 'navegador') {
         try { window.print() } catch { /* sin impresora */ }
       } else {
+        const destino = actual.destino || (estacion === 'barra' ? 'barra' : 'cocina')
         const bytes = comandaESCPOS({
           mesa: actual.mesaNumero,
-          destino: estacion === 'barra' ? 'BARRA' : 'COCINA',
+          destino: destino.toUpperCase(),
           lineas: actual.items.map(i => ({ cantidad: i.cantidad, nombre: i.nombre, nota: i.nota, persona: i.personaNombre })),
         })
         // el destino le dice al puente por cuál de las impresoras sacarlo
-        imprimirESCPOS(bytes, { destino: estacion === 'barra' ? 'barra' : 'cocina', alternativa: () => { try { window.print() } catch { /* noop */ } } })
+        imprimirESCPOS(bytes, { destino, alternativa: () => { try { window.print() } catch { /* noop */ } } })
       }
       setTimeout(() => { setCola(c => c.slice(1)); imprimiendo.current = false }, 700)
     }, 250)
@@ -89,7 +92,7 @@ export default function PrintStation() {
 
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
           <button onClick={() => setAuto(a => !a)} style={btn(auto ? '#10b981' : 'var(--color-surface-3)', { flex: 1 })}>{auto ? '🟢 Auto-impresión ON' : '⚪ Auto-impresión OFF'}</button>
-          <button onClick={() => { const ult = relevantes.slice(-1); if (ult.length) setCola(c => [...c, { id: 'test' + Date.now(), mesaNumero: ult[0].mesaNumero, items: [ult[0]], hora: new Date().toISOString() }]) }} style={btn('var(--color-surface-2)')}>Imprimir prueba</button>
+          <button onClick={() => { const ult = relevantes.slice(-1); if (ult.length) setCola(c => [...c, { id: 'test' + Date.now(), mesaNumero: ult[0].mesaNumero, destino: ult[0].destino, items: [ult[0]], hora: new Date().toISOString() }]) }} style={btn('var(--color-surface-2)')}>Imprimir prueba</button>
         </div>
 
         <div style={{ background: 'var(--tint-warning-bg)', border: '1px solid var(--tint-warning-bd)', borderRadius: '0.5rem', padding: '0.75rem', fontSize: '0.8rem', color: 'var(--tint-warning-fg)', marginBottom: '1.25rem' }}>
@@ -100,7 +103,7 @@ export default function PrintStation() {
         {log.length === 0 && <p style={{ color: 'var(--color-muted)', fontSize: '0.85rem' }}>Esperando pedidos…</p>}
         {log.map(t => (
           <div key={t.id} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.6rem 0.8rem', marginBottom: '0.4rem', display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>Mesa {t.mesaNumero} · {t.items.map(i => `${i.cantidad}× ${i.nombre}`).join(', ')}</span>
+            <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>{t.destino === 'barra' ? '🍺' : '🍳'} Mesa {t.mesaNumero} · {t.items.map(i => `${i.cantidad}× ${i.nombre}`).join(', ')}</span>
             <button onClick={() => setCola(c => [...c, { ...t, id: 'r' + Date.now() }])} style={btn('var(--color-surface-2)', { padding: '0.25rem 0.6rem', fontSize: '0.75rem' })}>↻ Reimprimir</button>
           </div>
         ))}
