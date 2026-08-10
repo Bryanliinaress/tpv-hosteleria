@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { agruparPorMesa, estadoDeGrupo, itemsDelPaso, esUrgente } from './kds'
+import { agruparPorMesa, estadoDeGrupo, itemsDelPaso, esUrgente, estadoVisible, ESTADO_DESCONOCIDO } from './kds'
 
 const hace = (min) => new Date(Date.now() - min * 60000).toISOString()
 const p = (o) => ({ cantidad: 1, estado: 'recibido', horaEntrada: hace(1), ...o })
@@ -62,5 +62,56 @@ describe('esUrgente', () => {
   it('no mete prisa a lo que ya está listo ni a lo que no ha marchado', () => {
     expect(esUrgente({ estado: 'listo', desde: hace(30) })).toBe(false)
     expect(esUrgente({ estado: 'espera', desde: hace(30) })).toBe(false)
+  })
+})
+
+// Una pantalla de producción no puede quedarse en blanco por un dato raro: si
+// una bebida llega en «espera» y la barra no tenía ese estado declarado, la
+// tarjeta se pintaba con undefined y se caía la pantalla entera.
+describe('estados que la pantalla no conoce', () => {
+  const DE_BARRA = { recibido: { label: 'Recibido', color: '#f59e0b', next: 'preparando' } }
+
+  it('un estado declarado se usa tal cual', () => {
+    expect(estadoVisible(DE_BARRA, 'recibido').label).toBe('Recibido')
+  })
+
+  it('uno desconocido devuelve una tarjeta neutra, no undefined', () => {
+    const e = estadoVisible(DE_BARRA, 'espera')
+    expect(e).toBeTruthy()
+    expect(e.color).toBeTruthy()
+    expect(e.label).toBeTruthy()
+  })
+
+  it('y se puede seguir trabajando: tiene siguiente paso', () => {
+    expect(estadoVisible(DE_BARRA, 'lo_que_sea').next).toBe('recibido')
+  })
+
+  it('aguanta que no haya tabla de estados', () => {
+    expect(estadoVisible(null, 'recibido')).toBe(ESTADO_DESCONOCIDO)
+    expect(estadoVisible(undefined, undefined)).toBe(ESTADO_DESCONOCIDO)
+  })
+})
+
+// Las pantallas del cliente construyen comandas «de mentira» sin hora de
+// entrada. Si una se cuela en la cola, no puede colarse por delante de todo ni
+// pintarse como urgente desde 1970.
+describe('comandas sin hora de entrada', () => {
+  const conHora = { id: 'a', mesaId: 'm1', mesaNumero: 1, estado: 'recibido', cantidad: 1, horaEntrada: new Date().toISOString() }
+  const sinHora = { id: 'b', mesaId: 'm2', mesaNumero: 2, estado: 'recibido', cantidad: 1, horaEntrada: null }
+
+  it('la mesa sin hora va al final, no la primera', () => {
+    const g = agruparPorMesa([sinHora, conHora])
+    expect(g.map(x => x.mesaNumero)).toEqual([1, 2])
+  })
+
+  it('no se marca como urgente', () => {
+    const [g] = agruparPorMesa([sinHora])
+    expect(esUrgente(g)).toBe(false)
+  })
+
+  it('si alguna del grupo sí tiene hora, esa manda', () => {
+    const mismaMesa = { ...sinHora, mesaId: 'm1', mesaNumero: 1 }
+    const [g] = agruparPorMesa([mismaMesa, conHora])
+    expect(g.desde).toBe(conHora.horaEntrada)
   })
 })
