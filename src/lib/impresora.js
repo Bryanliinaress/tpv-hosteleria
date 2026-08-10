@@ -14,6 +14,7 @@ import { toast } from '../store/useUI'
 // ────────────────────────────────────────────────────────────────────────────
 
 const KEY = 'tpv-impresora'
+const TIEMPO_MAX_PUENTE = 8000   // ms: el puente reintenta por dentro, así que si tarda más es que no está
 
 export const MODOS = {
   navegador: 'Diálogo del navegador',
@@ -77,11 +78,22 @@ async function imprimirPuente(bytes, destino) {
   const { puenteUrl } = config()
   if (!puenteUrl) throw new Error('Falta la dirección del puente de impresión')
   const url = puenteUrl.replace(/\/$/, '') + '/imprimir' + (destino ? `?destino=${encodeURIComponent(destino)}` : '')
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/octet-stream' },
-    body: bytes,
-  })
+  // Con el PC del puente apagado, `fetch` puede tardar minutos en rendirse: el
+  // camarero se queda mirando la pantalla creyendo que ha impreso. Mejor
+  // fallar pronto y que salte el plan B.
+  let res
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/octet-stream' },
+      body: bytes,
+      signal: AbortSignal.timeout ? AbortSignal.timeout(TIEMPO_MAX_PUENTE) : undefined,
+    })
+  } catch (e) {
+    throw new Error(e?.name === 'TimeoutError' || e?.name === 'AbortError'
+      ? 'El puente de impresión no responde (¿está encendido el PC?)'
+      : `No se pudo contactar con el puente: ${e.message}`)
+  }
   if (!res.ok) throw new Error(`El puente respondió ${res.status}`)
 }
 

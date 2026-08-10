@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.77.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.78.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-08. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**429 tests**, lint limpio, CI y deploy en verde.
+**436 tests**, lint limpio, CI y deploy en verde.
 
 ## Auditoría del dinero (v0.51.0)
 
@@ -596,6 +596,22 @@ impresoras delante y sin saber a qué achacarlas:
     rendirse: perder una comanda es un plato que no sale.
 
 6 tests nuevos sobre el puente.
+
+## Fichajes y timeout del puente (v0.78.0)
+
+59. **Corregir un fichaje en la app real avisaba de un error… que no existía.**
+    La pantalla lee el resultado en el acto (`if (!r.ok)`) y la versión v2 era
+    `async`: devolvía una promesa, así que el admin veía un aviso de error
+    **vacío** aunque la corrección se hubiera guardado bien. Ahora responde en
+    el acto y escribe por detrás.
+60. **Y no validaba nada.** La demo impide guardar una salida anterior a la
+    entrada; la app real lo aceptaba: **horas negativas en la nómina**. La
+    validación vive ya en `src/lib/fichajes.js`, que usan las dos, y además
+    rechaza fechas imposibles. 7 tests.
+61. **Si el PC del puente estaba apagado, el TPV se quedaba esperando.** `fetch`
+    sin plazo puede tardar minutos en rendirse: el camarero mira la pantalla
+    creyendo que ha impreso. Ahora se rinde a los 8 segundos con un aviso claro
+    («¿está encendido el PC?») y salta el plan B.
 
 ## 🖨 EL LUNES: llegan las impresoras (dos, 80 mm)
 

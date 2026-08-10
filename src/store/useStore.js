@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { nombreDeLocalPorDefecto } from '../lib/perfil'
+import { revisarCorreccionFichaje } from '../lib/fichajes'
 
 // Aviso al usuario desde el store. Import perezoso para no acoplar el estado a
 // la interfaz (y que los tests en Node no arrastren la UI).
@@ -998,13 +999,9 @@ export const useStore = create(persist((set, get) => ({
   // Corrige o elimina un fichaje (solo admin). cambios: { entrada?, salida? }
   // en ISO; `salida: null` reabre el turno. Devuelve { ok, error }.
   editarFichaje: (id, cambios) => {
-    const f = get().fichajes.find(x => x.id === id)
-    if (!f) return { ok: false, error: 'Fichaje no encontrado' }
-    const entrada = cambios.entrada !== undefined ? cambios.entrada : f.entrada
-    const salida = cambios.salida !== undefined ? cambios.salida : f.salida
-    if (!entrada) return { ok: false, error: 'La entrada es obligatoria' }
-    if (salida && new Date(salida) < new Date(entrada)) return { ok: false, error: 'La salida no puede ser anterior a la entrada' }
-    set(state => ({ fichajes: state.fichajes.map(x => x.id === id ? { ...x, entrada, salida } : x) }))
+    const r = revisarCorreccionFichaje(get().fichajes.find(x => x.id === id), cambios)
+    if (!r.ok) return r
+    set(state => ({ fichajes: state.fichajes.map(x => x.id === id ? { ...x, entrada: r.entrada, salida: r.salida } : x) }))
     return { ok: true }
   },
   borrarFichaje: (id) => set(state => ({ fichajes: state.fichajes.filter(x => x.id !== id) })),

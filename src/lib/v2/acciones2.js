@@ -4,6 +4,7 @@ import { reservas as rpcReservas, personal } from '../repo'
 import { toast } from '../../store/useUI'
 import { sembrarCartaEjemplo, vaciarCartaV2 } from './plantillaCarta'
 import { cabezaDe, miembrosDe } from './grupos'
+import { revisarCorreccionFichaje } from '../fichajes'
 import { getLocalId, cargarSala, cargarComandas, cargarReservas, cargarCarta, cargarLocal, cargarHistorial, cargarFichajes, cargarCierres } from './estado'
 
 // Segunda ola de acciones v2: KDS, agenda de reservas, CRUD de carta/sala/
@@ -294,8 +295,19 @@ export function accionesV2b() {
     updateReservasConfig: (cambios) => actualizarConfig({ reservas: cambios }).catch(err),
 
     // ── Fichajes (correcciones del admin) ───────────────────────
-    editarFichaje: async (id, cambios) => {
-      try { await t('fichajes').update({ entrada: cambios.entrada, salida: cambios.salida, editado_por: cambios.editadoPor || 'admin' }).eq('id', id); cargarFichajes() } catch (e) { err(e) }
+    // La pantalla lee el resultado en el acto (`if (!r.ok)`), así que esto
+    // responde ya y escribe por detrás. Antes devolvía una promesa: el admin
+    // veía «error» —vacío— aunque la corrección se hubiera guardado bien.
+    editarFichaje: (id, cambios) => {
+      const r = revisarCorreccionFichaje(st().fichajes.find(x => x.id === id), cambios)
+      if (!r.ok) return r
+      ;(async () => {
+        try {
+          await t('fichajes').update({ entrada: r.entrada, salida: r.salida, editado_por: cambios.editadoPor || 'admin' }).eq('id', id)
+          cargarFichajes()
+        } catch (e) { err(e) }
+      })()
+      return { ok: true }
     },
     borrarFichaje: async (id) => { try { await t('fichajes').delete().eq('id', id); cargarFichajes() } catch (e) { err(e) } },
 
