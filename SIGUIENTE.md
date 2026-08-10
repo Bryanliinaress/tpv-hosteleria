@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.78.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.79.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-08. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**436 tests**, lint limpio, CI y deploy en verde.
+**448 tests**, lint limpio, CI y deploy en verde.
 
 ## Auditoría del dinero (v0.51.0)
 
@@ -612,6 +612,24 @@ impresoras delante y sin saber a qué achacarlas:
     sin plazo puede tardar minutos en rendirse: el camarero mira la pantalla
     creyendo que ha impreso. Ahora se rinde a los 8 segundos con un aviso claro
     («¿está encendido el PC?») y salta el plan B.
+
+## El personal, en la app real, no tenía reglas (v0.79.0)
+
+Buscando si el fallo 59 se repetía, apareció la misma clase de problema en las
+acciones de personal: **la pantalla lee el resultado en el acto** (`if (!r.ok)`)
+y las versiones v2 eran `async`, así que devolvían una promesa.
+
+62. **Dar de alta a un empleado avisaba de un error falso.** Y es de lo primero
+    que hace un dueño en el asistente de alta: crea a su gente, ve «error» y no
+    sabe que en realidad se ha creado. Igual al **cambiar un PIN** y al **borrar**.
+63. **Y no se validaba nada de nada.** La demo impide dos empleados con el
+    MISMO PIN —si no, el TPV no sabe cuál de los dos está fichando— y no deja
+    quedarse sin administrador. En la app real ambas cosas pasaban sin avisar:
+    borrar al último admin dejaba el local **sin acceso a Admin**, y ahora
+    tampoco se puede desactivar ni bajar a camarero al último que queda.
+
+Las reglas viven en `src/lib/personal.js`, que usan la demo y la app real, con
+12 tests. Antes estaban escritas dos veces… y solo funcionaban en una.
 
 ## 🖨 EL LUNES: llegan las impresoras (dos, 80 mm)
 

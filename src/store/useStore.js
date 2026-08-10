@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { nombreDeLocalPorDefecto } from '../lib/perfil'
 import { revisarCorreccionFichaje } from '../lib/fichajes'
+import { revisarNuevoEmpleado, revisarCambioEmpleado, revisarBajaEmpleado } from '../lib/personal'
 
 // Aviso al usuario desde el store. Import perezoso para no acoplar el estado a
 // la interfaz (y que los tests en Node no arrastren la UI).
@@ -941,22 +942,16 @@ export const useStore = create(persist((set, get) => ({
   // Da de alta un empleado. Devuelve { ok, error }. El PIN debe ser de 4
   // dígitos y único entre el personal activo.
   addEmpleado: ({ nombre, pin, rol }) => {
-    const n = (nombre || '').trim()
-    const p = (pin || '').trim()
-    if (!n) return { ok: false, error: 'Escribe un nombre' }
-    if (!/^\d{4}$/.test(p)) return { ok: false, error: 'El PIN debe tener 4 dígitos' }
-    if (get().empleados.some(e => e.pin === p)) return { ok: false, error: 'Ese PIN ya está en uso' }
-    set(state => ({ empleados: [...state.empleados, { id: crearId('emp'), nombre: n, pin: p, rol: rol === 'admin' ? 'admin' : 'camarero', activo: true }] }))
+    const r = revisarNuevoEmpleado(get().empleados, { nombre, pin })
+    if (!r.ok) return r
+    set(state => ({ empleados: [...state.empleados, { id: crearId('emp'), nombre: r.nombre, pin: r.pin, rol: rol === 'admin' ? 'admin' : 'camarero', activo: true }] }))
     return { ok: true }
   },
 
   // Modifica un empleado (nombre, rol, pin, activo). Valida PIN si cambia.
   updateEmpleado: (id, cambios) => {
-    if (cambios.pin !== undefined) {
-      const p = (cambios.pin || '').trim()
-      if (!/^\d{4}$/.test(p)) return { ok: false, error: 'El PIN debe tener 4 dígitos' }
-      if (get().empleados.some(e => e.id !== id && e.pin === p)) return { ok: false, error: 'Ese PIN ya está en uso' }
-    }
+    const rev = revisarCambioEmpleado(get().empleados, id, cambios)
+    if (!rev.ok) return rev
     set(state => ({
       empleados: state.empleados.map(e => e.id !== id ? e : {
         ...e,
@@ -971,11 +966,8 @@ export const useStore = create(persist((set, get) => ({
 
   // Elimina un empleado. No deja borrar el último admin activo.
   removeEmpleado: (id) => {
-    const emps = get().empleados
-    const e = emps.find(x => x.id === id)
-    if (e?.rol === 'admin' && emps.filter(x => x.rol === 'admin' && x.activo && x.id !== id).length === 0) {
-      return { ok: false, error: 'Debe quedar al menos un administrador' }
-    }
+    const rev = revisarBajaEmpleado(get().empleados, id)
+    if (!rev.ok) return rev
     set(state => ({ empleados: state.empleados.filter(x => x.id !== id) }))
     return { ok: true }
   },
