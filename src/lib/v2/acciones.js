@@ -3,6 +3,7 @@ import { useStore } from '../../store/useStore'
 import { qr, personal, reservas as rpcReservas } from '../repo'
 import { toast } from '../../store/useUI'
 import { registrarTicket } from '../fiscal'
+import { grupoDe } from './grupos'
 import { getLocalId, cargarSala, cargarComandas, cargarAvisos, cargarReservas, cargarHistorial, cargarCarta, cargarFichajes, refrescarServicio } from './estado'
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -117,19 +118,24 @@ export function accionesV2() {
         if (ult?.id) registrarTicket(ult.id).then(() => cargarHistorial())
       }).catch(err)
     },
+    // Cerrar una mesa unida cierra TODO el grupo. Liberando solo la cabeza, las
+    // demás se quedaban colgando de una mesa ya libre, con sus comensales y su
+    // consumo dentro: mesas fantasma que nadie cobra.
     liberarMesa: async (mesaId) => {
+      const grupo = grupoDe(mesaId, st().mesas)
       try {
-        await (await tabla('comensales')).delete().eq('mesa_id', mesaId)
-        await (await tabla('comandas')).delete().eq('mesa_id', mesaId)
-        await (await tabla('avisos')).delete().eq('mesa_id', mesaId)
-        await (await tabla('mesas')).update({ estado: 'libre', abierta_desde: null, camarero_id: null, unida_a: null }).eq('id', mesaId)
+        await (await tabla('comensales')).delete().in('mesa_id', grupo)
+        await (await tabla('comandas')).delete().in('mesa_id', grupo)
+        await (await tabla('avisos')).delete().in('mesa_id', grupo)
+        await (await tabla('mesas')).update({ estado: 'libre', abierta_desde: null, camarero_id: null, unida_a: null }).in('id', grupo)
         cargarSala(); cargarComandas(); cargarAvisos()
       } catch (e) { err(e) }
     },
     fusionarMesa: (principalId, secundariaId) => {
       personal.agruparMesas(principalId, secundariaId).then(cargarSala).catch(err)
     },
-    separarMesas: (mesaId) => { personal.separarMesas(mesaId).then(cargarSala).catch(err) },
+    // `separarMesas` vive en acciones2.js junto al resto de la sala: antes de
+    // separar hay que llevarse la cuenta a la cabeza del grupo.
     marcharSiguiente: (mesaId) => { personal.marcharSiguiente(mesaId).then(cargarComandas).catch(err) },
     atenderAviso: async (avisoId) => {
       try { await (await tabla('avisos')).delete().eq('id', avisoId); cargarAvisos() } catch (e) { err(e) }

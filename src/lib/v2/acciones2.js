@@ -3,6 +3,7 @@ import { useStore, propinasPorMetodoDe } from '../../store/useStore'
 import { reservas as rpcReservas, personal } from '../repo'
 import { toast } from '../../store/useUI'
 import { sembrarCartaEjemplo, vaciarCartaV2 } from './plantillaCarta'
+import { cabezaDe, miembrosDe } from './grupos'
 import { getLocalId, cargarSala, cargarComandas, cargarReservas, cargarCarta, cargarLocal, cargarHistorial, cargarFichajes, cargarCierres } from './estado'
 
 // Segunda ola de acciones v2: KDS, agenda de reservas, CRUD de carta/sala/
@@ -24,9 +25,10 @@ async function actualizarConfig(parche) {
 }
 const cartaCfg = () => useStore.getState().carta
 
+
 export function accionesV2b() {
   const st = () => useStore.getState()
-  return {
+  const acciones = {
     // ── KDS (nombres reales que usan las pantallas) ─────────────
     actualizarEstadoCocina: async (id, estado) => {
       try { await t('comandas').update({ estado }).eq('id', id); cargarComandas() } catch (e) { err(e) }
@@ -128,8 +130,43 @@ export function accionesV2b() {
     },
     // El Mostrador junta mesas con `agruparMesas` y la PDA con `fusionarMesa`:
     // son la misma operación y las dos tienen que llegar al servidor.
-    agruparMesas: (principalId, secundariaId) => {
-      personal.agruparMesas(principalId, secundariaId).then(cargarSala).catch(err)
+    //
+    // Ojo con los GRUPOS: aquí los comensales se quedan en su mesa y lo que las
+    // une es `unida_a` (al cobrar, el servidor recoge el grupo entero). El RPC
+    // rechaza una secundaria que ya sea cabeza de otro grupo, así que juntar
+    // dos grupos —dos mesas de cuatro ya unidas más otra— fallaba, y encima la
+    // pantalla cantaba «mesas unidas».
+    agruparMesas: async (principalId, secundariaId) => {
+      const mesas = st().mesas
+      const p = cabezaDe(mesas.find(m => m.id === principalId), mesas)
+      const s = cabezaDe(mesas.find(m => m.id === secundariaId), mesas)
+      if (!p || !s || p.id === s.id) return
+      const grupoSec = miembrosDe(s, mesas)
+      try {
+        if (grupoSec.length === 1) {
+          await personal.agruparMesas(p.id, s.id)     // camino normal, validado en el servidor
+        } else {
+          await t('mesas').update({ unida_a: p.id, estado: p.estado }).in('id', grupoSec)
+        }
+        cargarSala(); cargarComandas()
+      } catch (e) { err(e) }
+    },
+    // Separar deja las secundarias libres. Antes de eso hay que llevarse la
+    // cuenta a la cabeza: en v2 los comensales siguen en su mesa, así que sin
+    // esto una mesa volvía a figurar LIBRE con gente sentada y su consumo sin
+    // cobrar — y el siguiente cliente que escanease ese QR se encontraría la
+    // cuenta del anterior.
+    separarMesas: async (mesaId) => {
+      const mesas = st().mesas
+      const cab = cabezaDe(mesas.find(m => m.id === mesaId), mesas)
+      const secundarias = mesas.filter(m => m.unidaA === cab?.id).map(m => m.id)
+      if (!cab || !secundarias.length) return
+      try {
+        await t('comensales').update({ mesa_id: cab.id }).in('mesa_id', secundarias)
+        await t('comandas').update({ mesa_id: cab.id }).in('mesa_id', secundarias)
+        await personal.separarMesas(cab.id)
+        cargarSala(); cargarComandas()
+      } catch (e) { err(e) }
     },
     // Mover a un cliente de mesa: se lleva sus líneas (cuelgan de él) y sus
     // comandas (que cuelgan de la mesa: si no, cocina sigue viendo la vieja).
@@ -287,4 +324,8 @@ export function accionesV2b() {
       } catch (e) { err(e) }
     },
   }
+  // La PDA llama a esto para lo mismo que el Mostrador llama `agruparMesas`:
+  // un solo camino, para que no vuelvan a comportarse distinto.
+  acciones.fusionarMesa = acciones.agruparMesas
+  return acciones
 }
