@@ -1,10 +1,11 @@
-import { agruparPorMesa, itemsDelPaso, esUrgente } from '../lib/kds'
+import { agruparPorMesa, itemsDelPaso, esUrgente, estadoVisible } from '../lib/kds'
 
 // Cola de comandas agrupada POR MESA, compartida por cocina y barra: los platos
 // de una mesa salen juntos, así que se leen juntos. La mesa que lleva más
 // esperando va arriba del todo.
 
 const tiempo = (iso) => {
+  if (!iso) return '—'          // comanda sin hora: mejor un guion que «29000000 min»
   const seg = Math.floor((Date.now() - new Date(iso)) / 1000)
   return seg < 60 ? `${seg}s` : `${Math.floor(seg / 60)} min`
 }
@@ -23,7 +24,7 @@ export default function ColaKDS({ pedidos, estados, acento, onAvanzar }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       {grupos.map(g => {
-        const est = estados[g.estado]
+        const est = estadoVisible(estados, g.estado)
         const urgente = esUrgente(g)
         const delPaso = itemsDelPaso(g)
         return (
@@ -52,7 +53,7 @@ export default function ColaKDS({ pedidos, estados, acento, onAvanzar }) {
             {/* Platos de la mesa */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '0.85rem' }}>
               {g.items.map(p => {
-                const e = estados[p.estado]
+                const e = estadoVisible(estados, p.estado)
                 const hecho = p.estado === 'listo'
                 return (
                   <div key={p.id} style={{

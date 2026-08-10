@@ -3,6 +3,9 @@ import BotonSalir from '../../components/BotonSalir'
 import ColaKDS from '../../components/ColaKDS'
 
 const ESTADO = {
+  // una bebida puede llegar en espera (2º tiempo): la barra tiene que poder
+  // marcharla igual que cocina
+  espera: { label: '⏸ En espera', color: '#64748b', next: 'recibido', nextLabel: '▶ Marchar ya' },
   recibido: { label: 'Recibido', color: '#f59e0b', next: 'preparando', nextLabel: 'Preparar' },
   preparando: { label: 'Preparando...', color: '#a78bfa', next: 'listo', nextLabel: '✅ Listo' },
   listo: { label: 'Listo ✅', color: '#f43f5e', next: null, nextLabel: null },

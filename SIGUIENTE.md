@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.74.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.75.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-08. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**410 tests**, lint limpio, CI y deploy en verde.
+**417 tests**, lint limpio, CI y deploy en verde.
 
 ## Auditoría del dinero (v0.51.0)
 
@@ -543,6 +543,22 @@ Además:
     **dos papeles**, uno para cada máquina. La lógica está en
     `src/lib/estacion.js`, con 8 tests: era código de pantalla que no se podía
     probar.
+
+## Cocina y barra: que nunca se queden en blanco (v0.75.0)
+
+51. **Una bebida en «espera» dejaba la pantalla de barra en blanco.** Cocina
+    declara los cuatro estados (espera, recibido, preparando, listo) y la barra
+    solo tres: al pintar una comanda en un estado que esa pantalla no conoce,
+    la tarjeta se construía con `undefined` y **se caía la pantalla entera**.
+    En mitad de un servicio, eso es lo peor que puede pasar. Ahora un estado
+    desconocido se pinta como una tarjeta neutra que **se puede marchar a
+    mano**, y la barra sabe qué hacer con una bebida de segundo tiempo.
+52. **Una comanda sin hora de entrada se colaba la primera y en rojo.** Las
+    vistas del cliente construyen comandas «de mentira» sin hora; si una se
+    colaba en la cola, `new Date(null)` la fechaba en **1970**, así que salía la
+    primera de todas y marcada como urgente para siempre. Ahora va al final
+    —no se sabe cuándo entró—, no parpadea, y el reloj de la tarjeta enseña un
+    guion en vez de «29000000 min».
 
 ## 🖨 EL LUNES: llegan las impresoras (dos, 80 mm)
 
