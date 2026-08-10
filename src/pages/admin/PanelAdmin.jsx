@@ -14,7 +14,7 @@ import ConfigImpresora from '../../components/ConfigImpresora'
 import EditorMenu from '../../components/EditorMenu'
 import Informes from './Informes'
 
-const emptyForm = { nombre: '', categoria: '', descripcion: '', alergenos: [], imagen: '', conFormatos: false, precios: {}, precio: '', menu: null }
+const emptyForm = { nombre: '', nombreEn: '', categoria: '', descripcion: '', descripcionEn: '', alergenos: [], imagen: '', conFormatos: false, precios: {}, precio: '', menu: null }
 
 export default function PanelAdmin() {
   const { carta, mesas, historial, cierres, anulaciones, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, addCategoria, removeCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, editarFichaje, borrarFichaje } = useStore()
@@ -81,7 +81,7 @@ export default function PanelAdmin() {
   const empezarEdicion = (prod) => {
     setEditando(prod.id)
     setForm({
-      nombre: prod.nombre, categoria: prod.categoria, descripcion: prod.descripcion, alergenos: prod.alergenos || [], imagen: prod.imagen || '',
+      nombre: prod.nombre, nombreEn: prod.nombreEn || '', categoria: prod.categoria, descripcion: prod.descripcion, descripcionEn: prod.descripcionEn || '', alergenos: prod.alergenos || [], imagen: prod.imagen || '',
       conFormatos: !!prod.precios,
       precios: prod.precios ? Object.fromEntries(Object.entries(prod.precios).map(([k, v]) => [k, String(v)])) : {},
       precio: String(prod.precio ?? ''),
@@ -910,6 +910,12 @@ function FormProducto({ carta, form, setForm, onGuardar, onCancelar, titulo }) {
           {form.conFormatos ? '📐 Varios tamaños (pitufo, viena…)' : '💶 Precio único'}
         </button>
         <input value={form.descripcion} onChange={set('descripcion')} placeholder="Descripción (qué lleva)" style={{ ...inputStyle, minHeight: '44px' }} />
+        {/* La carta en inglés traduce sola los ingredientes corrientes; esto es
+            para lo tuyo, que ningún diccionario puede adivinar. */}
+        <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+          <input value={form.nombreEn} onChange={set('nombreEn')} placeholder="🇬🇧 Nombre en inglés (opcional)" style={{ ...inputStyle, flex: '1 1 160px', minHeight: '44px' }} />
+          <input value={form.descripcionEn} onChange={set('descripcionEn')} placeholder="🇬🇧 Descripción en inglés (opcional)" style={{ ...inputStyle, flex: '2 1 200px', minHeight: '44px' }} />
+        </div>
         {/* Foto del producto (URL) */}
         <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
           <input value={form.imagen} onChange={set('imagen')} placeholder="📷 URL de la foto (opcional)" style={{ ...inputStyle, flex: 1, minHeight: '44px' }} />

@@ -13,11 +13,13 @@ export const normalizar = (s) => (s || '').toString().toLowerCase()
  * Busca en la carta por nombre, descripción e ingredientes. Cada palabra debe
  * aparecer en algún sitio («cafe leche» encuentra «Café con leche»).
  */
-export function buscarProductos(productos, texto) {
+export function buscarProductos(productos, texto, extra = null) {
   const palabras = normalizar(texto).split(/\s+/).filter(Boolean)
   if (!palabras.length) return []
   return productos.filter(p => {
-    const heno = normalizar([p.nombre, p.descripcion, ...(p.ingredientes || [])].join(' '))
+    // `extra` añade la traducción del producto: con la carta en inglés,
+    // «cheese» tiene que encontrar el queso igual que «queso»
+    const heno = normalizar([p.nombre, p.descripcion, ...(p.ingredientes || []), extra ? extra(p) : ''].join(' '))
     return palabras.every(w => heno.includes(w))
   })
 }
@@ -27,9 +29,9 @@ export function buscarProductos(productos, texto) {
  * si no los de la categoría abierta. Solo lo disponible, salvo que se pida
  * incluir lo agotado (el personal sí lo ve, para poder reactivarlo).
  */
-export function productosVisibles(carta, { busqueda = '', categoria = null, incluirNoDisponibles = false } = {}) {
+export function productosVisibles(carta, { busqueda = '', categoria = null, incluirNoDisponibles = false, extra = null } = {}) {
   const base = incluirNoDisponibles ? carta.productos : carta.productos.filter(p => p.disponible)
-  if (normalizar(busqueda)) return buscarProductos(base, busqueda)
+  if (normalizar(busqueda)) return buscarProductos(base, busqueda, extra)
   return base.filter(p => p.categoria === categoria)
 }
 

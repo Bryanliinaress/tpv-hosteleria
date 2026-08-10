@@ -50,7 +50,7 @@ export async function sembrarCartaEjemplo() {
     nombre: p.nombre,
     descripcion: p.descripcion || '',
     precios: p.precios || { base: p.precio ?? 0 },
-    modificadores: { ingredientes: p.ingredientes || [], imagen: p.imagen || '', menu: p.menu || null },
+    modificadores: { ingredientes: p.ingredientes || [], imagen: p.imagen || '', menu: p.menu || null, nombreEn: p.nombreEn || '', descripcionEn: p.descripcionEn || '' },
     alergenos: p.alergenos || [],
     disponible: p.disponible !== false,
     orden: i,
