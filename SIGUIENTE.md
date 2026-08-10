@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.70.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.71.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-08. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**375 tests**, lint limpio, CI y deploy en verde.
+**377 tests**, lint limpio, CI y deploy en verde.
 
 ## Auditoría del dinero (v0.51.0)
 
@@ -461,6 +461,19 @@ grupo, y siempre en la misma dirección: dinero sin cobrar.
 
 `src/lib/v2/grupos.js` concentra «quién es la cabeza» y «qué mesas forman el
 grupo», con sus tests. 19 tests nuevos en total.
+
+## Un servicio entero, probado de punta a punta (v0.71.0)
+
+Los tests miraban una pieza cada uno. Ahora hay uno que recorre **el camino
+completo de un servicio** (`src/store/servicio.test.js`): dos clientes se
+sientan, piden comida y bebida, la comida va a cocina y la bebida a barra, piden
+otra ronda, comparten un plato, uno paga en efectivo con propina y el otro con
+tarjeta, se cierra la mesa, cuadra el ticket y cuadra el cajón. Si se rompe
+cualquier eslabón salta, aunque la pieza suelta siga pasando su test.
+
+Comprobado además **en el navegador**, con el camino público entero: carta por
+QR → dar el nombre → añadir → confirmar → la comanda aparece en barra; y el
+asistente de reservas de principio a fin.
 
 ## 🖨 EL LUNES: llegan las impresoras (dos, 80 mm)
 
