@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.68.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.69.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-08. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**357 tests**, lint limpio, CI y deploy en verde.
+**362 tests**, lint limpio, CI y deploy en verde.
 
 ## Auditoría del dinero (v0.51.0)
 
@@ -421,6 +421,19 @@ aplicar; se probaría contra la BBDD en la misma sesión.
     Ahora se acepta la forma del asistente (y `n` por compatibilidad), se
     valida que haya al menos una mesa **antes de borrar nada**, y se devuelve el
     total de verdad. Tres tests nuevos.
+
+## El arqueo de la app real cantaba un sobrante falso (v0.69.0)
+
+40. **El fallo 2 seguía vivo en el backend real.** En la demo se arregló hace
+    tiempo que el arqueo espere en el cajón las propinas dejadas **en metálico**;
+    la implementación v2 se escribió con la fórmula vieja:
+    `descuadre = contado − pagos.efectivo`. Cada día con propinas en efectivo,
+    el TPV decía que sobraba dinero. Para un dueño que cuadra caja, un TPV que
+    «se equivoca» todas las noches deja de ser de fiar.
+    La tabla de tickets solo guarda el TOTAL de propina, pero el detalle del
+    ticket lleva la propina y el método **de cada comensal**: `propinasPorMetodoDe()`
+    las agrupa desde ahí y la usan el cierre, el arqueo en vivo y v2. Cinco
+    tests nuevos (comprobado que fallan con la fórmula vieja).
 
 ## 🖨 EL LUNES: llegan las impresoras (dos, 80 mm)
 
