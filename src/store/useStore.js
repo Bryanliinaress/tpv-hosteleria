@@ -1112,6 +1112,9 @@ export const useStore = create(persist((set, get) => ({
           menu: producto.menu || null,
           id,
           nombre: producto.nombre,
+          // traducción que escribe el dueño; la carta en inglés la respeta
+          nombreEn: (producto.nombreEn || '').trim(),
+          descripcionEn: (producto.descripcionEn || '').trim(),
           ...(conFormatos
             ? { precios: Object.fromEntries(Object.entries(producto.precios).map(([k, v]) => [k, precioValido(v)])) }
             : { precio: precioValido(producto.precio) }),
@@ -1134,6 +1137,8 @@ export const useStore = create(persist((set, get) => ({
         if (p.id !== productoId) return p
         const next = { ...p }
         if (cambios.nombre !== undefined) next.nombre = cambios.nombre
+        if (cambios.nombreEn !== undefined) next.nombreEn = (cambios.nombreEn || '').trim()
+        if (cambios.descripcionEn !== undefined) next.descripcionEn = (cambios.descripcionEn || '').trim()
         if (cambios.menu !== undefined) next.menu = cambios.menu
         if (cambios.descripcion !== undefined) {
           next.descripcion = cambios.descripcion

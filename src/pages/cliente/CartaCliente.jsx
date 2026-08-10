@@ -5,6 +5,7 @@ import { iniciarPagoOnline, leerResultadoPago, limpiarUrlPago, pagoOnlineDisponi
 import { syncListo } from '../../lib/sync'
 import { toast } from '../../store/useUI'
 import { useIdioma, tr } from '../../lib/i18n'
+import { traducirCarta, nombreProducto, descripcionProducto, textoBuscable } from '../../lib/cartaI18n'
 import { useUnaVez } from '../../lib/unaVez'
 import { esMenu, conFormatos, conOpciones, lineaDeMenu, menuCompleto, siguientePendiente, precioMenu, alternarOpcion } from '../../lib/menuDia'
 import { productosVisibles, descripcionUtil, lineaSimplePendiente, unidades, configDeItem, ultimaRonda } from '../../lib/carta'
@@ -181,7 +182,8 @@ export default function CartaCliente() {
   // Mientras se ojea no hay persona: una vacía evita comprobar `yo` en cada línea.
   const personaActiva = mesa.personas.find(p => p.id === pidiendoPara) || yo || SIN_PERSONA
   const q = busqueda.trim().toLowerCase()
-  const productosFiltrados = productosVisibles(carta, { busqueda: busqueda, categoria: categoriaActiva })
+  // `extra`: con la carta en inglés, «cheese» también encuentra el queso
+  const productosFiltrados = productosVisibles(carta, { busqueda, categoria: categoriaActiva, extra: (p) => textoBuscable(idioma, p) })
   const itemsPendientes = personaActiva.items.filter(i => i.estado === 'pendiente')
   const itemsEnviados = personaActiva.items.filter(i => i.estado === 'enviado')
   const totalPendiente = itemsPendientes.reduce((s, i) => s + i.precio * i.cantidad, 0)
@@ -219,7 +221,7 @@ export default function CartaCliente() {
   const repetirItem = (item) => {
     const config = configDeItem(item)
     for (let i = 0; i < (item.cantidad || 1); i++) agregarItem(mesaId, personaActiva.id, config)
-    toast(`🔁 ${item.cantidad}× ${item.nombre} ${t('otra vez en tu pedido')}`, 'success')
+    toast(`🔁 ${item.cantidad}× ${nombreItem(item)} ${t('otra vez en tu pedido')}`, 'success')
   }
   const repetirRonda = () => {
     const ronda = ultimaRonda(personaActiva.items)
@@ -231,11 +233,14 @@ export default function CartaCliente() {
     toast(`🔁 ${unidades(ronda)} ${t('producto(s)')} ${t('otra vez en tu pedido')}`, 'success')
   }
 
+  // El nombre de la línea se guarda en el idioma del bar, porque la comanda la
+  // lee cocina; aquí se traduce solo para enseñárselo al cliente.
+  const nombreItem = (item) => traducirCarta(idioma, item.nombre)
   const descrItem = (item) => {
     const p = []
-    if (item.pan) p.push(`${item.pan.nombreFormato} · ${item.pan.nombreTipo}`)
-    if (item.quitados?.length) p.push(t('sin') + ' ' + item.quitados.join(', '))
-    if (item.anadidos?.length) p.push(t('con') + ' ' + item.anadidos.join(', '))
+    if (item.pan) p.push(`${traducirCarta(idioma, item.pan.nombreFormato)} · ${traducirCarta(idioma, item.pan.nombreTipo)}`)
+    if (item.quitados?.length) p.push(t('sin') + ' ' + item.quitados.map(x => traducirCarta(idioma, x)).join(', '))
+    if (item.anadidos?.length) p.push(t('con') + ' ' + item.anadidos.map(x => traducirCarta(idioma, x)).join(', '))
     if (item.nota) p.push('“' + item.nota + '”')
     return p.join(' · ')
   }
@@ -304,7 +309,7 @@ export default function CartaCliente() {
                     <div key={idx} style={{ padding: '0.3rem 0', borderBottom: idx < lineas.length - 1 ? '1px solid var(--color-border)' : 'none' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', gap: '0.5rem' }}>
                         <span style={{ color: 'var(--color-muted)' }}>
-                          {esPropio ? `${item.cantidad}× ${item.nombre}` : item.nombre}
+                          {esPropio ? `${item.cantidad}× ${nombreItem(item)}` : nombreItem(item)}
                           {!esPropio && <span style={{ fontSize: '0.7rem' }}> (de {owner.nombre})</span>}
                           {compartido && <span style={{ fontSize: '0.7rem', color: '#a78bfa' }}> · {t('compartido')} ×{sharers.length}</span>}
                         </span>
@@ -458,13 +463,13 @@ export default function CartaCliente() {
               return (
                 <div key={item.uid} style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', borderColor: est ? est.color + '66' : 'var(--color-border)' }}>
                   <div>
-                    <div style={{ fontSize: '0.875rem' }}>{item.cantidad}× {item.nombre}</div>
+                    <div style={{ fontSize: '0.875rem' }}>{item.cantidad}× {nombreItem(item)}</div>
                     {item.pan && <div style={{ fontSize: '0.7rem', color: 'var(--color-muted)' }}>{descrItem(item)}</div>}
                     {est && <div style={{ fontSize: '0.72rem', color: est.color, fontWeight: 700, marginTop: '0.15rem' }}>{est.emoji} {est.label}</div>}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{(item.precio * item.cantidad).toFixed(2)} €</span>
-                    <button onClick={() => repetirItem(item)} title={`${t('Pedir otro')} ${item.nombre}`} aria-label={`${t('Pedir otro')} ${item.nombre}`}
+                    <button onClick={() => repetirItem(item)} title={`${t('Pedir otro')} ${nombreItem(item)}`} aria-label={`${t('Pedir otro')} ${nombreItem(item)}`}
                       style={btnStyle('var(--color-surface-3)', { ...paso, padding: 0, fontSize: '0.95rem' })}>🔁</button>
                   </div>
                 </div>
@@ -480,7 +485,7 @@ export default function CartaCliente() {
               <div key={item.uid} style={{ ...cardStyle, marginBottom: '0.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{item.nombre}</div>
+                    <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{nombreItem(item)}</div>
                     {item.pan && <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)', marginTop: '0.1rem' }}>{descrItem(item)}</div>}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: '0.5rem' }}>
@@ -514,7 +519,7 @@ export default function CartaCliente() {
               {itemsPendientes.map((item) => (
                 <div key={item.uid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '0.5rem 0', borderBottom: '1px solid var(--color-border)' }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{item.cantidad}× {item.nombre}</div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{item.cantidad}× {nombreItem(item)}</div>
                     {item.pan && <div style={{ fontSize: '0.74rem', color: 'var(--tint-warning-fg)' }}>{descrItem(item)}</div>}
                   </div>
                   <span style={{ fontWeight: 600, fontSize: '0.9rem', whiteSpace: 'nowrap' }}>{(item.precio * item.cantidad).toFixed(2)} €</span>
@@ -598,7 +603,7 @@ export default function CartaCliente() {
 
       {misListos.length > 0 && (
         <div style={{ background: 'var(--tint-success-bg)', color: 'var(--tint-success-fg)', fontSize: '0.85rem', fontWeight: 700, padding: '0.55rem 1.25rem', textAlign: 'center', borderBottom: '1px solid var(--tint-success-bd)' }}>
-          ✅ {t('¡Listo para ti!')} {misListos.map(p => `${p.cantidad}× ${p.nombre}`).join(', ')}
+          ✅ {t('¡Listo para ti!')} {misListos.map(p => `${p.cantidad}× ${traducirCarta(idioma, p.nombre)}`).join(', ')}
         </div>
       )}
       {pedirParaOtro && (
@@ -611,7 +616,7 @@ export default function CartaCliente() {
           <input ref={buscadorRef} value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder={t('🔍 Buscar en la carta…')} style={{ ...inputStyle, fontSize: '0.9rem', padding: '0.6rem 0.75rem' }} />
           {busqueda && <button onClick={() => setBusqueda('')} aria-label={t('Cancelar')} style={{ position: 'absolute', right: '0.15rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--color-muted)', cursor: 'pointer', fontSize: '1rem', ...paso }}>✕</button>}
         </div>
-        {q && <div style={{ fontSize: '0.78rem', color: 'var(--color-muted)', marginTop: '0.5rem' }}>{productosFiltrados.length} resultado(s) para «{busqueda}»</div>}
+        {q && <div style={{ fontSize: '0.78rem', color: 'var(--color-muted)', marginTop: '0.5rem' }}>{t('{n} resultado(s) para «{q}»', { n: productosFiltrados.length, q: busqueda })}</div>}
       </div>
 
       {/* Categorías: se quedan pegadas bajo la cabecera al bajar por la carta */}
@@ -621,7 +626,7 @@ export default function CartaCliente() {
             style={btnStyle('var(--color-surface-2)', { ...paso, padding: 0, flexShrink: 0 })}>🔍</button>
           {carta.categorias.map(cat => (
             <button key={cat.id} onClick={() => { setCategoriaActiva(cat.id); window.scrollTo({ top: 0, behavior: 'smooth' }) }} style={btnStyle(categoriaActiva === cat.id ? 'var(--color-accent)' : 'var(--color-surface-2)', { whiteSpace: 'nowrap', fontSize: '0.88rem', padding: '0.5rem 0.9rem', minHeight: `${TOQUE}px` })}>
-              {cat.emoji} {cat.nombre}
+              {cat.emoji} {traducirCarta(idioma, cat.nombre)}
             </button>
           ))}
         </div>
@@ -645,14 +650,14 @@ export default function CartaCliente() {
             <div key={prod.id} style={{ ...cardStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem' }}>
               {prod.imagen && <img src={prod.imagen} alt="" loading="lazy" onError={e => { e.currentTarget.style.display = 'none' }} style={{ width: '4rem', height: '4rem', objectFit: 'cover', borderRadius: '0.6rem', flexShrink: 0 }} />}
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, marginBottom: '0.2rem' }}>{prod.nombre}</div>
+                <div style={{ fontWeight: 700, marginBottom: '0.2rem' }}>{nombreProducto(idioma, prod)}</div>
                 {descripcionUtil(prod) && (
-                  <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)', marginBottom: '0.25rem' }}>{descripcionUtil(prod)}</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)', marginBottom: '0.25rem' }}>{descripcionProducto(idioma, prod, descripcionUtil(prod))}</div>
                 )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <span style={{ fontWeight: 700, color: 'var(--color-accent)' }}>{esMontadito ? `${t('desde')} ${minPrecio(prod).toFixed(2)} €` : esMenu(prod) ? `${precioMenu(prod).toFixed(2)} €` : `${(prod.precio ?? 0).toFixed(2)} €`}</span>
                   {(prod.alergenos || []).length > 0 && (
-                    <span title={'Alérgenos: ' + prod.alergenos.map(a => ALERGENO_INFO[a]?.nombre || a).join(', ')} style={{ fontSize: '0.72rem', letterSpacing: '0.1em', opacity: 0.85 }}>
+                    <span title={t('Alérgenos') + ': ' + prod.alergenos.map(a => t(ALERGENO_INFO[a]?.nombre || a)).join(', ')} style={{ fontSize: '0.72rem', letterSpacing: '0.1em', opacity: 0.85 }}>
                       {prod.alergenos.map(a => ALERGENO_INFO[a]?.emoji || '•').join('')}
                     </span>
                   )}
@@ -727,7 +732,7 @@ export default function CartaCliente() {
             <div style={hojaCabecera}>
               <div style={grabHandle} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <h3 style={{ fontWeight: 800, fontSize: '1.15rem' }}>{pers.producto.nombre}</h3>
+                <h3 style={{ fontWeight: 800, fontSize: '1.15rem' }}>{nombreProducto(idioma, pers.producto)}</h3>
                 <button onClick={() => setPers(null)} aria-label={t('Cerrar')} style={btnStyle('var(--color-surface-3)', { ...paso, padding: 0 })}>✕</button>
               </div>
             </div>
@@ -735,7 +740,7 @@ export default function CartaCliente() {
             {pers.producto.imagen && <img src={pers.producto.imagen} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ width: '100%', height: '9rem', objectFit: 'cover', borderRadius: '0.75rem', marginBottom: '0.75rem' }} />}
             {(pers.producto.alergenos || []).length > 0 && (
               <p style={{ fontSize: '0.74rem', color: 'var(--tint-warning-fg)', marginBottom: '0.75rem' }}>
-                ⚠️ {t('Alérgenos')}: {pers.producto.alergenos.map(a => `${ALERGENO_INFO[a]?.emoji || ''} ${ALERGENO_INFO[a]?.nombre || a}`).join(' · ')}
+                ⚠️ {t('Alérgenos')}: {pers.producto.alergenos.map(a => `${ALERGENO_INFO[a]?.emoji || ''} ${t(ALERGENO_INFO[a]?.nombre || a)}`).join(' · ')}
               </p>
             )}
 
@@ -759,7 +764,7 @@ export default function CartaCliente() {
                         <button key={oi}
                           onClick={() => setPers(s => ({ ...s, elecciones: alternarOpcion({ ...g, titulo }, o, s.elecciones || []) }))}
                           style={btnStyle(sel ? 'var(--color-accent)' : 'var(--color-surface-2)', { fontSize: '0.85rem', padding: '0.55rem 0.8rem' })}>
-                          {o.nombre}{o.sup ? ` +${Number(o.sup).toFixed(2)} €` : ''}
+                          {traducirCarta(idioma, o.nombre)}{o.sup ? ` +${Number(o.sup).toFixed(2)} €` : ''}
                         </button>
                       )
                     })}
@@ -770,21 +775,21 @@ export default function CartaCliente() {
 
             {/* Formato (tamaño/pan según el local) */}
             {!esMenu(pers.producto) && <>
-            <p style={labelMini}>{etiquetas.formatos}</p>
+            <p style={labelMini}>{traducirCarta(idioma, etiquetas.formatos)}</p>
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
               {carta.formatos.filter(f => pers.producto.precios?.[f.id] != null).map(f => (
                 <button key={f.id} onClick={() => setPers(s => ({ ...s, formato: f.id }))} style={btnStyle(pers.formato === f.id ? 'var(--color-accent)' : 'var(--color-surface-2)', { flex: 1, minWidth: '7rem', padding: '0.6rem', fontSize: '0.85rem' })}>
-                  {f.nombre}<br /><span style={{ fontSize: '0.8rem', opacity: 0.9 }}>{(pers.producto.precios?.[f.id] ?? 0).toFixed(2)} €</span>
+                  {traducirCarta(idioma, f.nombre)}<br /><span style={{ fontSize: '0.8rem', opacity: 0.9 }}>{(pers.producto.precios?.[f.id] ?? 0).toFixed(2)} €</span>
                 </button>
               ))}
             </div>
 
             {/* Tipo/variedad */}
-            <p style={labelMini}>{etiquetas.tiposPan}</p>
+            <p style={labelMini}>{traducirCarta(idioma, etiquetas.tiposPan)}</p>
             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
               {carta.tiposPan.map(t => (
                 <button key={t.id} onClick={() => setPers(s => ({ ...s, tipo: t.id }))} style={btnStyle(pers.tipo === t.id ? '#7c3aed' : 'var(--color-surface-2)', { fontSize: '0.78rem', padding: '0.35rem 0.65rem' })}>
-                  {t.nombre}{t.sup > 0 ? ` +${t.sup.toFixed(2)}€` : ''}
+                  {traducirCarta(idioma, t.nombre)}{t.sup > 0 ? ` +${t.sup.toFixed(2)}€` : ''}
                 </button>
               ))}
             </div>
@@ -799,7 +804,7 @@ export default function CartaCliente() {
                     const quitado = pers.quitados.includes(ing)
                     return (
                       <button key={ing} onClick={() => toggleEn('quitados', ing)} style={btnStyle(quitado ? '#7f1d1d' : 'var(--color-surface-3)', { fontSize: '0.78rem', padding: '0.35rem 0.65rem', textDecoration: quitado ? 'line-through' : 'none' })}>
-                        {quitado ? '✕ ' : ''}{ing}
+                        {quitado ? '✕ ' : ''}{traducirCarta(idioma, ing)}
                       </button>
                     )
                   })}
@@ -808,13 +813,13 @@ export default function CartaCliente() {
             )}
 
             {/* Añadir extras (cada uno con su precio) */}
-            <p style={labelMini}>Añadir {etiquetas.extras.toLowerCase()}</p>
+            <p style={labelMini}>{t('Añadir')} {traducirCarta(idioma, etiquetas.extras).toLowerCase()}</p>
             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
               {extrasNorm.map(ex => {
                 const puesto = pers.anadidos.includes(ex.nombre)
                 return (
                   <button key={ex.nombre} onClick={() => toggleEn('anadidos', ex.nombre)} style={btnStyle(puesto ? '#065f46' : 'var(--color-surface-2)', { fontSize: '0.78rem', padding: '0.35rem 0.65rem' })}>
-                    {puesto ? '✓ ' : '+ '}{ex.nombre}{ex.precio > 0 && <span style={{ opacity: 0.7 }}> +{ex.precio.toFixed(2)}€</span>}
+                    {puesto ? '✓ ' : '+ '}{traducirCarta(idioma, ex.nombre)}{ex.precio > 0 && <span style={{ opacity: 0.7 }}> +{ex.precio.toFixed(2)}€</span>}
                   </button>
                 )
               })}

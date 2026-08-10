@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.72.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.73.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-08. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**379 tests**, lint limpio, CI y deploy en verde.
+**398 tests**, lint limpio, CI y deploy en verde.
 
 ## Auditoría del dinero (v0.51.0)
 
@@ -494,6 +494,37 @@ asistente de reservas de principio a fin.
 
 `tr()` acepta ya huecos con nombre (`t('para {n} personas', { n: 4 })`), para
 que cada idioma pueda ordenar la frase a su manera.
+
+## La carta también habla inglés (v0.73.0)
+
+47. **Cambiar de idioma traducía la interfaz, no la comida.** El cliente leía
+    «Add» encima de «Jamón york, Mantequilla»: los platos, los ingredientes, los
+    panes, los extras y las categorías los escribe el local, así que se
+    quedaban en español. La mitad de la pantalla de un turista es justo eso.
+
+Cómo se resuelve, sin darle trabajo al bar y sin inventar traducciones
+(`src/lib/cartaI18n.js`):
+
+1. **Si el dueño ha escrito la traducción**, manda la suya. Hay dos campos
+   nuevos por producto en Admin → Carta → Más opciones: «🇬🇧 Nombre en inglés» y
+   «🇬🇧 Descripción en inglés». Es lo que ningún diccionario puede adivinar
+   («Croquetas de la abuela»).
+2. **Si no**, se busca en un diccionario de términos de bar español —unos 90:
+   ingredientes, panes, extras, categorías y los nombres de bocadillo que
+   significan lo mismo en cualquier barra (mixto, catalana, serranito…)—. Los
+   nombres compuestos se parten: «Jamón york y mantequilla» → «Cooked ham and
+   butter».
+3. **Si tampoco**, se deja tal cual. Nunca se inventa.
+
+Además:
+- **Los 14 alérgenos** son de la app (Reglamento UE 1169/2011), no los escribe
+  el bar: ahora se traducen (Lácteos → Milk, Frutos de cáscara → Tree nuts).
+- **La comanda de cocina sigue en español**, que es quien la lee; lo que se
+  traduce es lo que ve el cliente, incluido lo que ya tiene pedido.
+- **Buscar «cheese» encuentra el queso**: la búsqueda mira también la
+  traducción. Antes, con la carta en inglés, no salía nada.
+
+19 tests nuevos. La traducción se guarda igual en la demo y en el backend real.
 
 ## 🖨 EL LUNES: llegan las impresoras (dos, 80 mm)
 

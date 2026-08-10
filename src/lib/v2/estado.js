@@ -108,6 +108,8 @@ export async function cargarCarta() {
         ingredientes: p.modificadores?.ingredientes || [],
         imagen: p.modificadores?.imagen || '',
         menu: p.modificadores?.menu || null,
+        nombreEn: p.modificadores?.nombreEn || '',
+        descripcionEn: p.modificadores?.descripcionEn || '',
       })),
     },
   }))
