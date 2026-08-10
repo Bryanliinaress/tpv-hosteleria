@@ -5,6 +5,7 @@ import { toast } from '../../store/useUI'
 import { sembrarCartaEjemplo, vaciarCartaV2 } from './plantillaCarta'
 import { cabezaDe, miembrosDe } from './grupos'
 import { revisarCorreccionFichaje } from '../fichajes'
+import { revisarNuevoEmpleado, revisarCambioEmpleado, revisarBajaEmpleado } from '../personal'
 import { getLocalId, cargarSala, cargarComandas, cargarReservas, cargarCarta, cargarLocal, cargarHistorial, cargarFichajes, cargarCierres } from './estado'
 
 // Segunda ola de acciones v2: KDS, agenda de reservas, CRUD de carta/sala/
@@ -269,25 +270,43 @@ export function accionesV2b() {
     removeExtra: (nombre) => actualizarConfig({ carta: { extras: (cartaCfg().extras || []).filter(e => (e.nombre || e) !== nombre) } }).catch(err),
 
     // ── Personal (admin) ────────────────────────────────────────
-    addEmpleado: async ({ nombre, pin, rol }) => {
-      try {
-        const { data, error } = await t('empleados').insert({ local_id: getLocalId(), nombre, rol: rol || 'camarero' }).select('id').single()
-        if (error) throw error
-        if (pin) await personal.fijarPin(data.id, pin)
-        cargarSala()
-        return { ok: true }
-      } catch (e) { err(e); return { ok: false, error: 'No se pudo crear' } }
+    // Las pantallas leen el resultado EN EL ACTO (`if (!r.ok)`): si esto fuera
+    // async devolvería una promesa y el alta de un empleado cantaría un error
+    // falso aunque se hubiera creado. Se valida ya y se escribe por detrás.
+    addEmpleado: ({ nombre, pin, rol }) => {
+      const r = revisarNuevoEmpleado(st().empleados, { nombre, pin })
+      if (!r.ok) return r
+      ;(async () => {
+        try {
+          const { data, error } = await t('empleados').insert({ local_id: getLocalId(), nombre: r.nombre, rol: rol === 'admin' ? 'admin' : 'camarero' }).select('id').single()
+          if (error) throw error
+          await personal.fijarPin(data.id, r.pin)
+          cargarSala()
+        } catch (e) { err(e) }
+      })()
+      return { ok: true }
     },
-    updateEmpleado: async (id, cambios) => {
-      try {
-        const { pin, ...resto } = cambios
-        if (Object.keys(resto).length) await t('empleados').update(resto).eq('id', id)
-        if (pin) await personal.fijarPin(id, pin)
-        cargarSala()
-        return { ok: true }
-      } catch (e) { err(e); return { ok: false, error: 'No se pudo actualizar' } }
+    updateEmpleado: (id, cambios) => {
+      const rev = revisarCambioEmpleado(st().empleados, id, cambios)
+      if (!rev.ok) return rev
+      ;(async () => {
+        try {
+          const { pin, ...resto } = cambios
+          if (Object.keys(resto).length) await t('empleados').update(resto).eq('id', id)
+          if (pin) await personal.fijarPin(id, pin)
+          cargarSala()
+        } catch (e) { err(e) }
+      })()
+      return { ok: true }
     },
-    removeEmpleado: async (id) => { try { await t('empleados').delete().eq('id', id); cargarSala() } catch (e) { err(e) } },
+    removeEmpleado: (id) => {
+      const rev = revisarBajaEmpleado(st().empleados, id)
+      if (!rev.ok) return rev
+      ;(async () => {
+        try { await t('empleados').delete().eq('id', id); cargarSala() } catch (e) { err(e) }
+      })()
+      return { ok: true }
+    },
 
     // ── Local / reservas config ─────────────────────────────────
     updateLocal: (cambios) => actualizarConfig(cambios).catch(err),
