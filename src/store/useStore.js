@@ -67,6 +67,29 @@ export function alergenosDe(texto) {
 // Redondeo a céntimos: el dinero no admite la basura decimal del float
 const cent = (x) => Math.round(x * 100) / 100
 
+/**
+ * Propinas de un ticket repartidas por método de cobro.
+ *
+ * Importa para el arqueo: la propina que se dejó en metálico ESTÁ en el cajón y
+ * hay que esperarla al contar. Los tickets de la demo (v1) la traen ya agrupada
+ * en `propinas`; los del backend real no —la tabla solo guarda el total— pero
+ * sí traen el detalle de comensales, y ahí está la propina de cada uno con su
+ * método. Sin esto, el arqueo de la app real cantaba un sobrante falso todos
+ * los días.
+ */
+export function propinasPorMetodoDe(ticket) {
+  if (ticket?.propinas && Object.keys(ticket.propinas).length) return ticket.propinas
+  const salida = {}
+  for (const p of ticket?.personas || []) {
+    const prop = Number(p.propina) || 0
+    if (!prop) continue
+    const metodo = p.metodoPago || 'efectivo'
+    salida[metodo] = cent((salida[metodo] || 0) + prop)
+  }
+  return salida
+}
+
+
 // Identificadores únicos. Con `Date.now()` a secas, dos comensales que se unían
 // en el mismo milisegundo salían con el MISMO id: lo que pedía uno se le
 // cargaba también al otro y el cobro se duplicaba. El sufijo aleatorio lo evita.
@@ -1009,7 +1032,7 @@ export const useStore = create(persist((set, get) => ({
     // que hay que esperarlas al contar. Antes se ignoraban y el arqueo cantaba
     // un sobrante falso cada vez que alguien dejaba propina en metálico.
     const propinasPorMetodo = {}
-    tickets.forEach(r => Object.entries(r.propinas || {}).forEach(([k, v]) => { propinasPorMetodo[k] = cent((propinasPorMetodo[k] || 0) + v) }))
+    tickets.forEach(r => Object.entries(propinasPorMetodoDe(r)).forEach(([k, v]) => { propinasPorMetodo[k] = cent((propinasPorMetodo[k] || 0) + v) }))
     const efectivoEsperado = cent((pagos.efectivo || 0) + (propinasPorMetodo.efectivo || 0))
     const cont = contado === '' || contado == null ? null : Number(contado) || 0
     const descuadre = cont == null ? null : cent(cont - efectivoEsperado)

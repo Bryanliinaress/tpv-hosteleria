@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
-import { useStore, METODO_LABEL, METODO_EMOJI, metodosDe, ALERGENOS, normalizarExtra, etiquetasDe, ETIQUETAS_DEFECTO } from '../../store/useStore'
+import { useStore, METODO_LABEL, METODO_EMOJI, metodosDe, propinasPorMetodoDe, ALERGENOS, normalizarExtra, etiquetasDe, ETIQUETAS_DEFECTO } from '../../store/useStore'
 import { confirmar, toast } from '../../store/useUI'
 import Ticket from '../../components/Ticket'
 import ReservasManager from '../../components/ReservasManager'
@@ -60,7 +60,9 @@ export default function PanelAdmin() {
   ticketsCaja.forEach(r => { const c = r.cobradoPor || r.camarero || '—'; cajaPorCamarero[c] = (cajaPorCamarero[c] || 0) + r.total })
   // Las propinas dejadas EN EFECTIVO también están en el cajón: si no se
   // esperan, el arqueo canta un sobrante que no existe.
-  const cajaPropinasEfectivo = ticketsCaja.reduce((s, r) => s + ((r.propinas || {}).efectivo || 0), 0)
+  // el backend real no guarda las propinas agrupadas por método: se derivan del
+  // detalle del ticket (ver propinasPorMetodoDe)
+  const cajaPropinasEfectivo = ticketsCaja.reduce((s, r) => s + (propinasPorMetodoDe(r).efectivo || 0), 0)
   const efectivoVentas = cajaPagos.efectivo || 0
   const efectivoEsperado = efectivoVentas + cajaPropinasEfectivo
   const descuadre = contado === '' ? null : (Number(contado) || 0) - efectivoEsperado

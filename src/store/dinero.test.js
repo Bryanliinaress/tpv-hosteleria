@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { useStore, owedPorPersona, metodosDe, METODO_LABEL, METODO_EMOJI } from './useStore'
+import { useStore, owedPorPersona, metodosDe, propinasPorMetodoDe, METODO_LABEL, METODO_EMOJI } from './useStore'
 import { mergeLog } from '../lib/sync'
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -337,5 +337,48 @@ describe('desglose por método de pago', () => {
   it('el pago online sabe pintarse (antes salía «undefined»)', () => {
     expect(METODO_LABEL.online).toBe('Pago online')
     expect(METODO_EMOJI.online).toBeTruthy()
+  })
+})
+
+// El arqueo tiene que esperar en el cajón las propinas dejadas EN METÁLICO.
+// En la demo el ticket las trae ya agrupadas; en el backend real la tabla solo
+// guarda el TOTAL de propina, así que hay que derivarlas del detalle de
+// comensales. Sin esto, el arqueo de la app real cantaba un sobrante falso
+// cada día que alguien dejara propina en efectivo.
+describe('propinas por método (arqueo)', () => {
+  it('las usa tal cual si el ticket ya las trae agrupadas (demo)', () => {
+    expect(propinasPorMetodoDe({ propinas: { efectivo: 2, tarjeta: 1 } })).toEqual({ efectivo: 2, tarjeta: 1 })
+  })
+
+  it('las deriva del detalle de comensales (backend real)', () => {
+    const ticket = {
+      personas: [
+        { nombre: 'Ana', propina: 2, metodoPago: 'efectivo' },
+        { nombre: 'Luis', propina: 1.5, metodoPago: 'tarjeta' },
+        { nombre: 'Sole', propina: 0.5, metodoPago: 'efectivo' },
+      ],
+    }
+    expect(propinasPorMetodoDe(ticket)).toEqual({ efectivo: 2.5, tarjeta: 1.5 })
+  })
+
+  it('sin método apuntado, la propina se cuenta como efectivo (es lo que hay en el cajón)', () => {
+    expect(propinasPorMetodoDe({ personas: [{ propina: 3 }] })).toEqual({ efectivo: 3 })
+  })
+
+  it('un ticket sin propinas no inventa métodos', () => {
+    expect(propinasPorMetodoDe({ personas: [{ propina: 0, metodoPago: 'tarjeta' }] })).toEqual({})
+    expect(propinasPorMetodoDe({})).toEqual({})
+    expect(propinasPorMetodoDe(null)).toEqual({})
+  })
+
+  it('el cierre de caja espera esas propinas en el cajón', () => {
+    useStore.setState({ cierres: [], historial: [{
+      id: 't1', cerradaEn: new Date().toISOString(), total: 20, propina: 3, pagos: { efectivo: 20 },
+      personas: [{ nombre: 'Ana', propina: 3, metodoPago: 'efectivo' }],
+    }] })
+    useStore.getState().cerrarCaja(23)          // 20 de venta + 3 de propina
+    const z = useStore.getState().cierres.at(-1)
+    expect(z.efectivoEsperado).toBe(23)
+    expect(z.descuadre).toBe(0)                 // antes cantaba +3 de sobrante
   })
 })

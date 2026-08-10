@@ -1,5 +1,5 @@
 import { supabase } from '../supabase'
-import { useStore } from '../../store/useStore'
+import { useStore, propinasPorMetodoDe } from '../../store/useStore'
 import { reservas as rpcReservas, personal } from '../repo'
 import { toast } from '../../store/useUI'
 import { sembrarCartaEjemplo, vaciarCartaV2 } from './plantillaCarta'
@@ -267,17 +267,21 @@ export function accionesV2b() {
       try {
         const { data: cierres } = await t('cierres_caja').select('hasta').order('hasta', { ascending: false }).limit(1)
         const desde = cierres?.[0]?.hasta || null
-        let qt = t('tickets').select('total, propina, pagos')
+        // `detalle` hace falta para saber qué propinas se dejaron EN METÁLICO:
+        // ese dinero está en el cajón y hay que esperarlo al contar
+        let qt = t('tickets').select('total, propina, pagos, detalle')
         if (desde) qt = qt.gt('cerrado_en', desde)
         const { data: tk } = await qt
         const total = tk.reduce((s, x) => s + Number(x.total), 0)
         const propinas = tk.reduce((s, x) => s + Number(x.propina), 0)
         const pagos = {}
         tk.forEach(x => Object.entries(x.pagos || {}).forEach(([k, v]) => { if (k !== 'descuento') pagos[k] = (pagos[k] || 0) + (Number(v) || 0) }))
+        const propinasEfectivo = tk.reduce((s, x) => s + (propinasPorMetodoDe({ personas: x.detalle }).efectivo || 0), 0)
+        const efectivoEsperado = Math.round(((pagos.efectivo || 0) + propinasEfectivo) * 100) / 100
         await t('cierres_caja').insert({
           local_id: getLocalId(), desde, total, propinas, pagos, n_tickets: tk.length,
           contado: contado != null ? Number(contado) : null,
-          descuadre: contado != null ? Number(contado) - (pagos.efectivo || 0) : null,
+          descuadre: contado != null ? Math.round((Number(contado) - efectivoEsperado) * 100) / 100 : null,
         })
         cargarHistorial(); cargarCierres()
       } catch (e) { err(e) }
