@@ -5,6 +5,7 @@ import { enviarEmailReserva, emailConfigurado } from '../../lib/email'
 import { syncListo } from '../../lib/sync'
 import MiniCalendario from '../../components/MiniCalendario'
 import { confirmar as pedirConfirmacion } from '../../store/useUI'
+import { useIdioma, tr, diasSemana } from '../../lib/i18n'
 
 // ── utilidades de fecha ───────────────────────────────────
 const pad = (n) => String(n).padStart(2, '0')
@@ -12,7 +13,6 @@ const fechaISO = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.get
 const hoyLocal = () => fechaISO(new Date())
 const fechaBonita = (f) => { const [y, m, d] = f.split('-'); return `${d}/${m}/${y}` }
 const minDe = (hhmm) => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m }
-const DIA_SEM = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
 const gcalLink = (r, dur) => {
   const [y, mo, da] = r.fecha.split('-').map(Number); const [h, mi] = r.hora.split(':').map(Number)
@@ -28,6 +28,10 @@ const emailValido = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((e || '').trim())
 // ?r=<id>&t=<token> (enlace del email), muestra el panel para cancelar/modificar.
 export default function Reservar() {
   const { local, mesas, reservas, reservasConfig: cfg, crearReserva, actualizarReserva, cambiarEstadoReserva } = useStore()
+  // La reserva online la abre cualquiera desde fuera del local: un turista que
+  // pasa por delante también tiene que poder reservar.
+  const { idioma, setIdioma } = useIdioma()
+  const t = (s, vars) => tr(idioma, s, vars)
   const zonas = [...new Set(mesas.map(m => m.zona).filter(Boolean))]
 
   const location = useLocation()
@@ -95,7 +99,7 @@ export default function Reservar() {
   const etiquetaDia = (f) => {
     if (f === hoyLocal()) return 'Hoy'
     const d = new Date(f + 'T12:00:00')
-    return `${DIA_SEM[d.getDay()]} ${d.getDate()}`
+    return `${diasSemana(idioma)[d.getDay()]} ${d.getDate()}`
   }
 
   // ── Pantalla: reserva cancelada ───────────────────────
@@ -104,9 +108,9 @@ export default function Reservar() {
       <div style={wrap}>
         <div style={{ ...card, textAlign: 'center' }}>
           <div style={{ fontSize: '3.5rem' }}>🗑️</div>
-          <h1 style={{ fontWeight: 800, fontSize: '1.4rem', margin: '0.5rem 0' }}>Reserva cancelada</h1>
-          <p style={{ color: 'var(--color-muted)' }}>Tu reserva del {fechaBonita(cancelada.fecha)} a las {cancelada.hora} se ha cancelado.{emailConfigurado && cancelada.email ? ' Te hemos enviado un correo de confirmación.' : ''}</p>
-          <button onClick={reiniciar} style={btn('var(--color-accent)', { marginTop: '1rem', width: '100%', padding: '0.85rem', fontSize: '1rem' })}>Hacer una nueva reserva</button>
+          <h1 style={{ fontWeight: 800, fontSize: '1.4rem', margin: '0.5rem 0' }}>{t('Reserva cancelada')}</h1>
+          <p style={{ color: 'var(--color-muted)' }}>{t('Tu reserva del {fecha} a las {hora} se ha cancelado.', { fecha: fechaBonita(cancelada.fecha), hora: cancelada.hora })}{emailConfigurado && cancelada.email ? t(' Te hemos enviado un correo de confirmación.') : ''}</p>
+          <button onClick={reiniciar} style={btn('var(--color-accent)', { marginTop: '1rem', width: '100%', padding: '0.85rem', fontSize: '1rem' })}>{t('Hacer una nueva reserva')}</button>
         </div>
       </div>
     )
@@ -118,19 +122,19 @@ export default function Reservar() {
       <div style={wrap}>
         <div style={{ ...card, textAlign: 'center', borderColor: '#10b981', boxShadow: '0 18px 50px -18px rgba(16,185,129,0.5)' }}>
           <div className="anim-pop" style={{ fontSize: '3.5rem' }}>✅</div>
-          <h1 style={{ fontWeight: 800, fontSize: '1.5rem', margin: '0.5rem 0' }}>{hecha.modificada ? '¡Reserva modificada!' : '¡Reserva confirmada!'}</h1>
-          <p style={{ color: 'var(--color-muted)', marginBottom: '1rem' }}>Te esperamos, {hecha.nombre}.</p>
+          <h1 style={{ fontWeight: 800, fontSize: '1.5rem', margin: '0.5rem 0' }}>{hecha.modificada ? t('¡Reserva modificada!') : t('¡Reserva confirmada!')}</h1>
+          <p style={{ color: 'var(--color-muted)', marginBottom: '1rem' }}>{t('Te esperamos, {nombre}.', { nombre: hecha.nombre })}</p>
           <div style={{ background: 'var(--color-inset)', borderRadius: '0.75rem', padding: '1rem', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            <Fila k="📅 Día" v={fechaBonita(hecha.fecha)} />
-            <Fila k="🕐 Hora" v={hecha.hora} />
-            <Fila k="👥 Personas" v={hecha.personas} />
-            {hecha.zona && <Fila k="📍 Zona" v={hecha.zona} />}
+            <Fila k={t('📅 Día')} v={fechaBonita(hecha.fecha)} />
+            <Fila k={t('🕐 Hora')} v={hecha.hora} />
+            <Fila k={t('👥 Personas')} v={hecha.personas} />
+            {hecha.zona && <Fila k={t('📍 Zona')} v={hecha.zona} />}
           </div>
           <p style={{ fontSize: '0.82rem', color: emailConfigurado ? '#10b981' : 'var(--color-muted)', marginTop: '0.875rem' }}>
-            {emailConfigurado ? `📧 Te hemos enviado la confirmación a ${hecha.email}` : `📧 Confirmación a ${hecha.email}`}
+            {emailConfigurado ? t('📧 Te hemos enviado la confirmación a {email}', { email: hecha.email }) : t('📧 Confirmación a {email}', { email: hecha.email })}
           </p>
-          <a href={gcalLink(hecha, cfg.duracionMin)} target="_blank" rel="noreferrer" style={btn('var(--color-surface-2)', { display: 'block', marginTop: '0.875rem', padding: '0.75rem', textDecoration: 'none' })}>📆 Añadir a mi calendario</a>
-          <button onClick={reiniciar} style={btn('var(--color-accent)', { marginTop: '0.6rem', width: '100%', padding: '0.85rem', fontSize: '1rem' })}>Hacer otra reserva</button>
+          <a href={gcalLink(hecha, cfg.duracionMin)} target="_blank" rel="noreferrer" style={btn('var(--color-surface-2)', { display: 'block', marginTop: '0.875rem', padding: '0.75rem', textDecoration: 'none' })}>{t('📆 Añadir a mi calendario')}</a>
+          <button onClick={reiniciar} style={btn('var(--color-accent)', { marginTop: '0.6rem', width: '100%', padding: '0.85rem', fontSize: '1rem' })}>{t('Hacer otra reserva')}</button>
         </div>
       </div>
     )
@@ -138,15 +142,15 @@ export default function Reservar() {
 
   // ── Modo gestión (entrando por el enlace del email) ───
   if (gestId && !editandoId) {
-    if (!listo) return <div style={wrap}><div style={{ ...card, textAlign: 'center', color: 'var(--color-muted)' }}>Cargando tu reserva…</div></div>
+    if (!listo) return <div style={wrap}><div style={{ ...card, textAlign: 'center', color: 'var(--color-muted)' }}>{t('Cargando tu reserva…')}</div></div>
     if (!reservaGestion) {
       return (
         <div style={wrap}>
           <div style={{ ...card, textAlign: 'center' }}>
             <div style={{ fontSize: '2.5rem' }}>🤔</div>
-            <h1 style={{ fontWeight: 800, fontSize: '1.2rem', margin: '0.5rem 0' }}>No encontramos esa reserva</h1>
-            <p style={{ color: 'var(--color-muted)' }}>El enlace no es válido o la reserva ya estaba cancelada.</p>
-            <button onClick={reiniciar} style={btn('var(--color-accent)', { marginTop: '1rem', width: '100%', padding: '0.85rem', fontSize: '1rem' })}>Hacer una reserva</button>
+            <h1 style={{ fontWeight: 800, fontSize: '1.2rem', margin: '0.5rem 0' }}>{t('No encontramos esa reserva')}</h1>
+            <p style={{ color: 'var(--color-muted)' }}>{t('El enlace no es válido o la reserva ya estaba cancelada.')}</p>
+            <button onClick={reiniciar} style={btn('var(--color-accent)', { marginTop: '1rem', width: '100%', padding: '0.85rem', fontSize: '1rem' })}>{t('Hacer una reserva')}</button>
           </div>
         </div>
       )
@@ -156,18 +160,18 @@ export default function Reservar() {
       <div style={wrap}>
         <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
           <div style={{ fontSize: '2.25rem' }}>📋</div>
-          <h1 style={{ fontWeight: 800, fontSize: '1.5rem' }}>Tu reserva</h1>
+          <h1 style={{ fontWeight: 800, fontSize: '1.5rem' }}>{t('Tu reserva')}</h1>
         </div>
         <div style={card}>
           <div style={{ background: 'var(--color-inset)', borderRadius: '0.75rem', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
-            <Fila k="👤 Nombre" v={r.nombre} />
+            <Fila k={t('👤 Nombre')} v={r.nombre} />
             <Fila k="📅 Día" v={fechaBonita(r.fecha)} />
             <Fila k="🕐 Hora" v={r.hora} />
             <Fila k="👥 Personas" v={r.personas} />
             {r.zona && <Fila k="📍 Zona" v={r.zona} />}
           </div>
-          <button onClick={() => { setForm({ fecha: r.fecha, hora: r.hora, personas: r.personas, zona: r.zona || '', nombre: r.nombre, email: r.email || '', telefono: r.telefono || '', notas: r.notas || '' }); setEditandoId(r.id); setIdx(0) }} style={btn('var(--color-accent)', { width: '100%', padding: '0.85rem', fontSize: '1rem', marginBottom: '0.5rem' })}>✏️ Modificar reserva</button>
-          <button onClick={async () => { if (await pedirConfirmacion({ titulo: 'Cancelar reserva', mensaje: '¿Seguro que quieres cancelar tu reserva?', peligro: true, confirmar: 'Sí, cancelar', cancelar: 'Volver' })) { cancelarReservaCliente(r); setCancelada(r) } }} style={btn('#7f1d1d', { width: '100%', padding: '0.85rem', fontSize: '1rem' })}>🗑️ Cancelar reserva</button>
+          <button onClick={() => { setForm({ fecha: r.fecha, hora: r.hora, personas: r.personas, zona: r.zona || '', nombre: r.nombre, email: r.email || '', telefono: r.telefono || '', notas: r.notas || '' }); setEditandoId(r.id); setIdx(0) }} style={btn('var(--color-accent)', { width: '100%', padding: '0.85rem', fontSize: '1rem', marginBottom: '0.5rem' })}>{t('✏️ Modificar reserva')}</button>
+          <button onClick={async () => { if (await pedirConfirmacion({ titulo: t('Cancelar reserva'), mensaje: t('¿Seguro que quieres cancelar tu reserva?'), peligro: true, confirmar: t('Sí, cancelar'), cancelar: t('Volver') })) { cancelarReservaCliente(r); setCancelada(r) } }} style={btn('#7f1d1d', { width: '100%', padding: '0.85rem', fontSize: '1rem' })}>{t('🗑️ Cancelar reserva')}</button>
         </div>
       </div>
     )
@@ -185,10 +189,14 @@ export default function Reservar() {
 
   return (
     <div style={wrap}>
-      <div style={{ textAlign: 'center', marginBottom: '0.75rem' }}>
+      <div style={{ textAlign: 'center', marginBottom: '0.75rem', position: 'relative' }}>
+        <button onClick={() => setIdioma(idioma === 'es' ? 'en' : 'es')} title="Idioma / Language" aria-label="Idioma / Language"
+          style={{ ...btn('var(--color-surface-2)', { position: 'absolute', right: 0, top: 0, padding: '0.4rem 0.6rem', fontSize: '1rem' }) }}>
+          {idioma === 'es' ? '🇬🇧' : '🇪🇸'}
+        </button>
         <div style={{ fontSize: '2.25rem' }}>📅</div>
         {local?.nombre && <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-accent)' }}>{local.nombre}</div>}
-        <h1 style={{ fontWeight: 800, fontSize: '1.5rem' }}>{editandoId ? 'Modificar reserva' : 'Reservar mesa'}</h1>
+        <h1 style={{ fontWeight: 800, fontSize: '1.5rem' }}>{editandoId ? t('Modificar reserva') : t('Reservar mesa')}</h1>
         <div style={{ display: 'flex', justifyContent: 'center', gap: '0.4rem', marginTop: '0.6rem' }}>
           {pasos.map((_, n) => (
             <div key={n} style={{ width: idx === n ? '1.6rem' : '0.5rem', height: '0.5rem', borderRadius: '9999px', background: n <= idx ? 'var(--color-accent)' : 'var(--color-surface-3)', transition: 'all 0.2s' }} />
@@ -199,14 +207,14 @@ export default function Reservar() {
       {!editandoId && misReservas.length > 0 && (
         <div style={{ marginBottom: '0.75rem' }}>
           <button onClick={() => setVerMias(v => !v)} style={btn('var(--tint-info-bg)', { width: '100%', border: '1px solid #3b82f6', color: 'var(--tint-info-fg)', fontSize: '0.82rem' })}>
-            🔔 Tienes {misReservas.length} reserva(s) · {verMias ? 'ocultar' : 'gestionar'}
+            {t('🔔 Tienes {n} reserva(s)', { n: misReservas.length })} · {verMias ? t('ocultar') : t('gestionar')}
           </button>
           {verMias && (
             <div style={{ ...card, marginTop: '0.5rem', padding: '0.75rem' }}>
               {misReservas.map(r => (
                 <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', padding: '0.3rem 0' }}>
                   <span style={{ fontSize: '0.85rem' }}>📅 {fechaBonita(r.fecha)} · 🕐 {r.hora} · 👥 {r.personas}</span>
-                  <button onClick={async () => { if (await pedirConfirmacion({ titulo: 'Cancelar reserva', mensaje: '¿Cancelar esta reserva?', peligro: true, confirmar: 'Sí, cancelar', cancelar: 'Volver' })) cancelarReservaCliente(r) }} style={btn('#7f1d1d', { fontSize: '0.75rem', padding: '0.3rem 0.6rem' })}>Cancelar</button>
+                  <button onClick={async () => { if (await pedirConfirmacion({ titulo: t('Cancelar reserva'), mensaje: t('¿Cancelar esta reserva?'), peligro: true, confirmar: t('Sí, cancelar'), cancelar: t('Volver') })) cancelarReservaCliente(r) }} style={btn('#7f1d1d', { fontSize: '0.75rem', padding: '0.3rem 0.6rem' })}>{t('Cancelar')}</button>
                 </div>
               ))}
             </div>
@@ -218,20 +226,20 @@ export default function Reservar() {
 
       <div style={card}>
         {paso === 'personas' && (
-          <Paso titulo="¿Cuántas personas?" onAtras={editandoId ? reiniciar : undefined}>
+          <Paso titulo={t('¿Cuántas personas?')} onAtras={editandoId ? reiniciar : undefined}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
               {Array.from({ length: cfg.maxPersonasOnline }, (_, i) => i + 1).map(n => (
                 <button key={n} onClick={() => { set('personas', n); siguiente() }} style={opcion(form.personas === n, { fontSize: '1.25rem', padding: '0.9rem 0' })}>{n}</button>
               ))}
             </div>
-            <p style={{ fontSize: '0.78rem', color: 'var(--color-muted)', marginTop: '0.8rem', textAlign: 'center' }}>¿Sois más de {cfg.maxPersonasOnline}? Llámanos y lo organizamos. 📞</p>
+            <p style={{ fontSize: '0.78rem', color: 'var(--color-muted)', marginTop: '0.8rem', textAlign: 'center' }}>{t('¿Sois más de {n}? Llámanos y lo organizamos. 📞', { n: cfg.maxPersonasOnline })}</p>
           </Paso>
         )}
 
         {paso === 'zona' && (
-          <Paso titulo="¿Dónde prefieres sentarte?" onAtras={atras}>
+          <Paso titulo={t('¿Dónde prefieres sentarte?')} onAtras={atras}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <button onClick={() => { set('zona', ''); siguiente() }} style={opcion(form.zona === '', { padding: '0.85rem', textAlign: 'left' })}>🪑 Me da igual <span style={{ fontWeight: 400, opacity: 0.7, fontSize: '0.8rem' }}>· la mejor mesa libre</span></button>
+              <button onClick={() => { set('zona', ''); siguiente() }} style={opcion(form.zona === '', { padding: '0.85rem', textAlign: 'left' })}>{t('🪑 Me da igual')} <span style={{ fontWeight: 400, opacity: 0.7, fontSize: '0.8rem' }}>{t('· la mejor mesa libre')}</span></button>
               {zonas.map(z => (
                 <button key={z} onClick={() => { set('zona', z); siguiente() }} style={opcion(form.zona === z, { padding: '0.85rem', textAlign: 'left' })}>📍 {z}</button>
               ))}
@@ -240,11 +248,11 @@ export default function Reservar() {
         )}
 
         {paso === 'dia' && (
-          <Paso titulo="¿Qué día?" onAtras={atras}>
+          <Paso titulo={t('¿Qué día?')} onAtras={atras}>
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
-              {[{ t: 'Hoy', d: 0 }, { t: 'Mañana', d: 1 }].map(({ t, d }) => {
+              {[{ clave: 'Hoy', d: 0 }, { clave: 'Mañana', d: 1 }].map(({ clave, d }) => {
                 const dd = new Date(); dd.setDate(dd.getDate() + d); const f = fechaISO(dd); const cerrado = diaCerrado(cfg, f)
-                return <button key={t} disabled={cerrado} onClick={() => { set('fecha', f); siguiente() }} style={opcion(form.fecha === f, { flex: 1, padding: '0.6rem', opacity: cerrado ? 0.4 : 1, cursor: cerrado ? 'not-allowed' : 'pointer' })}>{t}</button>
+                return <button key={clave} disabled={cerrado} onClick={() => { set('fecha', f); siguiente() }} style={opcion(form.fecha === f, { flex: 1, padding: '0.6rem', opacity: cerrado ? 0.4 : 1, cursor: cerrado ? 'not-allowed' : 'pointer' })}>{t(clave)}</button>
               })}
             </div>
             <MiniCalendario value={form.fecha} minISO={hoyLocal()} esCerrado={(f) => diaCerrado(cfg, f)} onChange={(f) => { set('fecha', f); siguiente() }} />
@@ -252,14 +260,14 @@ export default function Reservar() {
         )}
 
         {paso === 'hora' && (
-          <Paso titulo="¿A qué hora?" onAtras={atras}>
+          <Paso titulo={t('¿A qué hora?')} onAtras={atras}>
             <div style={{ fontSize: '0.78rem', color: 'var(--color-muted)', marginBottom: '0.6rem' }}>
-              {form.zona ? `Horas libres en ${form.zona}` : 'Horas libres'} para {form.personas} personas
+              {form.zona ? t('Horas libres en {zona}', { zona: form.zona }) : t('Horas libres')} {t('para {n} personas', { n: form.personas })}
             </div>
             {diaCerrado(cfg, form.fecha) ? (
-              <Aviso>🔒 Ese día está cerrado. <b onClick={() => irA('dia')} style={enlace}>Elige otro día</b>.</Aviso>
+              <Aviso>{t('🔒 Ese día está cerrado.')} <b onClick={() => irA('dia')} style={enlace}>{t('Elige otro día')}</b>.</Aviso>
             ) : slots.length === 0 ? (
-              <Aviso>😕 No quedan horas libres{form.zona ? ` en ${form.zona}` : ''} para {form.personas} personas ese día. <b onClick={() => irA('dia')} style={enlace}>Prueba otro día</b>{zonas.length ? <> o <b onClick={() => irA('zona')} style={enlace}>cambia de zona</b></> : null}.</Aviso>
+              <Aviso>{t('😕 No quedan horas libres{zona} para {n} personas ese día.', { zona: form.zona ? t(' en {zona}', { zona: form.zona }) : '', n: form.personas })} <b onClick={() => irA('dia')} style={enlace}>{t('Prueba otro día')}</b>{zonas.length ? <> o <b onClick={() => irA('zona')} style={enlace}>{t('cambia de zona')}</b></> : null}.</Aviso>
             ) : (
               Object.entries(porTurno).map(([turno, ss]) => (
                 <div key={turno} style={{ marginBottom: '0.8rem' }}>
@@ -276,22 +284,22 @@ export default function Reservar() {
         )}
 
         {paso === 'datos' && (
-          <Paso titulo="Tus datos" onAtras={atras}>
-            <input value={form.nombre} onChange={e => set('nombre', e.target.value)} placeholder="Nombre y apellidos *" autoFocus style={{ ...inp, fontSize: '1rem' }} />
-            <input value={form.email} onChange={e => set('email', e.target.value)} type="email" inputMode="email" placeholder="Email * (te enviamos la confirmación)" style={{ ...inp, fontSize: '1rem', borderColor: form.email && !emailValido(form.email) ? '#f43f5e' : 'var(--color-border)' }} />
-            <input value={form.telefono} onChange={e => set('telefono', e.target.value)} type="tel" inputMode="tel" placeholder="Teléfono (opcional)" style={inp} />
-            <input value={form.notas} onChange={e => set('notas', e.target.value)} placeholder="Alergias, trona, celebración… (opcional)" style={{ ...inp, marginTop: '0.3rem' }} />
+          <Paso titulo={t('Tus datos')} onAtras={atras}>
+            <input value={form.nombre} onChange={e => set('nombre', e.target.value)} placeholder={t('Nombre y apellidos *')} autoFocus style={{ ...inp, fontSize: '1rem' }} />
+            <input value={form.email} onChange={e => set('email', e.target.value)} type="email" inputMode="email" placeholder={t('Email * (te enviamos la confirmación)')} style={{ ...inp, fontSize: '1rem', borderColor: form.email && !emailValido(form.email) ? '#f43f5e' : 'var(--color-border)' }} />
+            <input value={form.telefono} onChange={e => set('telefono', e.target.value)} type="tel" inputMode="tel" placeholder={t('Teléfono (opcional)')} style={inp} />
+            <input value={form.notas} onChange={e => set('notas', e.target.value)} placeholder={t('Alergias, trona, celebración… (opcional)')} style={{ ...inp, marginTop: '0.3rem' }} />
             {(() => {
               const ok = form.nombre.trim() && emailValido(form.email)
               return <>
-                <button onClick={confirmar} disabled={!ok} style={btn(ok ? '#10b981' : 'var(--color-surface-3)', { width: '100%', padding: '0.95rem', fontSize: '1.05rem', marginTop: '0.9rem', cursor: ok ? 'pointer' : 'not-allowed' })}>{editandoId ? 'Guardar cambios ✓' : 'Confirmar reserva ✓'}</button>
-                {!ok && <p style={{ fontSize: '0.75rem', color: 'var(--color-muted)', textAlign: 'center', marginTop: '0.5rem' }}>{!form.nombre.trim() ? 'Escribe tu nombre' : 'Escribe un email válido'} para terminar.</p>}
+                <button onClick={confirmar} disabled={!ok} style={btn(ok ? '#10b981' : 'var(--color-surface-3)', { width: '100%', padding: '0.95rem', fontSize: '1.05rem', marginTop: '0.9rem', cursor: ok ? 'pointer' : 'not-allowed' })}>{editandoId ? t('Guardar cambios ✓') : t('Confirmar reserva ✓')}</button>
+                {!ok && <p style={{ fontSize: '0.75rem', color: 'var(--color-muted)', textAlign: 'center', marginTop: '0.5rem' }}>{!form.nombre.trim() ? t('Escribe tu nombre') : t('Escribe un email válido')} {t('para terminar.')}</p>}
                 {/* RGPD: información básica sobre el uso de los datos */}
                 <p style={{ fontSize: '0.68rem', color: 'var(--color-faint)', textAlign: 'center', marginTop: '0.7rem', lineHeight: 1.5 }}>
-                  Al confirmar aceptas que usemos estos datos <strong>solo para gestionar tu reserva</strong> (confirmación, cambios y recordatorio).
+                  {t('Al confirmar aceptas que usemos estos datos')} <strong>{t('solo para gestionar tu reserva')}</strong> {t('(confirmación, cambios y recordatorio).')}
                 </p>
                 <details style={{ fontSize: '0.68rem', color: 'var(--color-faint)', marginTop: '0.3rem' }}>
-                  <summary style={{ cursor: 'pointer', textAlign: 'center' }}>Más información sobre tus datos</summary>
+                  <summary style={{ cursor: 'pointer', textAlign: 'center' }}>{t('Más información sobre tus datos')}</summary>
                   <p style={{ marginTop: '0.4rem', lineHeight: 1.55 }}>
                     Responsable: el establecimiento{local?.nombre ? ` (${local.nombre})` : ''}. Finalidad: gestionar la reserva.
                     Conservación: los datos se eliminan automáticamente {cfg.retencionDias ?? 30} días después de la fecha de la reserva.

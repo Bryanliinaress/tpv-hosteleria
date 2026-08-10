@@ -395,7 +395,7 @@ export default function CartaCliente() {
             ) : (
               <>
                 <p style={{ fontSize: '0.82rem', marginBottom: '0.5rem' }}>
-                  Pagas la cuenta <strong>completa</strong> de la mesa{mesa.personas.filter(p => !p.pagado).length > 1 ? ` · ${mesa.personas.filter(p => !p.pagado).length} comensales` : ''}.
+                  {t('Pagas la cuenta')} <strong>{t('completa')}</strong> {t('de la mesa')}{mesa.personas.filter(p => !p.pagado).length > 1 ? ` · ${t('{n} comensales', { n: mesa.personas.filter(p => !p.pagado).length })}` : ''}.
                 </p>
                 <p style={{ fontSize: '0.72rem', color: 'var(--color-muted)', marginBottom: '0.35rem' }}>{t('¿Añadir propina?')}</p>
                 <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', marginBottom: '0.6rem' }}>
@@ -521,7 +521,7 @@ export default function CartaCliente() {
                 </div>
               ))}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1rem', margin: '0.75rem 0 1rem' }}>
-                <span>Total</span><span style={{ color: 'var(--color-accent)' }}>{totalPendiente.toFixed(2)} €</span>
+                <span>{t('Total')}</span><span style={{ color: 'var(--color-accent)' }}>{totalPendiente.toFixed(2)} €</span>
               </div>
               <button onClick={enviarPedido} disabled={enviando} style={btnStyle(enviando ? 'var(--color-surface-3)' : 'var(--color-accent)', { width: '100%', padding: '0.875rem', fontSize: '1rem', marginBottom: '0.5rem', cursor: enviando ? 'wait' : 'pointer' })}>{enviando ? t('Enviando…') : t('Confirmar y enviar 🚀')}</button>
               <button onClick={() => setMostrarResumen(false)} style={btnStyle('var(--color-surface-3)', { width: '100%', padding: '0.7rem', minHeight: `${TOQUE}px`, fontSize: '0.9rem' })}>{t('Seguir pidiendo')}</button>
@@ -820,7 +820,7 @@ export default function CartaCliente() {
               })}
             </div>
 
-            <input value={pers.nota} onChange={e => setPers(s => ({ ...s, nota: e.target.value }))} placeholder="📝 Otra indicación (opcional)" style={{ ...inputStyle, fontSize: '0.82rem', padding: '0.5rem 0.7rem' }} />
+            <input value={pers.nota} onChange={e => setPers(s => ({ ...s, nota: e.target.value }))} placeholder={t('📝 Otra indicación (opcional)')} style={{ ...inputStyle, fontSize: '0.82rem', padding: '0.5rem 0.7rem' }} />
             </div>
 
             {/* Pie quieto: cantidad + confirmar, siempre a la vista */}
@@ -885,7 +885,7 @@ function ReciboCliente({ recibo, t }) {
       <div style={{ ...filaRecibo, color: 'var(--color-muted)', fontSize: '0.75rem' }}><span>IVA ({recibo.ivaPct}%)</span><span>{f(recibo.iva)} {m}</span></div>
       {recibo.propina > 0 && <div style={{ ...filaRecibo, color: 'var(--color-muted)', fontSize: '0.75rem' }}><span>{t('Propina')}</span><span>{f(recibo.propina)} {m}</span></div>}
       <div style={{ ...filaRecibo, fontSize: '1.15rem', fontWeight: 800, marginTop: '0.3rem' }}>
-        <span>Total</span><span style={{ color: 'var(--color-accent)' }}>{f(recibo.total + recibo.propina)} {m}</span>
+        <span>{t('Total')}</span><span style={{ color: 'var(--color-accent)' }}>{f(recibo.total + recibo.propina)} {m}</span>
       </div>
 
       <div style={{ textAlign: 'center', fontSize: '0.72rem', color: 'var(--color-muted)', marginTop: '0.7rem' }}>{recibo.local.pie}</div>

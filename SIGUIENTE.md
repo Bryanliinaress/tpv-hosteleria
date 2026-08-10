@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.71.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.72.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-08. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**377 tests**, lint limpio, CI y deploy en verde.
+**379 tests**, lint limpio, CI y deploy en verde.
 
 ## Auditoría del dinero (v0.51.0)
 
@@ -474,6 +474,26 @@ cualquier eslabón salta, aunque la pieza suelta siga pasando su test.
 Comprobado además **en el navegador**, con el camino público entero: carta por
 QR → dar el nombre → añadir → confirmar → la comanda aparece en barra; y el
 asistente de reservas de principio a fin.
+
+## La reserva online estaba entera en español (v0.72.0)
+
+45. **La página de reservas no llamaba a `t()` ni una vez.** La carta por QR sí
+    está traducida desde la v0.53.0, pero la reserva —que se abre desde fuera
+    del local, la comparte el propio bar y la ve cualquiera— estaba solo en
+    español, sin selector de idioma. Un turista que quiere reservar mesa se
+    encontraba «¿Dónde prefieres sentarte?» y «Alergias, trona, celebración…».
+    Traducida entera (60 textos), con su botón 🇬🇧/🇪🇸, incluidos el mini
+    calendario (los meses y las iniciales de los días) y los diálogos de
+    cancelar.
+46. **El test que debía impedirlo tenía dos agujeros.** Solo miraba lo que ya
+    pasaba por `t()`, así que una pantalla sin traducir *ninguna* frase pasaba
+    limpia; y su extractor no entendía `t('texto con {hueco}', { … })`. Ahora
+    además **busca texto en español escrito directamente en el JSX** —textos
+    entre etiquetas y `placeholder` / `aria-label` / `title`— y falla si
+    aparece. Con eso saltaron cuatro que quedaban en la carta del cliente.
+
+`tr()` acepta ya huecos con nombre (`t('para {n} personas', { n: 4 })`), para
+que cada idioma pueda ordenar la frase a su manera.
 
 ## 🖨 EL LUNES: llegan las impresoras (dos, 80 mm)
 

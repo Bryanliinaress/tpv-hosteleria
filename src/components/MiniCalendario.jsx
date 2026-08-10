@@ -1,13 +1,21 @@
 import { useState } from 'react'
+import { useIdioma, tr } from '../lib/i18n'
 
-const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
-const DOW = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
+// El calendario lo usa la reserva online, que ve cualquiera: también un turista
+const MESES = {
+  es: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+  en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+}
+// empieza en lunes, como los calendarios de aquí
+const DOW = { es: ['L', 'M', 'X', 'J', 'V', 'S', 'D'], en: ['M', 'T', 'W', 'T', 'F', 'S', 'S'] }
 const pad = (n) => String(n).padStart(2, '0')
 const iso = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`
 
 // Mini calendario mensual. Deshabilita días pasados (< minISO) y los que
 // `esCerrado(iso)` marque. Llama a onChange(iso) al elegir un día.
 export default function MiniCalendario({ value, onChange, esCerrado, minISO }) {
+  const { idioma } = useIdioma()
+  const lang = idioma === 'en' ? 'en' : 'es'
   const inicial = value ? new Date(value + 'T12:00:00') : new Date()
   const [vista, setVista] = useState({ y: inicial.getFullYear(), m: inicial.getMonth() })
 
@@ -24,12 +32,12 @@ export default function MiniCalendario({ value, onChange, esCerrado, minISO }) {
     <div style={{ background: 'var(--color-inset)', border: '1px solid var(--color-border)', borderRadius: '0.75rem', padding: '0.75rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
         <button onClick={() => mover(-1)} disabled={noRetroceder} style={navBtn(noRetroceder)}>‹</button>
-        <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{MESES[vista.m]} {vista.y}</span>
+        <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{MESES[lang][vista.m]} {vista.y}</span>
         <button onClick={() => mover(1)} style={navBtn(false)}>›</button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.2rem', marginBottom: '0.25rem' }}>
-        {DOW.map(d => <div key={d} style={{ textAlign: 'center', fontSize: '0.68rem', color: 'var(--color-muted)', fontWeight: 700 }}>{d}</div>)}
+        {DOW[lang].map((d, n) => <div key={n} style={{ textAlign: 'center', fontSize: '0.68rem', color: 'var(--color-muted)', fontWeight: 700 }}>{d}</div>)}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.2rem' }}>
@@ -41,7 +49,7 @@ export default function MiniCalendario({ value, onChange, esCerrado, minISO }) {
           const deshab = pasado || cerrado
           const sel = value === f
           return (
-            <button key={i} onClick={() => !deshab && onChange(f)} disabled={deshab} title={cerrado ? 'Cerrado' : ''}
+            <button key={i} onClick={() => !deshab && onChange(f)} disabled={deshab} title={cerrado ? tr(idioma, 'Cerrado') : ''}
               style={{
                 aspectRatio: '1 / 1', borderRadius: '0.5rem', border: 'none', cursor: deshab ? 'not-allowed' : 'pointer',
                 background: sel ? 'var(--color-accent)' : deshab ? 'transparent' : 'var(--color-surface-2)',

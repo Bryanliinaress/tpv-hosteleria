@@ -23,9 +23,12 @@ const clavesDelDiccionario = () => {
   return claves
 }
 
+// Reconoce `t('texto')` y también `t('texto con {hueco}', { hueco: x })`.
+// Con la versión anterior, cualquier texto con parámetros se leía mal y su
+// traducción podía faltar sin que nadie se enterara.
 const textosUsados = (fichero) => {
   const src = readFileSync(join(RAIZ, fichero), 'utf8')
-  return [...src.matchAll(/\bt\('(.+?)'\)/g)].map(m => m[1])
+  return [...src.matchAll(/\bt\(\s*'((?:[^'\\]|\\.)*)'\s*[,)]/g)].map(m => m[1])
 }
 
 describe('traducción de las pantallas del cliente', () => {
@@ -61,4 +64,35 @@ describe('tr', () => {
   it('un texto sin traducir se muestra igual, no vacío', () => {
     expect(tr('en', 'Texto que no existe')).toBe('Texto que no existe')
   })
+})
+
+// El test de arriba solo mira lo que YA pasa por t(). El agujero real es el
+// texto escrito directamente en el JSX: la pantalla de reservas estuvo entera
+// en español y nadie se enteró, porque no llamaba a t() ni una vez.
+describe('no queda texto en español fuera de t()', () => {
+  // Palabras que aparecen en el JSX y no son texto para el cliente
+  const PERMITIDO = [
+    /^[\d\s.,:/·+×€%-]*$/,          // números, importes, separadores
+    /^[A-Z]{2,}$/,                   // siglas
+  ]
+  const sospechosos = (fichero) => {
+    const src = readFileSync(join(RAIZ, fichero), 'utf8')
+    const fuera = []
+    // atributos que el usuario lee
+    for (const m of src.matchAll(/(placeholder|aria-label|title)="([^"]*[áéíóúñÁÉÍÓÚÑ¿¡][^"]*)"/g)) {
+      fuera.push(`${m[1]}="${m[2]}"`)
+    }
+    // texto plano entre etiquetas JSX
+    for (const m of src.matchAll(/>\s*([A-ZÁÉÍÓÚÑ¿¡][^<>{}\n]{3,80})\s*</g)) {
+      const txt = m[1].trim()
+      if (!PERMITIDO.some(r => r.test(txt))) fuera.push(`texto: ${txt}`)
+    }
+    return fuera
+  }
+
+  for (const pantalla of PANTALLAS) {
+    it(`${pantalla} habla el idioma del cliente`, () => {
+      expect(sospechosos(pantalla)).toEqual([])
+    })
+  }
 })
