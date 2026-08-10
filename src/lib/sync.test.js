@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { mergeLog, tsRegistro } from './sync'
+import { mergeLog, tsRegistro, CLAVES_SYNC, hayCambioQueEmpujar } from './sync'
 
 describe('mergeLog (fusión de logs solo-añadir al sincronizar)', () => {
   it('conserva los registros locales recientes que el remoto no tiene', () => {
@@ -58,5 +58,30 @@ describe('el fallo que esto evita', () => {
     const sinSello = { id: 'fjmfq3k8x9abc', nombre: 'María' }
     expect(tsRegistro(sinSello)).toBeLessThan(Date.now() - 90000)
     expect(mergeLog([sinSello], [])).toEqual([])
+  })
+})
+
+// La lista de lo que se envía y la de lo que se vigila estaban duplicadas y se
+// habían desincronizado: `reservasConfig` se enviaba pero no se vigilaba, así
+// que cambiar los turnos o los días de cierre no llegaba a los demás
+// dispositivos hasta que se tocara cualquier otra cosa.
+describe('qué dispara una sincronización', () => {
+  const base = Object.fromEntries(CLAVES_SYNC.map(k => [k, { valor: k }]))
+
+  it('cambiar cualquier dato compartido la dispara', () => {
+    for (const k of CLAVES_SYNC) {
+      const nuevo = { ...base, [k]: { valor: 'otro' } }
+      expect(hayCambioQueEmpujar(nuevo, base), `no se vigila «${k}»`).toBe(true)
+    }
+  })
+
+  it('la configuración de reservas cuenta como cambio', () => {
+    const nuevo = { ...base, reservasConfig: { diasCerrados: [1] } }
+    expect(hayCambioQueEmpujar(nuevo, base)).toBe(true)
+  })
+
+  it('sin cambios no se escribe nada', () => {
+    expect(hayCambioQueEmpujar(base, base)).toBe(false)
+    expect(hayCambioQueEmpujar({ ...base, algoQueNoSeComparte: 1 }, base)).toBe(false)
   })
 })
