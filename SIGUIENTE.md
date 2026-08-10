@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.76.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.77.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-08. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**423 tests**, lint limpio, CI y deploy en verde.
+**429 tests**, lint limpio, CI y deploy en verde.
 
 ## Auditoría del dinero (v0.51.0)
 
@@ -577,6 +577,25 @@ Además:
     cambiar los turnos o los días de cierre no llegaba a los demás dispositivos
     hasta que se tocara cualquier otra cosa. Ahora la lista está en un solo
     sitio, con un test que recorre todas las claves.
+
+## 🖨 El puente de impresión, repasado antes de estrenarlo (v0.77.0)
+
+Tres cosas que habrían aparecido justo el día de las pruebas, con las dos
+impresoras delante y sin saber a qué achacarlas:
+
+56. **El socket se cerraba sin esperar a que salieran los bytes.** Se escribía y
+    se destruía la conexión en el mismo suspiro; el callback de `write` dice que
+    el sistema aceptó los datos, no que la impresora los tenga. Un ticket largo
+    podía salir **a medias**. Ahora se cierra con `end` y se espera al `close`.
+57. **Dos comandas a la vez a la misma impresora se mezclaban.** En hora punta
+    entran pedidos de varias mesas a la vez: por el mismo socket, los bytes de
+    dos comandas se entrelazan en el papel. Ahora cada impresora atiende de una
+    en una, sin que las demás se esperen.
+58. **No había reintentos.** Si la térmica estaba un segundo ocupada, la comanda
+    se perdía con un 502. Ahora insiste tres veces (0,4 s y 0,8 s) antes de
+    rendirse: perder una comanda es un plato que no sale.
+
+6 tests nuevos sobre el puente.
 
 ## 🖨 EL LUNES: llegan las impresoras (dos, 80 mm)
 

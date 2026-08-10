@@ -104,3 +104,11 @@ chrome.exe --kiosk-printing --app=https://bryanliinaress.github.io/tpv-hosteleri
 - El transporte vive en `src/lib/impresora.js` y guarda la preferencia **por
   dispositivo** en `localStorage`, porque cada terminal del local puede imprimir
   en un sitio distinto.
+- El puente **espera a que los bytes salgan de verdad** antes de cerrar el
+  socket (`end` + `close`, no `write` + cerrar): un ticket largo podía quedarse
+  a medias.
+- **Una impresión cada vez por impresora.** Dos comandas simultáneas por el
+  mismo socket salen mezcladas en el papel; cada impresora tiene su turno y las
+  demás no se esperan.
+- **Reintenta 3 veces** (0,4 s y 0,8 s) antes de dar error: la térmica puede
+  estar un segundo ocupada y perder una comanda es un plato que no sale.
