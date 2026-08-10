@@ -41,7 +41,10 @@ vi.mock('./estado', () => ({
 }))
 vi.mock('../repo', () => ({
   reservas: {},
-  personal: { agruparMesas: (a, b) => { rpcs.push(['agruparMesas', a, b]); return Promise.resolve() } },
+  personal: {
+    agruparMesas: (a, b) => { rpcs.push(['agruparMesas', a, b]); return Promise.resolve() },
+    separarMesas: (m) => { rpcs.push(['separarMesas', m]); return Promise.resolve() },
+  },
 }))
 vi.mock('./plantillaCarta', () => ({ sembrarCartaEjemplo: async () => 0, vaciarCartaV2: async () => {} }))
 vi.mock('../../store/useUI', () => ({ toast: () => {} }))
@@ -71,9 +74,13 @@ const escrituraEn = (t) => escrituras.filter(e => e.tabla === t)
 beforeEach(() => { escrituras.length = 0; rpcs.length = 0 })
 
 describe('juntar mesas desde el Mostrador', () => {
-  it('llama al mismo RPC que la PDA, no solo a la pantalla', () => {
-    acciones.agruparMesas('m1', 'm2')
+  it('llama al mismo RPC que la PDA, no solo a la pantalla', async () => {
+    await acciones.agruparMesas('m1', 'm2')
     expect(rpcs).toEqual([['agruparMesas', 'm1', 'm2']])
+  })
+
+  it('la PDA y el Mostrador hacen exactamente lo mismo', () => {
+    expect(acciones.fusionarMesa).toBe(acciones.agruparMesas)
   })
 })
 
@@ -170,6 +177,55 @@ describe('configurar la sala en el alta de un bar', () => {
 
   it('también entiende la forma antigua (`n`) por si queda algún llamante', () => {
     expect(acciones.configurarSala([{ nombre: 'Sala', n: 3, capacidad: 2 }])).toEqual({ ok: true, total: 3 })
+  })
+})
+
+// En v2 lo que une las mesas es `unida_a` y los comensales SE QUEDAN en su
+// mesa. Por eso todo lo que toque una mesa unida tiene que pensar en el grupo.
+describe('grupos de mesas', () => {
+  // M1 (cabeza) + M2 unida, las dos con gente
+  const CABEZA = { id: 'g1', numero: 1, estado: 'ocupada', unidaA: null, personas: [{ id: 'ca', items: [] }] }
+  const UNIDA = { id: 'g2', numero: 2, estado: 'ocupada', unidaA: 'g1', personas: [{ id: 'cb', items: [] }] }
+  const OTRA = { id: 'g3', numero: 3, estado: 'ocupada', unidaA: null, personas: [{ id: 'cc', items: [] }] }
+  beforeEach(() => { salaMock = [CABEZA, UNIDA, OTRA] })
+
+  it('separar se lleva la cuenta a la cabeza antes de liberar', async () => {
+    await acciones.separarMesas('g1')
+    // sin esto, la mesa 2 volvía a figurar LIBRE con su gente y su consumo dentro
+    expect(escrituraEn('comensales')[0]).toMatchObject({ valores: { mesa_id: 'g1' }, filtro: { mesa_id: ['g2'] } })
+    expect(escrituraEn('comandas')[0]).toMatchObject({ valores: { mesa_id: 'g1' }, filtro: { mesa_id: ['g2'] } })
+    expect(rpcs).toEqual([['separarMesas', 'g1']])
+  })
+
+  it('separar desde una mesa unida separa su grupo, no la mesa suelta', async () => {
+    await acciones.separarMesas('g2')
+    expect(rpcs).toEqual([['separarMesas', 'g1']])
+  })
+
+  it('una mesa sin grupo no tiene nada que separar', async () => {
+    await acciones.separarMesas('g3')
+    expect(rpcs).toHaveLength(0)
+    expect(escrituras).toHaveLength(0)
+  })
+
+  it('juntar DOS GRUPOS no lo admite el RPC: se hace aquí y sin perder la cuenta', async () => {
+    salaMock = [CABEZA, UNIDA, { ...OTRA, id: 'g3', unidaA: null }]
+    await acciones.agruparMesas('g3', 'g1')     // arrastro el grupo sobre otra mesa
+    expect(rpcs).toHaveLength(0)                 // el RPC habría dado 'secundaria_invalida'
+    const upd = escrituraEn('mesas')[0]
+    expect(upd.valores.unida_a).toBe('g3')
+    expect(upd.filtro.id.sort()).toEqual(['g1', 'g2'])   // se lleva el grupo entero
+  })
+
+  it('juntar una mesa a un grupo existente sigue yendo por el RPC', async () => {
+    await acciones.agruparMesas('g1', 'g3')
+    expect(rpcs).toEqual([['agruparMesas', 'g1', 'g3']])
+  })
+
+  it('unir una mesa consigo misma (o con su propio grupo) no hace nada', async () => {
+    await acciones.agruparMesas('g1', 'g2')
+    expect(rpcs).toHaveLength(0)
+    expect(escrituras).toHaveLength(0)
   })
 })
 

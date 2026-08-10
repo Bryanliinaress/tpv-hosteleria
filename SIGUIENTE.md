@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.69.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.70.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-08. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**362 tests**, lint limpio, CI y deploy en verde.
+**375 tests**, lint limpio, CI y deploy en verde.
 
 ## Auditoría del dinero (v0.51.0)
 
@@ -434,6 +434,33 @@ aplicar; se probaría contra la BBDD en la misma sesión.
     ticket lleva la propina y el método **de cada comensal**: `propinasPorMetodoDe()`
     las agrupa desde ahí y la usan el cierre, el arqueo en vivo y v2. Cinco
     tests nuevos (comprobado que fallan con la fórmula vieja).
+
+## Grupos de mesas en la app real (v0.70.0)
+
+Juntar dos mesas para un grupo de ocho es de todos los días, y en el backend
+real está montado distinto que en la demo: lo que une las mesas es la columna
+`unida_a` y **los comensales se quedan en su mesa** (al cobrar, el servidor
+recoge el grupo entero). Todo lo que tocaba una mesa unida se olvidaba del
+grupo, y siempre en la misma dirección: dinero sin cobrar.
+
+41. **Separar mesas dejaba la cuenta en el aire.** El RPC marca las secundarias
+    como **libres**… con su gente sentada y sus líneas dentro. En la sala esa
+    mesa aparecía libre, así que nadie la cobraba, y el siguiente cliente que
+    escaneara ese QR se encontraba la cuenta del anterior. Ahora la cuenta se
+    lleva a la cabeza del grupo **antes** de separar, que es lo que ya hacía la
+    demo.
+42. **«Cerrar mesa sin cobrar» solo cerraba una del grupo.** Las demás se
+    quedaban colgando de una mesa ya libre: mesas fantasma con consumo vivo.
+    Ahora se cierra el grupo entero.
+43. **Juntar dos grupos fallaba, y la pantalla decía que había ido bien.** El
+    RPC rechaza una secundaria que ya sea cabeza de otro grupo (mesa 8 = 4+4, y
+    luego llega otra pareja). Se resuelve aquí, moviendo el grupo entero, y el
+    aviso ya no se adelanta al resultado.
+44. **La PDA y el Mostrador usaban caminos distintos** para lo mismo
+    (`fusionarMesa` y `agruparMesas`): ahora son literalmente la misma función.
+
+`src/lib/v2/grupos.js` concentra «quién es la cabeza» y «qué mesas forman el
+grupo», con sus tests. 19 tests nuevos en total.
 
 ## 🖨 EL LUNES: llegan las impresoras (dos, 80 mm)
 
