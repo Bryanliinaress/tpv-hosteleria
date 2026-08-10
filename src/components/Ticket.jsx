@@ -1,7 +1,8 @@
-import { useStore } from '../store/useStore'
+import { useStore, owedPorPersona } from '../store/useStore'
 import { QRCodeSVG } from 'qrcode.react'
 import { imprimirESCPOS, config as configImpresora } from '../lib/impresora'
 import { ticketESCPOS, comandaESCPOS } from '../lib/escpos'
+import { lineasDeConsumo } from '../lib/recibo'
 
 // Modificadores de una línea (pan, sin/con, nota) en una sola cadena
 const descr = (item) => {
@@ -43,6 +44,17 @@ function Comanda({ mesa }) {
   )
 }
 
+// Las líneas de UNA persona, con los platos compartidos ya repartidos: es lo
+// mismo que ve en su recibo, para que el papel del bar y el suyo coincidan.
+function filasDeParte(mesa, personaId) {
+  return lineasDeConsumo(mesa, personaId).map(l => ({
+    nombre: l.nombre,
+    extra: [l.extra, l.compartido ? 'compartido' : ''].filter(Boolean).join(' · '),
+    precio: l.uds ? l.importe / l.uds : l.importe,
+    uds: l.uds,
+  }))
+}
+
 // Consolida las líneas: misma descripción, extras y precio → una sola fila
 function consolidar(personas) {
   const filas = new Map()
@@ -61,11 +73,19 @@ function consolidar(personas) {
 // mesa/zona y QR (reseña o carta).
 function Cuenta({ mesa, persona, local, fiscal }) {
   const personas = persona ? [persona] : mesa.personas
-  const filas = consolidar(personas)
-  const total = personas.reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0)
+  // El ticket de UNA persona tiene que decir lo que se le cobra: con un plato
+  // compartido, sus líneas propias suman de más (el plato entero se cargaba a
+  // quien lo pidió). El cobro reparte, así que el papel también.
+  const filas = persona ? filasDeParte(mesa, persona.id) : consolidar(personas)
+  const total = persona
+    ? (owedPorPersona(mesa)[persona.id] || 0)
+    : personas.reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0)
   const propina = personas.reduce((s, p) => s + (p.propina || 0), 0)
   const ivaPct = local?.ivaPct ?? 10
-  const base = total / (1 + ivaPct / 100)
+  // la cuota sale de la base YA redondeada: si no, «base + IVA» podía imprimirse
+  // un céntimo por encima del total
+  const base = Math.round((total / (1 + ivaPct / 100)) * 100) / 100
+  const iva = Math.round((total - base) * 100) / 100
   const mon = local?.moneda || '€'
   const pagado = personas.length > 0 && personas.every(p => p.pagado)
   const nCom = personas.length
@@ -110,7 +130,7 @@ function Cuenta({ mesa, persona, local, fiscal }) {
       {/* Totales */}
       <div style={st.hr} />
       <div style={st.der}>Base: <b>{f(base)}</b></div>
-      <div style={st.der}>Total IVA ({ivaPct}%): <b>{f(total - base)}</b></div>
+      <div style={st.der}>Total IVA ({ivaPct}%): <b>{f(iva)}</b></div>
       <div style={{ ...st.der, fontSize: '1.35rem', fontWeight: 800, margin: '0.2rem 0' }}>Total: {f(total)} {mon}</div>
       <div style={st.der}>Comensales: {nCom}</div>
       {nCom > 1 && <div style={st.der}>Por comensal: {f(total / nCom)}</div>}
@@ -178,14 +198,14 @@ async function imprimir({ tipo, mesa, persona, local, fiscal }) {
     bytes = comandaESCPOS({ mesa: mesa.numero, destino: 'COMANDA', lineas })
   } else {
     const personas = persona ? [persona] : mesa.personas
-    const filas = consolidar(personas)
+    const filas = persona ? filasDeParte(mesa, persona.id) : consolidar(personas)
     // El cajón solo se abre si ha entrado dinero físico
     const conEfectivo = personas.some(p => p.pagado && ['efectivo', 'mixto'].includes(p.metodoPago || 'efectivo'))
     bytes = ticketESCPOS({
       abrirCajon: conEfectivo,
       local, mesa,
       lineas: filas.map(l => ({ nombre: l.nombre, cantidad: l.uds, precio: l.precio, nota: l.extra })),
-      total: filas.reduce((s, l) => s + l.precio * l.uds, 0),
+      total: persona ? (owedPorPersona(mesa)[persona.id] || 0) : filas.reduce((s, l) => s + l.precio * l.uds, 0),
       propina: personas.reduce((s, p) => s + (p.propina || 0), 0),
       comensales: personas.length,
       pagado: personas.length > 0 && personas.every(p => p.pagado),

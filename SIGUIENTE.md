@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.75.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.76.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-08. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**417 tests**, lint limpio, CI y deploy en verde.
+**423 tests**, lint limpio, CI y deploy en verde.
 
 ## Auditoría del dinero (v0.51.0)
 
@@ -559,6 +559,24 @@ Además:
     primera de todas y marcada como urgente para siempre. Ahora va al final
     —no se sabe cuándo entró—, no parpadea, y el reloj de la tarjeta enseña un
     guion en vez de «29000000 min».
+
+## El papel decía una cosa y la caja cobraba otra (v0.76.0)
+
+53. **El ticket de UNA persona con plato compartido no cuadraba con su cobro.**
+    El papel sumaba sus líneas propias, así que el plato compartido se le
+    cargaba entero a quien lo pidió: el ticket decía 15 € y la caja cobraba
+    12,50 (el cobro sí reparte desde la v0.51.0). Ahora el ticket usa el mismo
+    reparto que el cobro y marca la línea como «compartido» — y lo mismo el
+    ticket **impreso** en la térmica.
+54. **«Base + IVA» tampoco cuadraba en el ticket impreso**, igual que pasaba en
+    el recibo del cliente: se calculaban por separado y cada uno se redondeaba
+    al imprimir. La cuota sale ya de la base redondeada.
+55. **La demo no sincronizaba la configuración de reservas.** La lista de datos
+    que se comparten y la de los que se vigilan estaban duplicadas y se habían
+    desincronizado: `reservasConfig` se enviaba pero no se vigilaba, así que
+    cambiar los turnos o los días de cierre no llegaba a los demás dispositivos
+    hasta que se tocara cualquier otra cosa. Ahora la lista está en un solo
+    sitio, con un test que recorre todas las claves.
 
 ## 🖨 EL LUNES: llegan las impresoras (dos, 80 mm)
 

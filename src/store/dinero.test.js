@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useStore, owedPorPersona, metodosDe, propinasPorMetodoDe, METODO_LABEL, METODO_EMOJI } from './useStore'
 import { mergeLog } from '../lib/sync'
+import { lineasDeConsumo } from '../lib/recibo'
 
 // ────────────────────────────────────────────────────────────────────────────
 // Pruebas del dinero: lo que acaba en el arqueo y en los informes.
@@ -380,5 +381,40 @@ describe('propinas por método (arqueo)', () => {
     const z = useStore.getState().cierres.at(-1)
     expect(z.efectivoEsperado).toBe(23)
     expect(z.descuadre).toBe(0)                 // antes cantaba +3 de sobrante
+  })
+})
+
+// El ticket impreso de UNA persona tiene que decir lo mismo que se le cobra.
+// Con un plato compartido, sumar sus líneas propias carga el plato entero a
+// quien lo pidió: el papel decía 15 € y la caja cobraba 12,50.
+describe('el papel cuadra con el cobro', () => {
+  const mesaCompartida = () => ({
+    id: 'm1', numero: 1,
+    personas: [
+      { id: 'ana', nombre: 'Ana', items: [{ uid: 'i1', nombre: 'Bravas', precio: 5, cantidad: 1, compartidoCon: ['luis'] }, { uid: 'i2', nombre: 'Caña', precio: 2.5, cantidad: 2 }] },
+      { id: 'luis', nombre: 'Luis', items: [{ uid: 'i3', nombre: 'Tortilla', precio: 6, cantidad: 1 }] },
+    ],
+  })
+
+  it('lo que debe Ana no incluye las bravas enteras', () => {
+    const deben = owedPorPersona(mesaCompartida())
+    expect(deben.ana).toBe(7.5)      // 2,50 de su mitad de bravas + 5 de cañas
+    expect(deben.luis).toBe(8.5)     // 6 de tortilla + 2,50 de su mitad
+  })
+
+  it('las partes suman exactamente el total de la mesa', () => {
+    const mesa = mesaCompartida()
+    const deben = owedPorPersona(mesa)
+    const total = mesa.personas.reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0)
+    expect(Math.round(Object.values(deben).reduce((s, v) => s + v, 0) * 100)).toBe(Math.round(total * 100))
+  })
+
+  it('las líneas del recibo de Ana llevan su parte, no el plato entero', () => {
+    const lineas = lineasDeConsumo(mesaCompartida(), 'ana')
+    const bravas = lineas.find(l => l.nombre === 'Bravas')
+    expect(bravas.importe).toBe(2.5)
+    expect(bravas.compartido).toBe(true)
+    // y el total de sus líneas coincide con lo que se le cobra
+    expect(lineas.reduce((s, l) => s + l.importe, 0)).toBe(owedPorPersona(mesaCompartida()).ana)
   })
 })

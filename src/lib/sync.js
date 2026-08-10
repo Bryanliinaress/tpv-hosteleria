@@ -25,21 +25,21 @@ const CLIENT_ID = `c${Date.now().toString(36)}${Math.random().toString(36).slice
 let resolverListo
 export const syncListo = new Promise(r => { resolverListo = r })
 
-const sliceEstado = (s) => ({
-  local: s.local,
-  empleados: s.empleados,
-  carta: s.carta,
-  mesas: s.mesas,
-  pedidosCocina: s.pedidosCocina,
-  pedidosBarra: s.pedidosBarra,
-  avisos: s.avisos,
-  historial: s.historial,
-  cierres: s.cierres,
-  anulaciones: s.anulaciones,
-  fichajes: s.fichajes,
-  reservas: s.reservas,
-  reservasConfig: s.reservasConfig,
-})
+// Lo que se comparte entre dispositivos. La lista está en UN sitio: antes se
+// enviaba `reservasConfig` pero NO se vigilaba, así que cambiar los turnos o
+// los días de cierre no llegaba a los demás dispositivos hasta que se tocara
+// cualquier otra cosa.
+export const CLAVES_SYNC = [
+  'local', 'empleados', 'carta', 'mesas',
+  'pedidosCocina', 'pedidosBarra', 'avisos',
+  'historial', 'cierres', 'anulaciones', 'fichajes',
+  'reservas', 'reservasConfig',
+]
+
+const sliceEstado = (s) => Object.fromEntries(CLAVES_SYNC.map(k => [k, s[k]]))
+
+/** ¿Hay algo que compartir? (comparación por referencia, como hace zustand) */
+export const hayCambioQueEmpujar = (state, prev) => CLAVES_SYNC.some(k => state[k] !== prev[k])
 
 // Marca de tiempo de un registro (campo _ts, o los dígitos de su id `xx<ms>`).
 export const tsRegistro = (item) => item?._ts || Number((String(item?.id).match(/\d+/) || [])[0]) || 0
@@ -158,7 +158,7 @@ export async function initSync() {
   // 3) Empuja los cambios locales (con debounce, ignorando los recibidos)
   useStore.subscribe((state, prev) => {
     if (aplicandoRemoto) return
-    if (state.local === prev.local && state.empleados === prev.empleados && state.carta === prev.carta && state.mesas === prev.mesas && state.pedidosCocina === prev.pedidosCocina && state.pedidosBarra === prev.pedidosBarra && state.avisos === prev.avisos && state.historial === prev.historial && state.cierres === prev.cierres && state.anulaciones === prev.anulaciones && state.fichajes === prev.fichajes && state.reservas === prev.reservas) return
+    if (!hayCambioQueEmpujar(state, prev)) return
     clearTimeout(writeTimer)
     writeTimer = setTimeout(empujarEstado, 150)
   })
