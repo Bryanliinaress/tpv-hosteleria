@@ -20,5 +20,6 @@
   "modulos": {
     "pagosOnline": true,
     "reservas": true
-  }
+  },
+  "demo": true
 }

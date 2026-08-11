@@ -85,6 +85,10 @@ export function normalizarPerfil(bruto, slug) {
       anonKey: supabase.anonKey || null,
     },
     backend: bruto.backend || 'v2',
+    // Una instalación de DEMOSTRACIÓN: los pedidos no son de nadie. Se avisa en
+    // pantalla porque su enlace se parece mucho al de un bar de verdad y
+    // confundirlos significa pedir en el sitio equivocado.
+    demo: bruto.demo === true,
     fiscal: bruto.fiscal || null,
     modulos: { ...(bruto.modulos || {}) },
   }
@@ -145,6 +149,7 @@ export function perfilPublico(perfil) {
     emoji: perfil.marca.emoji,
     colores: perfil.marca.colores,
     logo: ficherosDeMarca(perfil).find(f => f.startsWith('logo.')) || null,
+    demo: perfil.demo === true,
     modulos: perfil.modulos,
   }
 }

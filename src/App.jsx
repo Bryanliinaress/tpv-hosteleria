@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Protegido from './components/Protegido'
 import UIHost from './components/UIHost'
+import AvisoDemo from './components/AvisoDemo'
 
 // Carga diferida por ruta: cada pantalla es su propio chunk. El cliente que
 // escanea el QR solo descarga la carta + lo compartido, no Admin/KDS/PDA.
@@ -28,6 +29,9 @@ function Cargando() {
 export default function App() {
   return (
     <HashRouter>
+      {/* Va el primero y en todas las pantallas: si esto es una demostración,
+          hay que verlo antes de pedir nada */}
+      <AvisoDemo />
       <UIHost />
       <Suspense fallback={<Cargando />}>
         <Routes>

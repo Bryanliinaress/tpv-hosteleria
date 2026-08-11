@@ -13,6 +13,7 @@ export const PERFIL_GENERICO = {
   emoji: '🍽',
   colores: {},
   logo: null,
+  demo: false,
   modulos: {},
 }
 
@@ -39,6 +40,16 @@ export const perfil = leerPerfil(import.meta.env.VITE_PERFIL)
 export const nombreDeLocalPorDefecto = (p = perfil) =>
   (p?.slug && p.slug !== 'generico' && p.nombre) ? p.nombre : 'Mi Local'
 
+/**
+ * ¿Esta instalación es una DEMOSTRACIÓN?
+ *
+ * La demo y un bar real salen del mismo código y sus enlaces se parecen
+ * (`/tpv-hosteleria/` y `/tpv-hosteleria/app/`). Pedir en la demo creyendo que
+ * es el bar significa que ese pedido no existe para nadie: ni llega a cocina ni
+ * se cobra. Por eso se avisa en pantalla, siempre visible.
+ */
+export const esDemo = (p = perfil) => p?.demo === true
+
 /** ¿Está activo un módulo opcional de este local? */
 export const modulo = (nombre) => !!perfil.modulos[nombre]
 
@@ -63,6 +74,10 @@ export function cssDeMarca(p = perfil) {
 
 /** Inyecta los colores del local en el documento. Idempotente. */
 export function aplicarMarca(p = perfil, doc = document) {
+  // El nombre de la pestaña es lo que se lee cuando hay varias abiertas: si es
+  // la demo tiene que cantarlo, y si es un bar tiene que llevar SU nombre.
+  if (p?.nombre) doc.title = esDemo(p) ? `DEMO · ${p.nombre}` : p.nombre
+
   const css = cssDeMarca(p)
   if (!css) return null
   const id = 'marca-local'

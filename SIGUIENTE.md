@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.82.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.84.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-08. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**456 tests**, lint limpio, CI y deploy en verde.
+**460 tests**, lint limpio, CI y deploy en verde.
 
 ## Auditoría del dinero (v0.51.0)
 
@@ -665,6 +665,38 @@ declarada `async`. Ese test encontró el fallo 65 él solo, después de escribir
     Se comparó la **firma de cada acción** de la demo con la de la app real
     para encontrarlo: ocho diferían en el nombre de los parámetros y solo esta
     cambiaba el significado del orden.
+
+## 🎭 La demo y el bar de verdad ya no se confunden (v0.84.0)
+
+69. **Dos enlaces casi idénticos, uno de mentira y otro con dinero de verdad.**
+
+    | Enlace | Qué es |
+    |---|---|
+    | `bryanliinaress.github.io/tpv-hosteleria/` | la **demo** (blob del proyecto viejo, datos de juguete) |
+    | `bryanliinaress.github.io/tpv-hosteleria/app/` | **Casa Loli** (proyecto real) |
+
+    Los dos salen del mismo `main` y se parecen en todo. Pedir en la demo
+    creyendo que es el bar significa que **ese pedido no existe para nadie**: ni
+    llega a cocina, ni se cobra, ni sale en la caja. Pasó de verdad probando la
+    impresión: los pedidos se hacían en la demo y el papel nunca salía, porque
+    el servicio escucha la base del bar.
+
+    Ahora una instalación puede declararse demo (`"demo": true` en su perfil) y
+    entonces:
+    - **banda naranja a rayas arriba del todo**, en todas las pantallas y sin
+      posibilidad de cerrarla: «🎭 DEMOSTRACIÓN · los pedidos y cobros de aquí
+      no son reales»;
+    - **la pestaña del navegador lo dice**: `DEMO · TPV Hostelería` frente a
+      `Casa Loli`. Es donde uno se confunde cuando tiene seis pestañas abiertas.
+
+    Comprobado compilando los dos perfiles: en la demo sale en la portada, en la
+    carta del cliente y en reservas; en Casa Loli **no aparece** y la pestaña
+    lleva su nombre.
+
+### Lo siguiente para separarlos del todo
+Un **dominio propio para cada bar** (era el plan del modelo «una instalación por
+local»): `casaloli.es` no se confunde con nada. Mientras tanto, el aviso y el
+nombre de la pestaña hacen el trabajo.
 
 ## 🖨 LAS IMPRESORAS, YA MONTADAS Y FUNCIONANDO (v0.82.0)
 

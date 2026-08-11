@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { leerPerfil, cssDeMarca, aplicarMarca, urlLogo, nombreDeLocalPorDefecto, PERFIL_GENERICO } from './perfil'
+import { leerPerfil, cssDeMarca, aplicarMarca, urlLogo, nombreDeLocalPorDefecto, PERFIL_GENERICO, esDemo } from './perfil'
 
 describe('leerPerfil', () => {
   it('sin perfil inyectado usa la marca genérica', () => {
@@ -78,5 +78,34 @@ describe('nombre por defecto del local', () => {
   it('la demo genérica NO se apropia del ticket', () => {
     expect(nombreDeLocalPorDefecto(leerPerfil(null))).toBe('Mi Local')
     expect(nombreDeLocalPorDefecto(undefined)).toBe('Mi Local')
+  })
+})
+
+// La demo y un bar real salen del mismo código y sus enlaces se parecen
+// (`/tpv-hosteleria/` y `/tpv-hosteleria/app/`). Pedir en la demo creyendo que
+// es el bar significa que ese pedido no existe para nadie: hay que avisarlo.
+describe('una demo tiene que saberse que es una demo', () => {
+  it('el perfil de una demostración se marca', () => {
+    expect(esDemo(leerPerfil('{"slug":"demo","nombre":"TPV","demo":true}'))).toBe(true)
+  })
+
+  it('el de un bar real, no', () => {
+    expect(esDemo(leerPerfil('{"slug":"casa-loli","nombre":"Casa Loli"}'))).toBe(false)
+    expect(esDemo(leerPerfil('{"slug":"casa-loli","nombre":"Casa Loli","demo":false}'))).toBe(false)
+  })
+
+  it('ante la duda, NO es demo (no vamos a poner ese aviso en un bar)', () => {
+    expect(esDemo(leerPerfil(null))).toBe(false)
+    expect(esDemo(undefined)).toBe(false)
+    expect(esDemo(leerPerfil('{"slug":"x","nombre":"X","demo":"si"}'))).toBe(false)
+  })
+
+  it('la pestaña del navegador lo dice, que es donde uno se confunde', () => {
+    const doc = { title: '', getElementById: () => null, head: { appendChild: (x) => x }, createElement: () => ({}) }
+    aplicarMarca(leerPerfil('{"slug":"demo","nombre":"TPV Hostelería","demo":true}'), doc)
+    expect(doc.title).toBe('DEMO · TPV Hostelería')
+
+    aplicarMarca(leerPerfil('{"slug":"casa-loli","nombre":"Casa Loli"}'), doc)
+    expect(doc.title).toBe('Casa Loli')
   })
 })
