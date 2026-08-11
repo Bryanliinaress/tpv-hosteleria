@@ -79,8 +79,13 @@ describe('juntar mesas desde el Mostrador', () => {
     expect(rpcs).toEqual([['agruparMesas', 'm1', 'm2']])
   })
 
-  it('la PDA y el Mostrador hacen exactamente lo mismo', () => {
-    expect(acciones.fusionarMesa).toBe(acciones.agruparMesas)
+  // La PDA dice «mover / juntar A la mesa elegida»: el segundo argumento es el
+  // DESTINO y es quien se queda la cuenta. `agruparMesas` toma la cabeza
+  // primero, así que pasarlos tal cual dejaba la cuenta en la mesa de origen:
+  // justo lo contrario de lo que pedía el camarero.
+  it('«mover a la mesa X» deja la cuenta en X, no en la de origen', async () => {
+    await acciones.fusionarMesa('m1', 'm2')      // muevo la 1 a la 2
+    expect(rpcs).toEqual([['agruparMesas', 'm2', 'm1']])
   })
 })
 
