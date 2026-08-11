@@ -50,8 +50,12 @@ const preguntar = (t) => new Promise(r => rl.question(t, (v) => r(v.trim())))
 
 // Lee sin mostrar lo tecleado (para las claves)
 const preguntarOculto = (t) => new Promise((resolve) => {
-  process.stdout.write(t)
   const stdin = process.stdin
+  // Sin terminal (una tubería, un script) no se puede ocultar: se lee normal en
+  // vez de reventar, que es lo que hacía.
+  if (!stdin.isTTY || !stdin.setRawMode) return preguntar(t).then(resolve)
+
+  process.stdout.write(t)
   const eraRaw = stdin.isRaw
   if (stdin.setRawMode) stdin.setRawMode(true)
   let valor = ''
@@ -92,7 +96,37 @@ console.log('\nPara el webhook, crea un endpoint con el evento «checkout.sessio
 console.log(`  https://${ref}.supabase.co/functions/v1/stripe-webhook\n`)
 
 const token = await preguntarOculto('Token de Supabase (sbp_…, no se guarda): ')
-if (!token.startsWith('sbp_')) { console.error('Ese token no parece de Supabase'); process.exit(1) }
+if (!token.startsWith('sbp_')) { console.error('Ese token no parece de Supabase (debe empezar por sbp_)'); process.exit(1) }
+
+// Se comprueba ANTES de pedir las claves de Stripe: si el token no vale, no
+// tiene sentido teclear nada más, y «Unauthorized» a medias no dice qué falla.
+process.stdout.write('Comprobando el token… ')
+try {
+  const res = await fetch('https://api.supabase.com/v1/projects', {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (res.status === 401) {
+    console.error('\n❌ El token no es válido o está revocado.')
+    console.error('   Genera uno nuevo en https://supabase.com/dashboard/account/tokens')
+    console.error('   (cópialo entero, sin espacios ni saltos de línea)')
+    process.exit(1)
+  }
+  if (!res.ok) { console.error(`\n❌ Supabase respondió ${res.status}`); process.exit(1) }
+
+  const proyectos = await res.json()
+  const mio = proyectos.find(p => p.id === ref)
+  if (!mio) {
+    console.error(`\n❌ Ese token no ve el proyecto ${ref}.`)
+    console.error('   Proyectos a los que sí llega:')
+    for (const p of proyectos) console.error(`     · ${p.name} (${p.id})`)
+    console.error('   Genera el token con la cuenta dueña de ese proyecto.')
+    process.exit(1)
+  }
+  console.log(`ok · ${mio.name}`)
+} catch (e) {
+  console.error('\n❌ No pude comprobar el token:', e.message)
+  process.exit(1)
+}
 
 const sk = await preguntarOculto('Clave secreta de Stripe (sk_…): ')
 if (!/^sk_(test|live)_/.test(sk)) { console.error('La clave debe empezar por sk_test_ o sk_live_'); process.exit(1) }
