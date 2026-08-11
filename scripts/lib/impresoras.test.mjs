@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { leerDestinos, impresoraDe, esImpresoraWindows, enviarConReintentos, enColaDe, esImpresoraLocal } from './puente-impresion.mjs'
+import { leerDestinos, impresoraDe, esImpresoraWindows, enviarConReintentos, enColaDe, esImpresoraLocal } from './impresoras.mjs'
 
 // ────────────────────────────────────────────────────────────────────────────
 // Reparto de comandas entre varias impresoras. Un fallo aquí manda las cañas a

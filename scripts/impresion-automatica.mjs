@@ -1,0 +1,168 @@
+// ────────────────────────────────────────────────────────────────────────────
+// Impresión automática de comandas, SIN navegador.
+//
+// Antes, quien disparaba la impresión era una pantalla abierta (la Estación de
+// impresión). En un bar eso es frágil: alguien cierra la pestaña, se bloquea el
+// PC o se reinicia el navegador, y las comandas dejan de salir sin que nadie se
+// entere hasta que cocina reclama.
+//
+// Esto se queda escuchando la base de datos y saca cada comanda nueva en cuanto
+// aparece. Además, al arrancar imprime lo que quedó pendiente (el PC estaba
+// apagado, hubo un corte de luz…), y no repite lo ya impreso: cada comanda se
+// marca con `impresa_en` (migración 13).
+//
+// Arranque:
+//   node scripts/impresion-automatica.mjs
+// leyendo la configuración de `.env.puente` (ver docs/IMPRESION.md).
+// ────────────────────────────────────────────────────────────────────────────
+import { readFileSync } from 'node:fs'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { createClient } from '@supabase/supabase-js'
+import { comandaESCPOS } from '../src/lib/escpos.js'
+import { leerDestinos, impresoraDe, enviarConReintentos, enColaDe } from './lib/impresoras.mjs'
+
+const AQUI = dirname(fileURLToPath(import.meta.url))
+
+// Configuración desde `.env.puente` (o del entorno, que manda)
+function cargarEntorno() {
+  try {
+    const txt = readFileSync(join(AQUI, '..', '.env.puente'), 'utf8')
+    for (const linea of txt.split('\n')) {
+      const m = linea.match(/^\s*([A-Z_]+)\s*=\s*(.*)\s*$/)
+      if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, '')
+    }
+  } catch { /* sin fichero: se usa lo que haya en el entorno */ }
+}
+cargarEntorno()
+
+const URL_SB = process.env.SUPABASE_URL
+const CLAVE = process.env.SUPABASE_SERVICE_KEY
+// Cuánto se espera para juntar en UN papel lo que entra a la vez: una mesa que
+// pide cuatro platos son cuatro filas en la base, pero una sola comanda.
+const AGRUPAR_MS = Number(process.env.AGRUPAR_MS || 1200)
+
+if (!URL_SB || !CLAVE) {
+  console.error('Falta SUPABASE_URL o SUPABASE_SERVICE_KEY (ponlos en .env.puente)')
+  process.exit(1)
+}
+
+const destinos = leerDestinos()
+const sb = createClient(URL_SB, CLAVE, { auth: { persistSession: false } })
+
+const hora = () => new Date().toLocaleTimeString('es-ES')
+const log = (...m) => console.log(hora(), ...m)
+
+// ── Datos de una comanda, listos para el papel ──────────────────────────────
+async function detalleDe(ids) {
+  const { data, error } = await sb
+    .from('comandas')
+    .select('id, destino, mesa_id, linea_id, hora_entrada, mesas(numero), lineas_pedido(nombre, cantidad, personalizacion, comensales(nombre))')
+    .in('id', ids)
+    .is('impresa_en', null)
+  if (error) throw error
+  return data || []
+}
+
+// La nota que lee cocina: pan, lo que se quita, lo que se añade y la indicación
+const notaDe = (p = {}) => {
+  const partes = []
+  if (p.pan) partes.push(`${p.pan.nombreFormato} · ${p.pan.nombreTipo}`)
+  if (p.quitados?.length) partes.push('SIN ' + p.quitados.join(', '))
+  if (p.anadidos?.length) partes.push('CON ' + p.anadidos.join(', '))
+  if (p.nota) partes.push(p.nota)
+  return partes.join(' · ')
+}
+
+/** Agrupa por mesa y destino: un papel por cada, no uno por plato. */
+export function agrupar(comandas) {
+  const grupos = new Map()
+  for (const k of comandas) {
+    const destino = k.destino || 'cocina'
+    const clave = `${k.mesa_id}|${destino}`
+    const g = grupos.get(clave) || { destino, mesa: k.mesas?.numero ?? '?', ids: [], lineas: [] }
+    g.ids.push(k.id)
+    g.lineas.push({
+      cantidad: k.lineas_pedido?.cantidad ?? 1,
+      nombre: k.lineas_pedido?.nombre ?? '(producto)',
+      nota: notaDe(k.lineas_pedido?.personalizacion),
+      persona: k.lineas_pedido?.comensales?.nombre || '',
+    })
+    grupos.set(clave, g)
+  }
+  return [...grupos.values()]
+}
+
+async function imprimirGrupo(g) {
+  const impresora = impresoraDe(destinos, g.destino)
+  const bytes = Buffer.from(comandaESCPOS({
+    mesa: g.mesa,
+    destino: g.destino.toUpperCase(),
+    lineas: g.lineas,
+  }))
+  await enColaDe(impresora, () => enviarConReintentos(impresora, bytes))
+  // Solo se marca DESPUÉS de que la impresora acepte: si falla, sigue pendiente
+  // y se reintenta en el próximo arranque. Mejor repetir una comanda que perderla.
+  const { error } = await sb.from('comandas').update({ impresa_en: new Date().toISOString() }).in('id', g.ids)
+  if (error) log('⚠️  impresa pero no pude marcarla:', error.message)
+  log(`🖨  mesa ${g.mesa} → ${g.destino} (${impresora}) · ${g.lineas.length} línea(s)`)
+}
+
+// ── Cola de entrada: se juntan las que llegan a la vez ──────────────────────
+let pendientes = new Set()
+let temporizador = null
+
+async function vaciar() {
+  const ids = [...pendientes]
+  pendientes = new Set()
+  if (!ids.length) return
+  try {
+    const comandas = await detalleDe(ids)
+    if (!comandas.length) return          // ya impresas por otro lado
+    for (const g of agrupar(comandas)) {
+      try { await imprimirGrupo(g) } catch (e) { log('❌ no se pudo imprimir:', e.message) }
+    }
+  } catch (e) {
+    log('❌ error al leer las comandas:', e.message)
+  }
+}
+
+function encolar(id) {
+  pendientes.add(id)
+  clearTimeout(temporizador)
+  temporizador = setTimeout(vaciar, AGRUPAR_MS)
+}
+
+// ── Lo que quedó sin imprimir (arranque) ────────────────────────────────────
+async function recuperarPendientes() {
+  const { data, error } = await sb
+    .from('comandas')
+    .select('id, hora_entrada')
+    .is('impresa_en', null)
+    .order('hora_entrada', { ascending: true })
+    .limit(50)
+  if (error) return log('❌ no pude consultar lo pendiente:', error.message)
+  if (!data?.length) return log('✓ no hay comandas pendientes')
+  log(`recuperando ${data.length} comanda(s) que no llegaron a imprimirse`)
+  data.forEach(k => pendientes.add(k.id))
+  await vaciar()
+}
+
+// ── Arranque ────────────────────────────────────────────────────────────────
+console.log('Impresión automática de comandas')
+for (const [k, v] of Object.entries(destinos)) if (v) console.log(`  ${k.padEnd(8)} → ${v}`)
+
+await recuperarPendientes()
+
+sb.channel('comandas-impresion')
+  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comandas' }, (payload) => {
+    if (payload.new?.id) encolar(payload.new.id)
+  })
+  .subscribe((estado) => {
+    if (estado === 'SUBSCRIBED') log('escuchando comandas nuevas · las imprimo solas')
+    else if (estado === 'CHANNEL_ERROR' || estado === 'TIMED_OUT') log('⚠️  conexión perdida, reintentando…')
+  })
+
+// Red de seguridad: si la conexión en vivo se cae sin avisar, cada minuto se
+// mira si quedó algo sin imprimir. Un bar no puede perder una comanda.
+setInterval(() => { recuperarPendientes().catch(() => {}) }, 60_000)

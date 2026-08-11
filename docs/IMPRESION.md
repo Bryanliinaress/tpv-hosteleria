@@ -104,6 +104,42 @@ una con su cabecera.
 IMPRESORA_COCINA=192.168.1.50 IMPRESORA_BARRA=192.168.1.50   node scripts/puente-impresion.mjs
 ```
 
+## ⭐ Impresión automática (lo que quiere un bar)
+
+Las opciones de arriba imprimen cuando **una pantalla** lo pide: la Estación de
+impresión abierta en un PC. Eso es frágil en un local — alguien cierra la
+pestaña, se bloquea el equipo, se reinicia el navegador— y las comandas dejan de
+salir **sin que nadie se entere** hasta que cocina reclama.
+
+Lo robusto es un servicio que escuche la base de datos e imprima solo:
+
+```bash
+node scripts/impresion-automatica.mjs
+```
+
+- **No necesita navegador**: basta con el PC encendido.
+- **No pierde comandas**: cada una se marca con `impresa_en` (migración 13). Al
+  arrancar saca lo pendiente —el PC estaba apagado, hubo un corte— y si el
+  servicio se reinicia **no repite** lo ya impreso.
+- **Un papel por mesa y destino**: lo que entra junto se agrupa (1,2 s), así una
+  mesa que pide cuatro platos no saca cuatro tickets.
+- **Solo se marca como impresa si la impresora aceptó los bytes**: si falla, se
+  reintenta. Mejor repetir una comanda que perderla.
+- Cada minuto comprueba que no se haya quedado nada atrás, por si se cae la
+  conexión en vivo sin avisar.
+
+Configuración en `.env.puente` (no se sube al repo):
+
+```bash
+SUPABASE_URL=https://<tu-proyecto>.supabase.co
+SUPABASE_SERVICE_KEY=<clave de servicio>   # se queda en el PC del local
+IMPRESORA_COCINA=TPV-Cocina
+IMPRESORA_BARRA=TPV-Barra
+```
+
+⚠️ La clave de servicio salta las políticas de acceso: **solo** en el PC del
+local, nunca en el repo ni en el navegador.
+
 ## Opción 3 · Diálogo del navegador (lo de siempre)
 
 Sigue disponible y **es el modo por defecto**. Además funciona como red de
