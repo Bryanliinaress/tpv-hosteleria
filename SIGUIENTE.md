@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.81.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.82.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-08. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**450 tests**, lint limpio, CI y deploy en verde.
+**456 tests**, lint limpio, CI y deploy en verde.
 
 ## Auditoría del dinero (v0.51.0)
 
@@ -665,6 +665,48 @@ declarada `async`. Ese test encontró el fallo 65 él solo, después de escribir
     Se comparó la **firma de cada acción** de la demo con la de la app real
     para encontrarlo: ocho diferían en el nombre de los parámetros y solo esta
     cambiaba el significado del orden.
+
+## 🖨 LAS IMPRESORAS, YA MONTADAS Y FUNCIONANDO (v0.82.0)
+
+Las dos térmicas de 80 mm están conectadas por USB a este PC, configuradas y
+**probadas de punta a punta**: un pedido hecho desde la carta del cliente sale
+solo en papel, la comida por cocina y la bebida por barra.
+
+| | Cola de Windows | Puerto | Destino |
+|---|---|---|---|
+| 🍳 | `TPV-Cocina` | USB001 | comandas de comida |
+| 🍺 | `TPV-Barra` | USB002 | comandas de bebida |
+
+68. **Lo que faltaba para poder montarlas: imprimir sin ser administrador.** La
+    documentación decía que en Windows había que **compartir** la impresora
+    (`copy /b` a `\\PC\Nombre`) y eso **exige elevación** — al montarlo aquí,
+    Windows lo denegó. Ahora un destino del puente puede ser el **nombre de la
+    cola local** (`TPV-Cocina`) y los bytes se mandan con datatype **RAW**
+    (`scripts/imprimir-raw.ps1`): sin compartir y sin permisos especiales. Para
+    un bar es la diferencia entre montarlo solo o tener que llamar a alguien.
+
+**El disco de drivers del fabricante no se instala**: su driver convertiría el
+ESC/POS en texto. Se usa el «Generic / Text Only» que ya trae Windows.
+
+⚠️ Dos impresoras del mismo modelo se distinguen **por el puerto**, que Windows
+asigna según el orden de conexión. Hay etiquetas impresas para pegarles.
+
+### Cómo se levanta
+
+```bash
+IMPRESORA_COCINA=TPV-Cocina IMPRESORA_BARRA=TPV-Barra node scripts/puente-impresion.mjs
+```
+
+Y en el TPV: Ajustes → Impresión → «Puente de red» → `http://localhost:9110`.
+La **Estación de impresión** (`/print`) tiene que quedar abierta en ese PC con
+auto-impresión ON: es quien detecta los pedidos nuevos y los manda.
+
+### Pendiente de comprobar en papel
+
+- Corte automático, acentos (CP858) y **el QR del ticket de cuenta**: si la
+  impresora no implementa `GS ( k`, saldría el ticket sin QR y habría que
+  mandarlo como imagen. Es el único riesgo que sigue sin descartar.
+- Que el puente **arranque solo** al encender el PC (tarea programada).
 
 ## 🖨 EL LUNES: llegan las impresoras (dos, 80 mm)
 
