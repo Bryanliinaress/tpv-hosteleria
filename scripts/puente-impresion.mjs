@@ -174,6 +174,12 @@ if (process.env.NODE_ENV !== 'test') {
     res.setHeader('Access-Control-Allow-Origin', '*')
     res.setHeader('Access-Control-Allow-Headers', 'content-type')
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
+    // El TPV se sirve por HTTPS y este puente vive en la red del local. Para
+    // eso, el navegador (Private Network Access) pide permiso explícito antes
+    // de dejar que una web pública hable con un equipo de tu red: sin esta
+    // cabecera, Chrome bloquea la impresión y no sale ninguna comanda.
+    res.setHeader('Access-Control-Allow-Private-Network', 'true')
+    res.setHeader('Access-Control-Max-Age', '86400')   // no preguntar en cada comanda
     if (req.method === 'OPTIONS') return res.writeHead(204).end()
 
     const url = new URL(req.url, 'http://localhost')
