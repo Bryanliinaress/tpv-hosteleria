@@ -55,7 +55,14 @@ export default function ReservasManager({ onSentada }) {
   // Mesas candidatas (la regla vive en el store y está probada)
   const candidatas = (r) => mesasCandidatas(mesas, r)
 
-  const sentar = (id) => { const pid = sentarReservaAgenda(id); const r = reservas.find(x => x.id === id); if (pid && onSentada) onSentada(r?.mesaId) }
+  // `sentarReservaAgenda` habla con el servidor en la app real: sin esperarlo,
+  // `pid` era una promesa (siempre «verdadera») y se daba por sentada la mesa
+  // aunque hubiera fallado.
+  const sentar = async (id) => {
+    const pid = await Promise.resolve(sentarReservaAgenda(id))
+    const r = reservas.find(x => x.id === id)
+    if (pid && onSentada) onSentada(r?.mesaId)
+  }
 
   return (
     <div>

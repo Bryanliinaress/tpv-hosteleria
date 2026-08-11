@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.79.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.80.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-08. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -56,7 +56,7 @@ que está gitignorado y solo existe en el PC de Bryan).
   - Admin: la página ya no mide 1034 px de ancho en un móvil de 375; buscador
     en la carta; acciones de fila de 29×23 px → 40×40 con «borrar» separado.
 
-**448 tests**, lint limpio, CI y deploy en verde.
+**450 tests**, lint limpio, CI y deploy en verde.
 
 ## Auditoría del dinero (v0.51.0)
 
@@ -630,6 +630,28 @@ y las versiones v2 eran `async`, así que devolvían una promesa.
 
 Las reglas viven en `src/lib/personal.js`, que usan la demo y la app real, con
 12 tests. Antes estaban escritas dos veces… y solo funcionaban en una.
+
+## Lo que se pide sin esperar respuesta (v0.80.0)
+
+Persiguiendo la misma clase de fallo (la pantalla usa un resultado que en la
+app real todavía no existe) aparecieron tres más:
+
+64. **Añadir un comensal desde la PDA se lo cargaba al cliente equivocado.**
+    `unirseAMesa` en el backend real es una llamada al servidor: sin esperar el
+    id se guardaba **una promesa** como comensal elegido, el nuevo no quedaba
+    seleccionado y todo lo que pidiera el camarero a continuación se le cargaba
+    **al primero de la mesa**. Silencioso y con dinero de por medio.
+65. **Fichar la salida no confirmaba nada.** La PDA mira `r.accion` para decir
+    «salida fichada»; al ser una promesa, el empleado pulsaba y no veía
+    respuesta. Se guardaba, pero él no lo sabía — y es su nómina.
+66. **Sentar una reserva desde la agenda se daba por buena siempre**: una
+    promesa siempre parece «verdadera», así que se marcaba la mesa como sentada
+    aunque hubiera fallado.
+
+Y para que no vuelva a pasar, un **test que lee el código**
+(`src/lib/v2/contrato.test.js`): coge las acciones de la demo que responden
+`{ ok, error }` en el acto y falla si su versión del backend real está
+declarada `async`. Ese test encontró el fallo 65 él solo, después de escribirlo.
 
 ## 🖨 EL LUNES: llegan las impresoras (dos, 80 mm)
 

@@ -23,8 +23,11 @@ export default function PedirPda({ mesaId, onClose }) {
   const nuevoComensal = async () => {
     const nombre = await pedirTexto({ titulo: 'Nuevo comensal', placeholder: 'Nombre (opcional)', confirmar: 'Añadir' })
     if (nombre === null) return
-    const id = unirseAMesa(mesaId, nombre)
-    setPersonaId(id)
+    // En el backend real esto es una llamada al servidor: sin esperar el id se
+    // guardaba una PROMESA como comensal elegido, no aparecía en la lista y el
+    // camarero acababa cargándole los platos al primero de la mesa.
+    const id = await Promise.resolve(unirseAMesa(mesaId, nombre))
+    if (id) setPersonaId(id)
   }
 
   const etiquetas = etiquetasDe(carta)
