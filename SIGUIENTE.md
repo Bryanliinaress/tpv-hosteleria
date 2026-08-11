@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.80.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.81.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-08. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -652,6 +652,19 @@ Y para que no vuelva a pasar, un **test que lee el código**
 (`src/lib/v2/contrato.test.js`): coge las acciones de la demo que responden
 `{ ok, error }` en el acto y falla si su versión del backend real está
 declarada `async`. Ese test encontró el fallo 65 él solo, después de escribirlo.
+
+## «Mover mesa a…» dejaba la cuenta en la mesa vieja (v0.81.0)
+
+67. **En la app real, juntar mesas desde la PDA se hacía al revés.** La pantalla
+    dice «Mover / juntar **a**…» y el camarero elige la mesa de destino, que es
+    quien debe quedarse la cuenta —así funciona la demo—. Pero la versión v2
+    pasaba los argumentos tal cual a `agruparMesas`, donde el **primero** es la
+    cabeza del grupo: la cuenta se quedaba en la mesa de origen y la elegida
+    colgaba de ella. Si unos clientes se cambian de la 3 a la 8, la sala seguía
+    enseñando la cuenta en la 3.
+    Se comparó la **firma de cada acción** de la demo con la de la app real
+    para encontrarlo: ocho diferían en el nombre de los parámetros y solo esta
+    cambiaba el significado del orden.
 
 ## 🖨 EL LUNES: llegan las impresoras (dos, 80 mm)
 

@@ -355,8 +355,11 @@ export function accionesV2b() {
       } catch (e) { err(e) }
     },
   }
-  // La PDA llama a esto para lo mismo que el Mostrador llama `agruparMesas`:
-  // un solo camino, para que no vuelvan a comportarse distinto.
-  acciones.fusionarMesa = acciones.agruparMesas
+  // OJO al orden: la PDA dice «mover / juntar A la mesa elegida», así que su
+  // segundo argumento es el DESTINO, que es quien se queda la cuenta. En
+  // `agruparMesas` la cabeza es el primero. Pasándolos tal cual, en la app real
+  // la cuenta se quedaba en la mesa de origen y la elegida colgaba de ella:
+  // justo lo contrario de lo que pedía el camarero.
+  acciones.fusionarMesa = (origenId, destinoId) => acciones.agruparMesas(destinoId, origenId)
   return acciones
 }
