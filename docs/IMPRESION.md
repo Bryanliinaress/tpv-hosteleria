@@ -52,6 +52,34 @@ La app manda el destino en cada impresión; el puente decide la máquina. Un
 destino sin impresora configurada cae en `IMPRESORA` (o en la primera que haya):
 **nunca se pierde una comanda por un destino sin declarar**.
 
+### Impresora USB en Windows SIN ser administrador (lo más habitual)
+
+Al enchufar una térmica USB, Windows le crea el puerto (`USB001`) pero **no una
+cola**. Con estos dos pasos queda lista, sin instalar el disco del fabricante
+—que además es contraproducente: su driver convertiría el ESC/POS en texto—:
+
+1. **Crear la cola** con el driver genérico que ya trae Windows:
+   ```powershell
+   Add-PrinterDriver -Name "Generic / Text Only"
+   Add-Printer -Name "TPV-Cocina" -DriverName "Generic / Text Only" -PortName "USB001"
+   ```
+   (para la segunda impresora, `USB002` y `TPV-Barra`)
+
+2. **Decírselo al puente por su NOMBRE**, sin compartir nada:
+   ```bash
+   IMPRESORA_COCINA=TPV-Cocina IMPRESORA_BARRA=TPV-Barra node scripts/puente-impresion.mjs
+   ```
+
+Por qué así: compartir una impresora en Windows **exige permisos de
+administrador**, y el dueño de un bar no tiene por qué tenerlos (aquí Windows lo
+denegó al montarlo). Mandando los bytes a la cola con datatype **RAW**
+(`scripts/imprimir-raw.ps1`) se imprime igual, sin compartir y sin elevación.
+
+⚠️ Dos impresoras del mismo modelo se distinguen **por el puerto** (USB001 /
+USB002), que Windows asigna según el orden en que se conectaron. Imprime una
+etiqueta en cada una y **pégales una pegatina**: si algún día se reconectan en
+otro orden, podrían intercambiarse.
+
 ### Dos impresoras USB en el MISMO PC
 
 Es el montaje típico de un bar pequeño: las dos térmicas enchufadas al ordenador

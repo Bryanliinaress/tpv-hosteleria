@@ -11,12 +11,14 @@
 //
 // Cada destino puede ser:
 //   · una IP (impresora de red)         → 192.168.1.50  ó  192.168.1.50:9100
+//   · una cola LOCAL de Windows         → TPV-Cocina    (una térmica USB se
+//     instala así, y NO hace falta ser administrador)
 //   · una impresora de Windows          → \\localhost\TM-T20   (compartida)
 //
-// Lo segundo es lo que resuelve el caso de DOS IMPRESORAS USB EN EL MISMO PC:
-// se comparten en Windows (clic derecho → Propiedades → Compartir) y aquí se
-// ponen sus nombres. Las comandas de cocina salen por una y las de barra por
-// la otra sin tocar nada más.
+// Con DOS IMPRESORAS USB EN EL MISMO PC basta con crearles su cola (una por
+// puerto, USB001 y USB002) y poner aquí sus nombres: las comandas de cocina
+// salen por una y las de barra por la otra sin tocar nada más. Compartirlas
+// también vale, pero eso exige permisos de administrador.
 //
 // Después, en Admin → Ajustes → Impresión: "Puente de red" y la dirección que
 // imprime este script al arrancar.
@@ -25,7 +27,8 @@ import { Socket } from 'node:net'
 import { spawn } from 'node:child_process'
 import { writeFile, unlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const PUERTO = Number(process.env.PUERTO || 9110)
 const PUERTO_IMPRESORA = Number(process.env.PUERTO_IMPRESORA || 9100)
@@ -49,6 +52,21 @@ export const impresoraDe = (destinos, destino) => destinos[destino] || destinos.
 
 /** ¿Es una impresora de Windows compartida (\\PC\NOMBRE) o una IP de red? */
 export const esImpresoraWindows = (destino) => /^\\\\/.test(String(destino || ''))
+
+/**
+ * ¿Es una impresora INSTALADA en este Windows, dicha por su nombre?
+ *
+ * Es el caso de una térmica USB: Windows le crea la cola («TPV-Termica») pero
+ * compartirla exige permisos de administrador, y un bar no tiene por qué
+ * tenerlos. Con el nombre a secas se le mandan los bytes igual, en crudo.
+ * Se distingue de una dirección de red porque no lleva puntos ni dos puntos.
+ */
+export const esImpresoraLocal = (destino) => {
+  const d = String(destino || '').trim()
+  // ni barras (rutas y compartidas), ni puntos o dos puntos (IP y host:puerto):
+  // un nombre de cola de Windows no lleva nada de eso
+  return !!d && !/[\\/.:]/.test(d)
+}
 
 // ── Envío por red (TCP 9100) ────────────────────────────────────────────────
 const enviarRed = (destino, datos) => new Promise((resolve, reject) => {
@@ -88,8 +106,36 @@ const enviarWindows = async (destino, datos) => {
   }
 }
 
-export const enviar = (destino, datos) =>
-  esImpresoraWindows(destino) ? enviarWindows(destino, datos) : enviarRed(destino, datos)
+// ── Envío a una impresora instalada en este Windows (por su nombre) ─────────
+// Sin compartirla y sin ser administrador: se manda a la cola con datatype RAW
+// (winspool), que es como se le habla a una térmica desde Windows.
+const enviarLocal = async (nombre, datos) => {
+  const tmp = join(tmpdir(), `tpv-${Date.now()}.prn`)
+  await writeFile(tmp, datos)
+  const script = join(dirname(fileURLToPath(import.meta.url)), 'imprimir-raw.ps1')
+  try {
+    await new Promise((resolve, reject) => {
+      const p = spawn('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script,
+        '-Impresora', nombre, '-Fichero', tmp], { windowsHide: true })
+      let salida = ''
+      p.stdout.on('data', (d) => { salida += d })
+      p.stderr.on('data', (d) => { salida += d })
+      p.on('error', reject)
+      p.on('close', (code) => {
+        if (code === 0 && /: ?ok:/.test(salida)) return resolve()
+        reject(new Error(salida.trim() || `la impresora «${nombre}» no aceptó el trabajo`))
+      })
+    })
+  } finally {
+    await unlink(tmp).catch(() => {})
+  }
+}
+
+export const enviar = (destino, datos) => {
+  if (esImpresoraWindows(destino)) return enviarWindows(destino, datos)
+  if (esImpresoraLocal(destino)) return enviarLocal(destino, datos)
+  return enviarRed(destino, datos)
+}
 
 // ── Una cosa cada vez por impresora ─────────────────────────────────────────
 // Dos comandas a la vez por el mismo socket salen mezcladas en el papel (o la

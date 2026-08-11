@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { leerDestinos, impresoraDe, esImpresoraWindows, enviarConReintentos, enColaDe } from './puente-impresion.mjs'
+import { leerDestinos, impresoraDe, esImpresoraWindows, enviarConReintentos, enColaDe, esImpresoraLocal } from './puente-impresion.mjs'
 
 // ────────────────────────────────────────────────────────────────────────────
 // Reparto de comandas entre varias impresoras. Un fallo aquí manda las cañas a
@@ -110,5 +110,44 @@ describe('una cosa cada vez por impresora', () => {
   it('un fallo no atasca la cola de esa impresora', async () => {
     await enColaDe('caja', async () => { throw new Error('boom') }).catch(() => {})
     await expect(enColaDe('caja', async () => 'ok')).resolves.toBe('ok')
+  })
+})
+
+// Una térmica USB en Windows se instala como cola («TPV-Cocina»), pero
+// COMPARTIRLA exige permisos de administrador —y un bar no tiene por qué
+// tenerlos—. Por eso un destino puede ser también el nombre de la cola local.
+describe('impresora local de Windows (por nombre)', () => {
+  it('un nombre a secas es una cola local', () => {
+    expect(esImpresoraLocal('TPV-Cocina')).toBe(true)
+    expect(esImpresoraLocal('TPV-Barra')).toBe(true)
+  })
+
+  it('una dirección de red no lo es', () => {
+    expect(esImpresoraLocal('192.168.1.50')).toBe(false)
+    expect(esImpresoraLocal('192.168.1.50:9100')).toBe(false)
+    expect(esImpresoraLocal('impresora.local')).toBe(false)
+  })
+
+  it('una compartida tampoco (esa va por copy /b)', () => {
+    expect(esImpresoraLocal('\\\\localhost\\Cocina')).toBe(false)
+    expect(esImpresoraWindows('\\\\localhost\\Cocina')).toBe(true)
+  })
+
+  it('nada con barras es una cola local, aunque esté mal escrito', () => {
+    expect(esImpresoraLocal('\\localhost\\Cocina')).toBe(false)
+    expect(esImpresoraLocal('C:\\temp\\salida')).toBe(false)
+  })
+
+  it('un destino vacío no se confunde con una cola', () => {
+    expect(esImpresoraLocal('')).toBe(false)
+    expect(esImpresoraLocal(null)).toBe(false)
+    expect(esImpresoraLocal('   ')).toBe(false)
+  })
+
+  it('los tres modos son excluyentes', () => {
+    for (const d of ['TPV-Cocina', '192.168.1.50', '\\PC\Termica']) {
+      const modos = [esImpresoraWindows(d), esImpresoraLocal(d), !esImpresoraWindows(d) && !esImpresoraLocal(d)]
+      expect(modos.filter(Boolean)).toHaveLength(1)
+    }
   })
 })
