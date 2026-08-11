@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.84.0, todo desplegado, repo limpio y sincronizado.**
+**Estado: v0.85.0, todo desplegado, repo limpio y sincronizado.**
 Última sesión: 2026-08-08. Fuente de verdad del roadmap: [PRODUCCION.md](PRODUCCION.md).
 
 ## Cómo probar la UI sin ensuciar la demo
@@ -665,6 +665,42 @@ declarada `async`. Ese test encontró el fallo 65 él solo, después de escribir
     Se comparó la **firma de cada acción** de la demo con la de la app real
     para encontrarlo: ocho diferían en el nombre de los parámetros y solo esta
     cambiaba el significado del orden.
+
+## 💳 Pago con Stripe en Casa Loli (v0.85.0)
+
+70. **En la demo se podía pagar con el móvil y en Casa Loli no salía la opción.**
+    Dos motivos, y ninguno era un fallo de código:
+    - el perfil de Casa Loli tenía `"modulos": { "pagosOnline": false }` — ya
+      está en `true`;
+    - **la demo y Casa Loli son proyectos de Supabase distintos**, y las claves
+      de Stripe estaban solo en el de la demo. El de Casa Loli
+      (`tesilntyomnovjcuieho`) solo tiene los secretos de Veri*Factu.
+
+71. **Y si no hay pasarela, la pantalla no decía nada.** El cliente pulsaba
+    «Pagar» y no aparecía ninguna opción: se quedaba mirando. Ahora sale
+    «🧾 Se paga al camarero · pide la cuenta y págala en la mesa o en la barra»
+    con el botón de pedirla. Traducido también al inglés.
+
+### Lo que falta para cobrar de verdad (es de Bryan)
+
+1. **Claves de Stripe como secretos del proyecto de Casa Loli** — no pasan por
+   el chat, se ponen desde el panel o con la CLI:
+   ```bash
+   npx supabase secrets set STRIPE_SECRET_KEY=sk_live_... --project-ref tesilntyomnovjcuieho
+   npx supabase secrets set STRIPE_WEBHOOK_SECRET=whsec_... --project-ref tesilntyomnovjcuieho
+   ```
+2. **Desplegar el webhook** (falta en este proyecto; solo están `registrar-fiscal`
+   y `crear-checkout`):
+   ```bash
+   npx supabase functions deploy stripe-webhook --project-ref tesilntyomnovjcuieho --no-verify-jwt
+   ```
+3. **Dar de alta el endpoint en Stripe** → evento `checkout.session.completed`
+   apuntando a
+   `https://tesilntyomnovjcuieho.supabase.co/functions/v1/stripe-webhook`,
+   y de ahí sale el `whsec_` del paso 1.
+
+⚠️ Sin el **webhook** el cliente pagaría y **la mesa no se marcaría como
+pagada**: el webhook es quien confirma el cobro (el navegador no decide).
 
 ## 🎭 La demo y el bar de verdad ya no se confunden (v0.84.0)
 

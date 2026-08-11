@@ -145,6 +145,10 @@ const EN = {
   'Bizum': 'Bizum',
   'Pago online': 'Online payment',
   'Sin cobrar': 'Not charged',
+  'Se paga al camarero': 'Pay the waiter',
+  'Pide la cuenta y págala en la mesa o en la barra.': 'Ask for the bill and pay at your table or at the bar.',
+  'Pedir la cuenta': 'Ask for the bill',
+  'Aviso enviado: ya van': 'Sent: someone is on the way',
   // ── Reservas online (la pantalla la ve cualquiera, también un turista) ──
   'Reservar mesa': 'Book a table',
   'Modificar reserva': 'Change booking',

@@ -391,6 +391,22 @@ export default function CartaCliente() {
           </div>
         </div>
 
+        {/* Sin pasarela de pago, el cliente tiene que saber QUÉ hacer: antes
+            no salía nada y se quedaba mirando la pantalla. */}
+        {!pagoOnlineDisponible && totalPendienteMesa > 0 && (
+          <div style={{ ...cardStyle, marginBottom: '1rem', textAlign: 'center' }}>
+            <div style={{ fontSize: '1.6rem', marginBottom: '0.3rem' }}>🧾</div>
+            <p style={{ fontWeight: 700, marginBottom: '0.25rem' }}>{t('Se paga al camarero')}</p>
+            <p style={{ fontSize: '0.85rem', color: 'var(--color-muted)', marginBottom: '0.75rem' }}>
+              {t('Pide la cuenta y págala en la mesa o en la barra.')}
+            </p>
+            <button onClick={() => { pedirCuenta(mesaId); toast(t('Aviso enviado: ya van'), 'success') }}
+              style={btnStyle('var(--color-accent)', { width: '100%', padding: '0.85rem', fontSize: '0.95rem' })}>
+              🧾 {t('Pedir la cuenta')}
+            </button>
+          </div>
+        )}
+
         {/* Pagar la cuenta completa (un comensal por todos) */}
         {pagoOnlineDisponible && totalPendienteMesa > 0 && (
           <div style={{ ...cardStyle, marginBottom: '1rem' }}>

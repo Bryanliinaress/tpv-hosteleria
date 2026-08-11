@@ -17,7 +17,7 @@
   "backend": "v2",
   "fiscal": "verifactu",
   "modulos": {
-    "pagosOnline": false,
+    "pagosOnline": true,
     "reservas": true
   }
 }
