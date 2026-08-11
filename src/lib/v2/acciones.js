@@ -157,13 +157,20 @@ export function accionesV2() {
     cancelarReservaPorToken: (token) => rpcReservas.cancelar(token).then(cargarReservas).catch(err),
 
     // ── Fichajes ────────────────────────────────────────────────
-    ficharEmpleado: async (empleadoId) => {
-      try {
-        const abierto = st().fichajes?.find(f => f.empleadoId === empleadoId && !f.salida)
-        if (abierto) await (await tabla('fichajes')).update({ salida: new Date().toISOString() }).eq('id', abierto.id)
-        else await (await tabla('fichajes')).insert({ local_id: getLocalId(), empleado_id: empleadoId })
-        cargarFichajes()
-      } catch (e) { err(e) }
+    // La PDA mira `r.accion` para decir «entrada fichada» o «salida fichada».
+    // Siendo async devolvía una promesa: el empleado fichaba la salida y no
+    // recibía ninguna confirmación — y es su nómina.
+    ficharEmpleado: (empleadoId) => {
+      const abierto = st().fichajes?.find(f => f.empleadoId === empleadoId && !f.salida)
+      const accion = abierto ? 'salida' : 'entrada'
+      ;(async () => {
+        try {
+          if (abierto) await (await tabla('fichajes')).update({ salida: new Date().toISOString() }).eq('id', abierto.id)
+          else await (await tabla('fichajes')).insert({ local_id: getLocalId(), empleado_id: empleadoId })
+          cargarFichajes()
+        } catch (e) { err(e) }
+      })()
+      return { ok: true, accion }
     },
 
     // ── Carta (admin) ───────────────────────────────────────────
