@@ -72,3 +72,29 @@ conectada en la configuración del local.
 ~1,5 % + 0,25 € por operación (tarjeta europea). Sale a cuenta en cuentas de
 mesa (12 € → ~3,6 %), no en un café suelto: por eso conviene ofrecerlo **junto
 al cobro normal**, nunca como única opción.
+
+## Dejarlo listo en un local (un solo comando)
+
+```bash
+node scripts/configurar-stripe.mjs casa-loli
+```
+
+Pide el token de Supabase y las dos claves de Stripe, y con eso: guarda los
+secretos del proyecto, despliega el webhook y comprueba que quedó activo.
+
+**Las claves se teclean ahí y van directas a Supabase**: no se escriben en
+ningún fichero, no se ven por pantalla y no quedan en el historial del
+terminal. La `sk_` de Stripe permite mover dinero de la cuenta del bar, así que
+no se pega en un chat, ni en un correo, ni en el repo.
+
+Antes hay que crear el endpoint en Stripe (evento `checkout.session.completed`)
+apuntando a `https://<ref>.supabase.co/functions/v1/stripe-webhook`; de ahí sale
+el `whsec_` que pide el asistente.
+
+⚠️ **El webhook no es opcional.** Es quien confirma el cobro: sin él, el cliente
+paga y la mesa **no** se marca como pagada. El navegador no decide si algo está
+cobrado, precisamente para que nadie pueda marcar una cuenta como pagada sin
+haberla pagado.
+
+Cada bar tiene **su** cuenta de Stripe y **su** proyecto: las claves de uno no
+sirven para otro (fue justo lo que pasó entre la demo y Casa Loli).
