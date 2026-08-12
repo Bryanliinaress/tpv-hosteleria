@@ -1,7 +1,7 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.85.0 · 460 tests en verde · repo limpio y desplegado.**
-Última sesión: 2026-08-11. Roadmap: [PRODUCCION.md](PRODUCCION.md) ·
+**Estado: v0.86.0 · 466 tests en verde · repo limpio y desplegado.**
+Última sesión: 2026-08-12. Roadmap: [PRODUCCION.md](PRODUCCION.md) ·
 Historia de los 71 fallos encontrados: [docs/AUDITORIA.md](docs/AUDITORIA.md).
 
 ---
@@ -101,8 +101,16 @@ días parados). Por eso **Supabase Pro es requisito de producción**.
 
 ## Qué está hecho y verificado de verdad
 
-- **Backend multi-tenant**: 13 migraciones aplicadas, RLS por local, RPC
-  transaccionales. Las 10-13 se aplicaron el 11/08 contra la BBDD real.
+- **Backend multi-tenant**: 14 migraciones aplicadas, RLS por local, RPC
+  transaccionales. Las 10-13 se aplicaron el 11/08 contra la BBDD real; la 14,
+  el 12/08.
+- **Compartir plato en la app real** (era el fallo 27): RPC `qr_compartir_linea`
+  y, lo que faltaba de verdad, el **reparto del dinero en el servidor**
+  (`_debe_por_comensal`), que ahora usan `pendiente_de_pago` (lo que cobra
+  Stripe) y `pagar_parte` (el arqueo). Probado contra la BBDD real con
+  `rollback`: paella de 20 € a tres → 6,67 / 6,66 / 6,67, **suman 22,50 exactos**;
+  al quitar a uno, el reparto se recalcula. Con esto **v2 ya no deja ninguna
+  acción de la demo sin implementar** (eran 3 de 65) y hay un test que lo vigila.
 - **Suplementos**: comprobado en vivo con la carta de Casa Loli — sin gluten
   +1,20 €, queso+huevo +0,40 €. Antes se regalaban.
 - **Privacidad**: `anon` ya no puede leer el nombre ni el teléfono de las
@@ -114,7 +122,7 @@ días parados). Por eso **Supabase Pro es requisito de producción**.
 - **Impresión**: dos impresoras por destino, automática y sin navegador.
 - **Cola offline**, menú del día desde la PDA, grupos de mesas, arqueo con
   propinas en efectivo, carta e interfaz **en inglés** (incluidos los platos).
-- **460 tests**, lint limpio, CI y deploy en verde.
+- **466 tests**, lint limpio, CI y deploy en verde.
 
 ## Pendiente — y de quién depende
 
@@ -133,20 +141,6 @@ días parados). Por eso **Supabase Pro es requisito de producción**.
    cliente reclama al día siguiente.
 2. **Declaración responsable del fabricante**: obligación de Bryan desde el
    29-7-2025 por comercializar software de facturación. No es código.
-
-### ⏳ Esperando a que apliques la migración 14
-La rama **`feature/v2-al-nivel-de-v1`** cierra los huecos de v2 contra la demo
-(compartir plato, retención de reservas, resetDatos) y trae
-`supabase/migrations/20260812T14_compartir_plato.sql`.
-
-**No está mergeada a propósito**: sin aplicar la migración, el botón de
-compartir llamaría a un RPC que no existe. Para cerrarlo:
-
-```bash
-SUPABASE_ACCESS_TOKEN=sbp_… node scripts/aplicar-migracion.mjs 14
-```
-
-…y después merge a `main` + deploy. Revoca el token al terminar.
 
 ### De código (sin depender de nadie)
 2. **La cola offline puede duplicar un producto**: si la petición llega pero se
