@@ -22,6 +22,8 @@ const EN = {
   '(tú)': '(you)',
   '🔍 Buscar en la carta…': '🔍 Search the menu…',
   'No hay nada que coincida con': 'Nothing matches',
+  'No hay nada en esta categoría': 'Nothing in this section',
+  'Cargando la carta…': 'Loading the menu…',
   'desde': 'from',
   'Añadir': 'Add',
   '+ Añadir': '+ Add',
