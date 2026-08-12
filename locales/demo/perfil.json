@@ -7,9 +7,9 @@
   },
   "despliegue": {
     "base": "/tpv-hosteleria/",
-    "salida": "dist-demo"
+    "url": "https://bryanliinaress.github.io/tpv-hosteleria/",
+    "salida": "dist"
   },
-  "publicado": false,
   "supabase": {
     "ref": "sgyioiadkaswfohpeyjx",
     "url": "https://sgyioiadkaswfohpeyjx.supabase.co",

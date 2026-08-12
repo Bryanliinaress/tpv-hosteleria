@@ -1,7 +1,7 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.86.0 · 462 tests en verde · repo limpio y desplegado.**
-Última sesión: 2026-08-12. Roadmap: [PRODUCCION.md](PRODUCCION.md) ·
+**Estado: v0.85.0 · 460 tests en verde · repo limpio y desplegado.**
+Última sesión: 2026-08-11. Roadmap: [PRODUCCION.md](PRODUCCION.md) ·
 Historia de los 71 fallos encontrados: [docs/AUDITORIA.md](docs/AUDITORIA.md).
 
 ---
@@ -69,30 +69,20 @@ era lo documentado antes, **exige ser administrador**; así no.
 puerto**, que asigna según el orden de conexión. Están etiquetadas; si algún
 día se reconectan en otro orden, pueden intercambiarse.
 
-## Un solo enlace
+## Los dos entornos (ojo, se confunden)
 
-```
-https://bryanliinaress.github.io/tpv-hosteleria/
-```
+| | URL | Qué es |
+|---|---|---|
+| **Demo** | `bryanliinaress.github.io/tpv-hosteleria/` | datos de juguete, proyecto Supabase viejo |
+| **Casa Loli** | `bryanliinaress.github.io/tpv-hosteleria/app/` | **el bar de verdad**, proyecto `tesilntyomnovjcuieho` |
 
-Es el build de **Casa Loli** (`backend: v2`, proyecto `tesilntyomnovjcuieho`):
-el multi-tenant con RLS, Verifactu, Stripe y las impresoras. Es el único que se
-despliega y el único que hay que enseñar.
-
-Antes había **dos** (`/` con la demo v1 y `/app/` con Casa Loli) y se confundían
-constantemente: se hacían pedidos en la demo esperando que salieran por la
-impresora. La demo v1 sigue en `locales/demo/` con `publicado: false` — fuera
-del deploy, pero se puede levantar en local:
-
-```bash
-npm run locales build demo     # → dist-demo/
-```
+Desde la v0.84.0 la demo lleva **banda naranja en todas las pantallas** y la
+pestaña dice `DEMO · …`. Casa Loli no lleva nada y su pestaña pone su nombre.
+Pasó de verdad: se hacían pedidos en la demo esperando que salieran por la
+impresora del bar.
 
 Al abrir, **Ctrl+Shift+R**: es una PWA y el service worker sirve la versión
-vieja hasta que avisa (cada 30 min). Con el cambio de `/app/` a la raíz, los
-móviles que tuvieran la demo v1 instalada arrastran su service worker en la
-misma ruta: la primera visita puede servir la demo cacheada hasta que el build
-nuevo toma el control. Se arregla con un Ctrl+Shift+R (o borrando el sitio).
+vieja hasta que avisa (cada 30 min).
 
 ## Cómo probar sin ensuciar nada
 
@@ -133,7 +123,7 @@ días parados). Por eso **Supabase Pro es requisito de producción**.
 2. **Comprobar el papel** (corte, acentos, QR).
 3. **NIF real en Verifacti** y pasar a producción: solo cambia el secreto
    `VERIFACTI_API_KEY` (`vf_test_…` → `vf_prod_…`), la URL es la misma.
-4. **Probar el alta de un bar nuevo** (necesita login con
+4. **Probar el alta de un bar nuevo** en `/app/` (necesita login con
    contraseña, no puedo hacerlo yo). El fallo 39 dejaba el local **sin mesas**;
    está arreglado y con tests, pero conviene verlo una vez.
 
