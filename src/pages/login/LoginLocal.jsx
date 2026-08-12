@@ -1,11 +1,20 @@
 import { useState } from 'react'
 import { loginLocal, registrarCuenta, miLocal, crearLocal } from '../../lib/v2'
 import { useStore } from '../../store/useStore'
+import { esLocalMontado } from '../../lib/perfil'
 
-// Puerta de entrada del personal (v2): iniciar sesión con la cuenta del local
-// o registrar un negocio nuevo. Una vez por dispositivo; después se usa el PIN.
+// Emparejamiento del dispositivo (v2). Una vez por PC o tablet; después entra
+// cada persona con SU PIN, que es lo que separa a un camarero de un admin.
+//
+// Un local ya montado (su perfil trae su proyecto de Supabase) NO enseña
+// «crear cuenta» ni «crear local»: este TPV se instala personalizado para cada
+// bar, el dueño no se registra ni monta nada. Dejar esas opciones a la vista
+// solo daba formas de romperlo — crear un local duplicado, por ejemplo.
+// El alta de un negocio desde cero sigue existiendo para el build genérico,
+// que es el que se usa para enseñar el producto.
 export default function LoginLocal({ onOk }) {
   const local = useStore(s => s.local)
+  const montado = esLocalMontado()
   const [modo, setModo] = useState('entrar')      // entrar | registrar | crear-local
   const [email, setEmail] = useState('')
   const [pass, setPass] = useState('')
@@ -105,7 +114,14 @@ export default function LoginLocal({ onOk }) {
             : 'Crear mi local'}
         </button>
 
-        {modo !== 'crear-local' && (
+        {montado && modo === 'entrar' && (
+          <p style={{ textAlign: 'center', fontSize: '0.78rem', color: 'var(--color-muted)', marginTop: '0.9rem', lineHeight: 1.5 }}>
+            Esto se hace <strong>una vez por dispositivo</strong>. Después, cada
+            persona entra con su PIN.
+          </p>
+        )}
+
+        {!montado && modo !== 'crear-local' && (
           <p style={{ textAlign: 'center', fontSize: '0.82rem', color: 'var(--color-muted)', marginTop: '0.9rem' }}>
             {modo === 'entrar' ? '¿Aún no tienes cuenta? ' : '¿Ya tienes cuenta? '}
             <button type="button" onClick={() => { setModo(modo === 'entrar' ? 'registrar' : 'entrar'); setError(''); setAviso('') }}

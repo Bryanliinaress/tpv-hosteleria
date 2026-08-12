@@ -50,6 +50,16 @@ export const nombreDeLocalPorDefecto = (p = perfil) =>
  */
 export const esDemo = (p = perfil) => p?.demo === true
 
+/**
+ * ¿Es la instalación de un bar YA MONTADO?
+ *
+ * Este TPV se instala personalizado para cada local: el dueño no se registra
+ * ni da de alta su negocio, eso lo hace quien lo monta. En un build con perfil
+ * propio, las pantallas de «crear cuenta» y «crear local» sobran — y estando a
+ * la vista solo dan formas de romperlo, como crear un local duplicado.
+ */
+export const esLocalMontado = (p = perfil) => !!(p?.slug && p.slug !== 'generico')
+
 /** ¿Está activo un módulo opcional de este local? */
 export const modulo = (nombre) => !!perfil.modulos[nombre]
 
