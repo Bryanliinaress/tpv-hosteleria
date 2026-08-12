@@ -1,4 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
+import { readFileSync, readdirSync } from 'node:fs'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { configDeItem } from '../carta'
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -64,6 +67,25 @@ describe('desempaquetar una línea del servidor', () => {
     expect(config.pan).toBeTruthy()
     expect(config.nota).toBe('poco hecho')
     expect(config.tiempo).toBe(2)
+  })
+
+  it('el cliente del QR recibe lo mismo que el personal', () => {
+    // El móvil del cliente no lee las tablas (RLS): todo le llega por el RPC
+    // `estado_mesa`. Si ese RPC se deja una columna, esa pantalla —la del
+    // botón de «Dividir este plato»— se queda sin ella, y solo ahí.
+    const raiz = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
+    const dir = join(raiz, 'supabase', 'migrations')
+    // la última migración que redefine estado_mesa es la que manda
+    const fuente = readdirSync(dir).filter(f => f.endsWith('.sql')).sort()
+      .map(f => readFileSync(join(dir, f), 'utf8'))
+      .filter(s => s.includes('function estado_mesa')).pop()
+    const items = fuente.match(/'items',[\s\S]*?from lineas_pedido/)[0]
+
+    // columnas de lineas_pedido que consume `desempaquetar`
+    const necesarias = ['id', 'producto_id', 'nombre', 'precio', 'cantidad',
+      'tipo', 'estado', 'tiempo', 'personalizacion', 'compartido_con', 'creado_en']
+    const faltan = necesarias.filter(c => !new RegExp(`'${c}'`).test(items))
+    expect(faltan, 'estado_mesa no las devuelve: el cliente QR se queda sin ellas').toEqual([])
   })
 
   it('todo lo que configDeItem sabe leer sobrevive al viaje', () => {

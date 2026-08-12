@@ -261,15 +261,14 @@ export async function refrescarMesaAnon() {
   if (!mesaId) return
   const { data, error } = await supabase.rpc('estado_mesa', { p_mesa: mesaId })
   if (error || !data?.mesa) return
+  // MISMO desempaquetado que el personal, a propósito. Antes esto era una copia
+  // a mano y se quedaba corta cada vez que se añadía un campo: se dejaba fuera
+  // `compartido_con` —y el botón de «Dividir este plato» vive precisamente en
+  // esta pantalla, la del móvil del cliente— y las `elecciones` del menú. Dos
+  // sitios que hacen lo mismo significa que uno de los dos está mal.
   const personas = (data.comensales || []).map(c => ({
     id: c.id, nombre: c.nombre, pagado: c.pagado,
-    items: (c.items || []).map(i => ({
-      uid: i.id, id: i.id, nombre: i.nombre, precio: Number(i.precio),
-      cantidad: i.cantidad, tipo: i.tipo, estado: i.estado, tiempo: i.tiempo,
-      pan: i.personalizacion?.pan ?? null, quitados: i.personalizacion?.quitados ?? [],
-      anadidos: i.personalizacion?.anadidos ?? [], nota: i.personalizacion?.nota ?? '',
-      preparacion: i.preparacion,
-    })),
+    items: (c.items || []).map(i => ({ ...desempaquetar(i), preparacion: i.preparacion })),
   }))
   // pseudo-comandas para que el cliente vea el estado de SU pedido
   const pedidos = personas.flatMap(p => p.items
