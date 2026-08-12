@@ -115,12 +115,24 @@ export default function CartaCliente() {
     if (!r.estado) return
     syncListo.then(() => {
       if (r.estado === 'ok' && r.mesaId === mesaId && r.personaId) {
-        // El método importa: pasar solo la propina dejaba el pago como
-        // 'efectivo' (el valor por defecto) y el arqueo esperaba ese dinero en
-        // el cajón, cuando en realidad había entrado por Stripe.
-        const pago = { propina: r.propina, metodo: 'tarjeta', cobradoPor: 'Cliente' }
-        if (r.personaId === '__todo__') pagarTodo(mesaId, pago)
-        else pagarParte(mesaId, r.personaId, pago)
+        // Quién marca la mesa como pagada depende del backend, y confundirlo
+        // deja al cliente pagando sin que se cierre nada:
+        //
+        //  · demo (v1): no hay servidor que se entere, así que lo apunta el
+        //    propio navegador. El método importa —pasar solo la propina lo
+        //    dejaba como 'efectivo' y el arqueo esperaba ese dinero en el
+        //    cajón, cuando había entrado por Stripe.
+        //  · backend real (v2): lo hace el WEBHOOK de Stripe, que es la fuente
+        //    fiable del cobro. Aquí no se puede: `pagar_parte` y `cobrar_mesa`
+        //    son del personal (anon no las puede ejecutar, y con razón: si el
+        //    navegador pudiera cerrar cuentas, cerrarlas sin pagar sería
+        //    trivial). Llamarlas devolvía «permiso denegado» y la mesa se
+        //    quedaba abierta después de haber cobrado.
+        if (!backendV2) {
+          const pago = { propina: r.propina, metodo: 'tarjeta', cobradoPor: 'Cliente' }
+          if (r.personaId === '__todo__') pagarTodo(mesaId, pago)
+          else pagarParte(mesaId, r.personaId, pago)
+        }
         localStorage.removeItem(`tpv-pago-${mesaId}-${r.personaId}`)
       }
       limpiarUrlPago(mesaId)
