@@ -49,13 +49,18 @@ desarrollo de siempre.
 | `marca.descripcion` | Subtítulo de la portada y `<meta description>`. |
 | `marca.emoji` | Icono de la portada cuando el local no tiene logo. |
 | `marca.colores` | `acento` y `acento2` (tema oscuro), `acentoClaro` y `acento2Claro` (tema claro), `fondo` y `tema` (PWA). Hex de 6 dígitos. |
-| `despliegue.base` | Ruta pública (`/` en dominio propio, `/tpv-hosteleria/app/` en Pages). |
+| `despliegue.base` | Ruta pública (`/` en dominio propio, `/tpv-hosteleria/` en Pages). |
 | `despliegue.url` | Dominio final. Documental, y lo usa el redespliegue. |
 | `despliegue.salida` | Carpeta del build. Por defecto `dist/<slug>`. |
+| `publicado` | `false` deja al local **fuera del deploy** sin darlo de baja: se sigue pudiendo compilar nombrándolo a mano. Por defecto `true`. |
 | `supabase.ref` / `url` / `anonKey` | Su proyecto. La anon key es pública: la protege el RLS. |
 | `backend` | `v2` (multi-tenant, lo normal) o `v1` (blob de la demo). |
 | `fiscal` | `verifactu` o `null`. |
 | `modulos` | Interruptores por local: `pagosOnline`, `reservas`… |
+
+⚠️ **Dos locales publicados no pueden compartir `despliegue.salida`**: cada build
+vacía su carpeta, así que el segundo borra al primero y solo sobrevive uno, sin
+error. Hay un test que lo impide.
 
 Lo que venga por **variable de entorno manda sobre el perfil**: así el workflow
 inyecta secretos (EmailJS, Stripe) sin meterlos en ficheros versionados.
