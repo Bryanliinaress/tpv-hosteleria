@@ -5,9 +5,9 @@
     "emoji": "🍽"
   },
   "despliegue": {
-    "base": "/tpv-hosteleria/app/",
-    "url": "https://bryanliinaress.github.io/tpv-hosteleria/app/",
-    "salida": "dist/app"
+    "base": "/tpv-hosteleria/",
+    "url": "https://bryanliinaress.github.io/tpv-hosteleria/",
+    "salida": "dist"
   },
   "supabase": {
     "ref": "tesilntyomnovjcuieho",

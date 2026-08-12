@@ -149,7 +149,7 @@ camarero sin comanda.
 Para que no muestre el diálogo, Chrome en modo kiosko:
 
 ```
-chrome.exe --kiosk-printing --app=https://bryanliinaress.github.io/tpv-hosteleria/app/#/print
+chrome.exe --kiosk-printing --app=https://bryanliinaress.github.io/tpv-hosteleria/#/print
 ```
 
 ## Qué comprar
