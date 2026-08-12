@@ -79,6 +79,11 @@ export function accionesV2() {
       try { await (await tabla('lineas_pedido')).update({ comensal_id: destinoId }).eq('id', uid); cargarSala(); cargarComandas() }
       catch (e) { err(e) }
     },
+    // Compartir un plato (fallo 27). Necesita RPC porque lo pide el cliente
+    // anónimo del QR, que no puede escribir `lineas_pedido` bajo RLS.
+    toggleCompartir: (mesaId, ownerId, uid, sharerId) => {
+      qr.compartirLinea(uid, ownerId, sharerId).then(refrescarServicio).catch(err)
+    },
     anularItem: (mesaId, personaId, uid, opts = {}) => {
       personal.anularLinea(uid, opts.motivo, opts.por).then(() => { cargarSala(); cargarComandas() }).catch(err)
     },

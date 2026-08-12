@@ -6,7 +6,7 @@ import { sembrarCartaEjemplo, vaciarCartaV2 } from './plantillaCarta'
 import { cabezaDe, miembrosDe } from './grupos'
 import { revisarCorreccionFichaje } from '../fichajes'
 import { revisarNuevoEmpleado, revisarCambioEmpleado, revisarBajaEmpleado } from '../personal'
-import { getLocalId, cargarSala, cargarComandas, cargarReservas, cargarCarta, cargarLocal, cargarHistorial, cargarFichajes, cargarCierres } from './estado'
+import { getLocalId, cargarTodo, cargarSala, cargarComandas, cargarReservas, cargarCarta, cargarLocal, cargarHistorial, cargarFichajes, cargarCierres } from './estado'
 
 // Segunda ola de acciones v2: KDS, agenda de reservas, CRUD de carta/sala/
 // personal, caja y config del local. Personal/admin operan por RLS.
@@ -312,6 +312,28 @@ export function accionesV2b() {
     updateLocal: (cambios) => actualizarConfig(cambios).catch(err),
     updateEtiquetas: (cambios) => actualizarConfig({ carta: { etiquetas: { ...(cartaCfg().etiquetas || {}), ...cambios } } }).catch(err),
     updateReservasConfig: (cambios) => actualizarConfig({ reservas: cambios }).catch(err),
+
+    // RGPD: borra del SERVIDOR las reservas cuya fecha pasó hace más de
+    // `retencionDias`. La versión de la demo hace `setState` y la rehidratación
+    // la deshace, así que en v2 los nombres y teléfonos de las reservas se
+    // quedaban para siempre — que es justo lo que esto existe para evitar.
+    purgarReservasAntiguas: async () => {
+      const dias = Number(useStore.getState().reservasConfig.retencionDias ?? 30)
+      if (!dias) return
+      const limite = new Date(Date.now() - dias * 86400000).toISOString().slice(0, 10)
+      try {
+        await t('reservas').delete().eq('local_id', getLocalId()).lt('fecha', limite)
+        cargarReservas()
+      } catch (e) { err(e) }
+    },
+
+    // En la demo esto borra el localStorage. Contra el servidor eso no tiene
+    // sentido —los datos no están aquí—, así que hace lo que promete el botón
+    // en v2: tirar la copia local y volver a bajarlo todo.
+    resetDatos: () => {
+      localStorage.removeItem('tpv-hosteleria-v2')
+      cargarTodo().catch(err)
+    },
 
     // ── Fichajes (correcciones del admin) ───────────────────────
     // La pantalla lee el resultado en el acto (`if (!r.ok)`), así que esto
