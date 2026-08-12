@@ -268,6 +268,9 @@ export async function refrescarMesaAnon() {
   // sitios que hacen lo mismo significa que uno de los dos está mal.
   const personas = (data.comensales || []).map(c => ({
     id: c.id, nombre: c.nombre, pagado: c.pagado,
+    // el recibo del cliente lee los suyos; sin esto sale «propina 0» y sin
+    // método aunque acabe de pagar con tarjeta
+    propina: Number(c.propina) || 0, metodoPago: c.metodo_pago ?? null,
     items: (c.items || []).map(i => ({ ...desempaquetar(i), preparacion: i.preparacion })),
   }))
   // pseudo-comandas para que el cliente vea el estado de SU pedido

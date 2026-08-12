@@ -26,6 +26,12 @@ language sql security definer set search_path = public stable as $$
       from mesas m where m.id = p_mesa),
     'comensales', (select coalesce(jsonb_agg(jsonb_build_object(
         'id', c.id, 'nombre', c.nombre, 'pagado', c.pagado,
+        -- El cliente los necesita para SU recibo: sin ellos, quien paga con
+        -- tarjeta se lleva un recibo que dice propina 0 y no dice como pago.
+        -- Van los de toda la mesa porque la pantalla de la cuenta ya enseña
+        -- «✓ Pagado · +X €» de cada comensal, igual que en la demo; no sale del
+        -- grupo de mesas, que es gente que esta cenando junta.
+        'propina', c.propina, 'metodo_pago', c.metodo_pago,
         'items', (select coalesce(jsonb_agg(jsonb_build_object(
             'id', l.id, 'producto_id', l.producto_id,
             'nombre', l.nombre, 'precio', l.precio,

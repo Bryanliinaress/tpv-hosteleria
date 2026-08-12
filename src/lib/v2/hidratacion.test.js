@@ -86,6 +86,12 @@ describe('desempaquetar una línea del servidor', () => {
       'tipo', 'estado', 'tiempo', 'personalizacion', 'compartido_con', 'creado_en']
     const faltan = necesarias.filter(c => !new RegExp(`'${c}'`).test(items))
     expect(faltan, 'estado_mesa no las devuelve: el cliente QR se queda sin ellas').toEqual([])
+
+    // …y las del comensal: el recibo del cliente lee su propina y su método
+    const comensales = fuente.match(/'comensales',[\s\S]*?'items'/)[0]
+    const delComensal = ['id', 'nombre', 'pagado', 'propina', 'metodo_pago']
+    const faltanC = delComensal.filter(c => !new RegExp(`'${c}'`).test(comensales))
+    expect(faltanC, 'sin esto el recibo sale sin propina y sin método de pago').toEqual([])
   })
 
   it('todo lo que configDeItem sabe leer sobrevive al viaje', () => {
