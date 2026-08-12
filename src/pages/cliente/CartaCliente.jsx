@@ -10,6 +10,7 @@ import { useUnaVez } from '../../lib/unaVez'
 import { esMenu, conFormatos, conOpciones, lineaDeMenu, menuCompleto, siguientePendiente, precioMenu, alternarOpcion } from '../../lib/menuDia'
 import { productosVisibles, descripcionUtil, lineaSimplePendiente, unidades, configDeItem, ultimaRonda } from '../../lib/carta'
 import { construirRecibo, lineasDeConsumo, guardarRecibo, leerRecibo, olvidarRecibo, descargarRecibo, reciboReciente } from '../../lib/recibo'
+import { backendV2 } from '../../lib/repo'
 
 export default function CartaCliente() {
   const { mesaId } = useParams()
@@ -185,6 +186,9 @@ export default function CartaCliente() {
   const q = busqueda.trim().toLowerCase()
   // `extra`: con la carta en inglés, «cheese» también encuentra el queso
   const productosFiltrados = productosVisibles(carta, { busqueda, categoria: categoriaActiva, extra: (p) => textoBuscable(idioma, p) })
+  // Sin NINGÚN producto (no es que el filtro no encuentre: es que no ha llegado
+  // nada) y con el backend real detrás, lo que pasa es que aún está cargando.
+  const cargandoCarta = backendV2 && (carta.productos?.length ?? 0) === 0
   const itemsPendientes = personaActiva.items.filter(i => i.estado === 'pendiente')
   const itemsEnviados = personaActiva.items.filter(i => i.estado === 'enviado')
   const totalPendiente = itemsPendientes.reduce((s, i) => s + i.precio * i.cantidad, 0)
@@ -651,11 +655,26 @@ export default function CartaCliente() {
 
       {/* Productos */}
       <div style={{ flex: 1, padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        {/* Vacío no siempre significa «no encontrado». En el backend real la
+            carta llega del servidor, así que al abrir el QR hay un momento —en
+            un móvil con mala cobertura, largo— en que no hay NADA cargado
+            todavía. Ahí se le decía al cliente «no hay nada que coincida con
+            «»», con la búsqueda en blanco: parece un bar sin carta. En la demo
+            no se veía nunca, porque su carta sale de localStorage. */}
         {productosFiltrados.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-muted)' }}>
-            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🔍</div>
-            <p>{t('No hay nada que coincida con')} «{busqueda}»</p>
-          </div>
+          cargandoCarta ? (
+            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-muted)' }}>
+              <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🍽</div>
+              <p>{t('Cargando la carta…')}</p>
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-muted)' }}>
+              <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🔍</div>
+              <p>{busqueda
+                ? `${t('No hay nada que coincida con')} «${busqueda}»`
+                : t('No hay nada en esta categoría')}</p>
+            </div>
+          )
         )}
         {productosFiltrados.map(prod => {
           const esMontadito = conFormatos(prod)
