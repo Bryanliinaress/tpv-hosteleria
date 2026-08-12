@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.86.0 · 466 tests en verde · repo limpio y desplegado.**
+**Estado: v0.87.0 · 471 tests en verde · repo limpio y desplegado.**
 Última sesión: 2026-08-12. Roadmap: [PRODUCCION.md](PRODUCCION.md) ·
 Historia de los 71 fallos encontrados: [docs/AUDITORIA.md](docs/AUDITORIA.md).
 
@@ -101,9 +101,25 @@ días parados). Por eso **Supabase Pro es requisito de producción**.
 
 ## Qué está hecho y verificado de verdad
 
-- **Backend multi-tenant**: 14 migraciones aplicadas, RLS por local, RPC
-  transaccionales. Las 10-13 se aplicaron el 11/08 contra la BBDD real; la 14,
-  el 12/08.
+- **Backend multi-tenant**: 16 migraciones aplicadas, RLS por local, RPC
+  transaccionales. Las 10-13 se aplicaron el 11/08 contra la BBDD real; las
+  14-16, el 12/08.
+- **⚠️ Los `grant` no bastan: hay que MIRAR los permisos en la BBDD.** Supabase
+  tiene `alter default privileges` que conceden EXECUTE a `anon` y
+  `authenticated` **en cuanto se crea una función**. Ha mordido dos veces:
+  `_debe_por_comensal` (fuga: lo que debe cada comensal de cualquier mesa) y
+  `registrar_pago_online` (grave: cerrar la cuenta **sin pagar**). Su migración
+  ya decía «no se concede a anon» y aun así estaba concedida. Al crear una
+  función de servidor, `revoke … from public, anon, authenticated` y
+  comprobarlo con `has_function_privilege`.
+- **El cliente del QR no lee las tablas**: todo le llega por `estado_mesa`. Si
+  esa función se deja una columna, esa pantalla —y solo esa— se queda sin ella.
+  Pasó con `compartido_con`, `elecciones`, `propina` y `metodo_pago`. Hay un
+  test que lee el SQL y lo impide.
+- **Quién cierra la mesa depende del backend**: en la demo lo apunta el
+  navegador; en v2 lo hace el **webhook** de Stripe. Llamar a `pagarParte`
+  desde el cliente en v2 daba «permiso denegado» y la mesa se quedaba abierta
+  después de cobrar.
 - **Compartir plato en la app real** (era el fallo 27): RPC `qr_compartir_linea`
   y, lo que faltaba de verdad, el **reparto del dinero en el servidor**
   (`_debe_por_comensal`), que ahora usan `pendiente_de_pago` (lo que cobra
@@ -122,7 +138,7 @@ días parados). Por eso **Supabase Pro es requisito de producción**.
 - **Impresión**: dos impresoras por destino, automática y sin navegador.
 - **Cola offline**, menú del día desde la PDA, grupos de mesas, arqueo con
   propinas en efectivo, carta e interfaz **en inglés** (incluidos los platos).
-- **466 tests**, lint limpio, CI y deploy en verde.
+- **471 tests**, lint limpio, CI y deploy en verde.
 
 ## Pendiente — y de quién depende
 
