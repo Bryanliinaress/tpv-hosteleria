@@ -10,7 +10,7 @@ El modelo es **un solo producto + un perfil por local**. Aquí viven los perfile
 locales/
   _plantilla/perfil.json     ← copia esto para dar de alta un bar
   demo/perfil.json           ← la demo pública
-  casa-loli/perfil.json      ← la app real
+  marchando/perfil.json      ← el que se publica (la demo del producto)
   bar-manolo/
     perfil.json
     marca/                   ← opcional: logo e iconos de ESTE bar

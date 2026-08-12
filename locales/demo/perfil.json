@@ -7,8 +7,7 @@
   },
   "despliegue": {
     "base": "/tpv-hosteleria/",
-    "url": "https://bryanliinaress.github.io/tpv-hosteleria/",
-    "salida": "dist"
+    "salida": "dist-demo-v1"
   },
   "supabase": {
     "ref": "sgyioiadkaswfohpeyjx",
@@ -21,5 +20,6 @@
     "pagosOnline": true,
     "reservas": true
   },
-  "demo": true
+  "demo": true,
+  "publicado": false
 }

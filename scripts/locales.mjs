@@ -22,7 +22,8 @@ function listar() {
   console.log(`${slugs.length} local(es):\n`)
   for (const slug of slugs) {
     const p = cargarPerfil(slug)
-    console.log(`  ${slug.padEnd(18)} ${p.marca.nombre.padEnd(22)} ${p.despliegue.url || '(sin dominio)'}`)
+    const donde = p.publicado ? (p.despliegue.url || '(sin dominio)') : '— fuera del deploy —'
+    console.log(`  ${slug.padEnd(18)} ${p.marca.nombre.padEnd(22)} ${donde}`)
     console.log(`  ${''.padEnd(18)} supabase: ${p.supabase.ref || '—'} · backend ${p.backend}` +
       `${p.fiscal ? ` · ${p.fiscal}` : ''} → ${p.despliegue.salida}\n`)
   }
@@ -46,7 +47,12 @@ function compilar(slug) {
 if (!cmd || cmd === 'list') {
   listar()
 } else if (cmd === 'build') {
-  let slugs = args.includes('--todos') ? listarLocales() : args.filter(a => !a.startsWith('-'))
+  // `--todos` = los PUBLICADOS (lo que compila el deploy). Nombrar un local a
+  // mano lo compila igual, aunque no esté publicado: así se puede levantar en
+  // local uno que no queremos colgado en internet.
+  let slugs = args.includes('--todos')
+    ? listarLocales().filter(s => cargarPerfil(s).publicado)
+    : args.filter(a => !a.startsWith('-'))
   if (!slugs.length) { console.error('Uso: npm run locales build <slug> | --todos'); process.exit(1) }
   // Los builds anidados (dist/app) van DESPUÉS del que los contiene (dist),
   // porque cada build vacía su carpeta de salida.

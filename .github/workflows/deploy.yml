@@ -24,8 +24,11 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      # Un build por local (locales/<slug>/perfil.json): cada uno con su marca,
-      # su base y su Supabase. Hoy: demo → dist/, casa-loli → dist/app/.
+      # Un build por local PUBLICADO (locales/<slug>/perfil.json): cada uno con
+      # su marca, su base y su Supabase. Hoy solo `marchando` → dist/.
+      # La demo vieja (v1, blob) sigue en el repo con `publicado: false`: se
+      # quedó de la migración a v2 de julio y tener dos enlaces parecidos vivos
+      # costó meses de pedidos hechos en el sitio equivocado.
       - run: npm run locales -- build --todos
         env:
           VITE_EMAILJS_SERVICE_ID: ${{ secrets.VITE_EMAILJS_SERVICE_ID }}

@@ -1,13 +1,14 @@
 {
   "marca": {
-    "nombre": "Casa Loli",
-    "descripcion": "Carta, pedidos y reservas de Casa Loli.",
+    "nombre": "Marchando",
+    "corto": "Marchando",
+    "descripcion": "TPV para bar y restaurante: autopedido por QR, sala, cocina, caja y reservas — todo sincronizado en tiempo real.",
     "emoji": "🍽"
   },
   "despliegue": {
-    "base": "/tpv-hosteleria/app/",
-    "url": "https://bryanliinaress.github.io/tpv-hosteleria/app/",
-    "salida": "dist/app"
+    "base": "/tpv-hosteleria/",
+    "url": "https://bryanliinaress.github.io/tpv-hosteleria/",
+    "salida": "dist"
   },
   "supabase": {
     "ref": "tesilntyomnovjcuieho",
@@ -16,6 +17,7 @@
   },
   "backend": "v2",
   "fiscal": "verifactu",
+  "demo": true,
   "modulos": {
     "pagosOnline": true,
     "reservas": true

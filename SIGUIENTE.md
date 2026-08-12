@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.87.0 · 471 tests en verde · repo limpio y desplegado.**
+**Estado: v0.88.0 · 473 tests en verde · repo limpio y desplegado.**
 Última sesión: 2026-08-12. Roadmap: [PRODUCCION.md](PRODUCCION.md) ·
 Historia de los 71 fallos encontrados: [docs/AUDITORIA.md](docs/AUDITORIA.md).
 
@@ -35,18 +35,19 @@ Nadie lo ha mirado aún con las impresoras delante:
   descartar. Si el ticket sale bien **pero sin QR**, la impresora no
   implementa el QR nativo (`GS ( k`) y hay que mandarlo como imagen.
 
-### 3. Cerrar el pago con tarjeta
+### 3. Pago con tarjeta — HECHO y verificado
 
-Stripe ya está configurado en Casa Loli (claves y webhook, verificado desde
-fuera: responde `400 · firma inválida` a un aviso sin firmar, que es lo
-correcto). Falta:
+Cobro de punta a punta funcionando (12/08): 3 pagos reales entrados, 3 tickets
+con desglose `{"online": …}` —no efectivo— y las mesas cerradas solas.
 
-- **probar un cobro real** con la tarjeta de test `4242 4242 4242 4242` y
-  comprobar tres cosas: que la parte se marca pagada, que sale el ticket, y
-  que en Admin → Caja aparece como **📱 Pago online** (no como efectivo);
-- **pasar a producción**: con `sk_live_` hay que **rehacer el webhook**, porque
-  el secreto de test no vale. Mismo comando:
-  `node scripts/configurar-stripe.mjs casa-loli`.
+El fallo era que el webhook moría SIEMPRE: los metadatos de Stripe son texto,
+así que `localId` llegaba como `""` y `?? null` no lo convierte. A un parámetro
+`uuid` le entraba una cadena vacía. Encima `String(e)` lo tapaba con
+«[object Object]» en el panel de Stripe.
+
+Queda solo **pasar a producción**: con `sk_live_` hay que **rehacer el
+webhook**, porque el endpoint de producción es otro y su secreto de firma
+también. Mismo comando: `node scripts/configurar-stripe.mjs marchando`.
 
 ---
 
@@ -69,17 +70,36 @@ era lo documentado antes, **exige ser administrador**; así no.
 puerto**, que asigna según el orden de conexión. Están etiquetadas; si algún
 día se reconectan en otro orden, pueden intercambiarse.
 
-## Los dos entornos (ojo, se confunden)
+## Un solo enlace: Marchando
 
-| | URL | Qué es |
-|---|---|---|
-| **Demo** | `bryanliinaress.github.io/tpv-hosteleria/` | datos de juguete, proyecto Supabase viejo |
-| **Casa Loli** | `bryanliinaress.github.io/tpv-hosteleria/app/` | **el bar de verdad**, proyecto `tesilntyomnovjcuieho` |
+```
+https://bryanliinaress.github.io/tpv-hosteleria/
+```
 
-Desde la v0.84.0 la demo lleva **banda naranja en todas las pantallas** y la
-pestaña dice `DEMO · …`. Casa Loli no lleva nada y su pestaña pone su nombre.
-Pasó de verdad: se hacían pedidos en la demo esperando que salieran por la
-impresora del bar.
+Es el producto: build **v2** (multi-tenant con RLS, Verifactu, Stripe,
+impresión) sobre el proyecto `tesilntyomnovjcuieho`, con marca **Marchando** y
+banda de demostración. Es el que se enseña para vender.
+
+**No hay ningún bar real.** «Casa Loli» era un nombre de ejemplo; se renombró a
+Marchando el 12/08, también en la BBDD (`locales.nombre` y `slug`).
+
+### Por qué hubo dos enlaces (y por qué ya no)
+
+El 15/07, en la v0.35.0, se montó un **doble build** a propósito: la demo v1
+(blob) siguió en la raíz y el backend v2 nuevo se publicó aparte en `/app/`
+para no romper lo que se usaba a diario. Era lo correcto durante la migración
+— pero **la migración nunca se cerró**. Tres semanas después seguía habiendo
+dos, y el v2, que era el producto, no lo usaba nadie. Ahí se escondieron los 71
+fallos de la auditoría, las tres acciones sin implementar y un webhook que
+llevaba desde el primer día sin funcionar.
+
+El 12/08 se cerró: `marchando` es el único publicado. La demo v1 se queda en
+`locales/demo/` con `publicado: false` — fuera del deploy, resucitable en un
+comando si algo falla delante de un cliente:
+
+```bash
+npm run locales build demo     # → dist-demo-v1/
+```
 
 Al abrir, **Ctrl+Shift+R**: es una PWA y el service worker sirve la versión
 vieja hasta que avisa (cada 30 min).
@@ -88,7 +108,7 @@ vieja hasta que avisa (cada 30 min).
 
 `npm run dev -- --mode pruebas` levanta la app **sin backend**: todo a
 localStorage, sin tocar la demo compartida ni el bar.
-Para ver un local concreto: `LOCAL=casa-loli npm run dev`.
+Para ver un local concreto: `LOCAL=marchando npm run dev`.
 
 ## Si algo no conecta
 
@@ -127,7 +147,7 @@ días parados). Por eso **Supabase Pro es requisito de producción**.
   `rollback`: paella de 20 € a tres → 6,67 / 6,66 / 6,67, **suman 22,50 exactos**;
   al quitar a uno, el reparto se recalcula. Con esto **v2 ya no deja ninguna
   acción de la demo sin implementar** (eran 3 de 65) y hay un test que lo vigila.
-- **Suplementos**: comprobado en vivo con la carta de Casa Loli — sin gluten
+- **Suplementos**: comprobado en vivo con la carta de ejemplo — sin gluten
   +1,20 €, queso+huevo +0,40 €. Antes se regalaban.
 - **Privacidad**: `anon` ya no puede leer el nombre ni el teléfono de las
   reservas (solo `id, numero, zona, capacidad, estado, unida_a`).
@@ -138,7 +158,7 @@ días parados). Por eso **Supabase Pro es requisito de producción**.
 - **Impresión**: dos impresoras por destino, automática y sin navegador.
 - **Cola offline**, menú del día desde la PDA, grupos de mesas, arqueo con
   propinas en efectivo, carta e interfaz **en inglés** (incluidos los platos).
-- **471 tests**, lint limpio, CI y deploy en verde.
+- **473 tests**, lint limpio, CI y deploy en verde.
 
 ## Pendiente — y de quién depende
 

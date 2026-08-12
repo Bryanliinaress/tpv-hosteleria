@@ -10,7 +10,7 @@
 
 -- Local sobre el que se actúa (ajusta el slug si hace falta)
 create temporary table _objetivo as
-select id from locales where slug = 'casa-loli';
+select id from locales where slug = 'marchando';
 
 -- ── BLOQUE 1 · El servicio en curso ─────────────────────────────────────────
 -- Cierra todas las mesas: se van los comensales, sus líneas, las comandas de

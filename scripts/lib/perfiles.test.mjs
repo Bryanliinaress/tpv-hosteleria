@@ -86,6 +86,25 @@ describe('normalizarPerfil', () => {
   })
 })
 
+describe('publicado', () => {
+  it('un local se publica salvo que diga que no', () => {
+    escribir('bar-manolo', base)
+    expect(cargarPerfil('bar-manolo', dir).publicado).toBe(true)
+    escribir('bar-pepe', { ...base, publicado: false })
+    expect(cargarPerfil('bar-pepe', dir).publicado).toBe(false)
+  })
+
+  it('dos locales publicados no pueden compartir carpeta de salida', () => {
+    // Cada build vacía la suya, así que el segundo borraría al primero y solo
+    // sobreviviría uno, sin dar error. Se mira sobre los perfiles de verdad.
+    const salidas = listarLocales()
+      .map(s => cargarPerfil(s))
+      .filter(p => p.publicado)
+      .map(p => p.despliegue.salida)
+    expect(new Set(salidas).size, `salidas repetidas: ${salidas.join(', ')}`).toBe(salidas.length)
+  })
+})
+
 describe('envDePerfil', () => {
   it('traduce el perfil a variables del build', () => {
     escribir('bar-manolo', { ...base, despliegue: { base: '/bar/' }, fiscal: 'verifactu', modulos: { pagosOnline: true } })

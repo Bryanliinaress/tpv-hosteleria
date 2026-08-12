@@ -89,6 +89,11 @@ export function normalizarPerfil(bruto, slug) {
     // pantalla porque su enlace se parece mucho al de un bar de verdad y
     // confundirlos significa pedir en el sitio equivocado.
     demo: bruto.demo === true,
+    // ¿Entra en el despliegue? Un local con `publicado: false` sigue dado de
+    // alta —se compila nombrándolo a mano— pero no sale del deploy. Tener dos
+    // enlaces vivos que se parecen no es una ventaja: durante meses se pidió
+    // en la demo esperando que saliera por la impresora del bar.
+    publicado: bruto.publicado !== false,
     fiscal: bruto.fiscal || null,
     modulos: { ...(bruto.modulos || {}) },
   }
