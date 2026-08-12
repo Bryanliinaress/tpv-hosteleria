@@ -68,12 +68,15 @@ Deno.serve(async (req) => {
       cancel_url: `${base}?pago=cancel#/mesa/${mesaId}`,
       // El webhook (fuente fiable del cobro) necesita saber qué se ha pagado:
       // el retorno del navegador ya no decide nada.
-      metadata: {
-        mesaId: String(mesaId ?? ''),
-        personaId: String(personaId ?? ''),
-        localId: String(localId ?? ''),
+      // Solo lo que tiene valor: los metadatos de Stripe son texto, y un campo
+      // vacío llega al webhook como «""», que no es un uuid válido. Mejor que
+      // no exista a que exista mintiendo.
+      metadata: Object.fromEntries(Object.entries({
+        mesaId: mesaId ?? '',
+        personaId: personaId ?? '',
+        localId: localId ?? '',
         propina: String(propina ?? 0),
-      },
+      }).filter(([, v]) => String(v).trim() !== '').map(([k, v]) => [k, String(v)])),
     })
 
     return json({ url: session.url })

@@ -48,6 +48,14 @@ Deno.serve(async (req) => {
   const propina = Number(sesion.metadata?.propina ?? 0)
   if (!mesaId) return json({ error: 'sesión sin mesa' }, 400)
 
+  // Los metadatos de Stripe son SIEMPRE texto: lo que no existe llega como
+  // cadena vacía, no como null. Y `??` no la convierte —solo mira null y
+  // undefined—, así que a `p_local uuid` le llegaba «""» y Postgres cortaba
+  // con «invalid input syntax for type uuid» antes de mirar nada. El cliente
+  // nunca manda localId, así que esto pasaba en TODOS los cobros: el 100 % de
+  // los avisos de Stripe moría aquí y ninguna mesa se cerró jamás sola.
+  const uuidODenull = (v?: string) => (v && v.trim() !== '' ? v : null)
+
   try {
     // 3) Registrar el cobro en la base de datos (idempotente: si Stripe
     //    reintenta el aviso, no se cobra dos veces)
@@ -57,14 +65,17 @@ Deno.serve(async (req) => {
       p_importe: (sesion.amount_total ?? 0) / 100,
       p_propina: propina,
       p_referencia: sesion.id,
-      p_local: localId ?? null,
+      p_local: uuidODenull(localId),
     })
     if (error) throw error
     console.log('pago registrado', sesion.id, data)
     return json({ recibido: true, resultado: data })
   } catch (e) {
-    console.error('no se pudo registrar el pago:', e)
+    // `String(e)` sobre un error de supabase-js da «[object Object]»: el panel
+    // de Stripe enseñaba justo eso y no había forma de saber qué fallaba.
+    const detalle = (e as { message?: string })?.message ?? JSON.stringify(e)
+    console.error('no se pudo registrar el pago:', detalle, e)
     // 500 hace que Stripe reintente: mejor que dar por bueno un cobro perdido
-    return json({ error: String(e) }, 500)
+    return json({ error: detalle }, 500)
   }
 })
