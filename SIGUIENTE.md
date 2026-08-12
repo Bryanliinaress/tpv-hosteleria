@@ -134,11 +134,21 @@ días parados). Por eso **Supabase Pro es requisito de producción**.
 2. **Declaración responsable del fabricante**: obligación de Bryan desde el
    29-7-2025 por comercializar software de facturación. No es código.
 
+### ⏳ Esperando a que apliques la migración 14
+La rama **`feature/v2-al-nivel-de-v1`** cierra los huecos de v2 contra la demo
+(compartir plato, retención de reservas, resetDatos) y trae
+`supabase/migrations/20260812T14_compartir_plato.sql`.
+
+**No está mergeada a propósito**: sin aplicar la migración, el botón de
+compartir llamaría a un RPC que no existe. Para cerrarlo:
+
+```bash
+SUPABASE_ACCESS_TOKEN=sbp_… node scripts/aplicar-migracion.mjs 14
+```
+
+…y después merge a `main` + deploy. Revoca el token al terminar.
+
 ### De código (sin depender de nadie)
-1. **Compartir plato no existe en la app real** (fallo 27). La columna
-   `compartido_con` está creada pero nadie la escribe: el botón no hace nada y
-   el reparto sale como si el plato fuera de uno solo. Necesita un RPC porque lo
-   pide el cliente anónimo. **O se implementa, o ese botón no debería salir.**
 2. **La cola offline puede duplicar un producto**: si la petición llega pero se
    pierde la respuesta, al reintentar suma otra unidad. Se arregla con una clave
    de idempotencia (el id de la operación en cola ya vale).

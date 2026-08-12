@@ -36,6 +36,9 @@ export function initV2() {
     // sin sesión de local → cliente QR: su mesa por estado_mesa (polling)
     const { data } = await supabase.auth.getSession()
     if (!data.session) iniciarModoAnon()
+    // RGPD: la retención de reservas la dispara el arranque, como en v1 (allí
+    // lo hace sync.js). Solo el personal: el cliente anónimo no puede borrar.
+    else useStore.getState().purgarReservasAntiguas?.()
 
     // Al recuperar el foco, resincroniza (por si el móvil durmió y perdió eventos)
     document.addEventListener('visibilitychange', () => {

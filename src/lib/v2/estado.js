@@ -22,6 +22,9 @@ const desempaquetar = (l) => ({
   quitados: l.personalizacion?.quitados ?? [],
   anadidos: l.personalizacion?.anadidos ?? [],
   nota: l.personalizacion?.nota ?? '',
+  // sin esto el reparto de la cuenta trata el plato como de uno solo, y el
+  // botón de compartir se queda sin saber a quién ya se lo compartiste
+  compartidoCon: l.compartido_con ?? [],
 })
 
 const notaDe = (l) => {
@@ -120,7 +123,7 @@ export async function cargarSala() {
   const [mesas, comensales, lineas, empleados] = await Promise.all([
     q('mesas', personal ? COLS_MESA_PERSONAL : COLS_MESA_PUBLICAS),
     q('comensales', 'id, mesa_id, nombre, pagado, propina, metodo_pago, creado_en'),
-    q('lineas_pedido', 'id, comensal_id, producto_id, nombre, precio, cantidad, tipo, estado, tiempo, personalizacion, creado_en'),
+    q('lineas_pedido', 'id, comensal_id, producto_id, nombre, precio, cantidad, tipo, estado, tiempo, personalizacion, compartido_con, creado_en'),
     q('empleados', 'id, nombre, rol, activo'),
   ])
   lineas.sort((a, b) => a.creado_en < b.creado_en ? -1 : 1)

@@ -30,6 +30,48 @@ const accionesConRespuesta = () => {
 
 const fuenteV2 = () => leer('src/lib/v2/acciones.js') + '\n' + leer('src/lib/v2/acciones2.js')
 
+// ────────────────────────────────────────────────────────────────────────────
+// Toda acción de la demo tiene que existir también en el backend real.
+//
+// Una acción sin parchear no da error: hace `setState` sobre el estado local,
+// la pantalla parece responder, y la siguiente rehidratación desde el servidor
+// lo deshace. Así estuvo `toggleCompartir` — el botón de compartir plato
+// pintado y muerto — y así se quedó `purgarReservasAntiguas`, que es borrado
+// por retención de RGPD: nombres y teléfonos guardados para siempre.
+//
+// Si añades una acción al store y no la implementas en v2, este test falla.
+// Para dejarla fuera a propósito, ponla aquí abajo y explica por qué.
+const SOLO_DEMO = {
+  // El estado de la demo vive en localStorage y hay que migrarlo entre
+  // versiones; v2 lo baja del servidor en cada arranque. No son acciones.
+  migrate: 'configuración de zustand persist, no una acción',
+  partialize: 'configuración de zustand persist, no una acción',
+}
+
+describe('cobertura de v2', () => {
+  it('no queda ninguna acción de la demo sin implementar en el backend real', () => {
+    const src = leer('src/store/useStore.js')
+    const v2 = fuenteV2()
+    const sinParchear = []
+    const re = /^ {2}([a-zA-Z][a-zA-Z0-9_]*): (async )?\(/gm
+    let m
+    while ((m = re.exec(src))) {
+      const nombre = m[1]
+      if (nombre in SOLO_DEMO) continue
+      if (!new RegExp(`^ {4}${nombre}: `, 'm').test(v2)) sinParchear.push(nombre)
+    }
+    expect(sinParchear, 'hacen setState y la rehidratación las deshace').toEqual([])
+  })
+
+  it('la lista de excepciones no tapa acciones de verdad', () => {
+    // Si alguien mete una acción real en SOLO_DEMO para callar el test, que al
+    // menos tenga que escribir el motivo aquí.
+    for (const [nombre, motivo] of Object.entries(SOLO_DEMO)) {
+      expect(motivo, `${nombre} sin motivo`).toMatch(/\w{10,}/)
+    }
+  })
+})
+
 describe('acciones que responden al momento', () => {
   it('la demo tiene varias (si no, el test no está mirando nada)', () => {
     expect(accionesConRespuesta().length).toBeGreaterThan(3)

@@ -74,6 +74,10 @@ export const qr = {
   cambiarCantidad: (lineaId, comensalId, cantidad) =>
     rpc('qr_cambiar_cantidad', { p_linea: lineaId, p_comensal: comensalId, p_cantidad: cantidad }),
 
+  // Comparte/descomparte un plato propio con otro comensal de la mesa
+  compartirLinea: (lineaId, comensalId, conId) =>
+    rpc('qr_compartir_linea', { p_linea: lineaId, p_comensal: comensalId, p_con: conId }),
+
   // Envía lo pendiente de la mesa a cocina/barra. → nº de comandas creadas
   confirmarPedido: (mesaId) => rpc('qr_confirmar_pedido', { p_mesa: mesaId }),
 
