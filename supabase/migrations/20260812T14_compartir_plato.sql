@@ -139,3 +139,13 @@ begin
 end $$;
 
 grant execute on function qr_compartir_linea(uuid, uuid, uuid) to anon, authenticated;
+
+-- Postgres concede EXECUTE a PUBLIC por defecto, así que `_debe_por_comensal`
+-- nacía llamable por el cliente anónimo: con el uuid de una mesa se podía leer
+-- lo que debe cada comensal de cualquier grupo. No la llama nadie desde el
+-- navegador — solo funciones `security definer`, que corren como su dueño y no
+-- pasan por este permiso.
+-- Ojo: no basta con quitárselo a PUBLIC. Supabase tiene `alter default
+-- privileges` que conceden EXECUTE a `anon` y `authenticated` en cuanto se crea
+-- la función, así que hay que nombrarlos.
+revoke all on function _debe_por_comensal(uuid[]) from public, anon, authenticated;
