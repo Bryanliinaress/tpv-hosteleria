@@ -12,7 +12,7 @@ let localId = null
 export const getLocalId = () => localId
 
 // personalización jsonb → campos planos que esperan las pantallas
-const desempaquetar = (l) => ({
+export const desempaquetar = (l) => ({
   uid: l.id, id: l.id,                       // las pantallas usan uid; conservamos id real
   productoId: l.producto_id, nombre: l.nombre, precio: Number(l.precio),
   cantidad: l.cantidad, tipo: l.tipo, estado: l.estado, tiempo: l.tiempo,
@@ -25,6 +25,13 @@ const desempaquetar = (l) => ({
   // sin esto el reparto de la cuenta trata el plato como de uno solo, y el
   // botón de compartir se queda sin saber a quién ya se lo compartiste
   compartidoCon: l.compartido_con ?? [],
+  // Las elecciones del menú del día se MANDAN al servidor (ahí calcula el
+  // suplemento del solomillo) pero no se leían de vuelta. `configDeItem` las
+  // necesita: sin ellas, «otra ronda» repetía el menú SIN suplemento —el bar
+  // regalaba los 2 €— y cocina no sabía qué segundo era. Además la línea
+  // parecía «sin personalizar» y el +/– de la tarjeta la subía como si fuera
+  // un café. En la demo no pasa: allí el item nunca sale de la BBDD.
+  elecciones: l.personalizacion?.elecciones ?? [],
 })
 
 const notaDe = (l) => {
