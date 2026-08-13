@@ -9,6 +9,18 @@ const TIPO = {
   warning: { color: '#f59e0b', emoji: '⏳' },
 }
 
+// ¿Estamos en la carta del cliente (`#/mesa/<id>`)? Se mira el hash y no la
+// ruta porque UIHost vive fuera del Router.
+function useEsCarta() {
+  const [esCarta, setEsCarta] = useState(() => /^#\/mesa\//.test(window.location.hash))
+  useEffect(() => {
+    const h = () => setEsCarta(/^#\/mesa\//.test(window.location.hash))
+    window.addEventListener('hashchange', h)
+    return () => window.removeEventListener('hashchange', h)
+  }, [])
+  return esCarta
+}
+
 // Renderiza avisos (toasts) y el diálogo activo (confirmar / pedir texto).
 // Se monta una sola vez en App.
 export default function UIHost() {
@@ -17,23 +29,31 @@ export default function UIHost() {
   const pendientes = useUI(s => s.pendientes)
   const hayNueva = useActualizacion(s => s.hayNueva)
   const aplicar = useActualizacion(s => s.aplicar)
+  const esCarta = useEsCarta()
   return (
     <>
       {/* Versión nueva disponible: se aplica cuando el personal quiera, no en
-          mitad de un pedido */}
-      {hayNueva && (
+          mitad de un pedido.
+
+          NO se le enseña al cliente que está pidiendo desde su móvil: ni puede
+          ni debe actualizar nada mientras come, y en una pantalla estrecha el
+          aviso no cabía, se partía en tres líneas y tapaba el nombre del bar.
+          Es lo primero que veía quien escaneaba el QR. */}
+      {hayNueva && !esCarta && (
         <div className="no-print anim-fade" style={{
           position: 'fixed', top: '0.75rem', left: '50%', transform: 'translateX(-50%)', zIndex: 260,
-          display: 'flex', alignItems: 'center', gap: '0.6rem',
+          display: 'flex', alignItems: 'center', gap: '0.5rem',
           background: 'var(--tint-info-bg)', color: 'var(--tint-info-fg)',
           border: '1px solid var(--color-info)', borderRadius: '9999px',
           padding: '0.4rem 0.5rem 0.4rem 0.9rem', boxShadow: 'var(--shadow)',
-          fontSize: '0.85rem', fontWeight: 600, maxWidth: 'calc(100vw - 2rem)',
+          fontSize: '0.85rem', fontWeight: 600, maxWidth: 'calc(100vw - 1rem)',
         }}>
-          <span>✨ Hay una versión nueva</span>
+          {/* en una línea: partido en tres crecía hasta tapar la cabecera */}
+          <span style={{ whiteSpace: 'nowrap' }}>✨ Nueva versión</span>
           <button onClick={aplicar} style={{
             background: 'var(--color-info)', color: '#fff', border: 'none', borderRadius: '9999px',
-            padding: '0.4rem 0.9rem', minHeight: '36px', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem',
+            padding: '0.4rem 0.9rem', minHeight: '36px', cursor: 'pointer', fontWeight: 700,
+            fontSize: '0.82rem', whiteSpace: 'nowrap', flexShrink: 0,
           }}>Actualizar</button>
         </div>
       )}
