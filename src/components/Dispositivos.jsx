@@ -35,24 +35,37 @@ export default function Dispositivos() {
     </p>
   }
 
+  // El PIN se pide AQUÍ y lo comprueba el servidor. Con dispositivos
+  // autorizados la sesión es del aparato, no de una persona, así que el PIN es
+  // lo único que dice quién está delante. Dar o quitar acceso al TPV es raro y
+  // delicado: que cueste un gesto más está bien.
+  const conPin = async (texto, fn) => {
+    const pin = (prompt(texto) ?? '').trim()
+    if (!pin) return null
+    const { error } = await fn(pin)
+    if (error) {
+      toast(/pin_no_admin/.test(error.message) ? 'Ese PIN no es de un encargado' : 'No se pudo completar', 'error')
+      return false
+    }
+    return true
+  }
+
   const autorizar = async (d) => {
-    setOcupado(d.id)
     const nombre = (prompt('¿Qué aparato es? (para reconocerlo luego)', d.nombre) ?? '').trim()
-    const { error } = await supabase.rpc('aprobar_dispositivo', { p_id: d.id, p_nombre: nombre || null })
+    setOcupado(d.id)
+    const ok = await conPin('PIN de encargado para autorizarlo:', (pin) =>
+      supabase.rpc('aprobar_dispositivo', { p_id: d.id, p_nombre: nombre || null, p_pin: pin }))
     setOcupado(null)
-    if (error) { toast(error.message.includes('solo_admin') ? 'Solo un administrador puede autorizar' : 'No se pudo autorizar', 'error'); return }
-    toast('Dispositivo autorizado — entrará solo en unos segundos', 'success')
-    cargar()
+    if (ok) { toast('Dispositivo autorizado — entrará solo en unos segundos', 'success'); cargar() }
   }
 
   const revocar = async (d) => {
     if (!confirm(`¿Quitarle el acceso a «${d.nombre}»?\n\nDejará de entrar inmediatamente. Si hace falta, tendrá que pedir permiso otra vez.`)) return
     setOcupado(d.id)
-    const { error } = await supabase.rpc('revocar_dispositivo', { p_id: d.id })
+    const ok = await conPin('PIN de encargado para quitarle el acceso:', (pin) =>
+      supabase.rpc('revocar_dispositivo', { p_id: d.id, p_pin: pin }))
     setOcupado(null)
-    if (error) { toast(error.message.includes('solo_admin') ? 'Solo un administrador puede quitar el acceso' : 'No se pudo quitar', 'error'); return }
-    toast('Acceso retirado', 'success')
-    cargar()
+    if (ok) { toast('Acceso retirado', 'success'); cargar() }
   }
 
   if (lista === null) return <p style={{ color: 'var(--color-muted)' }}>Cargando…</p>
