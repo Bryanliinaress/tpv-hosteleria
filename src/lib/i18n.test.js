@@ -13,11 +13,15 @@ const PANTALLAS = [
   'src/pages/reservar/Reservar.jsx',
 ]
 
+// Ojo: solo se mira la CLAVE y sus dos puntos, sin exigir que la traducción
+// empiece en la misma línea. Exigiéndolo, una entrada partida en dos —cosa
+// normal con frases largas— quedaba invisible para este test: estaba
+// traducida, pero él la daba por ausente y el fallo no decía por qué.
 const clavesDelDiccionario = () => {
   const dic = readFileSync(join(RAIZ, 'src/lib/i18n.js'), 'utf8')
   const claves = new Set()
   for (const linea of dic.split('\n')) {
-    const m = linea.match(/^\s*'(.+?)':\s*'/)
+    const m = linea.match(/^\s*'((?:[^'\\]|\\.)*)':/)
     if (m) claves.add(m[1])
   }
   return claves
