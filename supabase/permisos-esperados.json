@@ -16,7 +16,6 @@
     "  · `npm run permisos` la compara con la base DE VERDAD, que es donde",
     "    aparecen los permisos que nadie escribió."
   ],
-
   "anon": {
     "_por_que": "El cliente del QR no tiene sesión: esto es todo lo que puede hacer.",
     "funciones": [
@@ -35,10 +34,11 @@
       "cancelar_reserva",
       "pendiente_de_pago",
       "local_actual",
-      "unaccent_simple"
+      "unaccent_simple",
+      "solicitar_dispositivo",
+      "estado_dispositivo"
     ]
   },
-
   "solo_servidor": {
     "_por_que": [
       "Mueven dinero o cierran cuentas. Solo las llama el servidor con la",
@@ -49,7 +49,11 @@
       "registrar_pago_online",
       "_cerrar_grupo",
       "_debe_por_comensal",
-      "revision_permisos"
+      "revision_permisos",
+      "_soy_admin",
+      "dispositivo_por_secreto",
+      "vincular_dispositivo_usuario",
+      "dispositivo_visto"
     ]
   }
 }
