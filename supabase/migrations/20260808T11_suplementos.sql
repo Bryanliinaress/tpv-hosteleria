@@ -139,6 +139,11 @@ begin
 end $$;
 
 grant execute on function qr_agregar_linea(uuid, uuid, text, jsonb, int, int) to anon, authenticated;
-revoke execute on function sup_tipo_pan(uuid, text)   from anon, authenticated;
-revoke execute on function sup_extras(uuid, jsonb)    from anon, authenticated;
-revoke execute on function sup_menu(uuid, jsonb)      from anon, authenticated;
+-- OJO con el `public`: sin él esto no quitaba nada. El permiso no lo tenían
+-- `anon` ni `authenticated` directamente, lo heredaban de PUBLIC —a quien
+-- Supabase se lo concede al crear la función—, así que estas tres líneas
+-- estuvieron meses ahí, pareciendo hechas, y las funciones seguían abiertas.
+-- Lo destapó `npm run permisos` el 13/08. Ver también la migración 21.
+revoke execute on function sup_tipo_pan(uuid, text)   from public, anon, authenticated;
+revoke execute on function sup_extras(uuid, jsonb)    from public, anon, authenticated;
+revoke execute on function sup_menu(uuid, jsonb)      from public, anon, authenticated;

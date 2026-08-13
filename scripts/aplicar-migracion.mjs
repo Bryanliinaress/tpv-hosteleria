@@ -18,6 +18,16 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+const RAIZ_ENV = join(dirname(fileURLToPath(import.meta.url)), '..')
+// El token vive en `.env.puente` (fuera del repo), junto a las demás claves
+// del local. Lo del entorno manda, por si hace falta usar otro puntualmente.
+try {
+  for (const linea of readFileSync(join(RAIZ_ENV, '.env.puente'), 'utf8').split('\n')) {
+    const m = linea.match(/^\s*([A-Z_]+)\s*=\s*(.*)\s*$/)
+    if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, '')
+  }
+} catch { /* sin fichero: se usa lo que haya en el entorno */ }
+
 const REF = process.env.PROJECT_REF || 'tesilntyomnovjcuieho'
 const TOKEN = process.env.SUPABASE_ACCESS_TOKEN
 if (!TOKEN) {
@@ -61,4 +71,5 @@ for (const f of elegidas) {
   await sql(readFileSync(join(dir, f), 'utf8'), f)
   console.log(`✔ ${f}`)
 }
-console.log('\nListo. Revoca el token sbp_ ahora.')
+console.log('\nListo.')
+console.log('Comprueba de paso que no se ha abierto nada sin querer: npm run permisos')

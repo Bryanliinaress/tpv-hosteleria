@@ -1,0 +1,18 @@
+-- ────────────────────────────────────────────────────────────────────────────
+-- 20. Escribir el permiso que `pendiente_de_pago` ya tenía sin que nadie lo
+--     hubiera escrito.
+--
+-- Lo encontró la primera pasada de la revisión de permisos: en la base es
+-- llamable por `anon`, pero no hay ni un `grant` en todo el repo que lo diga.
+-- Lo tiene porque Supabase se lo concedió al crearla, y funciona de casualidad:
+-- `crear-checkout` la llama con la anon key para saber cuánto se debe.
+--
+-- Un permiso que funciona por accidente es un permiso que se puede caer solo
+-- —basta con cerrar los privilegios por defecto— y entonces el cobro con
+-- tarjeta dejaría de funcionar sin que nada apuntara a la causa. Se declara.
+--
+-- Qué expone: cuánto se debe en una mesa, a quien tenga su uuid. El cliente
+-- del QR necesita justo eso para pagar su parte, y el uuid solo lo tiene quien
+-- ha escaneado la mesa.
+-- ────────────────────────────────────────────────────────────────────────────
+grant execute on function pendiente_de_pago(uuid, uuid) to anon, authenticated;

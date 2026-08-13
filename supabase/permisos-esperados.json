@@ -1,0 +1,55 @@
+{
+  "_comentario": [
+    "Quién puede LLAMAR a cada función del esquema public. Es una lista",
+    "revisada a mano: si añades una función y la abres al cliente, tienes que",
+    "escribirla aquí, y eso obliga a pensarlo dos veces.",
+    "",
+    "Existe porque Supabase concede EXECUTE a `anon` y `authenticated` en",
+    "cuanto se crea una función (`alter default privileges`). Dos veces se coló",
+    "algo por eso, y una era grave: `registrar_pago_online` —la que marca",
+    "pagado y cierra la mesa— quedó al alcance de cualquiera con la carta",
+    "abierta. Su migración decía «no se concede a anon» y estaba concedida.",
+    "",
+    "Dos comprobaciones lo vigilan:",
+    "  · el test de contrato compara esta lista con los GRANT de las",
+    "    migraciones (corre en CI, sin secretos);",
+    "  · `npm run permisos` la compara con la base DE VERDAD, que es donde",
+    "    aparecen los permisos que nadie escribió."
+  ],
+
+  "anon": {
+    "_por_que": "El cliente del QR no tiene sesión: esto es todo lo que puede hacer.",
+    "funciones": [
+      "qr_unirse_mesa",
+      "qr_agregar_linea",
+      "qr_cambiar_cantidad",
+      "qr_compartir_linea",
+      "qr_confirmar_pedido",
+      "qr_llamar_camarero",
+      "qr_cancelar_aviso",
+      "qr_pedir_cuenta",
+      "estado_mesa",
+      "config_publica",
+      "crear_reserva",
+      "reserva_por_token",
+      "cancelar_reserva",
+      "pendiente_de_pago",
+      "local_actual",
+      "unaccent_simple"
+    ]
+  },
+
+  "solo_servidor": {
+    "_por_que": [
+      "Mueven dinero o cierran cuentas. Solo las llama el servidor con la",
+      "service_role key (el webhook de Stripe). Si alguna aparece abierta a",
+      "anon o a authenticated, es un agujero: revisa el revoke de su migración."
+    ],
+    "funciones": [
+      "registrar_pago_online",
+      "_cerrar_grupo",
+      "_debe_por_comensal",
+      "revision_permisos"
+    ]
+  }
+}
