@@ -36,9 +36,11 @@ acentos salen como basura. Si el proceso se cae, Windows lo reintenta 3 veces.
 
 Se quita con `-Quitar`.
 
-### 2. Lo que queda por comprobar EN PAPEL
+### 2. El papel — APLAZADO a propósito (13/08)
 
-Nadie lo ha mirado aún con las impresoras delante:
+No es que se haya olvidado: Bryan decidió dejarlo para más adelante. **No lo
+retomes por tu cuenta**, pregúntale antes. Cuando toque, hay que mirarlo con
+las impresoras delante:
 
 - ¿**cortan** el papel? (si no, quitar `GS V` para que no salga basura)
 - ¿los **acentos** salen bien? («Salchichón», «Café», «Menú del día»)
