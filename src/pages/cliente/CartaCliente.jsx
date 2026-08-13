@@ -198,6 +198,18 @@ export default function CartaCliente() {
   // falta para pedir, y pedirlo de entrada espantaba al cliente (y abría mesas
   // fantasma en el local).
   const ojeando = !yo
+
+  // Distinto de `ojeando`: esto dice si ESTE móvil ya se unió, sin esperar a
+  // que el cliente aparezca en la mesa que manda el servidor. Entre unirse y
+  // que el sondeo anónimo traiga la mesa pasan hasta 4 segundos, y durante ese
+  // rato la app hacía como si no te hubieras unido: sin las pestañas de abajo
+  // —o sea, sin forma de llegar a tu pedido ni a pagar— y con el cartel de
+  // «cómo funciona esto» todavía puesto. Justo después de pedir, que es cuando
+  // el cliente busca dónde ver lo que lleva.
+  //
+  // Solo se usa para eso. `ojeando` sigue mandando en las vistas que necesitan
+  // los datos de `yo` de verdad, que sin ellos reventarían.
+  const yaEnLaMesa = !!miPersonaId
   const unirse = async () => {
     // v1 devuelve el id síncrono; v2 (RPC) una promesa — cubrimos ambos
     const id = await Promise.resolve(unirseAMesa(mesaId, nombre))
@@ -237,7 +249,7 @@ export default function CartaCliente() {
   const misEnMarcha = misPedidos.filter(p => p.estado === 'recibido' || p.estado === 'preparando' || p.estado === 'espera')
   // lo que me toca pagar a mí (con lo compartido ya repartido)
   const miParte = yo ? (owed[yo.id] || 0) : 0
-  const pestanas = !ojeando && (
+  const pestanas = yaEnLaMesa && (
     <Pestanas vista={vista} setVista={setVista} uds={udsPendientes} enMarcha={misEnMarcha.length}
       listos={misListos.length} aPagar={miParte} pagado={!!yo?.pagado} t={t} />
   )
@@ -691,7 +703,11 @@ export default function CartaCliente() {
           usado esto nunca —que es el caso de casi todo el mundo— acaba
           preguntándole al camarero, y entonces el autopedido no ha servido de
           nada. */}
-      {!yo && !q && (
+      {/* Se va en cuanto el cliente ya está pidiendo. Mirar solo `yo` no basta:
+          esa persona sale de la mesa que llega del servidor, y con el sondeo
+          del cliente anónimo tarda unos segundos en aparecer — durante los
+          cuales ya has pedido y sigues leyendo instrucciones. */}
+      {!yaEnLaMesa && itemsPendientes.length === 0 && !q && (
         <div style={{
           margin: '0.9rem 1.25rem 0', padding: '0.8rem 0.95rem',
           background: 'var(--tint-info-bg, var(--color-surface-2))',
