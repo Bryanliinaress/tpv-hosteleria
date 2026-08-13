@@ -140,6 +140,20 @@ export default function CartaCliente() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Si la categoría elegida deja de existir, se vuelve a la primera.
+  //
+  // La carta tarda un instante en llegar del servidor y hasta entonces se ve la
+  // de ejemplo. Quien toque una categoría en ese momento —la gente toca
+  // enseguida— se queda con el id de una categoría que ya no existe: los
+  // botones se repintan con las buenas, pero la selección apunta a la vieja y
+  // la pantalla dice «No hay nada en esta categoría» hasta que toques otra. El
+  // cliente concluye que el bar no tiene bebidas.
+  useEffect(() => {
+    if (carta.categorias.length && !carta.categorias.some(c => c.id === categoriaActiva)) {
+      setCategoriaActiva(carta.categorias[0].id)
+    }
+  }, [carta.categorias, categoriaActiva])
+
   if (!mesa) return <div style={{ padding: '2rem', color: 'var(--color-muted)' }}>{t('Mesa no encontrada')}</div>
 
   const limpiarDispositivo = () => {
