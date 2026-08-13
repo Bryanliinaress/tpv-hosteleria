@@ -13,6 +13,7 @@ import { esDelMes, horasEntre } from '../../lib/fechas'
 import ConfigImpresora from '../../components/ConfigImpresora'
 import EditorMenu from '../../components/EditorMenu'
 import Informes from './Informes'
+import Dispositivos from '../../components/Dispositivos'
 
 const emptyForm = { nombre: '', nombreEn: '', categoria: '', descripcion: '', descripcionEn: '', alergenos: [], imagen: '', conFormatos: false, precios: {}, precio: '', menu: null }
 
@@ -158,6 +159,7 @@ export default function PanelAdmin() {
           { id: 'tickets', label: '🧾 Tickets' },
           { id: 'informes', label: '📊 Informes' },
           { id: 'qr', label: '📱 QR Codes' },
+          { id: 'dispositivos', label: '🔗 Dispositivos' },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
             background: 'none', border: 'none', padding: '0.875rem 1.1rem', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, minHeight: '48px',
@@ -623,6 +625,8 @@ export default function PanelAdmin() {
         )}
 
         {/* Tab QR */}
+        {tab === 'dispositivos' && <Dispositivos />}
+
         {tab === 'qr' && (
           <div>
             <p style={{ color: 'var(--color-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
