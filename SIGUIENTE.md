@@ -75,19 +75,24 @@ Hecho:
 - **Se explica cómo funciona**: aviso de una frase al abrir la carta, solo
   mientras el cliente no se ha unido a la mesa.
 
-⚠️ **Antes de seguir, hace falta VER las pantallas.** Esta parte es estética y
-de uso, y sin el panel del navegador visible no se puede juzgar: las capturas
-fallan y solo se puede leer el texto plano del DOM. Leyendo así ya me inventé
-dos «fallos» que no existían — creí que la hoja de unirse salía al final del
-scroll (es un panel fijo que sube desde abajo, correcto) y que la carta no
-cargaba (cargaba: miraba el texto antes de que React repintara). **Pide que
-abran el panel del navegador antes de tocar nada aquí.**
+- **El aviso de «versión nueva» ya no tapa el nombre del bar** en el móvil, y
+  no se le enseña al cliente (es del personal).
+- **Fuera el punto suelto tras el precio**: era un alérgeno nulo, en 18 de 58
+  productos.
 
-Pendiente, por revisar CON la pantalla delante:
+⚠️ **Esta parte hay que hacerla MIRANDO la pantalla, y en tamaño móvil**
+(`resize_window` a `mobile`, 375 px). Es donde se usa. Los tres fallos de
+arriba solo se vieron así; y leyendo el texto plano del DOM me inventé dos que
+no existían (la hoja de unirse SÍ es un panel fijo correcto, y la carta SÍ
+carga). Si no hay panel de navegador, **pídelo antes de tocar estética**.
+
+Pendiente, por revisar con la pantalla delante:
 
 1. ¿Se nota que un plato ha entrado en el pedido al pulsar «Añadir»?
 2. ¿Destaca «Enviar pedido» sobre el resto? Es el paso que importa.
-3. **PDA y KDS**: tamaños de toque (un camarero va con prisa y una mano
+3. La banda de demostración ocupa **dos líneas** en móvil y empuja todo hacia
+   abajo. Acortar el texto en pantallas estrechas.
+4. **PDA y KDS**: tamaños de toque (un camarero va con prisa y una mano
    ocupada) y qué se ve sin hacer scroll.
 
 ## Cómo se conecta un aparato (no hay contraseñas)
