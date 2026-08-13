@@ -127,6 +127,10 @@ export async function cargarCarta() {
         descripcionEn: p.modificadores?.descripcionEn || '',
       })),
     },
+    // A partir de aquí lo que se ve es la carta DEL LOCAL, no la de ejemplo con
+    // la que arranca el store. Hasta este momento la pantalla dice «cargando»
+    // en vez de «no hay nada», que es lo que leía el cliente al escanear.
+    hidratado: true,
   }))
 }
 

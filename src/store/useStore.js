@@ -262,8 +262,17 @@ export const CARTA_EJEMPLO = {
   }
 
 export const useStore = create(persist((set, get) => ({
-  // ── CARTA (Casa Loli · Desayunos) ──────────────────────
+  // ── CARTA (de ejemplo hasta que llegue la del local) ────
   carta: structuredClone(CARTA_EJEMPLO),
+
+  // ¿Han llegado ya los datos del servidor? Arranca en false SIEMPRE (no está
+  // en `partialize`, así que no se guarda) y lo pone `cargarCarta` al terminar.
+  //
+  // Hace falta porque el store nace con una carta de EJEMPLO: `productos` nunca
+  // está vacío, así que «¿hay productos?» no sirve para saber si aún se está
+  // cargando. Mientras llegaba la de verdad, el cliente que escaneaba el QR se
+  // encontraba «No hay nada en esta categoría» — la peor primera frase posible.
+  hidratado: false,
 
   // ── IDENTIDAD DEL LOCAL (configurable para cualquier bar) ─
   // Datos del negocio que aparecen en tickets, cabeceras y reservas.

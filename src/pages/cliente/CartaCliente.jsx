@@ -14,7 +14,7 @@ import { backendV2 } from '../../lib/repo'
 
 export default function CartaCliente() {
   const { mesaId } = useParams()
-  const { local, carta, mesas, pedidosCocina, pedidosBarra, avisos, unirseAMesa, agregarItem, cambiarCantidad, confirmarPedido, pedirCuenta, pagarParte, pagarTodo, toggleCompartir, llamarCamarero, atenderAviso } = useStore()
+  const { local, carta, mesas, hidratado, pedidosCocina, pedidosBarra, avisos, unirseAMesa, agregarItem, cambiarCantidad, confirmarPedido, pedirCuenta, pagarParte, pagarTodo, toggleCompartir, llamarCamarero, atenderAviso } = useStore()
   const mesa = mesas.find(m => m.id === mesaId)
   const { idioma, setIdioma } = useIdioma()
   const t = (s) => tr(idioma, s)
@@ -198,9 +198,11 @@ export default function CartaCliente() {
   const q = busqueda.trim().toLowerCase()
   // `extra`: con la carta en inglés, «cheese» también encuentra el queso
   const productosFiltrados = productosVisibles(carta, { busqueda, categoria: categoriaActiva, extra: (p) => textoBuscable(idioma, p) })
-  // Sin NINGÚN producto (no es que el filtro no encuentre: es que no ha llegado
-  // nada) y con el backend real detrás, lo que pasa es que aún está cargando.
-  const cargandoCarta = backendV2 && (carta.productos?.length ?? 0) === 0
+  // Con el backend real, hasta que no llega la carta del local lo que se ve es
+  // la de EJEMPLO con la que nace el store — categorías y productos que no
+  // casan entre sí. Por eso la señal no es «¿hay productos?» sino «¿ha llegado
+  // ya el servidor?».
+  const cargandoCarta = backendV2 && !hidratado
   const itemsPendientes = personaActiva.items.filter(i => i.estado === 'pendiente')
   const itemsEnviados = personaActiva.items.filter(i => i.estado === 'enviado')
   const totalPendiente = itemsPendientes.reduce((s, i) => s + i.precio * i.cantidad, 0)
