@@ -23,7 +23,13 @@ export default function PinLogin({ soloAdmin = false, titulo }) {
       : Promise.resolve(empleadoPorPin(empleados, pin, soloAdmin))
     resolver.then(emp => {
       if (emp && !emp._fallo) { setSesion(emp) }
-      else { setError(emp?._fallo ? 'tecnico' : 'pin'); setTimeout(() => setPin(''), 400) }
+      else {
+        // El servidor bloquea el dispositivo tras 5 fallos seguidos: hay que
+        // decirlo, o el usuario cree que el TPV se ha roto y sigue probando.
+        const bloqueado = /pin_bloqueado/.test(emp?._fallo || '')
+        setError(bloqueado ? 'bloqueado' : emp?._fallo ? 'tecnico' : 'pin')
+        setTimeout(() => setPin(''), 400)
+      }
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pin])
@@ -50,7 +56,11 @@ export default function PinLogin({ soloAdmin = false, titulo }) {
           ))}
         </div>
         {error && <p style={{ textAlign: 'center', color: '#f43f5e', fontSize: '0.8rem', marginTop: '-0.6rem', marginBottom: '0.8rem' }}>
-          {error === 'tecnico' ? 'No se pudo comprobar el PIN (conexión o sesión) — reintenta' : 'PIN incorrecto'}
+          {error === 'bloqueado'
+            ? 'Demasiados intentos. Espera 5 minutos y vuelve a probar.'
+            : error === 'tecnico'
+              ? 'No se pudo comprobar el PIN (conexión o sesión) — reintenta'
+              : 'PIN incorrecto'}
         </p>}
 
         {/* Teclado */}

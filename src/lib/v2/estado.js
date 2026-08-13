@@ -91,7 +91,12 @@ export async function cargarLocal() {
   localId = loc.id
   const cfg = loc.config || {}
   useStore.setState({
-    local: { nombre: loc.nombre, ...cfg, reservas: undefined, carta: undefined },
+    // `nombre` va DESPUÉS del spread a propósito: la columna manda sobre lo que
+    // haya quedado dentro de `config`. Al sembrar un local, la config se copia
+    // entera del origen y arrastra su `nombre`; con el orden al revés, renombrar
+    // el local no se veía en ninguna pantalla — se renombró en la BBDD y todo
+    // seguía diciendo «Casa Loli».
+    local: { ...cfg, nombre: loc.nombre, reservas: undefined, carta: undefined },
     reservasConfig: cfg.reservas || useStore.getState().reservasConfig,
   })
   // formatos/tiposPan/extras/etiquetas del local (config.carta)

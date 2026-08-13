@@ -53,7 +53,8 @@
       "_soy_admin",
       "dispositivo_por_secreto",
       "vincular_dispositivo_usuario",
-      "dispositivo_visto"
+      "dispositivo_visto",
+      "_fallos_recientes"
     ]
   }
 }
