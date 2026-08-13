@@ -1,5 +1,6 @@
 import { supabase } from '../supabase'
 import { perfil } from '../perfil'
+import { cargarTodo } from './estado'
 
 // ────────────────────────────────────────────────────────────────────────────
 // Autorización del dispositivo.
@@ -83,5 +84,12 @@ export async function comprobarAcceso() {
     refresh_token: s.refresh_token,
   })
   if (error) return 'error'
+
+  // Y ahora hay que RECARGAR. La app arrancó sin sesión, así que la
+  // hidratación no pudo traer nada: el padrón de empleados quedó vacío. Y el
+  // PIN se resuelve contra ese padrón, así que sin esto el camarero teclea su
+  // PIN correcto, el servidor lo da por bueno… y la pantalla no se mueve, sin
+  // decir nada. Costó un buen rato encontrarlo.
+  try { await cargarTodo() } catch { /* si falla, lo reintenta el arranque */ }
   return 'aprobado'
 }

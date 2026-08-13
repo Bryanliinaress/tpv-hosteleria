@@ -50,7 +50,9 @@ declare
   v_local uuid := _local_o_error();
   v_quien uuid := auth.uid();
   v_fallos int := _fallos_recientes(v_quien);
-  v_encontrado boolean := false;
+  -- `get diagnostics … = row_count` devuelve un ENTERO. Declararlo boolean
+  -- reventaba la función entera y el personal no podía entrar con su PIN.
+  v_filas int := 0;
 begin
   -- 5 fallos seguidos: se para 5 minutos. Suficiente para que probar los
   -- 10.000 PINs deje de ser cuestión de un rato, y poco para quien se ha
@@ -68,8 +70,8 @@ begin
       and (not p_solo_admin or e.rol = 'admin')
     limit 1;
 
-  get diagnostics v_encontrado = row_count;
-  insert into intentos_pin (local_id, quien, acierto) values (v_local, v_quien, v_encontrado > 0);
+  get diagnostics v_filas = row_count;
+  insert into intentos_pin (local_id, quien, acierto) values (v_local, v_quien, v_filas > 0);
 
   -- limpieza perezosa: no hace falta guardar esto más de un día
   delete from intentos_pin where creado_en < now() - interval '1 day';
