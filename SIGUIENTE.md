@@ -8,22 +8,33 @@ Historia de los 71 fallos encontrados: [docs/AUDITORIA.md](docs/AUDITORIA.md).
 
 ## ⭐ EMPIEZA POR AQUÍ
 
-### 1. Levantar la impresión (muere al cerrar la sesión anterior)
+### 1. La impresión ya arranca sola
 
-Las dos térmicas están montadas y funcionando, pero el servicio que las
-alimenta **no arranca solo todavía**:
+Está instalada como **tarea de Windows** y se levanta 20 s después de iniciar
+sesión. No hay que hacer nada al empezar el día.
 
-```bash
-node scripts/impresion-automatica.mjs
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\instalar-impresion.ps1 -Estado
 ```
 
-Con eso, cada pedido que entre sale en papel: comida por 🍳 `TPV-Cocina` y
-bebida por 🍺 `TPV-Barra`. **Sin navegador de por medio.** Si el PC estuvo
-apagado, al arrancar saca lo que quedó pendiente y no repite lo ya impreso.
+Dice si la tarea está, si el proceso vive y las últimas líneas del log. Cada
+pedido sale en papel: comida por 🍳 `TPV-Cocina` y bebida por 🍺 `TPV-Barra`,
+**sin navegador**. Si el PC estuvo apagado, al arrancar saca lo pendiente sin
+repetir lo ya impreso.
 
-> **Pendiente concreto**: dejarlo como **tarea programada de Windows** para que
-> arranque al encender el PC. Es lo único que separa el montaje actual de uno
-> de verdad.
+**Al montar un bar nuevo**, una sola vez:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\instalar-impresion.ps1
+```
+
+No pide administrador a propósito: es una tarea del usuario del TPV, que
+arranca al iniciar sesión. Corre oculta (`scripts\impresion-oculta.vbs`) para
+no dejar una consola negra en la pantalla del bar, y todo va a
+`logs\impresion.log` — que se lee con `Get-Content … -Encoding UTF8`, o los
+acentos salen como basura. Si el proceso se cae, Windows lo reintenta 3 veces.
+
+Se quita con `-Quitar`.
 
 ### 2. Lo que queda por comprobar EN PAPEL
 
