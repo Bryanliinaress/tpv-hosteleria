@@ -86,14 +86,30 @@ arriba solo se vieron así; y leyendo el texto plano del DOM me inventé dos que
 no existían (la hoja de unirse SÍ es un panel fijo correcto, y la carta SÍ
 carga). Si no hay panel de navegador, **pídelo antes de tocar estética**.
 
-Pendiente, por revisar con la pantalla delante:
+- **Tocar una categoría mientras carga** ya no la deja vacía («No hay nada en
+  esta categoría» hasta tocar otra: el cliente cree que no hay bebidas).
+- **Tras unirse y pedir**, las pestañas de abajo aparecen al instante. Antes
+  tardaban hasta 4 s —lo que tarda el sondeo— y en ese rato no había forma de
+  llegar a «Mi pedido» ni a «Pagar», justo cuando el cliente los busca.
 
-1. ¿Se nota que un plato ha entrado en el pedido al pulsar «Añadir»?
-2. ¿Destaca «Enviar pedido» sobre el resto? Es el paso que importa.
-3. La banda de demostración ocupa **dos líneas** en móvil y empuja todo hacia
+Revisado y **no hace falta tocarlo** (comprobado en móvil):
+- Al añadir, la tarjeta pasa a contador «− 1 +»: el acuse se ve.
+- La hoja del nombre es un panel inferior correcto.
+- La hoja de personalización está muy bien: alérgenos arriba, formatos con su
+  precio, y abajo fijo el total actualizándose.
+
+Pendiente, con la pantalla delante:
+
+1. ¿Destaca «Enviar pedido» sobre el resto? Es el paso que importa. **Sin
+   probar: pulsarlo saca papel de verdad por las impresoras del bar.**
+2. La banda de demostración ocupa **dos líneas** en móvil y empuja todo hacia
    abajo. Acortar el texto en pantallas estrechas.
-4. **PDA y KDS**: tamaños de toque (un camarero va con prisa y una mano
+3. **PDA y KDS**: tamaños de toque (un camarero va con prisa y una mano
    ocupada) y qué se ve sin hacer scroll.
+
+⚠️ Al probar en el navegador, **comprueba qué bundle corre**: el service worker
+sirve el anterior y ya me hizo dar por bueno un arreglo que no estaba cargado.
+`curl` a la página y comparar con el `<script src>` de la pestaña.
 
 ## Cómo se conecta un aparato (no hay contraseñas)
 
