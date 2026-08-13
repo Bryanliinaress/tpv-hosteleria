@@ -86,13 +86,18 @@ if (existe.length) {
     catId[c.id] = cats.find(x => x.nombre === c.nombre)?.id
   })
 
+  // OJO con `array[]`: si la lista de alérgenos va vacía y se rellena con la
+  // palabra `null`, no queda un array vacío sino uno CON un elemento nulo. La
+  // carta del cliente lo pintaba como un punto suelto detrás del precio: un
+  // símbolo sin significado justo donde va la información de alérgenos, que es
+  // lo que mira alguien con una alergia.
   const prodSql = demo.carta.productos.map((p, i) => {
     const precios = p.precios || { base: p.precio ?? 0 }
     const mods = { ingredientes: p.ingredientes || [], imagen: p.imagen || '' }
     return `insert into productos (local_id, categoria_id, nombre, descripcion, precios, modificadores, alergenos, disponible, orden)
       values ('${localId}', '${catId[p.categoria]}', ${q(p.nombre)}, ${q(p.descripcion || '')},
               ${qj(precios)}, ${qj(mods)},
-              array[${(p.alergenos || []).map(q).join(',') || null}]::text[],
+              array[${(p.alergenos || []).map(q).join(',')}]::text[],
               ${p.disponible !== false}, ${i});`
   }).join('\n')
   await sql(prodSql, 'productos')

@@ -731,9 +731,13 @@ export default function CartaCliente() {
                 )}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <span style={{ fontWeight: 700, color: 'var(--color-accent)' }}>{esMontadito ? `${t('desde')} ${minPrecio(prod).toFixed(2)} €` : esMenu(prod) ? `${precioMenu(prod).toFixed(2)} €` : `${(prod.precio ?? 0).toFixed(2)} €`}</span>
-                  {(prod.alergenos || []).length > 0 && (
-                    <span title={t('Alérgenos') + ': ' + prod.alergenos.map(a => t(ALERGENO_INFO[a]?.nombre || a)).join(', ')} style={{ fontSize: '0.72rem', letterSpacing: '0.1em', opacity: 0.85 }}>
-                      {prod.alergenos.map(a => ALERGENO_INFO[a]?.emoji || '•').join('')}
+                  {/* `.filter(Boolean)`: un alérgeno nulo o desconocido caía en
+                      el `|| '•'` de abajo y salía un punto suelto detrás del
+                      precio. Un símbolo sin significado donde se supone que hay
+                      información de alérgenos es peor que no poner nada. */}
+                  {(prod.alergenos || []).filter(Boolean).length > 0 && (
+                    <span title={t('Alérgenos') + ': ' + prod.alergenos.filter(Boolean).map(a => t(ALERGENO_INFO[a]?.nombre || a)).join(', ')} style={{ fontSize: '0.72rem', letterSpacing: '0.1em', opacity: 0.85 }}>
+                      {prod.alergenos.filter(Boolean).map(a => ALERGENO_INFO[a]?.emoji || '•').join('')}
                     </span>
                   )}
                 </div>
