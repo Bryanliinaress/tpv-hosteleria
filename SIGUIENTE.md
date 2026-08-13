@@ -64,6 +64,34 @@ también. Mismo comando: `node scripts/configurar-stripe.mjs marchando`.
 
 ---
 
+## 🎨 En curso: estética y facilidad de uso (13/08)
+
+Encargo abierto de Bryan: que **un cliente que nunca ha visto esto sepa pedir
+a la primera**, y que la PDA y el resto de pantallas sean fáciles e intuitivas.
+
+Hecho:
+- La carta ya no dice «No hay nada en esta categoría» al escanear el QR
+  (`hidratado`).
+
+Lo siguiente, por orden de impacto (el cliente primero: es quien no ha recibido
+formación y quien decide si el bar repite):
+
+1. **Nadie explica cómo funciona.** Al escanear caes en una lista de productos
+   sin una sola línea que diga qué va a pasar. Falta un arranque de una frase:
+   «Pide desde aquí, llega a cocina, pagas cuando quieras».
+2. **La hoja de unirse aparece al final del scroll.** Pulsas «Añadir» y, si no
+   estás mirando abajo, parece que no ha pasado nada. Debería ser una hoja
+   sobre la carta, no algo a lo que hay que bajar.
+3. **«Añadir» no da acuse.** No hay confirmación visible de que un plato entró
+   en el pedido; el contador de abajo cambia, pero no llama la atención.
+4. **Enviar el pedido no se distingue de mirar la carta.** El paso que de
+   verdad importa —«Enviar pedido 🚀»— pesa lo mismo que el resto.
+5. **PDA y KDS**: revisar tamaños de toque (un camarero va con prisa y con una
+   mano) y qué se ve sin scroll.
+
+Método: mirar cada pantalla en el navegador ANTES de tocar nada. Ya ha pasado
+dos veces que un «fallo» era de la propia comprobación, no de la app.
+
 ## Cómo se conecta un aparato (no hay contraseñas)
 
 Nadie se registra y no hay credenciales que custodiar. El aparato pide permiso
