@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.88.0 · 473 tests en verde · repo limpio y desplegado.**
+**Estado: v0.89.0 · 478 tests en verde · repo limpio y desplegado.**
 Última sesión: 2026-08-12. Roadmap: [PRODUCCION.md](PRODUCCION.md) ·
 Historia de los 71 fallos encontrados: [docs/AUDITORIA.md](docs/AUDITORIA.md).
 
@@ -50,6 +50,36 @@ webhook**, porque el endpoint de producción es otro y su secreto de firma
 también. Mismo comando: `node scripts/configurar-stripe.mjs marchando`.
 
 ---
+
+## Cómo se conecta un aparato (no hay contraseñas)
+
+Nadie se registra y no hay credenciales que custodiar. El aparato pide permiso
+y el encargado se lo da.
+
+1. Abres el TPV en el aparato: enseña un **código de 6 dígitos** y espera.
+2. El encargado lo autoriza en **Admin → Dispositivos** (le pide su PIN).
+3. El aparato entra solo. **Para siempre**, y se le puede quitar cuando sea.
+
+**El primero de todos** no puede autorizarlo nadie —para entrar al panel hay
+que estar autorizado— así que lo hace quien monta el bar, que ya tiene la
+llave (`.env.puente`):
+
+```bash
+node scripts/autorizar-dispositivo.mjs             # lista solicitudes
+node scripts/autorizar-dispositivo.mjs 408563 "PC" # autoriza
+node scripts/autorizar-dispositivo.mjs --revocar <id>
+```
+
+Es también la salida de emergencia si se revocan todos y nadie puede entrar.
+
+Cada aparato tiene **su propia cuenta** (la crea el servidor al autorizarlo):
+por eso revocar uno no echa a los demás, y al revocarlo se borra su cuenta —si
+solo cambiara el estado, la sesión que ya tiene seguiría valiendo.
+
+El **PIN** sigue siendo quien identifica a la persona, y con dispositivos pesa
+más: es lo que autoriza a otros aparatos. Por eso se bloquea 5 minutos tras
+**5 fallos seguidos**, contados por dispositivo (por local dejaría al bar sin
+cobrar por culpa de una tablet).
 
 ## Cómo está montado el bar hoy
 
