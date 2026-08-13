@@ -667,6 +667,31 @@ export default function CartaCliente() {
         </div>
       )}
 
+      {/* Cómo funciona esto. Solo mientras el cliente no ha pedido nada: en
+          cuanto se une a la mesa ya lo sabe y estorba.
+
+          Antes no había NADA. Escaneabas el QR de la mesa y caías directo en
+          una lista de productos, sin una sola línea que dijera qué va a pasar
+          si tocas «Añadir»: si el pedido llega solo a la cocina, si tienes que
+          avisar a alguien, si vas a tener que pagar por el móvil. Quien no ha
+          usado esto nunca —que es el caso de casi todo el mundo— acaba
+          preguntándole al camarero, y entonces el autopedido no ha servido de
+          nada. */}
+      {!yo && !q && (
+        <div style={{
+          margin: '0.9rem 1.25rem 0', padding: '0.8rem 0.95rem',
+          background: 'var(--tint-info-bg, var(--color-surface-2))',
+          border: '1px solid var(--color-border)', borderRadius: 'var(--radius)',
+          display: 'flex', gap: '0.7rem', alignItems: 'flex-start',
+        }}>
+          <span style={{ fontSize: '1.15rem', lineHeight: 1.2 }} aria-hidden="true">👋</span>
+          <p style={{ fontSize: '0.84rem', lineHeight: 1.55, color: 'var(--color-muted)' }}>
+            <strong style={{ color: 'var(--color-text)' }}>{t('Pide desde tu móvil.')}</strong>{' '}
+            {t('Elige lo que quieras, pon tu nombre y envía: llega directo a la cocina. Puedes seguir pidiendo durante la comida y pagar cuando te vaya bien.')}
+          </p>
+        </div>
+      )}
+
       {/* Productos */}
       <div style={{ flex: 1, padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         {/* Vacío no siempre significa «no encontrado». En el backend real la

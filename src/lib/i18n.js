@@ -24,6 +24,9 @@ const EN = {
   'No hay nada que coincida con': 'Nothing matches',
   'No hay nada en esta categoría': 'Nothing in this section',
   'Cargando la carta…': 'Loading the menu…',
+  'Pide desde tu móvil.': 'Order from your phone.',
+  'Elige lo que quieras, pon tu nombre y envía: llega directo a la cocina. Puedes seguir pidiendo durante la comida y pagar cuando te vaya bien.':
+    'Pick what you want, add your name and send it — it goes straight to the kitchen. You can keep ordering during your meal and pay whenever suits you.',
   'desde': 'from',
   'Añadir': 'Add',
   '+ Añadir': '+ Add',
