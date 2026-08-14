@@ -175,3 +175,10 @@ button:focus-visible { outline: none; box-shadow: var(--ring); }
   }
   .no-print { display: none !important; }
 }
+
+/* Trozos de texto que solo caben en pantallas anchas. Se usa en la banda de
+   demostración: con la frase entera ocupaba dos líneas en un móvil y empujaba
+   hacia abajo la cabecera y la carta. */
+@media (max-width: 430px) {
+  .solo-ancho { display: none; }
+}

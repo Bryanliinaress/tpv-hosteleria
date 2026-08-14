@@ -3,13 +3,17 @@ import { esDemo } from '../lib/perfil'
 // ────────────────────────────────────────────────────────────────────────────
 // «Esto es una demostración».
 //
-// La demo y un bar real salen del mismo código y sus direcciones se parecen
-// demasiado (`/tpv-hosteleria/` y `/tpv-hosteleria/app/`). Pedir en la demo
-// creyendo que es el bar significa que ese pedido **no existe para nadie**: ni
-// llega a cocina, ni se cobra, ni aparece en la caja. Ya ha pasado.
+// Nació cuando había dos enlaces parecidos y se pedía en el equivocado. Hoy
+// hay uno solo, pero sigue haciendo falta por otro motivo: es el escaparate
+// con el que se enseña el producto, y quien lo abre tiene que saber que lo que
+// pida ahí no llega a ninguna cocina ni se cobra a nadie.
 //
-// Por eso el aviso va arriba del todo, en todas las pantallas, y no se puede
-// cerrar: es información, no publicidad.
+// Va arriba del todo, en todas las pantallas, y no se puede cerrar: es
+// información, no publicidad.
+//
+// En pantalla estrecha se acorta. Con el texto entero ocupaba DOS líneas en un
+// móvil y empujaba hacia abajo la cabecera y la carta: el aviso se comía la
+// primera pantalla de lo que se quiere enseñar.
 // ────────────────────────────────────────────────────────────────────────────
 export default function AvisoDemo() {
   if (!esDemo()) return null
@@ -27,7 +31,8 @@ export default function AvisoDemo() {
         textShadow: '0 1px 2px rgba(0,0,0,0.5)',
       }}
     >
-      🎭 DEMOSTRACIÓN · los pedidos y cobros de aquí <u>no son reales</u>
+      🎭 DEMOSTRACIÓN · los pedidos<span className="solo-ancho"> y cobros</span> de
+      aquí <u>no son reales</u>
     </div>
   )
 }
