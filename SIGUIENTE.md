@@ -253,8 +253,13 @@ días parados). Por eso **Supabase Pro es requisito de producción**.
 ## Pendiente — y de quién depende
 
 ### De Bryan
-1. **Probar el cobro con tarjeta** de punta a punta (arriba, punto 3).
-2. **Comprobar el papel** (corte, acentos, QR).
+1. **Rellenar los datos del local** en Admin → Local: **teléfono, dirección y
+   CIF están vacíos**. Salen en el ticket, en el recibo del cliente y en la
+   pantalla de reservas («Llámanos» sin número al que llamar). Un hostelero que
+   ve un ticket sin dirección piensa que el software no lo contempla. No lo
+   relleno yo: un número inventado en una página pública acaba haciendo que
+   alguien llame a un desconocido.
+2. **Comprobar el papel** (corte, acentos, QR) — aplazado a propósito.
 3. **NIF real en Verifacti** y pasar a producción: solo cambia el secreto
    `VERIFACTI_API_KEY` (`vf_test_…` → `vf_prod_…`), la URL es la misma.
 4. **Probar el alta de un bar nuevo** en `/app/` (necesita login con
