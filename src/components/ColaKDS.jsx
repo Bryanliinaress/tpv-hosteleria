@@ -10,7 +10,10 @@ const tiempo = (iso) => {
   return seg < 60 ? `${seg}s` : `${Math.floor(seg / 60)} min`
 }
 
-export default function ColaKDS({ pedidos, estados, acento, onAvanzar }) {
+// En barra son bebidas, no platos: «4 platos» hablando de tres refrescos y un
+// café suena a que el software no sabe dónde está.
+export default function ColaKDS({ pedidos, estados, acento, onAvanzar, unidad = ['plato', 'platos'] }) {
+  const uds = (n) => `${n} ${n === 1 ? unidad[0] : unidad[1]}`
   const grupos = agruparPorMesa(pedidos)
   if (grupos.length === 0) {
     return (
@@ -39,7 +42,7 @@ export default function ColaKDS({ pedidos, estados, acento, onAvanzar }) {
               <div>
                 <span style={{ fontWeight: 900, fontSize: '1.5rem', color: acento }}>Mesa {g.mesaNumero}</span>
                 <span style={{ marginLeft: '0.6rem', fontSize: '0.85rem', color: 'var(--color-muted)' }}>
-                  {g.uds} {g.uds === 1 ? 'plato' : 'platos'}{g.comensales.length > 1 ? ` · ${g.comensales.length} comensales` : ''}
+                  {uds(g.uds)}{g.comensales.length > 1 ? ` · ${g.comensales.length} comensales` : ''}
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
@@ -95,7 +98,7 @@ export default function ColaKDS({ pedidos, estados, acento, onAvanzar }) {
                 onClick={() => delPaso.forEach(p => onAvanzar(p.id, est.next))}
                 style={{ background: est.next === 'listo' ? '#10b981' : '#1d4ed8', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.85rem 1rem', minHeight: '56px', cursor: 'pointer', fontWeight: 800, fontSize: '1rem', width: '100%' }}
               >
-                {est.nextLabel}{delPaso.length > 1 ? ` · ${delPaso.length} platos` : ''}
+                {est.nextLabel}{delPaso.length > 1 ? ` · ${uds(delPaso.length)}` : ''}
               </button>
             )}
           </div>

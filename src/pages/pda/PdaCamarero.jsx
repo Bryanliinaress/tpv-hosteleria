@@ -37,7 +37,11 @@ export default function PdaCamarero() {
   const [soloMias, setSoloMias] = useState(false)
   const [sonido, setSonido] = useState(true)
   const prevIds = useRef(null)
-  const [vista, setVista] = useState('avisos') // avisos | mesas
+  // Arranca en MESAS, no en avisos. Un camarero saca la PDA para atender una
+  // mesa; los avisos son la excepción y ya tienen su globo rojo en la pestaña
+  // cuando los hay. Abriendo en «Avisos» lo normal era encontrarse una
+  // pantalla vacía y gastar un toque en llegar a lo que venía a hacer.
+  const [vista, setVista] = useState('mesas') // avisos | mesas
   const [busquedaCarta, setBusquedaCarta] = useState('')
   const [mesaId, setMesaId] = useState(null)
   const [ticket, setTicket] = useState(null)
@@ -358,7 +362,10 @@ export default function PdaCamarero() {
                         : reservada
                         ? <div style={{ fontSize: '0.72rem', color: 'var(--tint-info-fg)', marginTop: '0.25rem' }}>📅 {m.reserva?.nombre}{m.reserva?.hora && ` · ${m.reserva.hora}`}</div>
                         : <>
-                            <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{m.personas.length} comensales · ⏱ {haceCuanto(m.abiertaDesde)}</div>
+                            {/* «1 comensales» delataba que esto está a medio
+                                hacer, y es lo primero que lee un hostelero al
+                                que le enseñas el producto. */}
+                            <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{m.personas.length} {m.personas.length === 1 ? 'comensal' : 'comensales'} · ⏱ {haceCuanto(m.abiertaDesde)}</div>
                             <div style={{ fontWeight: 700, color: 'var(--color-accent)', marginTop: '0.25rem' }}>{total.toFixed(2)} €</div>
                           </>}
                     </button>

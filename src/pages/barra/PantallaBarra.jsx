@@ -39,7 +39,7 @@ export default function PantallaBarra() {
           <h2 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--tint-danger-fg)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '1rem' }}>
             En cola ({activos.length})
           </h2>
-          <ColaKDS pedidos={activos} estados={ESTADO} acento="#f43f5e" onAvanzar={actualizarEstadoBarra} />
+          <ColaKDS pedidos={activos} estados={ESTADO} acento="#f43f5e" onAvanzar={actualizarEstadoBarra} unidad={['bebida', 'bebidas']} />
         </div>
 
         {listos.length > 0 && (
