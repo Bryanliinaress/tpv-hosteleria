@@ -232,7 +232,22 @@ export default function Reservar() {
                 <button key={n} onClick={() => { set('personas', n); siguiente() }} style={opcion(form.personas === n, { fontSize: '1.25rem', padding: '0.9rem 0' })}>{n}</button>
               ))}
             </div>
-            <p style={{ fontSize: '0.78rem', color: 'var(--color-muted)', marginTop: '0.8rem', textAlign: 'center' }}>{t('¿Sois más de {n}? Llámanos y lo organizamos. 📞', { n: cfg.maxPersonasOnline })}</p>
+            {/* «Llámanos» sin número, en un móvil, es pedirle al cliente que
+                busque el teléfono del bar por su cuenta — y ahí se pierde una
+                reserva de grupo, que son las que más facturan. Si el local
+                tiene teléfono puesto, se llama de un toque. */}
+            <p style={{ fontSize: '0.78rem', color: 'var(--color-muted)', marginTop: '0.8rem', textAlign: 'center' }}>
+              {t('¿Sois más de {n}? Llámanos y lo organizamos. 📞', { n: cfg.maxPersonasOnline })}
+              {local?.telefono && (
+                <>
+                  {' '}
+                  <a href={`tel:${local.telefono.replace(/\s+/g, '')}`}
+                     style={{ color: 'var(--color-accent)', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                    {local.telefono}
+                  </a>
+                </>
+              )}
+            </p>
           </Paso>
         )}
 
