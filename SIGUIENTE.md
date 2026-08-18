@@ -1,7 +1,7 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.89.0 · 478 tests en verde · repo limpio y desplegado.**
-Última sesión: 2026-08-12. Roadmap: [PRODUCCION.md](PRODUCCION.md) ·
+**Estado: v0.90.0 · 478 tests en verde · repo limpio y desplegado.**
+Última sesión: 2026-08-17. Roadmap: [PRODUCCION.md](PRODUCCION.md) ·
 Historia de los 71 fallos encontrados: [docs/AUDITORIA.md](docs/AUDITORIA.md).
 
 ---
@@ -64,52 +64,51 @@ también. Mismo comando: `node scripts/configurar-stripe.mjs marchando`.
 
 ---
 
-## 🎨 En curso: estética y facilidad de uso (13/08)
+## 🎨 Estética y facilidad de uso — en curso
 
-Encargo abierto de Bryan: que **un cliente que nunca ha visto esto sepa pedir
-a la primera**, y que la PDA y el resto de pantallas sean fáciles e intuitivas.
+Encargo abierto de Bryan: que **un cliente que nunca ha visto esto sepa pedir a
+la primera**, y que la PDA y el resto de pantallas sean fáciles e intuitivas.
 
-Hecho:
-- La carta ya no dice «No hay nada en esta categoría» al escanear el QR
-  (`hidratado`).
-- **Se explica cómo funciona**: aviso de una frase al abrir la carta, solo
-  mientras el cliente no se ha unido a la mesa.
+### Cómo se hace esto (leer antes de tocar)
 
-- **El aviso de «versión nueva» ya no tapa el nombre del bar** en el móvil, y
-  no se le enseña al cliente (es del personal).
-- **Fuera el punto suelto tras el precio**: era un alérgeno nulo, en 18 de 58
-  productos.
+1. **Mirando la pantalla, y en móvil** (`resize_window` → `mobile`, 375 px).
+   Es donde se usa. Para el KDS, `tablet`: una cocina no usa un teléfono.
+2. **Comprueba qué bundle corre.** El service worker sirve el anterior y ya me
+   hizo dar por bueno un arreglo que no estaba cargado: `curl` a la página y
+   comparar con el `<script src>` de la pestaña.
+3. **Nada de diagnosticar leyendo `innerText`.** Así me inventé tres fallos que
+   no existían (la hoja de unirse sí es un panel fijo, la carta sí carga, la PDA
+   sí ocupa el ancho). Si no hay panel de navegador, **pídelo**.
+4. Los tests: `npm test 2>&1 | grep -E "Test Files|Tests |FAIL"`. Con `tail -3`
+   se oculta el resultado y ya subí una vez con CI en rojo.
 
-⚠️ **Esta parte hay que hacerla MIRANDO la pantalla, y en tamaño móvil**
-(`resize_window` a `mobile`, 375 px). Es donde se usa. Los tres fallos de
-arriba solo se vieron así; y leyendo el texto plano del DOM me inventé dos que
-no existían (la hoja de unirse SÍ es un panel fijo correcto, y la carta SÍ
-carga). Si no hay panel de navegador, **pídelo antes de tocar estética**.
+### Arreglado (todo verificado en pantalla)
 
-- **Tocar una categoría mientras carga** ya no la deja vacía («No hay nada en
-  esta categoría» hasta tocar otra: el cliente cree que no hay bebidas).
-- **Tras unirse y pedir**, las pestañas de abajo aparecen al instante. Antes
-  tardaban hasta 4 s —lo que tarda el sondeo— y en ese rato no había forma de
-  llegar a «Mi pedido» ni a «Pagar», justo cuando el cliente los busca.
+- La carta ya no dice «No hay nada» al escanear el QR (bandera `hidratado`).
+- **Frase de bienvenida** que explica cómo funciona, solo hasta que se une.
+- El aviso de «versión nueva» ya no tapa el nombre del bar, y no se le enseña
+  al cliente: es del personal.
+- Fuera el punto suelto tras el precio: era un alérgeno nulo, en 18 de 58
+  productos (venía de `array[null]` en el script de siembra).
+- Tocar una categoría mientras carga ya no la deja vacía.
+- Tras unirse y pedir, las pestañas aparecen al instante (antes hasta 4 s sin
+  poder llegar a «Mi pedido» ni a «Pagar»).
+- La banda de demostración ya cabe en una línea en móvil.
+- PDA: «1 comensal» (concordancia) y arranca en **Mesas**, no en Avisos.
+- Barra: «4 bebidas» en vez de «4 platos».
+- Reservas: «Llámanos» ahora marca el teléfono de un toque, si está puesto.
 
-Revisado y **no hace falta tocarlo** (comprobado en móvil):
-- Al añadir, la tarjeta pasa a contador «− 1 +»: el acuse se ve.
-- La hoja del nombre es un panel inferior correcto.
-- La hoja de personalización está muy bien: alérgenos arriba, formatos con su
-  precio, y abajo fijo el total actualizándose.
+### Revisado y BIEN — no tocar
 
-Pendiente, con la pantalla delante:
+Carta del cliente, hoja del nombre, hoja de personalización, «Mi pedido» y su
+confirmación antes de enviar, «Enviar pedido» (destaca de sobra), rejilla de
+mesas de la PDA, cola de cocina y barra, y el asistente de reservas.
 
-1. ¿Destaca «Enviar pedido» sobre el resto? Es el paso que importa. **Sin
-   probar: pulsarlo saca papel de verdad por las impresoras del bar.**
-2. La banda de demostración ocupa **dos líneas** en móvil y empuja todo hacia
-   abajo. Acortar el texto en pantallas estrechas.
-3. **PDA y KDS**: tamaños de toque (un camarero va con prisa y una mano
-   ocupada) y qué se ve sin hacer scroll.
+### Pendiente
 
-⚠️ Al probar en el navegador, **comprueba qué bundle corre**: el service worker
-sirve el anterior y ya me hizo dar por bueno un arreglo que no estaba cargado.
-`curl` a la página y comparar con el `<script src>` de la pestaña.
+1. **Pantalla de «Pagar» del cliente** — donde está el dinero. Sin revisar.
+2. **Mostrador completo** (`PanelCamarero`) — solo visto por encima.
+3. **Admin** — solo vistas Carta y Caja, por encima.
 
 ## Cómo se conecta un aparato (no hay contraseñas)
 
@@ -259,12 +258,16 @@ días parados). Por eso **Supabase Pro es requisito de producción**.
    ve un ticket sin dirección piensa que el software no lo contempla. No lo
    relleno yo: un número inventado en una página pública acaba haciendo que
    alguien llame a un desconocido.
-2. **Comprobar el papel** (corte, acentos, QR) — aplazado a propósito.
-3. **NIF real en Verifacti** y pasar a producción: solo cambia el secreto
+2. **Supabase Pro (~23 €/mes)**. El plan gratuito **pausa el proyecto tras ~1
+   semana sin actividad** y todo da «Failed to fetch». Ya pasó, 18 días parado.
+   Enseñar la demo a un bar y que no cargue es el peor momento para descubrirlo.
+3. **Comprobar el papel** (corte, acentos, QR) — aplazado a propósito.
+4. **NIF real en Verifacti** y pasar a producción: solo cambia el secreto
    `VERIFACTI_API_KEY` (`vf_test_…` → `vf_prod_…`), la URL es la misma.
-4. **Probar el alta de un bar nuevo** en `/app/` (necesita login con
-   contraseña, no puedo hacerlo yo). El fallo 39 dejaba el local **sin mesas**;
-   está arreglado y con tests, pero conviene verlo una vez.
+5. **Probar el alta de un bar nuevo** de punta a punta: aprovisionar el
+   proyecto, autorizar el primer dispositivo desde el terminal y entrar. El
+   fallo 39 dejaba el local **sin mesas**; está arreglado y con tests, pero
+   conviene verlo una vez entero.
 
 ### Bloqueos antes de facturar de verdad
 1. **Facturas rectificativas (R1-R5)**: si un ticket registrado en la AEAT
@@ -274,11 +277,15 @@ días parados). Por eso **Supabase Pro es requisito de producción**.
    29-7-2025 por comercializar software de facturación. No es código.
 
 ### De código (sin depender de nadie)
+1. **Los pagos sin cuenta no se ven en ninguna pantalla.** Cuando entra dinero
+   de una cuenta ya saldada (dos comensales pagando a la vez, que en un bar
+   pasa) se guarda en `pagos_online` con `ticket = null` — bien registrado,
+   pero un encargado no tiene forma de enterarse de que hay que devolverlo.
+   Hoy hay 3 filas así, 6,65 €. Falta enseñarlo en Admin → Caja.
 2. **La cola offline puede duplicar un producto**: si la petición llega pero se
    pierde la respuesta, al reintentar suma otra unidad. Se arregla con una clave
    de idempotencia (el id de la operación en cola ya vale).
-3. **Dominio propio para cada bar** — separa de verdad la demo del local, mejor
-   que cualquier aviso.
+3. **Dominio propio para cada bar**.
 4. Informes más ricos (por producto/camarero/hora), backups y monitorización.
 5. **Actualizar N instancias** de una vez: con un bar por instalación, sin esto
    cada mejora hay que desplegarla a mano en cada uno.
