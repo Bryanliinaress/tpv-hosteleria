@@ -1,7 +1,7 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.90.0 · 478 tests en verde · repo limpio y desplegado.**
-Última sesión: 2026-08-17. Roadmap: [PRODUCCION.md](PRODUCCION.md) ·
+**Estado: v0.91.0 · 478 tests en verde · repo limpio y desplegado.**
+Última sesión: 2026-08-19. Roadmap: [PRODUCCION.md](PRODUCCION.md) ·
 Historia de los 71 fallos encontrados: [docs/AUDITORIA.md](docs/AUDITORIA.md).
 
 ---
@@ -97,6 +97,18 @@ la primera**, y que la PDA y el resto de pantallas sean fáciles e intuitivas.
 - PDA: «1 comensal» (concordancia) y arranca en **Mesas**, no en Avisos.
 - Barra: «4 bebidas» en vez de «4 platos».
 - Reservas: «Llámanos» ahora marca el teléfono de un toque, si está puesto.
+- **Pagar (cliente)**: tu tarjeta va primero y con borde de acento —llegando
+  el segundo, el primer botón grande de la pantalla era «pagar lo de otro»—;
+  cada botón dice cuánto cobra; la propina, en euros además de en porcentaje;
+  «Pagar toda la cuenta» solo si queda más de uno por pagar, y nunca a la vez
+  que estás pagando tu parte; «Total mesa» solo cuando dice algo distinto de
+  «Pendiente de pago»; y quien se une sin pedir ya no ve «Pagar mi parte ·
+  0.00 €», que abría la pasarela por cero euros.
+- **Mostrador**: «Cerrar mesa sin cobrar» ahora confirma, en rojo y diciendo
+  cuánto se queda sin cobrar. Se iba de un toque con la cuenta encima.
+- **Admin → Carta**: el precio va debajo del nombre y con el formato al lado
+  («Viena 2.50 € · Pitufo 1.50 €»). Eran dos números sueltos, y el formato
+  solo estaba en un `title` que en una tablet no se ve nunca.
 
 ### Revisado y BIEN — no tocar
 
@@ -106,9 +118,27 @@ mesas de la PDA, cola de cocina y barra, y el asistente de reservas.
 
 ### Pendiente
 
-1. **Pantalla de «Pagar» del cliente** — donde está el dinero. Sin revisar.
-2. **Mostrador completo** (`PanelCamarero`) — solo visto por encima.
-3. **Admin** — solo vistas Carta y Caja, por encima.
+1. **Admin, el resto de pestañas** — revisadas Carta y Caja; quedan Local,
+   Personal, Fichajes, Mesas, Reservas, Ajustes, Tickets e Informes.
+2. **KDS y Barra en tableta** — dados por buenos, pero no vueltos a mirar
+   desde los últimos cambios.
+3. **Mostrador, el resto**: la rejilla de mesas pierde el cuadre al abrir el
+   panel lateral (queda una mesa huérfana por zona). Cosmético, pero se ve.
+
+### Cómo se llegó a las pantallas de personal (ahorra media hora)
+
+`npm run dev` **sin perfil** enseña la pantalla vieja de email+contraseña, no
+el código de 6 dígitos: el flujo sin contraseñas depende del perfil del local.
+Para revisar personal hay que **compilar con perfil y servir el bundle**:
+
+```bash
+LOCAL=marchando VITE_BASE=/ VITE_PAGOS_ONLINE=1 npm run build
+cd dist && python -m http.server 5186
+```
+
+Y ojo con `LOCAL` en Windows: `set LOCAL=marchando && …` mete el espacio
+dentro de la variable y vite muere con «No existe el local "marchando "».
+Va `set "LOCAL=marchando"&& …`.
 
 ## Cómo se conecta un aparato (no hay contraseñas)
 
