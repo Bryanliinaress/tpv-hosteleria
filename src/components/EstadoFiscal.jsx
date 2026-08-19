@@ -47,6 +47,18 @@ export default function EstadoFiscal() {
             Último motivo: {conError[0].fiscal_error || 'error desconocido'}
           </div>
         )}
+        {/* Decir «4 tickets» sin decir CUALES obliga a abrirlos uno a uno para
+            saber a que cobro corresponde lo que no ha llegado a la AEAT. */}
+        {pendientes.length > 0 && (
+          <div style={{ fontSize: '0.78rem', marginTop: '0.35rem', opacity: 0.9, display: 'flex', flexWrap: 'wrap', gap: '0.15rem 0.9rem' }}>
+            {pendientes.slice(0, 6).map(p => (
+              <span key={p.id} style={{ whiteSpace: 'nowrap' }}>
+                Nº {p.numero} · {new Date(p.cerrado_en).toLocaleDateString('es-ES')} · {Number(p.total).toFixed(2)} €
+              </span>
+            ))}
+            {pendientes.length > 6 && <span>y {pendientes.length - 6} más</span>}
+          </div>
+        )}
       </div>
       {pendientes.length > 0 && (
         <button onClick={reintentar} disabled={cargando} style={{

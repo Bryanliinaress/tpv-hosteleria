@@ -40,9 +40,18 @@ export default function PanelAdmin() {
   const delMes = historial.filter(r => { const d = new Date(r.cerradaEn); return d.getMonth() === ahora.getMonth() && d.getFullYear() === ahora.getFullYear() })
   const totalMes = delMes.reduce((s, r) => s + r.total, 0)
   const propinasMes = delMes.reduce((s, r) => s + (r.propina || 0), 0)
+  // Ojo con la clave: agrupar por `toLocaleDateString` da «4/8/2026» y
+  // ordenar eso como texto pone el 4 de agosto por delante del 13 («4» > «1»).
+  // La clave es ISO —que ordena sola— y la fecha bonita se pinta al final.
   const porDia = {}
-  delMes.forEach(r => { const k = new Date(r.cerradaEn).toLocaleDateString('es-ES'); (porDia[k] ||= []).push(r) })
-  const dias = Object.keys(porDia).sort((a, b) => b.localeCompare(a))
+  delMes.forEach(r => {
+    const d = new Date(r.cerradaEn)
+    const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    ;(porDia[k] ||= []).push(r)
+  })
+  for (const k of Object.keys(porDia)) porDia[k].sort((a, b) => new Date(b.cerradaEn) - new Date(a.cerradaEn))
+  const dias = Object.keys(porDia).sort().reverse()
+  const diaBonito = (k) => new Date(`${k}T00:00:00`).toLocaleDateString('es-ES')
 
   const totalVentas = mesas.reduce((s, m) =>
     s + m.personas.reduce((ss, p) =>
@@ -277,7 +286,7 @@ export default function PanelAdmin() {
                     <CampoGuardado valor={m.zona || ''} onGuardar={v => updateMesa(m.id, { zona: v })} list="zonas-list" placeholder="Zona" style={{ ...inputStyle, marginBottom: '0.5rem' }} />
                     <label style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Capacidad</label>
                     <CampoGuardado valor={m.capacidad} onGuardar={v => updateMesa(m.id, { capacidad: v })} type="number" min="1" style={{ ...inputStyle, marginBottom: '0.625rem' }} />
-                    <button onClick={async () => { if (libre && await confirmar({ titulo: 'Borrar mesa', mensaje: `¿Borrar la mesa ${m.numero}?`, peligro: true, confirmar: 'Borrar' })) { removeMesa(m.id); toast('Mesa borrada', 'success') } }} disabled={!libre} style={{ width: '100%', background: libre ? '#7f1d1d' : 'var(--color-surface-2)', color: libre ? '#fff' : '#64748b', border: 'none', borderRadius: '0.5rem', padding: '0.4rem', cursor: libre ? 'pointer' : 'not-allowed', fontSize: '0.78rem' }}>{libre ? '🗑️ Borrar mesa' : 'Ocupada'}</button>
+                    <button onClick={async () => { if (libre && await confirmar({ titulo: 'Borrar mesa', mensaje: `¿Borrar la mesa ${m.numero}?`, peligro: true, confirmar: 'Borrar' })) { removeMesa(m.id); toast('Mesa borrada', 'success') } }} disabled={!libre} style={{ width: '100%', background: 'none', color: libre ? '#f43f5e' : '#64748b', border: 'none', borderRadius: '0.5rem', padding: '0.4rem', cursor: libre ? 'pointer' : 'not-allowed', fontSize: '0.78rem' }}>{libre ? '🗑️ Borrar mesa' : 'Ocupada'}</button>
                   </div>
                 )
               })}
@@ -525,6 +534,23 @@ export default function PanelAdmin() {
             <div style={ajusteCard}>
               <h3 style={ajusteTitulo}>Datos del local</h3>
               <p style={{ fontSize: '0.8rem', color: 'var(--color-muted)', marginBottom: '0.9rem' }}>Aparecen en los tickets, las cabeceras y la página de reservas.</p>
+              {/* Un hueco vacio aqui no se nota hasta que sale un ticket sin
+                  direccion o un «Llamanos» sin telefono al que llamar. */}
+              {(() => {
+                const faltan = [
+                  !local.direccion && 'la dirección',
+                  !local.telefono && 'el teléfono',
+                  !local.cif && 'el CIF',
+                ].filter(Boolean)
+                if (!faltan.length) return null
+                return (
+                  <div style={{ background: 'var(--tint-warning-bg)', color: 'var(--tint-warning-fg)', border: '1px solid var(--tint-warning-bd)', borderRadius: '0.625rem', padding: '0.7rem 0.8rem', marginBottom: '0.9rem', fontSize: '0.8rem' }}>
+                    ⚠️ Falta {faltan.length === 1 ? faltan[0] : `${faltan.slice(0, -1).join(', ')} y ${faltan.at(-1)}`}.
+                    Sale en el ticket, en el recibo del cliente y en la pantalla de reservas
+                    {!local.telefono && ' —sin teléfono, «Llámanos» no lleva a ningún sitio—'}.
+                  </div>
+                )
+              })()}
               <label style={lblCampo}>Nombre del local</label>
               <CampoGuardado valor={local.nombre || ''} onGuardar={v => updateLocal({ nombre: v })} placeholder="Mi Bar" style={{ ...inputStyle, marginBottom: '0.7rem' }} />
               <label style={lblCampo}>Subtítulo</label>
@@ -613,11 +639,11 @@ export default function PanelAdmin() {
             {dias.map(dia => (
               <div key={dia} style={{ marginBottom: '1.5rem' }}>
                 <div style={{ fontWeight: 700, marginBottom: '0.625rem', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>{dia}</span>
+                  <span>{diaBonito(dia)}</span>
                   <span style={{ color: 'var(--color-accent)' }}>{porDia[dia].reduce((s, r) => s + r.total, 0).toFixed(2)} €</span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.5rem' }}>
-                  {porDia[dia].slice().reverse().map(r => (
+                  {porDia[dia].map(r => (
                     <div key={r.id} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.625rem', padding: '0.75rem 0.875rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
                         <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Mesa {r.mesaNumero}</div>
@@ -835,7 +861,7 @@ function PersonalTab({ empleados, addEmpleado, updateEmpleado, removeEmpleado })
   return (
     <div style={{ maxWidth: '760px' }}>
       <p style={{ color: 'var(--color-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
-        Da de alta al personal y asígnale un PIN. Cada empleado entra en las pantallas (PDA, cocina, barra, impresión y este panel) con su PIN. Los <strong>administradores</strong> además pueden entrar aquí. Desactiva a quien no esté de turno sin perder su ficha.
+        Da de alta al personal y asígnale un PIN. Cada empleado entra en las pantallas (PDA, cocina, barra, impresión y este panel) con su PIN. Los <strong>administradores</strong> además pueden entrar aquí. Desactiva a quien no esté de turno sin perder su ficha. El <strong>PIN no se muestra</strong> —se guarda cifrado—: el hueco sale vacío aunque lo tenga. Para cambiarlo, escribe 4 dígitos nuevos.
       </p>
       {err && <div style={{ background: 'var(--tint-danger-bg)', border: '1px solid #f43f5e', color: 'var(--tint-danger-fg)', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.82rem', marginBottom: '0.75rem' }}>⚠️ {err}</div>}
 
@@ -849,7 +875,10 @@ function PersonalTab({ empleados, addEmpleado, updateEmpleado, removeEmpleado })
             </select>
             <div style={{ flex: '0 1 110px' }}>
               <label style={lblCampo}>PIN</label>
-              <input value={pinDraft[e.id] ?? e.pin} onChange={ev => onPin(e, ev.target.value)} inputMode="numeric" maxLength={4} style={{ ...inputStyle, letterSpacing: '0.2em', fontWeight: 700 }} />
+              {/* El PIN se guarda cifrado en el servidor y NO vuelve al
+                  navegador: el hueco sale vacio aunque el empleado tenga el
+                  suyo. Sin decirlo, parece que se ha perdido. */}
+              <input value={pinDraft[e.id] ?? e.pin ?? ''} onChange={ev => onPin(e, ev.target.value)} inputMode="numeric" maxLength={4} placeholder="••••" title="El PIN no se muestra. Escribe 4 dígitos para cambiarlo." style={{ ...inputStyle, letterSpacing: '0.2em', fontWeight: 700 }} />
             </div>
             <button onClick={() => updateEmpleado(e.id, { activo: !e.activo })} style={{ background: e.activo ? 'var(--tint-success-bg)' : 'var(--color-surface-3)', color: e.activo ? 'var(--tint-success-fg)' : 'var(--tint-warning-fg)', border: `1px solid ${e.activo ? '#10b981' : '#f59e0b'}66`, borderRadius: '9999px', padding: '0.3rem 0.7rem', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
               {e.activo ? '🟢 Activo' : '⏸ Inactivo'}
