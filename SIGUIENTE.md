@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.91.0 · 478 tests en verde · repo limpio y desplegado.**
+**Estado: v0.92.0 · 478 tests en verde · repo limpio y desplegado.**
 Última sesión: 2026-08-19. Roadmap: [PRODUCCION.md](PRODUCCION.md) ·
 Historia de los 71 fallos encontrados: [docs/AUDITORIA.md](docs/AUDITORIA.md).
 
@@ -109,6 +109,14 @@ la primera**, y que la PDA y el resto de pantallas sean fáciles e intuitivas.
 - **Admin → Carta**: el precio va debajo del nombre y con el formato al lado
   («Viena 2.50 € · Pitufo 1.50 €»). Eran dos números sueltos, y el formato
   solo estaba en un `title` que en una tablet no se ve nunca.
+- **Admin → Tickets**: los días salían desordenados (4/8, 13/8, 12/8) porque
+  se agrupaba por «4/8/2026» y se ordenaba **como texto**. Y el aviso fiscal
+  decía «4 tickets sin registrar» sin decir cuáles; ahora los lista.
+- **Admin → Personal**: el hueco del PIN sale vacío siempre —en v2 el PIN se
+  guarda cifrado y no vuelve al navegador— y no lo decía; parecía perdido.
+- **Admin → Local**: avisa de qué dato falta y dónde se va a ver.
+- **Admin → Mesas**: doce botones rojos «Borrar mesa» a ancho completo
+  mandaban más que las mesas; ahora borrar es discreto, como en Carta.
 
 ### Revisado y BIEN — no tocar
 
@@ -116,14 +124,24 @@ Carta del cliente, hoja del nombre, hoja de personalización, «Mi pedido» y su
 confirmación antes de enviar, «Enviar pedido» (destaca de sobra), rejilla de
 mesas de la PDA, cola de cocina y barra, y el asistente de reservas.
 
+### Revisado y BIEN — no tocar (Admin)
+
+Reservas, Ajustes, Informes, QR Codes y Dispositivos. Fichajes está correcto,
+solo que su «Sin fichajes este mes» es texto pelado mientras Reservas tiene
+un vacío con icono; si se retoca, que sea por consistencia, no por fallo.
+
 ### Pendiente
 
-1. **Admin, el resto de pestañas** — revisadas Carta y Caja; quedan Local,
-   Personal, Fichajes, Mesas, Reservas, Ajustes, Tickets e Informes.
-2. **KDS y Barra en tableta** — dados por buenos, pero no vueltos a mirar
+1. **KDS y Barra en tableta** — dados por buenos, pero no vueltos a mirar
    desde los últimos cambios.
-3. **Mostrador, el resto**: la rejilla de mesas pierde el cuadre al abrir el
+2. **Mostrador, el resto**: la rejilla de mesas pierde el cuadre al abrir el
    panel lateral (queda una mesa huérfana por zona). Cosmético, pero se ve.
+3. **Admin → Tickets** marca cuáles faltan por registrar en el aviso, pero
+   **no en la lista**: el ticket de la lista no lleva su estado fiscal porque
+   la pantalla lo saca del store y el estado vive en la RPC. Si molesta, hay
+   que juntar las dos fuentes.
+4. **Dato**, no código: en Ajustes → Tipo de pan hay un «Con Gluten» junto a
+   «Sin gluten +1.20 €». Suena a resto de la carta de ejemplo.
 
 ### Cómo se llegó a las pantallas de personal (ahorra media hora)
 
@@ -282,8 +300,8 @@ días parados). Por eso **Supabase Pro es requisito de producción**.
 ## Pendiente — y de quién depende
 
 ### De Bryan
-1. **Rellenar los datos del local** en Admin → Local: **teléfono, dirección y
-   CIF están vacíos**. Salen en el ticket, en el recibo del cliente y en la
+1. **Rellenar los datos del local** en Admin → Local: **faltan el teléfono y
+   la dirección** (el CIF ya está puesto: B75777847). La pantalla ya avisa. Salen en el ticket, en el recibo del cliente y en la
    pantalla de reservas («Llámanos» sin número al que llamar). Un hostelero que
    ve un ticket sin dirección piensa que el software no lo contempla. No lo
    relleno yo: un número inventado en una página pública acaba haciendo que
