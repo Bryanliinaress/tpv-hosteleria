@@ -239,6 +239,15 @@ export default function CartaCliente() {
   const totalPendienteMesa = mesa.personas.filter(p => !p.pagado).reduce((s, p) => s + owed[p.id], 0)
   const pedirParaOtro = !!yo && personaActiva.id !== yo.id
 
+  // En la cuenta, tú vas primero. Llegando el segundo, el primer botón grande
+  // de la pantalla era «Pagar lo de <el otro>»: en la pantalla del dinero, el
+  // botón de arriba tiene que ser el tuyo.
+  const personasCuenta = yo ? [yo, ...mesa.personas.filter(p => p.id !== yo.id)] : mesa.personas
+  // «Pagar toda la cuenta» solo aporta si queda más de uno por pagar. Con un
+  // comensal era un segundo botón, del mismo color y por el mismo importe, que
+  // hacía exactamente lo que el de arriba.
+  const cuentaCompletaAporta = mesa.personas.filter(p => !p.pagado).length > 1
+
   const ESTADO_ITEM = {
     recibido: { label: t('En cola'), color: '#f59e0b', emoji: '📥' },
     preparando: { label: t('Preparándose'), color: '#3b82f6', emoji: '👨‍🍳' },
@@ -336,12 +345,12 @@ export default function CartaCliente() {
           <button onClick={() => setVista('carta')} style={btnStyle('var(--color-surface-2)')}>←</button>
           <h2 style={{ fontWeight: 700, fontSize: '1.25rem' }}>{t('Cuenta — Mesa')} {mesa.numero}</h2>
         </div>
-        {mesa.personas.map(p => {
+        {personasCuenta.map(p => {
           const totalP = owed[p.id]
           const esYo = p.id === yo.id
           const lineas = lineasDe(p)
           return (
-            <div key={p.id} style={{ ...cardStyle, marginBottom: '0.75rem', borderColor: p.pagado ? '#10b981' : 'var(--color-border)' }}>
+            <div key={p.id} style={{ ...cardStyle, marginBottom: '0.75rem', borderColor: p.pagado ? '#10b981' : esYo ? 'var(--color-accent)' : 'var(--color-border)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                 <div style={{ fontWeight: 700, color: 'var(--color-accent)' }}>{p.nombre}{esYo && <span style={{ color: 'var(--color-muted)', fontWeight: 400 }}> (tú)</span>}</div>
                 {p.pagado && <span style={{ fontSize: '0.7rem', background: 'var(--tint-success-bg)', color: 'var(--tint-success-fg)', borderRadius: '9999px', padding: '0.15rem 0.6rem', fontWeight: 700 }}>✓ Pagado{p.propina > 0 ? ` · +${p.propina.toFixed(2)} €` : ''}</span>}
@@ -388,9 +397,9 @@ export default function CartaCliente() {
               <div style={{ borderTop: '2px solid var(--color-border)', marginTop: '0.5rem', paddingTop: '0.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontWeight: 700 }}>{totalP.toFixed(2)} €</span>
-                  {!p.pagado && pagoOnlineDisponible && pagando !== p.id && (
-                    <button onClick={() => { setPagando(p.id); setPropinaPct(0) }} style={btnStyle('#635bff', { padding: '0.4rem 0.9rem', fontSize: '0.8rem' })}>
-                      💳 {esYo ? t('Pagar mi parte') : `${t('Pagar parte de')} ${p.nombre}`}
+                  {!p.pagado && pagoOnlineDisponible && pagando !== p.id && totalP > 0.005 && (
+                    <button onClick={() => { setPagando(p.id); setPropinaPct(0); setPagandoTodo(false) }} style={btnStyle('#635bff', { padding: '0.4rem 0.9rem', fontSize: '0.8rem' })}>
+                      💳 {esYo ? t('Pagar mi parte') : `${t('Pagar lo de')} ${p.nombre}`} · {totalP.toFixed(2)} €
                     </button>
                   )}
                 </div>
@@ -400,7 +409,7 @@ export default function CartaCliente() {
                     <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
                       {[0, 5, 10, 15].map(pct => (
                         <button key={pct} onClick={() => setPropinaPct(pct)} style={btnStyle(propinaPct === pct ? 'var(--color-accent)' : 'var(--color-surface-3)', { fontSize: '0.75rem', padding: '0.3rem 0.6rem' })}>
-                          {pct === 0 ? t('Sin propina') : `${pct}%`}
+                          {pct === 0 ? t('Sin propina') : `${pct}% · +${(totalP * pct / 100).toFixed(2)} €`}
                         </button>
                       ))}
                     </div>
@@ -430,9 +439,11 @@ export default function CartaCliente() {
           <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1.1rem' }}>
             <span>{t('Pendiente de pago')}</span><span style={{ color: 'var(--color-accent)' }}>{totalPendienteMesa.toFixed(2)} €</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--color-muted)', marginTop: '0.25rem' }}>
-            <span>{t('Total mesa')}</span><span>{totalMesa.toFixed(2)} €</span>
-          </div>
+          {totalMesa - totalPendienteMesa > 0.005 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--color-muted)', marginTop: '0.25rem' }}>
+              <span>{t('Total mesa')}</span><span>{totalMesa.toFixed(2)} €</span>
+            </div>
+          )}
         </div>
 
         {/* Sin pasarela de pago, el cliente tiene que saber QUÉ hacer: antes
@@ -452,7 +463,7 @@ export default function CartaCliente() {
         )}
 
         {/* Pagar la cuenta completa (un comensal por todos) */}
-        {pagoOnlineDisponible && totalPendienteMesa > 0 && (
+        {pagoOnlineDisponible && totalPendienteMesa > 0 && cuentaCompletaAporta && pagando === null && (
           <div style={{ ...cardStyle, marginBottom: '1rem' }}>
             {!pagandoTodo ? (
               <button onClick={() => { setPagandoTodo(true); setPropinaTodoPct(0); setPagando(null) }} style={btnStyle('#635bff', { width: '100%', padding: '0.875rem', fontSize: '0.95rem' })}>
@@ -467,7 +478,7 @@ export default function CartaCliente() {
                 <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', marginBottom: '0.6rem' }}>
                   {[0, 5, 10, 15].map(pct => (
                     <button key={pct} onClick={() => setPropinaTodoPct(pct)} style={btnStyle(propinaTodoPct === pct ? 'var(--color-accent)' : 'var(--color-surface-3)', { fontSize: '0.75rem', padding: '0.3rem 0.6rem' })}>
-                      {pct === 0 ? t('Sin propina') : `${pct}%`}
+                      {pct === 0 ? t('Sin propina') : `${pct}% · +${(totalPendienteMesa * pct / 100).toFixed(2)} €`}
                     </button>
                   ))}
                 </div>
