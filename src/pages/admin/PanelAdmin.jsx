@@ -225,13 +225,21 @@ export default function PanelAdmin() {
                             {prod.descripcion}
                             {(prod.alergenos || []).length > 0 && <span title={prod.alergenos.map(a => ALERGENOS.find(x => x.id === a)?.nombre || a).join(', ')} style={{ marginLeft: '0.4rem' }}>{prod.alergenos.map(a => ALERGENOS.find(x => x.id === a)?.emoji || '•').join('')}</span>}
                           </div>
-                        </div>
-                        <div style={{ fontWeight: 700, color: 'var(--color-accent)', fontSize: '0.85rem', margin: '0 0.75rem', whiteSpace: 'nowrap', textAlign: 'right' }}>
-                          {prod.precios
-                            ? Object.entries(prod.precios).map(([k, v]) => (
-                                <div key={k} title={carta.formatos.find(f => f.id === k)?.nombre || k}>{Number(v).toFixed(2)} €</div>
-                              ))
-                            : <>{(prod.precio ?? 0).toFixed(2)} €</>}
+                          {/* El precio, debajo del nombre y CON el formato al lado.
+                              Dos numeros sueltos en una columna aparte no dicen
+                              cual es cual —el nombre del formato solo estaba en
+                              un `title`, que en una tablet no se ve nunca— y
+                              encima estrujaban el nombre a cuatro lineas. */}
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.15rem 0.7rem', marginTop: '0.3rem', fontWeight: 700, color: 'var(--color-accent)', fontSize: '0.85rem' }}>
+                            {prod.precios
+                              ? Object.entries(prod.precios).map(([k, v]) => (
+                                  <span key={k} style={{ whiteSpace: 'nowrap' }}>
+                                    <span style={{ color: 'var(--color-muted)', fontWeight: 400, fontSize: '0.72rem' }}>{carta.formatos.find(f => f.id === k)?.nombre || k} </span>
+                                    {Number(v).toFixed(2)} €
+                                  </span>
+                                ))
+                              : <span style={{ whiteSpace: 'nowrap' }}>{(prod.precio ?? 0).toFixed(2)} €</span>}
+                          </div>
                         </div>
                         <div style={{ display: 'flex', gap: '0.2rem', alignItems: 'center' }}>
                           <button onClick={() => toggleDisponible(prod.id)} title={prod.disponible ? 'Marcar agotado' : 'Marcar disponible'} aria-label={prod.disponible ? `Marcar ${prod.nombre} agotado` : `Marcar ${prod.nombre} disponible`} style={iconBtn}>{prod.disponible ? '🟢' : '⚪'}</button>

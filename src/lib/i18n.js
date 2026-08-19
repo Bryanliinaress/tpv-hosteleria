@@ -55,7 +55,7 @@ const EN = {
   'Editar reparto': 'Edit split',
   'No hay nadie más en la mesa': 'No one else at the table',
   'Pagar mi parte': 'Pay my share',
-  'Pagar parte de': 'Pay for',
+  'Pagar lo de': 'Pay for',
   '¿Añadir propina?': 'Add a tip?',
   'Sin propina': 'No tip',
   'Pagar': 'Pay',
