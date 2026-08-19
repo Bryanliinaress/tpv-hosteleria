@@ -389,7 +389,22 @@ export default function PanelCamarero() {
                   <button onClick={() => setTicket({ tipo: 'cuenta' })} style={btn('var(--color-surface-2)', { flex: 1, fontSize: '0.85rem' })}>💶 Cuenta</button>
                 </div>
 
-                <button onClick={() => liberarMesa(mesa.id)} style={btn('var(--color-surface-3)', { width: '100%', fontSize: '0.8rem' })}>
+                {/* Es la unica accion de esta pantalla que tira dinero a la
+                    basura: anular una linea pide motivo y unir mesas confirma,
+                    y esto se iba de un toque. */}
+                <button onClick={async () => {
+                  const pendiente = mesa.personas.filter(p => !p.pagado).reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0)
+                  const ok = await confirmar({
+                    titulo: `Cerrar la Mesa ${mesa.numero} sin cobrar`,
+                    mensaje: pendiente > 0
+                      ? `Quedan ${pendiente.toFixed(2)} € sin cobrar. La mesa se libera y esa cuenta no se cobra a nadie.`
+                      : 'La mesa se libera y queda lista para el siguiente cliente.',
+                    confirmar: 'Cerrar sin cobrar',
+                    peligro: true,
+                  })
+                  if (!ok) return
+                  liberarMesa(mesa.id)
+                }} style={btn('var(--color-surface-3)', { width: '100%', fontSize: '0.8rem' })}>
                   Cerrar mesa sin cobrar
                 </button>
               </>
