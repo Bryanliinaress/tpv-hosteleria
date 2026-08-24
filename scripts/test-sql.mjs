@@ -11,8 +11,9 @@
 import { entorno, consulta, envolver, comprobar, comprobarIgual, FIN } from './lib/sql-test.mjs'
 import { PRUEBAS as DINERO } from './lib/pruebas-dinero.mjs'
 import { PRUEBAS_RECTIFICATIVAS } from './lib/pruebas-rectificativas.mjs'
+import { PRUEBAS_INFORMES } from './lib/pruebas-informes.mjs'
 
-const PRUEBAS = [...DINERO, ...PRUEBAS_RECTIFICATIVAS]
+const PRUEBAS = [...DINERO, ...PRUEBAS_RECTIFICATIVAS, ...PRUEBAS_INFORMES]
 
 const env = entorno()
 if (!env.token) {

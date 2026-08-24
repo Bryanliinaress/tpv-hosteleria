@@ -312,6 +312,12 @@ export const useStore = create(persist((set, get) => ({
     abiertaDesde: null,
   })),
 
+  // Informe de ventas de un periodo. En el backend real lo calcula el
+  // servidor (así sirve para cualquier fecha, no solo para lo que el
+  // dispositivo tenga descargado); en la demo no hay servidor, así que se
+  // responde que no hay datos y la pantalla lo dice.
+  informeVentas: async () => null,
+
   // Devolver dinero de un ticket ya emitido. En la DEMO no hay registro fiscal
   // ni caja de verdad, así que aquí solo se responde que no aplica: quien lo
   // hace es el backend real, que emite la factura rectificativa.
