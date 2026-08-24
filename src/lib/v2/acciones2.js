@@ -1,4 +1,5 @@
 import { supabase } from '../supabase'
+import { preciosNumericos } from '../dinero'
 import { useStore, propinasPorMetodoDe } from '../../store/useStore'
 import { reservas as rpcReservas, personal } from '../repo'
 import { toast } from '../../store/useUI'
@@ -26,6 +27,11 @@ async function actualizarConfig(parche) {
   await cargarLocal(); await cargarCarta()
 }
 const cartaCfg = () => useStore.getState().carta
+
+// Un producto sin tamaños llega con `precio` suelto y sin `precios`: si se
+// guardara el mapa vacío se quedaría sin precio.
+const conPrecio = (mapa, precio) =>
+  Object.keys(mapa).length ? mapa : { base: Number(precio) || 0 }
 
 
 export function accionesV2b() {
@@ -225,9 +231,11 @@ export function accionesV2b() {
       try {
         await t('productos').insert({
           local_id: getLocalId(), categoria_id: p.categoria, nombre: p.nombre,
-          descripcion: p.descripcion || '', precios: p.precios || { base: p.precio ?? 0 },
+          descripcion: p.descripcion || '', precios: conPrecio(preciosNumericos(p.precios), p.precio),
           modificadores: { ingredientes: p.ingredientes || [], imagen: p.imagen || '', menu: p.menu || null, nombreEn: (p.nombreEn || '').trim(), descripcionEn: (p.descripcionEn || '').trim() },
           alergenos: p.alergenos || [], disponible: true,
+          // null = «el del local». Solo se guarda un tipo propio si se pone uno.
+          iva_pct: p.ivaPct === '' || p.ivaPct == null ? null : Number(p.ivaPct),
           orden: st().carta.productos.length,
         }); cargarCarta()
       } catch (e) { err(e) }
@@ -240,9 +248,13 @@ export function accionesV2b() {
           descripcion: c.descripcion ?? p.descripcion,
           // sin el último fallback, editar solo el nombre de un café (que ya no
           // lleva `precios`, ver preciosDeProducto) le borraba el precio
-          precios: c.precios ?? (c.precio != null ? { base: c.precio } : p.precios ?? { base: p.precio ?? 0 }),
+          precios: c.precios ? conPrecio(preciosNumericos(c.precios), c.precio)
+            : (c.precio != null ? { base: Number(c.precio) || 0 } : conPrecio(preciosNumericos(p.precios), p.precio)),
           modificadores: { ingredientes: c.ingredientes ?? p.ingredientes, imagen: c.imagen ?? p.imagen, menu: c.menu !== undefined ? c.menu : p.menu ?? null, nombreEn: (c.nombreEn ?? p.nombreEn ?? '').trim(), descripcionEn: (c.descripcionEn ?? p.descripcionEn ?? '').trim() },
           alergenos: c.alergenos ?? p.alergenos,
+          iva_pct: c.ivaPct === undefined
+            ? (p.ivaPct ?? null)
+            : (c.ivaPct === '' || c.ivaPct == null ? null : Number(c.ivaPct)),
         }).eq('id', id); cargarCarta()
       } catch (e) { err(e) }
     },

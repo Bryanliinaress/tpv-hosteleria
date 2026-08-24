@@ -154,6 +154,57 @@ ${comprobar(`v_fila.precio = (v_fila.precios->>'base')::numeric`, 'el precio de 
   },
 
   {
+    nombre: 'un ticket con dos tipos de IVA se desglosa en DOS lineas, y cuadran',
+    cuerpo: ({ comprobarIgual }) => `
+${montarMesa(1)}
+  -- consumicion al 10 % y botella para llevar al 21 %
+  insert into lineas_pedido (local_id, comensal_id, producto_id, nombre, precio, cantidad, tipo, estado, iva_pct)
+  values (v_local, v_com, v_prod, 'Consumicion', 11.00, 1, 'comida', 'enviado', 10),
+         (v_local, v_com, v_prod, 'Botella', 12.10, 1, 'bebida', 'enviado', 21);
+  v_num := cobrar_mesa(v_mesa, '{"efectivo": 23.10}'::jsonb, 0, 'Prueba', 0);
+
+  select count(*) into v_dato from desglose_iva_ticket(
+    (select id from tickets where numero = v_num and local_id = v_local));
+${comprobarIgual('v_dato', '2', 'dos tipos, dos lineas de desglose')}
+
+  select sum(base + cuota) into v_dato from desglose_iva_ticket(
+    (select id from tickets where numero = v_num and local_id = v_local));
+${comprobarIgual('v_dato', '23.10', 'la suma del desglose es el total del ticket')}
+
+  select cuota into v_dato from desglose_iva_ticket(
+    (select id from tickets where numero = v_num and local_id = v_local)) where iva_pct = 21;
+${comprobarIgual('v_dato', '2.10', 'el 21 % de 12,10 € con IVA incluido son 2,10 € de cuota')}
+`,
+  },
+
+  {
+    nombre: 'el IVA se CONGELA en la linea: cambiarlo despues no reescribe el ticket',
+    cuerpo: ({ comprobarIgual }) => `
+${montarMesa(1)}
+  update productos set iva_pct = 21 where id = v_prod;
+  perform qr_agregar_linea(v_com, v_prod, null, '{}'::jsonb, 1, 1);
+  select iva_pct into v_dato from lineas_pedido where comensal_id = v_com limit 1;
+${comprobarIgual('v_dato', '21', 'la linea nace con el tipo del producto')}
+
+  -- el bar se equivoco y lo corrige DESPUES: la linea ya pedida no cambia
+  update productos set iva_pct = 10 where id = v_prod;
+  select iva_pct into v_dato from lineas_pedido where comensal_id = v_com limit 1;
+${comprobarIgual('v_dato', '21', 'una factura ya emitida no se reescribe al tocar la carta')}
+`,
+  },
+
+  {
+    nombre: 'un producto sin IVA propio usa el del local',
+    cuerpo: ({ comprobarIgual }) => `
+${montarMesa(1)}
+  update productos set iva_pct = null where id = v_prod;
+  perform qr_agregar_linea(v_com, v_prod, null, '{}'::jsonb, 1, 1);
+  select iva_pct into v_dato from lineas_pedido where comensal_id = v_com limit 1;
+${comprobarIgual('v_dato', "coalesce((select (config->>'ivaPct')::numeric from locales where id = v_local), 10)", 'hereda el tipo del local')}
+`,
+  },
+
+  {
     nombre: 'pedir acceso tiene tope: no se puede llenar la lista del encargado',
     cuerpo: ({ comprobar, comprobarIgual }) => `
   -- Se parte de cero: la prueba no puede depender de si alguien tenía una

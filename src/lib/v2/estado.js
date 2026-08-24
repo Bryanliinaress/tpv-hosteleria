@@ -1,5 +1,6 @@
 import { supabase } from '../supabase'
 import { useStore } from '../../store/useStore'
+import { preciosNumericos } from '../dinero'
 import { suscribirLocal } from '../repo'
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -51,7 +52,11 @@ const notaDe = (l) => {
 // **0,00 €**. Se traduce aquí, en el borde: `base` → `precio`, que es el shape
 // que documenta el store («o `precios`, o `precio`, nunca los dos»).
 export function preciosDeProducto(precios) {
-  const mapa = precios && typeof precios === 'object' ? precios : {}
+  // A NÚMEROS siempre. El formulario de Admin guardó durante un tiempo lo que
+  // se tecleaba —texto— y una carta con `"2.5"` en vez de `2.5` reventaba la
+  // pantalla del cliente al llamar a `.toFixed()`. Se arregló al guardar, pero
+  // los productos que ya se guardaron así siguen en la base de algún bar.
+  const mapa = preciosNumericos(precios)
   const claves = Object.keys(mapa)
   const sinFormatos = claves.length === 0 || (claves.length === 1 && claves[0] === 'base')
   return sinFormatos ? { precio: Number(mapa.base) || 0 } : { precios: mapa }
@@ -135,7 +140,7 @@ export async function cargarLocal() {
 export async function cargarCarta() {
   const [cats, prods] = await Promise.all([
     q('categorias', 'id, nombre, tipo, emoji, orden'),
-    q('productos', 'id, categoria_id, nombre, descripcion, precios, modificadores, alergenos, disponible, orden'),
+    q('productos', 'id, categoria_id, nombre, descripcion, precios, modificadores, alergenos, disponible, orden, iva_pct'),
   ])
   cats.sort((a, b) => a.orden - b.orden); prods.sort((a, b) => a.orden - b.orden)
   useStore.setState(s => ({
@@ -151,6 +156,8 @@ export async function cargarCarta() {
         menu: p.modificadores?.menu || null,
         nombreEn: p.modificadores?.nombreEn || '',
         descripcionEn: p.modificadores?.descripcionEn || '',
+        // null significa «el del local»: la mayoría de productos no lleva tipo propio
+        ivaPct: p.iva_pct == null ? null : Number(p.iva_pct),
       })),
     },
     // A partir de aquí lo que se ve es la carta DEL LOCAL, no la de ejemplo con

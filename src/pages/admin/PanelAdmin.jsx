@@ -16,7 +16,7 @@ import Informes from './Informes'
 import Dispositivos from '../../components/Dispositivos'
 import { desgloseIVA, totalDe } from '../../lib/dinero'
 
-const emptyForm = { nombre: '', nombreEn: '', categoria: '', descripcion: '', descripcionEn: '', alergenos: [], imagen: '', conFormatos: false, precios: {}, precio: '', menu: null }
+const emptyForm = { nombre: '', nombreEn: '', categoria: '', descripcion: '', descripcionEn: '', alergenos: [], imagen: '', conFormatos: false, precios: {}, precio: '', menu: null, ivaPct: '' }
 
 export default function PanelAdmin() {
   const { carta, mesas, historial, cierres, anulaciones, pagosSinCuenta, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, addCategoria, removeCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, editarFichaje, borrarFichaje, pedirFichajesDe } = useStore()
@@ -96,6 +96,7 @@ export default function PanelAdmin() {
       conFormatos: !!prod.precios,
       precios: prod.precios ? Object.fromEntries(Object.entries(prod.precios).map(([k, v]) => [k, String(v)])) : {},
       precio: String(prod.precio ?? ''),
+      ivaPct: prod.ivaPct == null ? '' : String(prod.ivaPct),
     })
   }
   const cancelar = () => { setEditando(null); setForm(emptyForm) }
@@ -249,6 +250,14 @@ export default function PanelAdmin() {
                                   </span>
                                 ))
                               : <span style={{ whiteSpace: 'nowrap' }}>{(prod.precio ?? 0).toFixed(2)} €</span>}
+                            {/* Solo si NO es el del local: marcarlo en los 58
+                                productos sería ruido; marcarlo en los dos que
+                                se salen es justo el aviso que hace falta. */}
+                            {prod.ivaPct != null && Number(prod.ivaPct) !== Number(local.ivaPct ?? 10) && (
+                              <span style={{ fontWeight: 700, fontSize: '0.7rem', color: 'var(--tint-warning-fg)', background: 'var(--tint-warning-bg)', border: '1px solid var(--tint-warning-bd)', borderRadius: '9999px', padding: '0.05rem 0.45rem', whiteSpace: 'nowrap' }}>
+                                IVA {Number(prod.ivaPct)}%
+                              </span>
+                            )}
                           </div>
                         </div>
                         <div style={{ display: 'flex', gap: '0.2rem', alignItems: 'center' }}>
@@ -980,6 +989,19 @@ function FormProducto({ carta, form, setForm, onGuardar, onCancelar, titulo }) {
       </button>
 
       {verAvanzado && (<>
+        {/* El IVA vive aquí y no arriba a propósito: casi todo lo que vende un
+            bar va al tipo del local, y pedirlo en el alta rápida sería estorbar
+            en el 95 % de los casos para acertar en el 5 %. Pero ese 5 % —una
+            botella para llevar al 21 %, pan al 4 %— sale en el ticket y en lo
+            que consta en Hacienda. */}
+        <label style={lblCampo}>IVA de este producto</label>
+        <select value={form.ivaPct} onChange={set('ivaPct')} style={{ ...inputStyle, minHeight: '44px', alignSelf: 'flex-start', minWidth: '15rem' }}>
+          <option value="">El del local (lo normal)</option>
+          <option value="4">4 % — pan, leche, fruta, huevos</option>
+          <option value="10">10 % — hostelería</option>
+          <option value="21">21 % — el resto</option>
+        </select>
+
         <button type="button" onClick={() => setForm(f => ({ ...f, conFormatos: !f.conFormatos }))}
           style={{ background: form.conFormatos ? '#7c3aed' : 'var(--color-inset)', color: form.conFormatos ? '#fff' : 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', minHeight: '44px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, alignSelf: 'flex-start' }}>
           {form.conFormatos ? '📐 Varios tamaños (pitufo, viena…)' : '💶 Precio único'}

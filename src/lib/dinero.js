@@ -42,3 +42,46 @@ export function desgloseIVA(total, ivaPct = 10) {
   const base = cent(t / (1 + pct / 100))
   return { ivaPct: pct, base, iva: cent(t - base), total: cent(t) }
 }
+
+/**
+ * Desglose por TIPO de IVA. Un bar de hostelería pura tiene uno solo y esto
+ * devuelve una única entrada, idéntica a `desgloseIVA`. Pero en cuanto vende
+ * algo al 21 % (una botella para llevar) o al 4 % (pan, leche), la factura
+ * simplificada lleva una línea de desglose POR TIPO — no una con la media, que
+ * es lo que salía antes.
+ *
+ * `lineas` son items con { precio, cantidad, ivaPct }. Los que no traen tipo
+ * (tickets anteriores a esto) usan el del local.
+ */
+export function desglosePorTipo(lineas, ivaPorDefecto = 10) {
+  const porTipo = new Map()
+  for (const l of lineas || []) {
+    const pct = Number(l?.ivaPct ?? ivaPorDefecto) || 0
+    porTipo.set(pct, cent((porTipo.get(pct) || 0) + importeLinea(l)))
+  }
+  return [...porTipo.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([ivaPct, total]) => desgloseIVA(total, ivaPct))
+}
+
+/** Todas las líneas de un ticket o de una mesa, en una sola lista. */
+export const lineasDe = (personas) => (personas || []).flatMap(p => p?.items || [])
+
+/**
+ * Precios de la carta, siempre como NÚMEROS.
+ *
+ * El formulario de Admin guarda lo que se teclea, que es texto. Sin pasar por
+ * aquí, editar un producto con tamaños dejaba `precios: {"viena": "2.5"}` —una
+ * cadena— y la carta del cliente se rompía entera al intentar `.toFixed()`
+ * sobre ella: pantalla en blanco en el móvil de quien iba a pedir.
+ */
+export function preciosNumericos(precios) {
+  if (!precios || typeof precios !== 'object') return {}
+  const limpio = {}
+  for (const [k, v] of Object.entries(precios)) {
+    if (v === '' || v === null || v === undefined) continue
+    const n = Number(v)
+    if (Number.isFinite(n)) limpio[k] = cent(n)
+  }
+  return limpio
+}

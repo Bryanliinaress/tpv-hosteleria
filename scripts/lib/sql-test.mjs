@@ -82,12 +82,18 @@ end $$;`
 
 export const sqlLit = (s) => `'${String(s).replace(/'/g, "''")}'`
 
+// Un `%` dentro del mensaje se lo come RAISE como marcador de parámetro («too
+// few parameters specified for RAISE»), y en pruebas de IVA los mensajes están
+// llenos de porcentajes. Se escapa aquí y no a mano en cada texto.
+const escaparPct = (m) => String(m).replace(/%/g, '%%')
+const mensajeSql = (m) => sqlLit(escaparPct(m))
+
 /** `comprobar` en PL/pgSQL, para escribir aserciones legibles dentro del cuerpo. */
 export const comprobar = (condicion, mensaje) =>
-  `  if not (${condicion}) then raise exception ${sqlLit('FALLO: ' + mensaje)}; end if;`
+  `  if not (${condicion}) then raise exception ${mensajeSql('FALLO: ' + mensaje)}; end if;`
 
 /** Igual, pero enseñando el valor obtenido cuando falla (que es lo que importa). */
 export const comprobarIgual = (expr, esperado, mensaje) =>
   `  if (${expr}) is distinct from (${esperado}) then
-    raise exception ${sqlLit('FALLO: ' + mensaje + ' — esperaba %, obtuve %')}, ${esperado}, (${expr});
+    raise exception ${sqlLit(escaparPct('FALLO: ' + mensaje) + ' — esperaba %, obtuve %')}, ${esperado}, (${expr});
   end if;`
