@@ -1,4 +1,5 @@
 import { Component } from 'react'
+import { registrar } from '../lib/incidencias'
 
 // ────────────────────────────────────────────────────────────────────────────
 // La red de seguridad de la pantalla.
@@ -26,9 +27,11 @@ export default class SiFalla extends Component {
   static getDerivedStateFromError(error) { return { error } }
 
   componentDidCatch(error, info) {
-    // Que quede en la consola del aparato: es lo único que hay para saber qué
-    // pasó cuando el bar llame diciendo «se ha quedado en blanco».
+    // Que quede en la consola del aparato…
     console.error('Pantalla caída:', error, info?.componentStack)
+    // …y también en la base del local, para no depender de que alguien llame.
+    // Un trozo que no llega no es una avería: es una versión nueva.
+    if (!esChunkQueNoLlega(error)) registrar('render', error)
   }
 
   render() {

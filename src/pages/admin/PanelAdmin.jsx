@@ -19,7 +19,7 @@ import { desgloseIVA, totalDe } from '../../lib/dinero'
 const emptyForm = { nombre: '', nombreEn: '', categoria: '', descripcion: '', descripcionEn: '', alergenos: [], imagen: '', conFormatos: false, precios: {}, precio: '', menu: null }
 
 export default function PanelAdmin() {
-  const { carta, mesas, historial, cierres, anulaciones, pagosSinCuenta, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, addCategoria, removeCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, editarFichaje, borrarFichaje } = useStore()
+  const { carta, mesas, historial, cierres, anulaciones, pagosSinCuenta, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, addCategoria, removeCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, editarFichaje, borrarFichaje, pedirFichajesDe } = useStore()
   const hoyStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
   const reservasHoy = reservas.filter(r => r.fecha === hoyStr && r.estado === 'confirmada').length
   const [tab, setTab] = useState('carta')
@@ -641,7 +641,7 @@ export default function PanelAdmin() {
 
         {/* Tab Fichajes (registro de jornada) */}
         {tab === 'fichajes' && (
-          <FichajesTab fichajes={fichajes} empleados={empleados} editarFichaje={editarFichaje} borrarFichaje={borrarFichaje} local={local} />
+          <FichajesTab fichajes={fichajes} empleados={empleados} editarFichaje={editarFichaje} borrarFichaje={borrarFichaje} local={local} pedirFichajesDe={pedirFichajesDe} />
         )}
 
         {/* Tab Personal (empleados y accesos) */}
@@ -749,9 +749,13 @@ function CampoGuardado({ valor, onGuardar, ...props }) {
   )
 }
 
-function FichajesTab({ fichajes, editarFichaje, borrarFichaje, local }) {
+function FichajesTab({ fichajes, editarFichaje, borrarFichaje, local, pedirFichajesDe }) {
   const [mes, setMes] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` })
   const [edit, setEdit] = useState(null) // { id, entrada, salida } en formato datetime-local
+
+  // El mes que se mira se pide al servidor: la jornada se conserva cuatro años
+  // y bajarla entera para enseñar un mes es lo que hacía antes.
+  useEffect(() => { pedirFichajesDe?.(mes) }, [mes, pedirFichajesDe])
 
   // ojo: comparar en LOCAL. Un turno que entra a la 01:00 del día 1 se guarda
   // como las 23:00 del último día del mes anterior en UTC, y caía en la nómina

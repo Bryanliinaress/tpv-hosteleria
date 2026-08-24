@@ -312,6 +312,11 @@ export const useStore = create(persist((set, get) => ({
     abiertaDesde: null,
   })),
 
+  // La pestaña de Fichajes pide el mes que se está mirando. En la demo está
+  // todo en el dispositivo, así que no hay nada que traer; en v2 lo baja del
+  // servidor (el registro de jornada se conserva 4 años y no cabe entero).
+  pedirFichajesDe: () => {},
+
   // Cobros online que no cuadraron con ninguna cuenta (dos comensales pagando a
   // la vez). Solo los rellena el backend real; en la demo se queda vacío.
   pagosSinCuenta: [],

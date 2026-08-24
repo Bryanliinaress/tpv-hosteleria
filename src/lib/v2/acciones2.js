@@ -309,6 +309,8 @@ export function accionesV2b() {
     },
 
     // ── Local / reservas config ─────────────────────────────────
+    pedirFichajesDe: (mes) => { cargarFichajes(mes) },
+
     updateLocal: (cambios) => actualizarConfig(cambios).catch(err),
     updateEtiquetas: (cambios) => actualizarConfig({ carta: { etiquetas: { ...(cartaCfg().etiquetas || {}), ...cambios } } }).catch(err),
     updateReservasConfig: (cambios) => actualizarConfig({ reservas: cambios }).catch(err),

@@ -294,9 +294,34 @@ export async function cargarPagosSinCuenta() {
   } catch { /* sin permisos (cliente anónimo) o tabla sin migrar: se ignora */ }
 }
 
-export async function cargarFichajes() {
+// ── Fichajes ────────────────────────────────────────────────────────────────
+//
+// El registro de jornada hay que conservarlo CUATRO años (RD-ley 8/2019), así
+// que bajárselo entero es lo mismo que pasaba con los tickets. Pero aquí no
+// vale una ventana fija: la pestaña tiene selector de mes y el encargado puede
+// consultar cualquiera. Se baja el mes que se está mirando, y ya está.
+//
+// El margen de un día por cada lado no es un capricho: un turno que entra a la
+// 01:00 del día 1 se guarda como las 23:00 del último día del mes anterior en
+// UTC. Sin el margen, ese fichaje desaparecería del mes al que pertenece.
+export function rangoDelMes(mes) {
+  const [a, m] = String(mes).split('-').map(Number)
+  if (!a || !m) return null
+  const desde = new Date(Date.UTC(a, m - 1, 1)); desde.setUTCDate(desde.getUTCDate() - 1)
+  const hasta = new Date(Date.UTC(a, m, 1)); hasta.setUTCDate(hasta.getUTCDate() + 1)
+  return { desde: desde.toISOString(), hasta: hasta.toISOString() }
+}
+
+const mesActual = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` }
+
+export async function cargarFichajes(mes = mesActual()) {
   try {
-    const fichajes = await q('fichajes', 'id, empleado_id, entrada, salida, editado_por')
+    const r = rangoDelMes(mes)
+    let query = supabase.from('fichajes').select('id, empleado_id, entrada, salida, editado_por')
+    if (r) query = query.gte('entrada', r.desde).lt('entrada', r.hasta)
+    const { data, error } = await query
+    if (error) throw new Error(error.message)
+    const fichajes = data
     useStore.setState({
       fichajes: fichajes.map(f => ({
         id: f.id, empleadoId: f.empleado_id, entrada: f.entrada, salida: f.salida,

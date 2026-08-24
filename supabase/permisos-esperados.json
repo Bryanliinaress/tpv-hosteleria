@@ -17,7 +17,7 @@
     "    aparecen los permisos que nadie escribió."
   ],
   "anon": {
-    "_por_que": "El cliente del QR no tiene sesión: esto es todo lo que puede hacer.",
+    "_por_que": "El cliente del QR no tiene sesión: esto es todo lo que puede hacer. `registrar_incidencia` está aquí a propósito: si la pantalla del cliente se rompe, ese es justo el que se va sin pedir y no vuelve, y sin esto no nos enteramos. No lee nada ni escribe datos suyos: solo el mensaje del error, recortado.",
     "funciones": [
       "qr_unirse_mesa",
       "qr_agregar_linea_idem",
@@ -36,7 +36,8 @@
       "local_actual",
       "unaccent_simple",
       "solicitar_dispositivo",
-      "estado_dispositivo"
+      "estado_dispositivo",
+      "registrar_incidencia"
     ]
   },
   "solo_servidor": {

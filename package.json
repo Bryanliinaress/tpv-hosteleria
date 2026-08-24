@@ -13,7 +13,8 @@
     "locales": "node scripts/locales.mjs",
     "permisos": "node scripts/revisar-permisos.mjs",
     "migraciones": "node scripts/aplicar-migracion.mjs",
-    "test:sql": "node scripts/test-sql.mjs"
+    "test:sql": "node scripts/test-sql.mjs",
+    "salud": "node scripts/salud.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",

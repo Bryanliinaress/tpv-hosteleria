@@ -154,6 +154,30 @@ ${comprobar(`v_fila.precio = (v_fila.precios->>'base')::numeric`, 'el precio de 
   },
 
   {
+    nombre: 'pedir acceso tiene tope: no se puede llenar la lista del encargado',
+    cuerpo: ({ comprobar, comprobarIgual }) => `
+  -- Se parte de cero: la prueba no puede depender de si alguien tenía una
+  -- solicitud viva. Esto también se deshace al terminar.
+  delete from dispositivos where local_id = v_local and estado = 'pendiente';
+
+  -- cinco seguidas pasan (montar un bar son varios aparatos)
+  for i in 1..5 loop
+    perform solicitar_dispositivo('marchando', 'prueba');
+  end loop;
+  select count(*) into v_dato from dispositivos where local_id = v_local and estado = 'pendiente';
+${comprobarIgual('v_dato', '5', 'las cinco primeras entran')}
+
+  -- la sexta en el mismo minuto, no
+  begin
+    perform solicitar_dispositivo('marchando', 'prueba');
+    raise exception 'FALLO: la sexta solicitud seguida deberia haberse rechazado';
+  exception when sqlstate 'P0001' then
+    if sqlerrm not like '%demasiadas_solicitudes%' then raise; end if;
+  end;
+`,
+  },
+
+  {
     nombre: 'la cola idempotente no suma una unidad de más al reenviar',
     cuerpo: ({ comprobarIgual }) => `
 ${montarMesa(1)}

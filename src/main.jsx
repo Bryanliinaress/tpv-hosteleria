@@ -6,12 +6,17 @@ import { initSync } from './lib/sync'
 import { backendV2, initV2 } from './lib/v2'
 import { aplicarMarca } from './lib/perfil'
 import { registrarActualizaciones } from './lib/actualizaciones'
+import { vigilarErrores } from './lib/incidencias'
 
 // Colores del local (si esta instalación se compiló con LOCAL=<slug>)
 aplicarMarca()
 
 // Vigila si hay versión nueva: un TPV abierto toda la semana no se enteraba
 registrarActualizaciones()
+
+// Deja constancia de lo que se rompa: sin esto, un bar atascado un sábado no se
+// sabe hasta que alguien llama el lunes
+vigilarErrores()
 
 // Arranque de datos: backend multi-tenant (v2, tablas+RPC) si está activado,
 // o la sincronización clásica del blob (demo) si no.
