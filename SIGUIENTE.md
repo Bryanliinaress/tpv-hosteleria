@@ -1,8 +1,82 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.92.0 · 478 tests en verde · repo limpio y desplegado.**
+**Estado: v0.93.0 · 508 tests en verde · repo limpio y desplegado.**
 Última sesión: 2026-08-19. Roadmap: [PRODUCCION.md](PRODUCCION.md) ·
 Historia de los 71 fallos encontrados: [docs/AUDITORIA.md](docs/AUDITORIA.md).
+
+---
+
+## 🩺 Revisión de arquitectura (19/08) — lo arreglado y lo que queda
+
+Repaso completo de `src`, el SQL, las Edge Functions, los scripts y el CI.
+**Seis fallos reales**, todos demostrados contra la base de datos antes de
+tocar nada, y todos ya arreglados:
+
+1. **La numeración fiscal se pisaba.** El trigger hacía `max(numero)+1` sin
+   bloquear. Con 12 cobros en paralelo fallaban **2**: `duplicate key ...
+   tickets_local_id_numero_key`. Ahora hay un contador por local en su propia
+   tabla (RLS sin políticas, como `intentos_pin`): 12 de 12 y sin huecos.
+2. **El historial se bajaba entero** —todos los tickets con su `detalle`— en
+   cada arranque y **cada vez que la tablet vuelve del segundo plano**. A 100
+   tickets/día son decenas de MB por despertar y por aparato. Ahora va por
+   ventana (mes anterior, estirada hasta el último cierre de caja).
+3. **La sesión de PIN no caducaba nunca.** El encargado dejaba la tablet en la
+   barra y quien la cogiera tenía Admin. Ahora caduca por inactividad: 5 min
+   admin, 12 h camarero (al camarero no se le puede pedir el PIN cada diez
+   minutos: acabaría poniéndose 0000). El plazo sale del **padrón**, no del
+   dispositivo, o bastaba escribirse `rol: camarero` para durar 12 h.
+4. **Un fallo de render dejaba la tablet en blanco.** No había `ErrorBoundary`.
+   Ahora hay pantalla con Recargar / Volver al inicio, y distingue el caso de
+   «trozo de la app que no llega» (pestaña vieja tras un despliegue).
+5. **El papel imprimía mal el IVA.** El desglose estaba escrito **cuatro
+   veces** y `escpos.js` no redondeaba la base: al 4 % (pan, leche) imprimía
+   «base + IVA» un céntimo por encima del total en 3.976 importes de 199.951.
+   Todo pasa ya por `src/lib/dinero.js` (también los 13 sitios que calculaban
+   el total de un comensal).
+6. **La cola offline duplicaba productos** cuando la petición llegaba y se
+   perdía la respuesta. Clave de idempotencia desde el primer intento:
+   probado, 3 reenvíos sin clave = 3 unidades, con clave = 1.
+
+Y **Admin → Caja avisa de los cobros sin cuenta** (4 en la demo, 13,25 €):
+dinero cobrado que no está en ningún ticket y hay que devolver por Stripe.
+
+### Lo que la revisión dejó pendiente, por orden
+
+1. **Cero tests ejecutan SQL.** Las 2.400 líneas de PL/pgSQL del dinero
+   (`pendiente_de_pago`, `_debe_por_comensal`, `cobrar_mesa`, `pagar_parte`,
+   `registrar_pago_online`) se verificaron **a mano una vez**. Hace falta un
+   `npm run test:sql` contra el proyecto dentro de una transacción con
+   `rollback` —que es como se probó a mano—. **Antes del segundo bar.**
+2. **No hay registro de qué migraciones se han aplicado.**
+   `aplicar-migraciones.mjs` re-ejecuta las 28 confiando en que son
+   idempotentes y no deja rastro. Con N bares no hay forma de saber en qué
+   esquema está cada uno. Hace falta `schema_migrations` y un `--estado`.
+   **Antes del segundo bar.**
+3. **Nadie se entera cuando un bar se rompe**: sin captura de errores ni
+   monitorización, te enteras porque te llaman.
+4. **IVA único por local**: no hay tipo por producto. En hostelería pura al
+   10 % vale; si un bar vende algo al 21 %, el ticket y lo que va a la AEAT
+   están mal. Saberlo antes de firmar con nadie.
+5. **`fichajes` se sigue bajando entero** (registro legal de 4 años). Las filas
+   son pequeñas, pero la pestaña tiene selector de mes: lo correcto es cargarlo
+   por el mes elegido, no acotarlo por ventana.
+6. **Un solo destino de despliegue**: el workflow compila todos los locales
+   publicados pero sube `path: dist`. Con un segundo bar, el segundo no se
+   publica.
+7. **`pedir_acceso` no tiene límite**: cualquiera que conozca la URL puede
+   llenar la lista de «esperando permiso» del encargado.
+8. `npm audit` da 2 *high* en react-router, del **modo RSC**; esta app es una
+   SPA con HashRouter, así que **no es explotable aquí**. Subir versión igual.
+
+### Lo que se revisó y está BIEN
+
+RLS activo en las 17 tablas (`intentos_pin` con deny-all). `npm run permisos`
+limpio. El webhook de Stripe verifica firma, calcula el importe en el servidor
+y es idempotente. `crear-checkout` valida el retorno contra el `Origin`. Los
+dispositivos usan secreto de 256 bits con bcrypt y cuenta propia por aparato.
+Los secretos están fuera del repo. Y `contrato.test.js` —el test que impide
+que una acción del store se quede sin implementar en v2— es de lo mejor que
+hay aquí.
 
 ---
 
@@ -325,17 +399,9 @@ días parados). Por eso **Supabase Pro es requisito de producción**.
    29-7-2025 por comercializar software de facturación. No es código.
 
 ### De código (sin depender de nadie)
-1. **Los pagos sin cuenta no se ven en ninguna pantalla.** Cuando entra dinero
-   de una cuenta ya saldada (dos comensales pagando a la vez, que en un bar
-   pasa) se guarda en `pagos_online` con `ticket = null` — bien registrado,
-   pero un encargado no tiene forma de enterarse de que hay que devolverlo.
-   Hoy hay 3 filas así, 6,65 €. Falta enseñarlo en Admin → Caja.
-2. **La cola offline puede duplicar un producto**: si la petición llega pero se
-   pierde la respuesta, al reintentar suma otra unidad. Se arregla con una clave
-   de idempotencia (el id de la operación en cola ya vale).
-3. **Dominio propio para cada bar**.
-4. Informes más ricos (por producto/camarero/hora), backups y monitorización.
-5. **Actualizar N instancias** de una vez: con un bar por instalación, sin esto
+1. **Dominio propio para cada bar**.
+2. Informes más ricos (por producto/camarero/hora), backups y monitorización.
+3. **Actualizar N instancias** de una vez: con un bar por instalación, sin esto
    cada mejora hay que desplegarla a mano en cada uno.
 
 ## El modelo: un bar, una instalación
