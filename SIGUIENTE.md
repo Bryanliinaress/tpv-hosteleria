@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.94.0 · 544 tests JS + 15 pruebas de SQL en verde · repo limpio y desplegado.**
+**Estado: v0.95.0 · 553 tests JS + 22 pruebas de SQL en verde · repo limpio y desplegado.**
 Última sesión: 2026-08-19. Roadmap: [PRODUCCION.md](PRODUCCION.md) ·
 Historia de los 71 fallos encontrados: [docs/AUDITORIA.md](docs/AUDITORIA.md).
 
@@ -75,16 +75,46 @@ npm run test:sql                   # el dinero, contra la base real
 PROJECT_REF=<otro> npm run salud   # cualquier otro bar
 ```
 
+### Devoluciones (rectificativas) — HECHO (24/08)
+
+Era el bloqueo fiscal de verdad y ya está cerrado, de punta a punta y
+**probado contra la AEAT de pruebas**: la devolución de 4,00 € del ticket nº 6
+salió con UUID `50eccb10-…`, su QR y su URL de verificación en `prewww2.aeat.es`.
+
+Cómo funciona, y por qué así:
+
+- **Siempre R5.** El original es una factura simplificada (F2), así que su
+  rectificativa es R5 sea cual sea el motivo; R1-R4 son para facturas completas.
+- **Por diferencias, no por sustitución.** Las dos son válidas. Se eligió «I»
+  porque en un bar la devolución es dinero que sale del cajón: así la caja, los
+  informes y lo que consta en Hacienda dicen **el mismo número**. Por
+  sustitución el documento diría «esto eran 8 € y no 11 €» y el movimiento del
+  cajón habría que deducirlo, que es como se descuadra un arqueo.
+- **Una rectificativa es un ticket más**, negativo y apuntando al que corrige.
+  Entra sola por donde ya pasa todo: se numera con el mismo contador (serie
+  correlativa y sin huecos, que es lo que pide Verifactu), se registra en la
+  AEAT por la misma vía con sus reintentos, resta en el arqueo y sale en los
+  informes. Nada de un circuito paralelo.
+- **El original NO se toca nunca**: es un documento ya emitido.
+- Devolución **entera o parcial**; la parcial se reparte entre los tipos de IVA
+  en proporción y con los céntimos cuadrados. No se puede devolver dos veces lo
+  mismo (el servidor bloquea el ticket), ni más de lo pendiente, ni sin motivo,
+  ni una rectificativa, ni el ticket de otro local. Las siete cosas, con test.
+- Se usa desde **Admin → Tickets → ↩ Devolver**. El motivo es obligatorio
+  porque va al registro fiscal, y el método importa: en efectivo sale del cajón
+  y el arqueo de la noche lo cuenta.
+
+Queda apuntado en la auditoría de anulaciones, que es donde el encargado ya
+mira cuando algo no cuadra.
+
 ### Pendiente
 
-1. **Rectificativas (R1-R5)** — sigue siendo el bloqueo fiscal de verdad: si un
-   ticket registrado en la AEAT necesita devolución, hoy no hay salida.
-2. **Declaración responsable del fabricante** — obligación tuya, no es código.
-3. **Los tres de siempre de Bryan**: teléfono y dirección del local, Supabase
+1. **Declaración responsable del fabricante** — obligación tuya, no es código.
+2. **Los tres de siempre de Bryan**: teléfono y dirección del local, Supabase
    Pro, y la prueba del papel (corte, acentos, QR).
-4. **Informes más ricos** (por producto, camarero y hora) y backups.
-5. **KDS y Barra en tableta** — no vueltos a mirar desde los últimos cambios.
-6. **Mostrador**: la rejilla pierde el cuadre al abrir el panel lateral.
+3. **Informes más ricos** (por producto, camarero y hora) y backups.
+4. **KDS y Barra en tableta** — no vueltos a mirar desde los últimos cambios.
+5. **Mostrador**: la rejilla pierde el cuadre al abrir el panel lateral.
 
 ### Lo que se revisó y está BIEN
 

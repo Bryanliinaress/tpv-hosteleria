@@ -14,7 +14,8 @@ import ConfigImpresora from '../../components/ConfigImpresora'
 import EditorMenu from '../../components/EditorMenu'
 import Informes from './Informes'
 import Dispositivos from '../../components/Dispositivos'
-import { desgloseIVA, totalDe } from '../../lib/dinero'
+import Devolver from '../../components/Devolver'
+import { desgloseIVA, totalDe, cent } from '../../lib/dinero'
 
 const emptyForm = { nombre: '', nombreEn: '', categoria: '', descripcion: '', descripcionEn: '', alergenos: [], imagen: '', conFormatos: false, precios: {}, precio: '', menu: null, ivaPct: '' }
 
@@ -26,6 +27,7 @@ export default function PanelAdmin() {
   const [busquedaCarta, setBusquedaCarta] = useState('')
   const [editando, setEditando] = useState(null) // productoId en edición
   const [form, setForm] = useState(emptyForm)
+  const [devolviendo, setDevolviendo] = useState(null)   // ticket que se está devolviendo
   const [ticket, setTicket] = useState(null)
   const [nuevaCat, setNuevaCat] = useState({ nombre: '', tipo: 'comida' })
   const [nuevoExtra, setNuevoExtra] = useState({ nombre: '', precio: '0.20' })
@@ -53,6 +55,13 @@ export default function PanelAdmin() {
   for (const k of Object.keys(porDia)) porDia[k].sort((a, b) => new Date(b.cerradaEn) - new Date(a.cerradaEn))
   const dias = Object.keys(porDia).sort().reverse()
   const diaBonito = (k) => new Date(`${k}T00:00:00`).toLocaleDateString('es-ES')
+
+  // Lo ya devuelto de cada ticket (negativo). El servidor es quien manda —no
+  // deja devolver más de lo pendiente—, pero la pantalla tiene que saberlo
+  // igual: ofrecer «Devolver» sobre algo ya devuelto es prometer algo que
+  // luego va a fallar delante del cliente que está reclamando.
+  const devueltoDe = (ticketId) =>
+    cent(historial.filter(t => t.rectificaA === ticketId).reduce((s2, t) => s2 + t.total, 0))
 
   const totalVentas = mesas.reduce((s, m) =>
     s + m.personas.reduce((ss, p) =>
@@ -682,15 +691,48 @@ export default function PanelAdmin() {
                   <span style={{ color: 'var(--color-accent)' }}>{porDia[dia].reduce((s, r) => s + r.total, 0).toFixed(2)} €</span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.5rem' }}>
-                  {porDia[dia].map(r => (
-                    <div key={r.id} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.625rem', padding: '0.75rem 0.875rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Mesa {r.mesaNumero}</div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{new Date(r.cerradaEn).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} · {r.total.toFixed(2)} €</div>
+                  {porDia[dia].map(r => {
+                    // Una devolución es un ticket más, con importe negativo y
+                    // apuntando al que corrige. Se distingue a simple vista, y
+                    // no se le ofrece «Devolver» a una devolución.
+                    const esDevolucion = !!r.rectificaA
+                    const devuelto = devueltoDe(r.id)
+                    const pendiente = cent(r.total - devuelto)
+                    return (
+                    <div key={r.id} style={{ background: 'var(--color-surface)', border: `1px solid ${esDevolucion ? 'var(--tint-warning-bd)' : 'var(--color-border)'}`, borderRadius: '0.625rem', padding: '0.75rem 0.875rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>
+                          {esDevolucion ? '↩ Devolución' : `Mesa ${r.mesaNumero}`}
+                          <span style={{ fontWeight: 400, color: 'var(--color-muted)', fontSize: '0.75rem' }}> · nº {r.numero}</span>
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: esDevolucion ? 'var(--tint-warning-fg)' : 'var(--color-muted)' }}>
+                          {new Date(r.cerradaEn).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} · {r.total.toFixed(2)} €
+                        </div>
+                        {esDevolucion && r.motivoRectificacion && (
+                          <div style={{ fontSize: '0.7rem', color: 'var(--color-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.motivoRectificacion}</div>
+                        )}
+                        {!esDevolucion && devuelto < 0 && (
+                          <div style={{ fontSize: '0.7rem', color: 'var(--tint-warning-fg)' }}>
+                            devuelto {(-devuelto).toFixed(2)} €{pendiente > 0 ? ` · quedan ${pendiente.toFixed(2)} €` : ' · entero'}
+                          </div>
+                        )}
                       </div>
-                      <button onClick={() => setTicket({ numero: r.mesaNumero, personas: r.personas })} style={{ background: 'var(--color-accent)', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.4rem 0.7rem', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>Ver</button>
+                      <div style={{ display: 'flex', gap: '0.3rem', flexShrink: 0 }}>
+                        {!esDevolucion && pendiente > 0 && (
+                          <button onClick={() => setDevolviendo({ ticket: r, pendiente })} title="Emitir una factura rectificativa"
+                            style={{ background: 'none', color: '#f43f5e', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.4rem 0.6rem', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>↩ Devolver</button>
+                        )}
+                        <button onClick={() => setTicket({
+                          numero: r.mesaNumero, personas: r.personas,
+                          // si es una devolución, el papel tiene que decirlo
+                          rectifica: r.rectificaA
+                            ? { numero: historial.find(t => t.id === r.rectificaA)?.numero ?? '—', motivo: r.motivoRectificacion }
+                            : null,
+                        })} style={{ background: 'var(--color-accent)', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.4rem 0.7rem', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>Ver</button>
+                      </div>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             ))}
@@ -699,6 +741,11 @@ export default function PanelAdmin() {
 
         {/* Tab QR */}
         {tab === 'dispositivos' && <Dispositivos />}
+
+        {devolviendo && (
+          <Devolver ticket={devolviendo.ticket} pendiente={devolviendo.pendiente}
+            onCerrar={() => setDevolviendo(null)} />
+        )}
 
         {tab === 'qr' && (
           <div>
@@ -729,7 +776,7 @@ export default function PanelAdmin() {
         )}
       </div>
 
-      {ticket && <Ticket tipo="cuenta" mesa={ticket} onClose={() => setTicket(null)} />}
+      {ticket && <Ticket tipo="cuenta" mesa={ticket} rectifica={ticket.rectifica} onClose={() => setTicket(null)} />}
     </div>
   )
 }

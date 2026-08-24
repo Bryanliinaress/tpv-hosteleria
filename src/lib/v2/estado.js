@@ -255,13 +255,16 @@ export async function cargarReservas() {
 export async function cargarHistorial() {
   const ultimoCierre = useStore.getState().cierres?.[0]?.hasta ?? null
   const desde = { col: 'cerrado_en', valor: inicioVentanaHistorial(new Date(), ultimoCierre) }
-  const tickets = await q('tickets', 'id, numero, mesa_numero, cerrado_en, total, propina, pagos, detalle, camarero, cobrado_por, fiscal_estado, fiscal_qr, fiscal_url, fiscal_error', {}, desde)
+  const tickets = await q('tickets', 'id, numero, mesa_numero, cerrado_en, total, propina, pagos, detalle, camarero, cobrado_por, fiscal_estado, fiscal_qr, fiscal_url, fiscal_error, rectifica_a, motivo_rectificacion', {}, desde)
   useStore.setState({
     historial: tickets.sort((a, b) => a.cerrado_en < b.cerrado_en ? 1 : -1).map(t => ({
       id: t.id, numero: t.numero, mesaNumero: t.mesa_numero, cerradaEn: t.cerrado_en,
       total: Number(t.total), propina: Number(t.propina), pagos: t.pagos,
       fiscalEstado: t.fiscal_estado, fiscalQr: t.fiscal_qr, fiscalUrl: t.fiscal_url, fiscalError: t.fiscal_error,
       personas: t.detalle, camarero: t.camarero, cobradoPor: t.cobrado_por,
+      // Devoluciones: `rectificaA` apunta al ticket corregido (y el importe va
+      // en negativo). Un ticket normal no lleva nada de esto.
+      rectificaA: t.rectifica_a || null, motivoRectificacion: t.motivo_rectificacion || null,
     })),
   })
 }

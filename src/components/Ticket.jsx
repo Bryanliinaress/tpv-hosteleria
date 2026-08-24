@@ -72,7 +72,7 @@ function consolidar(personas) {
 // Ticket de cuenta estilo térmico profesional: cabecera fiscal, columnas
 // DESCRIPCIÓN/UDS/PRECIO/IMPORTE, base+IVA, comensales, estado de pago,
 // mesa/zona y QR (reseña o carta).
-function Cuenta({ mesa, persona, local, fiscal }) {
+function Cuenta({ mesa, persona, local, fiscal, rectifica }) {
   const personas = persona ? [persona] : mesa.personas
   // El ticket de UNA persona tiene que decir lo que se le cobra: con un plato
   // compartido, sus líneas propias suman de más (el plato entero se cargaba a
@@ -101,6 +101,16 @@ function Cuenta({ mesa, persona, local, fiscal }) {
       {local?.direccion && <div style={st.sub}>Dirección: {local.direccion}</div>}
       {(local?.direccionFiscal || local?.direccion) && <div style={st.sub}>Dirección fiscal: {local?.direccionFiscal || local?.direccion}</div>}
       {local?.telefono && <div style={st.sub}>Teléfono: {local.telefono}</div>}
+
+      {/* Una devolución no puede parecer un ticket normal con los números en
+          negativo: hay que decir qué es y a qué factura corrige. */}
+      {rectifica && (
+        <div style={{ margin: '0.6rem 0 0.2rem', textAlign: 'center', fontWeight: 800 }}>
+          FACTURA RECTIFICATIVA
+          <div style={{ fontWeight: 400, fontSize: '0.78rem' }}>Rectifica al ticket nº {rectifica.numero}</div>
+          {rectifica.motivo && <div style={{ fontWeight: 400, fontSize: '0.78rem' }}>{rectifica.motivo}</div>}
+        </div>
+      )}
 
       <div style={{ margin: '0.6rem 0 0.2rem' }}>
         {mesa.camarero && <div>Pedido por: Staff - {mesa.camarero}</div>}
@@ -221,13 +231,13 @@ async function imprimir({ tipo, mesa, persona, local, fiscal }) {
   await imprimirESCPOS(bytes, { destino, alternativa: () => window.print() })
 }
 
-export default function Ticket({ tipo, mesa, persona, onClose, fiscal }) {
+export default function Ticket({ tipo, mesa, persona, onClose, fiscal, rectifica }) {
   const local = useStore(s => s.local)
   return (
     <div onClick={onClose} className="no-print" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '1rem', animation: 'fadeIn 0.2s ease both' }}>
       <div onClick={e => e.stopPropagation()} className="anim-pop" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', maxHeight: '92vh' }}>
         <div className="ticket-print" style={st.papel}>
-          {tipo === 'comanda' ? <Comanda mesa={mesa} /> : <Cuenta mesa={mesa} persona={tipo === 'persona' ? persona : null} local={local} fiscal={fiscal} />}
+          {tipo === 'comanda' ? <Comanda mesa={mesa} /> : <Cuenta mesa={mesa} persona={tipo === 'persona' ? persona : null} local={local} fiscal={fiscal} rectifica={rectifica} />}
         </div>
         <div className="no-print" style={{ display: 'flex', gap: '0.5rem' }}>
           <button onClick={() => imprimir({ tipo, mesa, persona, local, fiscal })} style={st.btn('var(--color-accent)')}>🖨️ Imprimir</button>

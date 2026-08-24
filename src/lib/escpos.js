@@ -125,7 +125,8 @@ export function comandaESCPOS({ mesa, destino = 'COCINA', lineas = [], hora = ne
 
 // Ticket de cuenta con todos los datos fiscales y el QR de Veri*Factu.
 export function ticketESCPOS({ local = {}, mesa, lineas = [], total, propina = 0,
-  comensales = 1, pagado = false, fiscal = null, fecha = new Date(), abrirCajon = false }) {
+  comensales = 1, pagado = false, fiscal = null, fecha = new Date(), abrirCajon = false,
+  rectifica = null }) {
   // El desglose sale de `dinero.js` como en el resto: aquí se calculaba aparte
   // y SIN redondear la base, así que con el IVA al 4 % este papel —el que se
   // lleva el cliente— imprimía «base + IVA» un céntimo por encima del total.
@@ -142,6 +143,14 @@ export function ticketESCPOS({ local = {}, mesa, lineas = [], total, propina = 0
   if (local.telefono) t.linea(`Tel: ${local.telefono}`)
 
   t.alinear(0).salto()
+  // Un papel con importes en negativo y sin explicación es una reclamación: hay
+  // que decir que es una devolución y de qué ticket.
+  if (rectifica) {
+    t.alinear(1).negrita(true).linea('FACTURA RECTIFICATIVA').negrita(false)
+      .linea(`Rectifica al ticket n. ${rectifica.numero}`)
+    if (rectifica.motivo) t.linea(rectifica.motivo)
+    t.alinear(0).salto()
+  }
   t.linea(`Fecha: ${fecha.toLocaleString('es-ES')}`)
   if (mesa?.camarero) t.linea(`Atendido por: ${mesa.camarero}`)
   t.separador('=')
