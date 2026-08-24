@@ -7,6 +7,7 @@ import MetodoPago from '../../components/MetodoPago'
 import PedirPda from './PedirPda'
 import CobroMesa from './CobroMesa'
 import { productosVisibles, configDeItem, ultimaRonda } from '../../lib/carta'
+import { totalDeMesa } from '../../lib/dinero'
 
 // Pitido + vibración para avisar de eventos nuevos
 function alerta() {
@@ -111,7 +112,7 @@ export default function PdaCamarero() {
   // ── Detalle de mesa ───────────────────────────────────
   if (mesa) {
     const owed = owedPorPersona(mesa)
-    const totalMesa = mesa.personas.reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0)
+    const totalMesa = totalDeMesa(mesa)
     return (
       <div style={{ minHeight: '100vh', maxWidth: '520px', margin: '0 auto' }}>
         <div style={cab}>
@@ -347,7 +348,7 @@ export default function PdaCamarero() {
                 {ms.map(m => {
                   const libre = m.estado === 'libre'
                   const reservada = m.estado === 'reservada'
-                  const total = m.personas.reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0)
+                  const total = totalDeMesa(m)
                   const col = libre ? '#10b981' : reservada ? '#3b82f6' : m.estado === 'esperando_cobro' ? '#f43f5e' : '#f59e0b'
                   const etiqueta = libre ? 'Libre' : reservada ? 'Reservada' : m.estado === 'esperando_cobro' ? 'Pide cuenta' : 'Ocupada'
                   return (

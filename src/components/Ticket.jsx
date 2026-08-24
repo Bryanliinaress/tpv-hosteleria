@@ -3,6 +3,7 @@ import { QRCodeSVG } from 'qrcode.react'
 import { imprimirESCPOS, config as configImpresora } from '../lib/impresora'
 import { ticketESCPOS, comandaESCPOS } from '../lib/escpos'
 import { lineasDeConsumo } from '../lib/recibo'
+import { desgloseIVA, totalDeMesa } from '../lib/dinero'
 
 // Modificadores de una línea (pan, sin/con, nota) en una sola cadena
 const descr = (item) => {
@@ -79,13 +80,9 @@ function Cuenta({ mesa, persona, local, fiscal }) {
   const filas = persona ? filasDeParte(mesa, persona.id) : consolidar(personas)
   const total = persona
     ? (owedPorPersona(mesa)[persona.id] || 0)
-    : personas.reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0)
+    : totalDeMesa({ personas })
   const propina = personas.reduce((s, p) => s + (p.propina || 0), 0)
-  const ivaPct = local?.ivaPct ?? 10
-  // la cuota sale de la base YA redondeada: si no, «base + IVA» podía imprimirse
-  // un céntimo por encima del total
-  const base = Math.round((total / (1 + ivaPct / 100)) * 100) / 100
-  const iva = Math.round((total - base) * 100) / 100
+  const { ivaPct, base, iva } = desgloseIVA(total, local?.ivaPct ?? 10)
   const mon = local?.moneda || '€'
   const pagado = personas.length > 0 && personas.every(p => p.pagado)
   const nCom = personas.length

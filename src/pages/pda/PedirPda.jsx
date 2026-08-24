@@ -3,6 +3,7 @@ import { useStore, TIEMPOS, normalizarExtra, etiquetasDe } from '../../store/use
 import { pedirTexto } from '../../store/useUI'
 import { productosVisibles, descripcionUtil } from '../../lib/carta'
 import { esMenu, conFormatos, conOpciones, menuCompleto, siguientePendiente, precioMenu, lineaDeMenu, alternarOpcion } from '../../lib/menuDia'
+import { importeLinea, cent } from '../../lib/dinero'
 
 // Toma de pedidos desde la PDA del camarero, para un comensal de la mesa.
 export default function PedirPda({ mesaId, onClose }) {
@@ -18,7 +19,7 @@ export default function PedirPda({ mesaId, onClose }) {
   // Con 60+ productos, teclear «cafe» gana siempre a bajar por la categoría.
   const productos = productosVisibles(carta, { busqueda, categoria: cat })
   const pendientes = persona?.items.filter(i => i.estado === 'pendiente') || []
-  const totalPend = pendientes.reduce((s, i) => s + i.precio * i.cantidad, 0)
+  const totalPend = cent(pendientes.reduce((s, i) => s + importeLinea(i), 0))
 
   const nuevoComensal = async () => {
     const nombre = await pedirTexto({ titulo: 'Nuevo comensal', placeholder: 'Nombre (opcional)', confirmar: 'Añadir' })

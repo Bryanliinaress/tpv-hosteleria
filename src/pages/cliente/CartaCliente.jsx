@@ -11,6 +11,7 @@ import { esMenu, conFormatos, conOpciones, lineaDeMenu, menuCompleto, siguienteP
 import { productosVisibles, descripcionUtil, lineaSimplePendiente, unidades, configDeItem, ultimaRonda } from '../../lib/carta'
 import { construirRecibo, lineasDeConsumo, guardarRecibo, leerRecibo, olvidarRecibo, descargarRecibo, reciboReciente } from '../../lib/recibo'
 import { backendV2 } from '../../lib/repo'
+import { totalDeMesa, importeLinea, cent } from '../../lib/dinero'
 
 export default function CartaCliente() {
   const { mesaId } = useParams()
@@ -231,10 +232,10 @@ export default function CartaCliente() {
   const cargandoCarta = backendV2 && !hidratado
   const itemsPendientes = personaActiva.items.filter(i => i.estado === 'pendiente')
   const itemsEnviados = personaActiva.items.filter(i => i.estado === 'enviado')
-  const totalPendiente = itemsPendientes.reduce((s, i) => s + i.precio * i.cantidad, 0)
+  const totalPendiente = cent(itemsPendientes.reduce((s, i) => s + importeLinea(i), 0))
   // el carrito cuenta UNIDADES, no líneas: 3 cafés son «3», no «1»
   const udsPendientes = unidades(itemsPendientes)
-  const totalMesa = mesa.personas.reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0)
+  const totalMesa = totalDeMesa(mesa)
   const owed = owedPorPersona(mesa)
   const totalPendienteMesa = mesa.personas.filter(p => !p.pagado).reduce((s, p) => s + owed[p.id], 0)
   const pedirParaOtro = !!yo && personaActiva.id !== yo.id

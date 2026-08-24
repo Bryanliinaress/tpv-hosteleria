@@ -14,6 +14,7 @@ import ConfigImpresora from '../../components/ConfigImpresora'
 import EditorMenu from '../../components/EditorMenu'
 import Informes from './Informes'
 import Dispositivos from '../../components/Dispositivos'
+import { desgloseIVA, totalDe } from '../../lib/dinero'
 
 const emptyForm = { nombre: '', nombreEn: '', categoria: '', descripcion: '', descripcionEn: '', alergenos: [], imagen: '', conFormatos: false, precios: {}, precio: '', menu: null }
 
@@ -55,7 +56,7 @@ export default function PanelAdmin() {
 
   const totalVentas = mesas.reduce((s, m) =>
     s + m.personas.reduce((ss, p) =>
-      ss + p.items.reduce((sss, i) => sss + i.precio * i.cantidad, 0), 0), 0)
+      ss + totalDe(p), 0), 0)
   const mesasOcupadas = mesas.filter(m => m.estado !== 'libre').length
 
   // ── Arqueo de caja: tickets desde el último cierre ──
@@ -598,7 +599,7 @@ export default function PanelAdmin() {
                 {local.cif && <div style={{ fontSize: '0.72rem', color: '#444' }}>CIF: {local.cif}</div>}
                 <div style={{ borderTop: '1px dashed #999', margin: '0.5rem 0' }} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700 }}><span>TOTAL</span><span>10,00 {local.moneda || '€'}</span></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#555' }}><span>IVA ({local.ivaPct || 0}%) incluido</span><span>{(10 - 10 / (1 + (Number(local.ivaPct) || 0) / 100)).toFixed(2)} {local.moneda || '€'}</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#555' }}><span>IVA ({local.ivaPct || 0}%) incluido</span><span>{desgloseIVA(10, local.ivaPct).iva.toFixed(2)} {local.moneda || '€'}</span></div>
                 <div style={{ borderTop: '1px dashed #999', margin: '0.5rem 0' }} />
                 <div style={{ fontSize: '0.72rem' }}>{local.pieTicket || '¡Gracias por su visita!'}</div>
               </div>

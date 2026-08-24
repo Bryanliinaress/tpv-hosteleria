@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import { nombreDeLocalPorDefecto } from '../lib/perfil'
 import { revisarCorreccionFichaje } from '../lib/fichajes'
 import { revisarNuevoEmpleado, revisarCambioEmpleado, revisarBajaEmpleado } from '../lib/personal'
+import { totalDeMesa } from '../lib/dinero'
 
 // Aviso al usuario desde el store. Import perezoso para no acoplar el estado a
 // la interfaz (y que los tests en Node no arrastren la UI).
@@ -1267,7 +1268,7 @@ function idsGrupo(mesa) {
 // Crea el registro de ticket de una mesa al cerrarse (null si no consumió nada).
 function snapshotMesa(mesa) {
   if (!mesa || !mesa.personas?.some(p => p.items.length)) return null
-  const total = mesa.personas.reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0)
+  const total = totalDeMesa(mesa)
   const propina = mesa.personas.reduce((s, p) => s + (p.propina || 0), 0)
   // Desglose por método de pago (lo no cobrado se marca 'sincobrar').
   // OJO: se reparte por lo que DEBE cada uno, no por sus líneas propias. Con
