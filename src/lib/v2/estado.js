@@ -67,12 +67,36 @@ async function conSesion() {
   return !!data?.session
 }
 
-async function q(tabla, select, filtro = {}) {
+async function q(tabla, select, filtro = {}, desde = null) {
   let query = supabase.from(tabla).select(select)
   for (const [k, v] of Object.entries(filtro)) query = query.eq(k, v)
+  if (desde) query = query.gte(desde.col, desde.valor)
   const { data, error } = await query
   if (error) throw new Error(`${tabla}: ${error.message}`)
   return data
+}
+
+// ── Cuánto historial se baja ────────────────────────────────────────────────
+//
+// `cargarHistorial` se traía TODOS los tickets del local, con su `detalle`
+// entero (las líneas de cada comensal), y `cargarTodo()` corre al arrancar Y
+// cada vez que la tablet vuelve del segundo plano. Con 5 tickets no se nota;
+// a 100 tickets al día son decenas de MB bajándose en cada despertar, en cada
+// aparato. Y ninguna pantalla enseña más que el mes: Admin e Informes filtran
+// por mes, Mostrador y PDA por hoy.
+//
+// La ventana empieza en el mes ANTERIOR (margen de sobra para el mes en curso)
+// y, si el bar lleva sin cerrar caja más tiempo que eso, se estira hasta el
+// último cierre: el arqueo suma «desde el último cierre» y dejarse tickets
+// fuera sería descuadrar la caja.
+const MESES_HISTORIAL = 2
+export function inicioVentanaHistorial(ahora = new Date(), ultimoCierre = null) {
+  const d = new Date(ahora.getFullYear(), ahora.getMonth() - (MESES_HISTORIAL - 1), 1)
+  if (ultimoCierre) {
+    const c = new Date(ultimoCierre)
+    if (!Number.isNaN(c.getTime()) && c < d) return c.toISOString()
+  }
+  return d.toISOString()
 }
 
 // ── Agregados ───────────────────────────────────────────────────────────────
@@ -220,7 +244,9 @@ export async function cargarReservas() {
 }
 
 export async function cargarHistorial() {
-  const tickets = await q('tickets', 'id, numero, mesa_numero, cerrado_en, total, propina, pagos, detalle, camarero, cobrado_por, fiscal_estado, fiscal_qr, fiscal_url, fiscal_error')
+  const ultimoCierre = useStore.getState().cierres?.[0]?.hasta ?? null
+  const desde = { col: 'cerrado_en', valor: inicioVentanaHistorial(new Date(), ultimoCierre) }
+  const tickets = await q('tickets', 'id, numero, mesa_numero, cerrado_en, total, propina, pagos, detalle, camarero, cobrado_por, fiscal_estado, fiscal_qr, fiscal_url, fiscal_error', {}, desde)
   useStore.setState({
     historial: tickets.sort((a, b) => a.cerrado_en < b.cerrado_en ? 1 : -1).map(t => ({
       id: t.id, numero: t.numero, mesaNumero: t.mesa_numero, cerradaEn: t.cerrado_en,
@@ -232,7 +258,8 @@ export async function cargarHistorial() {
 }
 
 export async function cargarCierres() {
-  const cierres = await q('cierres_caja', 'id, desde, hasta, total, propinas, pagos, n_tickets, contado, descuadre')
+  const haceUnAno = new Date(Date.now() - 365 * 86400000).toISOString()
+  const cierres = await q('cierres_caja', 'id, desde, hasta, total, propinas, pagos, n_tickets, contado, descuadre', {}, { col: 'hasta', valor: haceUnAno })
   useStore.setState({
     cierres: cierres.sort((a, b) => a.hasta < b.hasta ? 1 : -1).map(c => ({
       id: c.id, desde: c.desde, hasta: c.hasta,
@@ -261,7 +288,10 @@ export async function cargarTodo() {
   // lecturas públicas y deben cargar igualmente.
   try { await cargarLocal() } catch (e) { console.warn('v2 local:', e.message) }
   await Promise.all([cargarCarta(), cargarSala()])
-  await Promise.all([cargarComandas(), cargarAvisos(), cargarReservas(), cargarHistorial(), cargarFichajes(), cargarCierres().catch(() => {})])
+  // Los cierres van ANTES que el historial: la ventana de tickets se estira
+  // hasta el último cierre, y si aún no están cargados no hay hasta dónde.
+  await cargarCierres().catch(() => {})
+  await Promise.all([cargarComandas(), cargarAvisos(), cargarReservas(), cargarHistorial(), cargarFichajes()])
 }
 
 // ── Cliente QR anónimo: su mesa vía estado_mesa (RLS no le deja ver tablas) ──
