@@ -19,7 +19,7 @@ import { desgloseIVA, totalDe } from '../../lib/dinero'
 const emptyForm = { nombre: '', nombreEn: '', categoria: '', descripcion: '', descripcionEn: '', alergenos: [], imagen: '', conFormatos: false, precios: {}, precio: '', menu: null }
 
 export default function PanelAdmin() {
-  const { carta, mesas, historial, cierres, anulaciones, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, addCategoria, removeCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, editarFichaje, borrarFichaje } = useStore()
+  const { carta, mesas, historial, cierres, anulaciones, pagosSinCuenta, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, addCategoria, removeCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, editarFichaje, borrarFichaje } = useStore()
   const hoyStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
   const reservasHoy = reservas.filter(r => r.fecha === hoyStr && r.estado === 'confirmada').length
   const [tab, setTab] = useState('carta')
@@ -311,6 +311,34 @@ export default function PanelAdmin() {
 
         {/* Tab Caja (arqueo / cierre) */}
         {tab === 'caja' && (
+          <>
+          {/* Dinero cobrado que no cuadró con ninguna cuenta. Pasa cuando dos
+              comensales pagan a la vez desde sus móviles y el segundo llega con
+              la cuenta ya saldada: el cobro se guarda, pero no salía en NINGUNA
+              pantalla, así que nadie sabía que hay que devolverlo. */}
+          {pagosSinCuenta.length > 0 && (
+            <div style={{
+              background: 'var(--tint-warning-bg)', color: 'var(--tint-warning-fg)',
+              border: '1px solid var(--tint-warning-bd)', borderRadius: 'var(--radius)',
+              padding: '0.9rem 1rem', marginBottom: '1.25rem',
+            }}>
+              <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.15rem' }}>
+                ⚠️ {pagosSinCuenta.length} cobro(s) sin cuenta · {pagosSinCuenta.reduce((s2, p2) => s2 + p2.importe, 0).toFixed(2)} €
+              </div>
+              <div style={{ fontSize: '0.8rem', opacity: 0.9, marginBottom: '0.5rem' }}>
+                Entraron cuando la cuenta ya estaba saldada (dos personas pagando a la vez).
+                El dinero está cobrado y <strong>hay que devolverlo desde Stripe</strong>: no está en ningún ticket.
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.2rem 1rem', fontSize: '0.78rem' }}>
+                {pagosSinCuenta.slice(0, 8).map(p2 => (
+                  <span key={p2.id} style={{ whiteSpace: 'nowrap' }}>
+                    {new Date(p2.creadoEn).toLocaleDateString('es-ES')} · {p2.importe.toFixed(2)} € · <code>{p2.referencia}</code>
+                  </span>
+                ))}
+                {pagosSinCuenta.length > 8 && <span>y {pagosSinCuenta.length - 8} más</span>}
+              </div>
+            </div>
+          )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem', alignItems: 'start' }}>
             {/* Arqueo de la caja abierta */}
             <div style={ajusteCard}>
@@ -435,6 +463,7 @@ export default function PanelAdmin() {
                 )}
             </div>
           </div>
+          </>
         )}
 
         {/* Tab Ajustes de carta */}

@@ -69,7 +69,9 @@ async function conSesion() {
 
 async function q(tabla, select, filtro = {}, desde = null) {
   let query = supabase.from(tabla).select(select)
-  for (const [k, v] of Object.entries(filtro)) query = query.eq(k, v)
+  // Ojo con los nulos: `eq.null` no filtra nada en PostgREST, hay que usar
+  // `is.null`. Con `.eq` el aviso de cobros sin cuenta salía siempre vacío.
+  for (const [k, v] of Object.entries(filtro)) query = v === null ? query.is(k, null) : query.eq(k, v)
   if (desde) query = query.gte(desde.col, desde.valor)
   const { data, error } = await query
   if (error) throw new Error(`${tabla}: ${error.message}`)
@@ -271,6 +273,27 @@ export async function cargarCierres() {
   })
 }
 
+// ── Pagos que no cuadraron con ninguna cuenta ───────────────────────────────
+//
+// Cuando entra dinero de una cuenta YA saldada —dos comensales pagando a la vez
+// desde sus móviles, que en un bar pasa— el cobro se guarda con `ticket = null`.
+// Está bien registrado: el problema es que no salía en NINGUNA pantalla, así que
+// nadie se enteraba de que hay dinero que hay que devolver.
+export async function cargarPagosSinCuenta() {
+  // Solo el personal: la tabla es `to authenticated`, y sin esto cada móvil que
+  // escanea el QR haría una petición condenada a volver vacía.
+  if (!(await conSesion())) return
+  try {
+    const desde = { col: 'creado_en', valor: inicioVentanaHistorial(new Date(), useStore.getState().cierres?.[0]?.hasta ?? null) }
+    const filas = await q('pagos_online', 'id, importe, propina, referencia, creado_en, mesa_id', { ticket: null }, desde)
+    useStore.setState({
+      pagosSinCuenta: filas
+        .map(f => ({ id: f.id, importe: Number(f.importe), propina: Number(f.propina) || 0, referencia: f.referencia, creadoEn: f.creado_en }))
+        .sort((a, b) => (a.creadoEn < b.creadoEn ? 1 : -1)),
+    })
+  } catch { /* sin permisos (cliente anónimo) o tabla sin migrar: se ignora */ }
+}
+
 export async function cargarFichajes() {
   try {
     const fichajes = await q('fichajes', 'id, empleado_id, entrada, salida, editado_por')
@@ -291,7 +314,7 @@ export async function cargarTodo() {
   // Los cierres van ANTES que el historial: la ventana de tickets se estira
   // hasta el último cierre, y si aún no están cargados no hay hasta dónde.
   await cargarCierres().catch(() => {})
-  await Promise.all([cargarComandas(), cargarAvisos(), cargarReservas(), cargarHistorial(), cargarFichajes()])
+  await Promise.all([cargarComandas(), cargarAvisos(), cargarReservas(), cargarHistorial(), cargarFichajes(), cargarPagosSinCuenta()])
 }
 
 // ── Cliente QR anónimo: su mesa vía estado_mesa (RLS no le deja ver tablas) ──

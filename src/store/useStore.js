@@ -312,6 +312,10 @@ export const useStore = create(persist((set, get) => ({
     abiertaDesde: null,
   })),
 
+  // Cobros online que no cuadraron con ninguna cuenta (dos comensales pagando a
+  // la vez). Solo los rellena el backend real; en la demo se queda vacío.
+  pagosSinCuenta: [],
+
   // ── COLAS COCINA / BARRA ───────────────────────────────
   pedidosCocina: [],
   pedidosBarra: [],

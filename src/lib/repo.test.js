@@ -19,8 +19,13 @@ describe('repo: contrato con las RPC de la migración 02', () => {
   it('qr.agregarLinea manda variante/personalización y NUNCA un precio', async () => {
     await qr.agregarLinea('c1', 'prod9', { variante: 'viena', personalizacion: { nota: 'sin sal' }, tiempo: 2, cantidad: 3 })
     const [fn, args] = rpcMock.mock.calls[0]
-    expect(fn).toBe('qr_agregar_linea')
-    expect(args).toEqual({
+    expect(fn).toBe('qr_agregar_linea_idem')
+    // `p_idem` la pone `rpc()` sola: es la clave que impide que un reenvío de
+    // la cola sume otra unidad. Aquí solo se comprueba que va y que es única.
+    expect(args.p_idem).toEqual(expect.any(String))
+    expect(args.p_idem.length).toBeGreaterThan(8)
+    const resto = { ...args }; delete resto.p_idem
+    expect(resto).toEqual({
       p_comensal: 'c1', p_producto: 'prod9', p_variante: 'viena',
       p_personalizacion: { nota: 'sin sal' }, p_tiempo: 2, p_cantidad: 3,
     })
@@ -29,10 +34,10 @@ describe('repo: contrato con las RPC de la migración 02', () => {
 
   it('qr.agregarLinea usa los valores por defecto del servicio', async () => {
     await qr.agregarLinea('c1', 'prod9')
-    expect(rpcMock).toHaveBeenCalledWith('qr_agregar_linea', {
+    expect(rpcMock).toHaveBeenCalledWith('qr_agregar_linea_idem', expect.objectContaining({
       p_comensal: 'c1', p_producto: 'prod9', p_variante: null,
       p_personalizacion: {}, p_tiempo: 1, p_cantidad: 1,
-    })
+    }))
   })
 
   it('reservas.crear normaliza opcionales a null', async () => {
@@ -64,10 +69,15 @@ describe('repo: contrato con las RPC de la migración 02', () => {
 })
 
 // Cada nombre de función que usa el repo debe existir en la migración 02.
-describe('repo: todas las RPC usadas existen en la migración 02', () => {
+describe('repo: todas las RPC usadas existen en alguna migración', () => {
   it('coinciden los nombres', async () => {
     const { readFileSync } = await import('node:fs')
-    const sql = readFileSync(new URL('../../supabase/migrations/20260714T02_rpc_servicio.sql', import.meta.url), 'utf8')
+    // Mira TODAS las migraciones, no solo la 02: las funciones se añaden y se
+    // envuelven en migraciones posteriores (los `*_idem` viven en la 28).
+    const { readdirSync } = await import('node:fs')
+    const dir = new URL('../../supabase/migrations/', import.meta.url)
+    const sql = readdirSync(dir).filter(f => f.endsWith('.sql'))
+      .map(f => readFileSync(new URL(f, dir), 'utf8')).join(String.fromCharCode(10))
     const llamadas = [
       ['qr.unirseMesa', () => qr.unirseMesa('m', 'n')],
       ['qr.agregarLinea', () => qr.agregarLinea('c', 'p')],
