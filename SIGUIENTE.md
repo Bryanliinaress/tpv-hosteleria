@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.93.0 · 508 tests en verde · repo limpio y desplegado.**
+**Estado: v0.94.0 · 544 tests JS + 15 pruebas de SQL en verde · repo limpio y desplegado.**
 Última sesión: 2026-08-19. Roadmap: [PRODUCCION.md](PRODUCCION.md) ·
 Historia de los 71 fallos encontrados: [docs/AUDITORIA.md](docs/AUDITORIA.md).
 
@@ -40,33 +40,51 @@ tocar nada, y todos ya arreglados:
 Y **Admin → Caja avisa de los cobros sin cuenta** (4 en la demo, 13,25 €):
 dinero cobrado que no está en ningún ticket y hay que devolver por Stripe.
 
-### Lo que la revisión dejó pendiente, por orden
+### Lo que quedaba pendiente — ya está TODO hecho (24/08)
 
-1. **Cero tests ejecutan SQL.** Las 2.400 líneas de PL/pgSQL del dinero
-   (`pendiente_de_pago`, `_debe_por_comensal`, `cobrar_mesa`, `pagar_parte`,
-   `registrar_pago_online`) se verificaron **a mano una vez**. Hace falta un
-   `npm run test:sql` contra el proyecto dentro de una transacción con
-   `rollback` —que es como se probó a mano—. **Antes del segundo bar.**
-2. **No hay registro de qué migraciones se han aplicado.**
-   `aplicar-migraciones.mjs` re-ejecuta las 28 confiando en que son
-   idempotentes y no deja rastro. Con N bares no hay forma de saber en qué
-   esquema está cada uno. Hace falta `schema_migrations` y un `--estado`.
-   **Antes del segundo bar.**
-3. **Nadie se entera cuando un bar se rompe**: sin captura de errores ni
-   monitorización, te enteras porque te llaman.
-4. **IVA único por local**: no hay tipo por producto. En hostelería pura al
-   10 % vale; si un bar vende algo al 21 %, el ticket y lo que va a la AEAT
-   están mal. Saberlo antes de firmar con nadie.
-5. **`fichajes` se sigue bajando entero** (registro legal de 4 años). Las filas
-   son pequeñas, pero la pestaña tiene selector de mes: lo correcto es cargarlo
-   por el mes elegido, no acotarlo por ventana.
-6. **Un solo destino de despliegue**: el workflow compila todos los locales
-   publicados pero sube `path: dist`. Con un segundo bar, el segundo no se
-   publica.
-7. **`pedir_acceso` no tiene límite**: cualquiera que conozca la URL puede
-   llenar la lista de «esperando permiso» del encargado.
-8. `npm audit` da 2 *high* en react-router, del **modo RSC**; esta app es una
-   SPA con HashRouter, así que **no es explotable aquí**. Subir versión igual.
+1. **Tests del SQL del dinero** → `npm run test:sql`, 15 pruebas contra la base
+   de verdad y sin dejar rastro (cada una en una transacción que se deshace, y
+   el runner compara una foto de antes y después). Comprobado que SIRVEN:
+   metiendo a propósito el reparto ingenuo, canta «esperaba 20.00, obtuve
+   20.01».
+2. **Registro de migraciones** → `npm run migraciones -- --estado` dice en qué
+   esquema está un proyecto sin tocar nada; `--todas` aplica solo lo que falta.
+   Guarda la huella del contenido: una migración editada DESPUÉS de aplicarse
+   sale como «cambiada», que es un bar cuyo esquema ya no es el del repo.
+3. **Monitorización** → el bar deja constancia de lo que se rompe en su propia
+   base (nada sale a servicios de terceros) y `npm run salud` responde «cómo
+   está este bar». Se pagó sola: encontró que **editar un producto con tamaños
+   guardaba los precios como texto y reventaba la carta del cliente**.
+4. **IVA por producto** → `productos.iva_pct`, congelado en la línea al pedir, y
+   desglose por tipo en pantalla, papel, recibo y AEAT.
+5. **Fichajes por mes** → se pide el mes que se mira, con margen de un día a
+   cada lado (un turno de madrugada del día 1 se guarda en UTC como el último
+   día del mes anterior).
+6. **Segundo bar publicable** → probado compilando dos a la vez; hay tests que
+   impiden los fallos silenciosos (un bar fuera de `dist` no se sube y nadie se
+   entera). Ver `locales/README.md`.
+7. **Tope a `solicitar_dispositivo`** → 20 esperando y 5 por minuto, por local.
+8. **`npm audit` limpio** → react-router-dom 7.18.2.
+
+### Comandos nuevos
+
+```bash
+npm run salud                      # ¿cómo está este bar?
+npm run migraciones -- --estado    # ¿en qué esquema está?
+npm run test:sql                   # el dinero, contra la base real
+PROJECT_REF=<otro> npm run salud   # cualquier otro bar
+```
+
+### Pendiente
+
+1. **Rectificativas (R1-R5)** — sigue siendo el bloqueo fiscal de verdad: si un
+   ticket registrado en la AEAT necesita devolución, hoy no hay salida.
+2. **Declaración responsable del fabricante** — obligación tuya, no es código.
+3. **Los tres de siempre de Bryan**: teléfono y dirección del local, Supabase
+   Pro, y la prueba del papel (corte, acentos, QR).
+4. **Informes más ricos** (por producto, camarero y hora) y backups.
+5. **KDS y Barra en tableta** — no vueltos a mirar desde los últimos cambios.
+6. **Mostrador**: la rejilla pierde el cuadre al abrir el panel lateral.
 
 ### Lo que se revisó y está BIEN
 

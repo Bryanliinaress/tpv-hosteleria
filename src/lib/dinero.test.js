@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { cent, importeLinea, totalDe, totalDeMesa, pendienteDeMesa, desgloseIVA } from './dinero'
+import { cent, importeLinea, totalDe, totalDeMesa, pendienteDeMesa, desgloseIVA, desglosePorTipo, lineasDe, preciosNumericos } from './dinero'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
@@ -67,5 +67,102 @@ describe('lo que se manda a la AEAT usa el mismo redondeo', () => {
     const src = readFileSync(join(RAIZ, 'supabase/functions/registrar-fiscal/index.ts'), 'utf8')
     expect(src).toMatch(/const base = Math\.round\(\(total \/ \(1 \+ ivaPct \/ 100\)\) \* 100\) \/ 100/)
     expect(src).toMatch(/const cuota = Math\.round\(\(total - base\) \* 100\) \/ 100/)
+  })
+})
+
+// ────────────────────────────────────────────────────────────────────────────
+// Desglose por tipo de IVA.
+//
+// Un bar de hostelería pura va todo al 10 % y esto no cambia nada. Pero si
+// vende una botella para llevar (21 %) o pan (4 %), la factura simplificada
+// lleva una línea POR TIPO. Antes salía una sola con el tipo del local, lo que
+// es sencillamente falso en el papel y en lo que consta en Hacienda.
+// ────────────────────────────────────────────────────────────────────────────
+describe('desglose por tipo de IVA', () => {
+  it('con un solo tipo da exactamente lo mismo que antes', () => {
+    const d = desglosePorTipo([{ precio: 5, cantidad: 2, ivaPct: 10 }], 10)
+    expect(d).toHaveLength(1)
+    expect(d[0]).toEqual(desgloseIVA(10, 10))
+  })
+
+  it('separa los tipos y cada uno cuadra por su cuenta', () => {
+    const d = desglosePorTipo([
+      { precio: 10, cantidad: 1, ivaPct: 10 },   // consumición
+      { precio: 12.10, cantidad: 1, ivaPct: 21 }, // botella para llevar
+      { precio: 1.04, cantidad: 1, ivaPct: 4 },   // pan
+    ], 10)
+    expect(d.map(x => x.ivaPct)).toEqual([4, 10, 21]) // ordenados
+    for (const x of d) expect(cent(x.base + x.iva)).toBe(x.total)
+  })
+
+  it('la suma de los totales por tipo es el total del ticket', () => {
+    const lineas = [
+      { precio: 3.30, cantidad: 2, ivaPct: 10 },
+      { precio: 12.10, cantidad: 1, ivaPct: 21 },
+      { precio: 0.95, cantidad: 3, ivaPct: 4 },
+    ]
+    const total = lineas.reduce((s, l) => s + importeLinea(l), 0)
+    expect(cent(desglosePorTipo(lineas).reduce((s, d) => s + d.total, 0))).toBe(cent(total))
+  })
+
+  it('las líneas sin tipo usan el del local (tickets de antes de esto)', () => {
+    const d = desglosePorTipo([{ precio: 10, cantidad: 1 }], 21)
+    expect(d[0].ivaPct).toBe(21)
+  })
+
+  it('junta líneas del mismo tipo en una sola entrada', () => {
+    const d = desglosePorTipo([
+      { precio: 1, cantidad: 1, ivaPct: 10 },
+      { precio: 2, cantidad: 1, ivaPct: 10 },
+    ], 10)
+    expect(d).toHaveLength(1)
+    expect(d[0].total).toBe(3)
+  })
+
+  it('sin líneas no inventa un desglose vacío con NaN', () => {
+    expect(desglosePorTipo([], 10)).toEqual([])
+    expect(desglosePorTipo(null, 10)).toEqual([])
+  })
+
+  it('lineasDe aplana los comensales de un ticket', () => {
+    const personas = [{ items: [{ precio: 1, cantidad: 1 }] }, { items: [{ precio: 2, cantidad: 1 }] }, { }]
+    expect(lineasDe(personas)).toHaveLength(2)
+    expect(lineasDe(null)).toEqual([])
+  })
+})
+
+// ────────────────────────────────────────────────────────────────────────────
+// Precios de la carta, siempre números.
+//
+// El formulario de Admin guarda lo que se teclea, que es TEXTO. Editar un
+// producto con tamaños dejaba `{"viena": "2.5"}` en la base, y la carta del
+// cliente se rompía entera al llamar a `.toFixed()` sobre una cadena: pantalla
+// en blanco en el móvil de quien iba a pedir. Lo encontró la monitorización.
+// ────────────────────────────────────────────────────────────────────────────
+describe('precios de la carta', () => {
+  it('convierte lo que teclea el formulario', () => {
+    expect(preciosNumericos({ viena: '2.5', pitufo: '1.5' })).toEqual({ viena: 2.5, pitufo: 1.5 })
+  })
+
+  it('deja los números como están', () => {
+    expect(preciosNumericos({ base: 3 })).toEqual({ base: 3 })
+  })
+
+  it('quita los huecos vacíos en vez de guardarlos como 0 €', () => {
+    // Un tamaño que el bar no usa no puede acabar valiendo cero euros.
+    expect(preciosNumericos({ viena: '2.5', pitufo: '', mini: null })).toEqual({ viena: 2.5 })
+  })
+
+  it('descarta lo que no es un número', () => {
+    expect(preciosNumericos({ viena: 'dos cincuenta' })).toEqual({})
+  })
+
+  it('redondea a céntimos', () => {
+    expect(preciosNumericos({ base: '1.005' }).base).toBeCloseTo(1, 2)
+  })
+
+  it('aguanta que no venga nada', () => {
+    expect(preciosNumericos(null)).toEqual({})
+    expect(preciosNumericos('2.5')).toEqual({})
   })
 })

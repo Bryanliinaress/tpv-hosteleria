@@ -3,7 +3,7 @@ import { QRCodeSVG } from 'qrcode.react'
 import { imprimirESCPOS, config as configImpresora } from '../lib/impresora'
 import { ticketESCPOS, comandaESCPOS } from '../lib/escpos'
 import { lineasDeConsumo } from '../lib/recibo'
-import { desgloseIVA, totalDeMesa } from '../lib/dinero'
+import { desglosePorTipo, lineasDe, totalDeMesa } from '../lib/dinero'
 
 // Modificadores de una línea (pan, sin/con, nota) en una sola cadena
 const descr = (item) => {
@@ -82,7 +82,10 @@ function Cuenta({ mesa, persona, local, fiscal }) {
     ? (owedPorPersona(mesa)[persona.id] || 0)
     : totalDeMesa({ personas })
   const propina = personas.reduce((s, p) => s + (p.propina || 0), 0)
-  const { ivaPct, base, iva } = desgloseIVA(total, local?.ivaPct ?? 10)
+  // Una línea de desglose POR TIPO: un bar de hostelería pura tiene uno solo y
+  // esto se ve exactamente igual que antes, pero si vende algo al 21 % o al 4 %
+  // la factura simplificada tiene que separarlos.
+  const desglose = desglosePorTipo(lineasDe(personas), local?.ivaPct ?? 10)
   const mon = local?.moneda || '€'
   const pagado = personas.length > 0 && personas.every(p => p.pagado)
   const nCom = personas.length
@@ -126,8 +129,12 @@ function Cuenta({ mesa, persona, local, fiscal }) {
 
       {/* Totales */}
       <div style={st.hr} />
-      <div style={st.der}>Base: <b>{f(base)}</b></div>
-      <div style={st.der}>Total IVA ({ivaPct}%): <b>{f(iva)}</b></div>
+      {desglose.map(d => (
+        <div key={d.ivaPct}>
+          <div style={st.der}>Base ({d.ivaPct}%): <b>{f(d.base)}</b></div>
+          <div style={st.der}>IVA ({d.ivaPct}%): <b>{f(d.iva)}</b></div>
+        </div>
+      ))}
       <div style={{ ...st.der, fontSize: '1.35rem', fontWeight: 800, margin: '0.2rem 0' }}>Total: {f(total)} {mon}</div>
       <div style={st.der}>Comensales: {nCom}</div>
       {nCom > 1 && <div style={st.der}>Por comensal: {f(total / nCom)}</div>}

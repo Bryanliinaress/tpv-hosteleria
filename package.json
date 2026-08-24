@@ -1,7 +1,7 @@
 {
   "name": "tpv-hosteleria",
   "private": true,
-  "version": "0.93.0",
+  "version": "0.94.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,14 +11,17 @@
     "test": "vitest run",
     "dev:v2": "vite --mode v2",
     "locales": "node scripts/locales.mjs",
-    "permisos": "node scripts/revisar-permisos.mjs"
+    "permisos": "node scripts/revisar-permisos.mjs",
+    "migraciones": "node scripts/aplicar-migracion.mjs",
+    "test:sql": "node scripts/test-sql.mjs",
+    "salud": "node scripts/salud.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",
     "qrcode.react": "^4.2.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-router-dom": "^7.1.1",
+    "react-router-dom": "^7.18.2",
     "zustand": "^5.0.2"
   },
   "devDependencies": {

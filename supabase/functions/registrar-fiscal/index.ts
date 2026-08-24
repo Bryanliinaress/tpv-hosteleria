@@ -64,6 +64,22 @@ function componerFactura(t: Record<string, unknown>) {
   const base = Math.round((total / (1 + ivaPct / 100)) * 100) / 100
   const cuota = Math.round((total - base) * 100) / 100
 
+  // Desglose POR TIPO. Lo calcula la base de datos a partir del detalle del
+  // ticket (donde el tipo de cada línea quedó congelado al pedirla) y viene ya
+  // hecho en `desglose`. Un ticket que mezcla 10 % y 21 % lleva DOS líneas de
+  // desglose; mandar una sola con el tipo del local es declarar mal.
+  //
+  // Los tickets anteriores a esto no traen `desglose`: para esos se sigue
+  // usando el tipo único del local, que es el que se les aplicó de hecho.
+  const porTipo = (t.desglose as Array<Record<string, unknown>> | undefined) ?? []
+  const lineas = porTipo.length
+    ? porTipo.map((d) => ({
+        base_imponible: dec(Number(d.base)),
+        tipo_impositivo: String(Number(d.ivaPct)),
+        cuota_repercutida: dec(Number(d.cuota)),
+      }))
+    : [{ base_imponible: dec(base), tipo_impositivo: String(ivaPct), cuota_repercutida: dec(cuota) }]
+
   // OJO: en factura simplificada (F2) NO se identifica al destinatario; los
   // campos nif/nombre son del CLIENTE y la AEAT los rechaza aquí. El emisor
   // va implícito en la API key (cada NIF tiene la suya).
@@ -73,11 +89,7 @@ function componerFactura(t: Record<string, unknown>) {
     fecha_expedicion: fechaES(String(t.fecha)),
     tipo_factura: 'F2',                       // factura simplificada (ticket)
     descripcion: 'Consumicion en local',
-    lineas: [{
-      base_imponible: dec(base),
-      tipo_impositivo: String(ivaPct),
-      cuota_repercutida: dec(cuota),
-    }],
+    lineas,
     importe_total: dec(total),
   }
 }

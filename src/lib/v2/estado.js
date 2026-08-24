@@ -1,5 +1,6 @@
 import { supabase } from '../supabase'
 import { useStore } from '../../store/useStore'
+import { preciosNumericos } from '../dinero'
 import { suscribirLocal } from '../repo'
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -51,7 +52,11 @@ const notaDe = (l) => {
 // **0,00 €**. Se traduce aquí, en el borde: `base` → `precio`, que es el shape
 // que documenta el store («o `precios`, o `precio`, nunca los dos»).
 export function preciosDeProducto(precios) {
-  const mapa = precios && typeof precios === 'object' ? precios : {}
+  // A NÚMEROS siempre. El formulario de Admin guardó durante un tiempo lo que
+  // se tecleaba —texto— y una carta con `"2.5"` en vez de `2.5` reventaba la
+  // pantalla del cliente al llamar a `.toFixed()`. Se arregló al guardar, pero
+  // los productos que ya se guardaron así siguen en la base de algún bar.
+  const mapa = preciosNumericos(precios)
   const claves = Object.keys(mapa)
   const sinFormatos = claves.length === 0 || (claves.length === 1 && claves[0] === 'base')
   return sinFormatos ? { precio: Number(mapa.base) || 0 } : { precios: mapa }
@@ -135,7 +140,7 @@ export async function cargarLocal() {
 export async function cargarCarta() {
   const [cats, prods] = await Promise.all([
     q('categorias', 'id, nombre, tipo, emoji, orden'),
-    q('productos', 'id, categoria_id, nombre, descripcion, precios, modificadores, alergenos, disponible, orden'),
+    q('productos', 'id, categoria_id, nombre, descripcion, precios, modificadores, alergenos, disponible, orden, iva_pct'),
   ])
   cats.sort((a, b) => a.orden - b.orden); prods.sort((a, b) => a.orden - b.orden)
   useStore.setState(s => ({
@@ -151,6 +156,8 @@ export async function cargarCarta() {
         menu: p.modificadores?.menu || null,
         nombreEn: p.modificadores?.nombreEn || '',
         descripcionEn: p.modificadores?.descripcionEn || '',
+        // null significa «el del local»: la mayoría de productos no lleva tipo propio
+        ivaPct: p.iva_pct == null ? null : Number(p.iva_pct),
       })),
     },
     // A partir de aquí lo que se ve es la carta DEL LOCAL, no la de ejemplo con
@@ -294,9 +301,34 @@ export async function cargarPagosSinCuenta() {
   } catch { /* sin permisos (cliente anónimo) o tabla sin migrar: se ignora */ }
 }
 
-export async function cargarFichajes() {
+// ── Fichajes ────────────────────────────────────────────────────────────────
+//
+// El registro de jornada hay que conservarlo CUATRO años (RD-ley 8/2019), así
+// que bajárselo entero es lo mismo que pasaba con los tickets. Pero aquí no
+// vale una ventana fija: la pestaña tiene selector de mes y el encargado puede
+// consultar cualquiera. Se baja el mes que se está mirando, y ya está.
+//
+// El margen de un día por cada lado no es un capricho: un turno que entra a la
+// 01:00 del día 1 se guarda como las 23:00 del último día del mes anterior en
+// UTC. Sin el margen, ese fichaje desaparecería del mes al que pertenece.
+export function rangoDelMes(mes) {
+  const [a, m] = String(mes).split('-').map(Number)
+  if (!a || !m) return null
+  const desde = new Date(Date.UTC(a, m - 1, 1)); desde.setUTCDate(desde.getUTCDate() - 1)
+  const hasta = new Date(Date.UTC(a, m, 1)); hasta.setUTCDate(hasta.getUTCDate() + 1)
+  return { desde: desde.toISOString(), hasta: hasta.toISOString() }
+}
+
+const mesActual = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` }
+
+export async function cargarFichajes(mes = mesActual()) {
   try {
-    const fichajes = await q('fichajes', 'id, empleado_id, entrada, salida, editado_por')
+    const r = rangoDelMes(mes)
+    let query = supabase.from('fichajes').select('id, empleado_id, entrada, salida, editado_por')
+    if (r) query = query.gte('entrada', r.desde).lt('entrada', r.hasta)
+    const { data, error } = await query
+    if (error) throw new Error(error.message)
+    const fichajes = data
     useStore.setState({
       fichajes: fichajes.map(f => ({
         id: f.id, empleadoId: f.empleado_id, entrada: f.entrada, salida: f.salida,

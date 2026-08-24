@@ -1,4 +1,4 @@
-import { desgloseIVA } from './dinero'
+import { desglosePorTipo } from './dinero'
 // ────────────────────────────────────────────────────────────────────────────
 // Generador de comandos ESC/POS para impresoras térmicas de 80 mm.
 //
@@ -129,7 +129,9 @@ export function ticketESCPOS({ local = {}, mesa, lineas = [], total, propina = 0
   // El desglose sale de `dinero.js` como en el resto: aquí se calculaba aparte
   // y SIN redondear la base, así que con el IVA al 4 % este papel —el que se
   // lleva el cliente— imprimía «base + IVA» un céntimo por encima del total.
-  const { ivaPct, base, iva } = desgloseIVA(total, local.ivaPct ?? 10)
+  // Y va por TIPO: si el ticket mezcla 10 % y 21 %, la factura simplificada
+  // lleva las dos líneas, no una con la media.
+  const desglose = desglosePorTipo(lineas, local.ivaPct ?? 10)
   const t = crearTicket().init()
 
   t.alinear(1).tamano(2, 2).negrita(true).linea(local.nombre || 'Mi Local')
@@ -150,8 +152,10 @@ export function ticketESCPOS({ local = {}, mesa, lineas = [], total, propina = 0
   })
 
   t.separador()
-    .fila('Base imponible', dec(base))
-    .fila(`IVA (${ivaPct}%)`, dec(iva))
+  for (const d of desglose) {
+    t.fila(`Base imponible (${d.ivaPct}%)`, dec(d.base))
+     .fila(`IVA (${d.ivaPct}%)`, dec(d.iva))
+  }
   t.tamano(2, 2).negrita(true).fila('TOTAL', `${dec(total)} ${local.moneda || 'EUR'}`)
     .negrita(false).tamano(1, 1)
   t.fila('Comensales', String(comensales))

@@ -1,5 +1,5 @@
 import { traducirCarta } from './cartaI18n'
-import { desgloseIVA } from './dinero'
+import { desgloseIVA, desglosePorTipo } from './dinero'
 // ────────────────────────────────────────────────────────────────────────────
 // El comprobante que se lleva el cliente.
 //
@@ -20,6 +20,9 @@ const CLAVE = (mesaId) => `tpv-recibo-${mesaId}`
 export function construirRecibo({ local, mesa, nombre, lineas, propina = 0, metodo = null, metodoLabel = null, fecha = new Date() }) {
   const total = lineas.reduce((s, l) => s + l.importe, 0)
   const { ivaPct, base, iva } = desgloseIVA(total, local?.ivaPct ?? 10)
+  // El recibo del cliente enseña el desglose por tipo si su consumo mezcla
+  // varios; con uno solo se queda como estaba.
+  const desglose = desglosePorTipo(lineas, local?.ivaPct ?? 10)
   return {
     v: 1,
     local: {
@@ -37,6 +40,7 @@ export function construirRecibo({ local, mesa, nombre, lineas, propina = 0, meto
     total,
     propina,
     ivaPct,
+    desglose,
     base,
     iva,
     metodo,
@@ -142,8 +146,9 @@ export function reciboHTML(recibo, { t = (x) => x, idioma = 'es' } = {}) {
     <tbody>${filas || `<tr><td colspan="3">${esc(t('Sin consumo'))}</td></tr>`}</tbody>
   </table>
   <hr>
-  <div class="tot"><span>${esc(t('Base imponible'))}</span><span>${f(recibo.base)} ${m}</span></div>
-  <div class="tot"><span>${esc(t('IVA'))} (${recibo.ivaPct}%)</span><span>${f(recibo.iva)} ${m}</span></div>
+  ${(recibo.desglose && recibo.desglose.length ? recibo.desglose : [{ ivaPct: recibo.ivaPct, base: recibo.base, iva: recibo.iva }]).map(d => `
+  <div class="tot"><span>${esc(t('Base imponible'))} (${d.ivaPct}%)</span><span>${f(d.base)} ${m}</span></div>
+  <div class="tot"><span>${esc(t('IVA'))} (${d.ivaPct}%)</span><span>${f(d.iva)} ${m}</span></div>`).join('')}
   ${recibo.propina > 0 ? `<div class="tot"><span>${esc(t('Propina'))}</span><span>${f(recibo.propina)} ${m}</span></div>` : ''}
   <div class="tot total"><span>${esc(t('Total'))}</span><span>${f(recibo.total + recibo.propina)} ${m}</span></div>
   ${recibo.metodo ? `<div class="tot"><span>${esc(t('Pagado con'))}</span><span>${esc(t(recibo.metodoLabel || recibo.metodo))}</span></div>` : ''}

@@ -60,6 +60,31 @@ desarrollo de siempre.
 Lo que venga por **variable de entorno manda sobre el perfil**: así el workflow
 inyecta secretos (EmailJS, Stripe) sin meterlos en ficheros versionados.
 
+## Publicar un segundo bar
+
+El deploy compila **todos los locales publicados** y sube una sola carpeta:
+`dist`. Comprobado compilando dos a la vez — cada uno sale con su marca y su
+ruta (`dist/index.html` → «Marchando», `dist/prueba/index.html` → «Bar de
+Prueba»). Para que eso siga funcionando hay dos reglas, y las vigila
+`scripts/lib/despliegue.test.mjs`:
+
+1. **`despliegue.salida` tiene que estar dentro de `dist`.** Un bar que compile
+   en `dist-otro` no se sube, y nadie se entera hasta que el bar llama diciendo
+   que su enlace no existe. (La demo v1 sale a `dist-demo-v1` **a propósito**:
+   está `publicado: false` y fuera del deploy.)
+2. **`dist` se compila antes que `dist/loquesea`.** Cada build vacía su carpeta
+   de salida, así que al revés el segundo se borraría. Lo ordena
+   `scripts/locales.mjs` por profundidad de ruta.
+
+Y dos cosas más que el test no deja pasar: dos bares no pueden compartir
+`salida`, `base` ni proyecto de Supabase. Compartir base sería un bar sirviendo
+la carta de otro; compartir proyecto sería compartir mesas y caja, que no es
+este producto.
+
+Al dar de alta el bar, además del perfil hay que **aplicar las migraciones a su
+proyecto**: `PROJECT_REF=<ref> npm run migraciones -- --todas`. Y
+`PROJECT_REF=<ref> npm run salud` dice cómo está en cualquier momento.
+
 ## Lo que nunca va aquí
 
 Claves de servicio (`service_role`), tokens `sbp_` ni secretos de Stripe. En el
