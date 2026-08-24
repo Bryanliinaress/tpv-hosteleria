@@ -655,7 +655,10 @@ export default function PanelAdmin() {
         )}
 
         {/* Tab Informes */}
-        {tab === 'informes' && <Informes historial={historial} moneda={local.moneda || '€'} />}
+        {/* Los informes ya no reciben el historial: los calcula el servidor por
+            rango de fechas, así que valen para cualquier periodo y no solo para
+            el trozo que este aparato tenga descargado. */}
+        {tab === 'informes' && <Informes moneda={local.moneda || '€'} />}
 
         {/* Tab Fichajes (registro de jornada) */}
         {tab === 'fichajes' && (

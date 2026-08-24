@@ -66,6 +66,7 @@ declare
   v_dato numeric;
   v_json jsonb;
   v_id uuid;
+  v_txt text;
   v_fila record;
 begin
   select id into v_local from locales where slug = ${sqlLit(slug)};

@@ -364,6 +364,15 @@ export function accionesV2b() {
       }
     },
 
+    // Los informes los calcula el SERVIDOR: así valen para cualquier periodo
+    // —no solo para el trozo de historial que este aparato tenga bajado— y las
+    // devoluciones restan sin ensuciar los rankings.
+    informeVentas: async ({ desde, hasta }) => {
+      try {
+        return await rpc('informe_ventas', { p_desde: desde, p_hasta: hasta })
+      } catch (e) { console.warn('informe:', e); return null }
+    },
+
     pedirFichajesDe: (mes) => { cargarFichajes(mes) },
 
     updateLocal: (cambios) => actualizarConfig(cambios).catch(err),
