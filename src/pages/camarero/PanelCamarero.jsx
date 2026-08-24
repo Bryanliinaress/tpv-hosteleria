@@ -8,6 +8,7 @@ import ReservasManager from '../../components/ReservasManager'
 import BotonSalir from '../../components/BotonSalir'
 import PedirPda from '../pda/PedirPda'
 import CobroMesa from '../pda/CobroMesa'
+import { totalDe, totalDeMesa, pendienteDeMesa } from '../../lib/dinero'
 
 const ESTADO = {
   libre: { label: 'Libre', color: '#10b981', bg: 'var(--tint-success-bg)' },
@@ -176,7 +177,7 @@ export default function PanelCamarero() {
                     const listo = [...pedidosCocina, ...pedidosBarra].filter(p => p.mesaId === m.id && p.estado === 'listo').length
                     const listoCocina = pedidosCocina.filter(p => p.mesaId === m.id && p.estado === 'listo').length
                     const listoBarra = pedidosBarra.filter(p => p.mesaId === m.id && p.estado === 'listo').length
-                    const totalMesa = m.personas.reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0)
+                    const totalMesa = totalDeMesa(m)
                     const esSec = !!m.unidaA
                     const principalNum = esSec ? mesas.find(x => x.id === m.unidaA)?.numero : null
                     const enGrupo = m.unidas && m.unidas.length > 0
@@ -306,7 +307,7 @@ export default function PanelCamarero() {
               <>
                 {/* Pedidos por persona */}
                 {mesa.personas.map(p => {
-                  const aPagar = owed[p.id] ?? p.items.reduce((s, i) => s + i.precio * i.cantidad, 0)
+                  const aPagar = owed[p.id] ?? totalDe(p)
                   return (
                     <div key={p.id} style={{ background: 'var(--color-inset)', borderRadius: '0.625rem', padding: '0.875rem', border: p.pagado ? '1px solid #10b981' : '1px solid transparent' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
@@ -347,7 +348,7 @@ export default function PanelCamarero() {
                 {/* Total mesa */}
                 <div style={{ background: 'var(--color-inset)', borderRadius: '0.625rem', padding: '0.875rem', display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1rem' }}>
                   <span>Total mesa</span>
-                  <span style={{ color: 'var(--color-accent)' }}>{mesa.personas.reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0).toFixed(2)} €</span>
+                  <span style={{ color: 'var(--color-accent)' }}>{totalDeMesa(mesa).toFixed(2)} €</span>
                 </div>
 
                 {/* Listos para servir */}
@@ -393,7 +394,7 @@ export default function PanelCamarero() {
                     basura: anular una linea pide motivo y unir mesas confirma,
                     y esto se iba de un toque. */}
                 <button onClick={async () => {
-                  const pendiente = mesa.personas.filter(p => !p.pagado).reduce((s, p) => s + p.items.reduce((ss, i) => ss + i.precio * i.cantidad, 0), 0)
+                  const pendiente = pendienteDeMesa(mesa)
                   const ok = await confirmar({
                     titulo: `Cerrar la Mesa ${mesa.numero} sin cobrar`,
                     mensaje: pendiente > 0

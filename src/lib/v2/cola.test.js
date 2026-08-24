@@ -35,40 +35,40 @@ describe('cola offline', () => {
   })
 
   it('guarda las operaciones y las cuenta', () => {
-    encolar('qr_confirmar_pedido', { p_mesa: 'm1' })
+    encolar('qr_confirmar_pedido_idem', { p_mesa: 'm1' })
     encolar('qr_llamar_camarero', { p_mesa: 'm1' })
     expect(pendientes()).toBe(2)
   })
 
   it('al volver la red las reenvía EN ORDEN y vacía la cola', async () => {
-    encolar('qr_agregar_linea', { p_comensal: 'c1' })
-    encolar('qr_confirmar_pedido', { p_mesa: 'm1' })
+    encolar('qr_agregar_linea_idem', { p_comensal: 'c1' })
+    encolar('qr_confirmar_pedido_idem', { p_mesa: 'm1' })
     await procesar()
-    expect(llamadas.map(l => l.fn)).toEqual(['qr_agregar_linea', 'qr_confirmar_pedido'])
+    expect(llamadas.map(l => l.fn)).toEqual(['qr_agregar_linea_idem', 'qr_confirmar_pedido_idem'])
     expect(pendientes()).toBe(0)
   })
 
   it('si sigue sin haber red, conserva lo pendiente', async () => {
-    encolar('qr_confirmar_pedido', { p_mesa: 'm1' })
+    encolar('qr_confirmar_pedido_idem', { p_mesa: 'm1' })
     redCaida = true
     await procesar()
     expect(pendientes()).toBe(1)   // no se pierde el pedido
   })
 
   it('NO pierde el pedido si el fallo de red llega como error (supabase-js no lanza)', async () => {
-    encolar('qr_agregar_linea', { p_comensal: 'c1' })
+    encolar('qr_agregar_linea_idem', { p_comensal: 'c1' })
     redComoError = true
     await procesar()
     expect(pendientes()).toBe(1)   // se conserva para el siguiente intento
   })
 
   it('descarta una operación que el servidor rechaza (no bloquea la cola)', async () => {
-    rechazarFn = 'qr_confirmar_pedido'
-    encolar('qr_confirmar_pedido', { p_mesa: 'vieja' })
+    rechazarFn = 'qr_confirmar_pedido_idem'
+    encolar('qr_confirmar_pedido_idem', { p_mesa: 'vieja' })
     encolar('qr_llamar_camarero', { p_mesa: 'm2' })
     await procesar()
     expect(pendientes()).toBe(0)
-    expect(llamadas.map(l => l.fn)).toEqual(['qr_confirmar_pedido', 'qr_llamar_camarero'])
+    expect(llamadas.map(l => l.fn)).toEqual(['qr_confirmar_pedido_idem', 'qr_llamar_camarero'])
   })
 })
 
@@ -102,7 +102,7 @@ describe('avisos al camarero', () => {
     useUI.setState({ toasts: [] })
     const original = globalThis.localStorage.setItem
     globalThis.localStorage.setItem = () => { throw new Error('QuotaExceeded') }
-    const ok = encolar('qr_agregar_linea', { x: 1 })
+    const ok = encolar('qr_agregar_linea_idem', { x: 1 })
     globalThis.localStorage.setItem = original
 
     expect(ok).toBe(false)
@@ -113,9 +113,9 @@ describe('avisos al camarero', () => {
     const { useUI } = await import('../../store/useUI')
     useUI.setState({ toasts: [] })
     redCaida = true
-    encolar('qr_agregar_linea', { producto: 'x' })
+    encolar('qr_agregar_linea_idem', { producto: 'x' })
     redCaida = false
-    rechazarFn = 'qr_agregar_linea'
+    rechazarFn = 'qr_agregar_linea_idem'
     await procesar()
 
     expect(pendientes()).toBe(0)                       // no bloquea la cola
@@ -128,7 +128,7 @@ describe('avisos al camarero', () => {
     const { useUI } = await import('../../store/useUI')
     useUI.setState({ toasts: [] })
     redCaida = true
-    encolar('qr_confirmar_pedido', { mesa: 1 })
+    encolar('qr_confirmar_pedido_idem', { mesa: 1 })
     redCaida = false
     await procesar()
 

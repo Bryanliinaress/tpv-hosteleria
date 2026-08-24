@@ -1,4 +1,5 @@
 import { METODO_LABEL, METODO_EMOJI } from '../../store/useStore'
+import { importeLinea } from '../../lib/dinero'
 
 // Informes de ventas del mes en curso a partir del historial de tickets.
 // Gráficas ligeras hechas con CSS (sin librerías).
@@ -34,7 +35,7 @@ export default function Informes({ historial, moneda = '€' }) {
   const prod = {}
   delMes.forEach(r => (r.personas || []).forEach(p => (p.items || []).forEach(i => {
     const e = (prod[i.nombre] ||= { uds: 0, imp: 0 })
-    e.uds += i.cantidad; e.imp += i.precio * i.cantidad
+    e.uds += i.cantidad; e.imp += importeLinea(i)
   })))
   const topProductos = Object.entries(prod).sort((a, b) => b[1].imp - a[1].imp).slice(0, 7)
   const maxProd = Math.max(1, ...topProductos.map(([, v]) => v.imp))

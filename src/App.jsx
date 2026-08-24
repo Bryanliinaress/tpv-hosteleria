@@ -3,6 +3,7 @@ import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Protegido from './components/Protegido'
 import UIHost from './components/UIHost'
 import AvisoDemo from './components/AvisoDemo'
+import SiFalla from './components/SiFalla'
 
 // Carga diferida por ruta: cada pantalla es su propio chunk. El cliente que
 // escanea el QR solo descarga la carta + lo compartido, no Admin/KDS/PDA.
@@ -33,6 +34,11 @@ export default function App() {
           hay que verlo antes de pedir nada */}
       <AvisoDemo />
       <UIHost />
+      {/* La red de seguridad va DENTRO del router y FUERA de Suspense: así
+          atrapa tanto un fallo de render de la pantalla como un trozo de la
+          app que no llegue (pestaña vieja tras un despliegue), y el botón de
+          «Volver al inicio» sigue teniendo router debajo. */}
+      <SiFalla>
       <Suspense fallback={<Cargando />}>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -52,6 +58,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" /> } />
         </Routes>
       </Suspense>
+      </SiFalla>
     </HashRouter>
   )
 }

@@ -21,10 +21,27 @@ export const backendV2 = import.meta.env.VITE_BACKEND === 'v2'
 // Operaciones de servicio que pueden esperar a que vuelva el wifi. Los cobros
 // y cierres NO están aquí: reenviarlos a ciegas podría duplicar un ticket.
 export const ENCOLABLES = new Set([
-  'qr_agregar_linea', 'qr_cambiar_cantidad', 'qr_confirmar_pedido',
+  'qr_agregar_linea_idem', 'qr_cambiar_cantidad_idem', 'qr_confirmar_pedido_idem',
   'qr_llamar_camarero', 'qr_cancelar_aviso', 'qr_pedir_cuenta',
-  'marchar_siguiente',
+  'marchar_siguiente_idem',
 ])
+
+// ── Clave de idempotencia ───────────────────────────────────────────────────
+//
+// El caso malo de la cola no es quedarse sin red: es que la petición LLEGUE,
+// se aplique, y lo que se pierda sea la respuesta. El cliente lo ve como fallo
+// de red, lo encola y al volver la línea lo manda otra vez: dos cervezas donde
+// se pidió una.
+//
+// Por eso la clave se genera ANTES del primer intento y viaja con la operación:
+// al reencolarla va la misma, y el servidor sabe que ya la aplicó. Las RPC que
+// la aceptan son las `*_idem`; el resto (avisos, pedir cuenta) repetirlas no
+// hace daño.
+const IDEMPOTENTES = new Set([
+  'qr_agregar_linea_idem', 'qr_cambiar_cantidad_idem',
+  'qr_confirmar_pedido_idem', 'marchar_siguiente_idem',
+])
+const claveIdem = () => (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`)
 
 // Sin red la operación se guarda para reenviarla; ojo: supabase-js NO lanza
 // excepción en fallos de red, los devuelve dentro de `error`.
@@ -38,6 +55,9 @@ function sinConexion(fn, args) {
 
 async function rpc(fn, args) {
   if (!supabase) throw new Error('backend no configurado')
+  // se pone aquí y no en cada llamada: así la MISMA clave vale para el primer
+  // intento y para todos los reenvíos de la cola
+  if (IDEMPOTENTES.has(fn) && !args?.p_idem) args = { ...args, p_idem: claveIdem() }
   let data, error
   try {
     ({ data, error } = await supabase.rpc(fn, args))
@@ -65,21 +85,21 @@ export const qr = {
   // Añade una línea; el PRECIO lo resuelve el servidor desde la carta.
   // personalizacion = { pan, quitados, anadidos, nota } (jsonb opaco)
   agregarLinea: (comensalId, productoId, { variante = null, personalizacion = {}, tiempo = 1, cantidad = 1 } = {}) =>
-    rpc('qr_agregar_linea', {
+    rpc('qr_agregar_linea_idem', {
       p_comensal: comensalId, p_producto: productoId, p_variante: variante,
       p_personalizacion: personalizacion, p_tiempo: tiempo, p_cantidad: cantidad,
     }),
 
   // Cambia cantidad de una línea pendiente propia (0 = borrar)
   cambiarCantidad: (lineaId, comensalId, cantidad) =>
-    rpc('qr_cambiar_cantidad', { p_linea: lineaId, p_comensal: comensalId, p_cantidad: cantidad }),
+    rpc('qr_cambiar_cantidad_idem', { p_linea: lineaId, p_comensal: comensalId, p_cantidad: cantidad }),
 
   // Comparte/descomparte un plato propio con otro comensal de la mesa
   compartirLinea: (lineaId, comensalId, conId) =>
     rpc('qr_compartir_linea', { p_linea: lineaId, p_comensal: comensalId, p_con: conId }),
 
   // Envía lo pendiente de la mesa a cocina/barra. → nº de comandas creadas
-  confirmarPedido: (mesaId) => rpc('qr_confirmar_pedido', { p_mesa: mesaId }),
+  confirmarPedido: (mesaId) => rpc('qr_confirmar_pedido_idem', { p_mesa: mesaId }),
 
   llamarCamarero: (mesaId, nombre) =>
     rpc('qr_llamar_camarero', { p_mesa: mesaId, p_nombre: nombre ?? null }),
@@ -123,7 +143,7 @@ export const personal = {
   separarMesas: (mesaId) => rpc('separar_mesas', { p_mesa: mesaId }),
 
   // Lanza el siguiente tiempo en espera. → nº de comandas lanzadas
-  marcharSiguiente: (mesaId) => rpc('marchar_siguiente', { p_mesa: mesaId }),
+  marcharSiguiente: (mesaId) => rpc('marchar_siguiente_idem', { p_mesa: mesaId }),
 
   anularLinea: (lineaId, motivo, por) =>
     rpc('anular_linea', { p_linea: lineaId, p_motivo: motivo, p_por: por }),

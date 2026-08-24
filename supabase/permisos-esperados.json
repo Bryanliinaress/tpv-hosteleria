@@ -20,10 +20,10 @@
     "_por_que": "El cliente del QR no tiene sesión: esto es todo lo que puede hacer.",
     "funciones": [
       "qr_unirse_mesa",
-      "qr_agregar_linea",
-      "qr_cambiar_cantidad",
+      "qr_agregar_linea_idem",
+      "qr_cambiar_cantidad_idem",
       "qr_compartir_linea",
-      "qr_confirmar_pedido",
+      "qr_confirmar_pedido_idem",
       "qr_llamar_camarero",
       "qr_cancelar_aviso",
       "qr_pedir_cuenta",
