@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.95.0 · 553 tests JS + 22 pruebas de SQL en verde · repo limpio y desplegado.**
+**Estado: v0.96.0 · 565 tests JS + 31 pruebas de SQL en verde · repo limpio y desplegado.**
 Última sesión: 2026-08-19. Roadmap: [PRODUCCION.md](PRODUCCION.md) ·
 Historia de los 71 fallos encontrados: [docs/AUDITORIA.md](docs/AUDITORIA.md).
 
@@ -107,12 +107,44 @@ Cómo funciona, y por qué así:
 Queda apuntado en la auditoría de anulaciones, que es donde el encargado ya
 mira cuando algo no cuadra.
 
+### Informes — rehechos en el servidor (24/08)
+
+Ya tenían producto, camarero y hora, pero se calculaban **en el navegador**
+sobre el historial descargado, y eso traía dos cosas:
+
+- **Solo se veía el mes en curso** —y desde que el historial va por ventana, ni
+  eso: el día 1 de mes la pantalla salía vacía—.
+- **Las devoluciones los ensuciaban.** Una rectificativa es un ticket con líneas
+  sintéticas, así que aparecía en el ranking como un producto llamado
+  «Devolución (IVA 10%)», sumaba un comensal que nunca existió y contaba como
+  ticket hundiendo el medio. Fallo introducido al añadir las rectificativas.
+
+Ahora los calcula el servidor (`informe_ventas`, por rango de fechas), así que
+valen para **cualquier periodo** sin depender de lo que el aparato tenga bajado.
+Selector de Hoy / Ayer / 7 días / Este mes / Mes pasado, y **CSV** con `;` y BOM
+(Excel en español lo abre bien; con comas mete todo en una columna).
+
+Tres cosas que se arreglaron por el camino:
+
+- **Las devoluciones restan y se enseñan aparte** («↩ 2 devoluciones · −14,40 €
+  · vendido 253,10 € antes de devolver»), y no salen en ningún ranking.
+- **La hora, en la zona del local** (`config.zonaHoraria`, Europe/Madrid por
+  defecto). Agrupar en UTC daba las horas punta desplazadas dos horas en verano
+  — y con eso se contrata personal para la hora equivocada.
+- **Quién atendió y quién cobró son cosas distintas** y ya no se mezclan: en un
+  bar cobra quien está en la caja, no quien sirvió la mesa.
+
+Para enseñarlo: `scripts/sembrar-ventas.sql` crea un día de servicio creíble
+(desayunos, comidas, cenas, dos camareros y una devolución) y
+`scripts/limpiar-ventas-ejemplo.sql` lo quita. **Solo para la demo**: en un bar
+de verdad inventaría ventas en su contabilidad.
+
 ### Pendiente
 
 1. **Declaración responsable del fabricante** — obligación tuya, no es código.
 2. **Los tres de siempre de Bryan**: teléfono y dirección del local, Supabase
    Pro, y la prueba del papel (corte, acentos, QR).
-3. **Informes más ricos** (por producto, camarero y hora) y backups.
+3. **Backups** (vienen con Supabase Pro).
 4. **KDS y Barra en tableta** — no vueltos a mirar desde los últimos cambios.
 5. **Mostrador**: la rejilla pierde el cuadre al abrir el panel lateral.
 
@@ -448,7 +480,7 @@ días parados). Por eso **Supabase Pro es requisito de producción**.
 
 ### De código (sin depender de nadie)
 1. **Dominio propio para cada bar**.
-2. Informes más ricos (por producto/camarero/hora), backups y monitorización.
+2. Backups (vienen con Supabase Pro).
 3. **Actualizar N instancias** de una vez: con un bar por instalación, sin esto
    cada mejora hay que desplegarla a mano en cada uno.
 
