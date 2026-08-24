@@ -25,7 +25,21 @@ const accionesConRespuesta = () => {
   const re = /^ {2}([a-zA-Z]+): \([^)]*\) => \{([\s\S]*?)\n {2}\},/gm
   let m
   while ((m = re.exec(src))) if (/return \{ ok/.test(m[2])) nombres.add(m[1])
+  // Flecha corta: `nombre: (…) => ({ ok … })`. Se escapaba del detector, y es
+  // exactamente la misma trampa: la pantalla lee `r.ok` y en v2 le llega una
+  // promesa, así que enseña un error falso habiendo funcionado.
+  const flechaCorta = /^ {2}([a-zA-Z]+): (?:async )?\([^)]*\) => \(\{ ok/gm
+  while ((m = flechaCorta.exec(src))) nombres.add(m[1])
   return [...nombres]
+}
+
+// Las que la DEMO ya declara `async` devuelven una promesa a los dos lados: la
+// pantalla tiene que esperarlas, y olvidarse del `await` se rompe también en la
+// demo, que es donde se ve enseguida. Esas no son el problema que vigila el
+// test de más abajo.
+const asyncEnLaDemo = () => {
+  const src = leer('src/store/useStore.js')
+  return new Set([...src.matchAll(/^ {2}([a-zA-Z]+): async \(/gm)].map(m => m[1]))
 }
 
 const fuenteV2 = () => leer('src/lib/v2/acciones.js') + '\n' + leer('src/lib/v2/acciones2.js')
@@ -77,10 +91,12 @@ describe('acciones que responden al momento', () => {
     expect(accionesConRespuesta().length).toBeGreaterThan(3)
   })
 
-  it('ninguna es `async` en el backend real', () => {
+  it('ninguna es `async` en el backend real (salvo si la demo también lo es)', () => {
     const v2 = fuenteV2()
     const rotas = []
+    const yaEsperadas = asyncEnLaDemo()
     for (const nombre of accionesConRespuesta()) {
+      if (yaEsperadas.has(nombre)) continue
       // `nombre: async (` → devuelve una promesa y la pantalla lee r.ok
       if (new RegExp(`^ {4}${nombre}: async \\(`, 'm').test(v2)) rotas.push(nombre)
     }

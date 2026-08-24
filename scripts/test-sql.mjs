@@ -9,7 +9,10 @@
 // corre en CI: los tests de JS sí, estos son para antes de tocar el SQL.
 // ────────────────────────────────────────────────────────────────────────────
 import { entorno, consulta, envolver, comprobar, comprobarIgual, FIN } from './lib/sql-test.mjs'
-import { PRUEBAS } from './lib/pruebas-dinero.mjs'
+import { PRUEBAS as DINERO } from './lib/pruebas-dinero.mjs'
+import { PRUEBAS_RECTIFICATIVAS } from './lib/pruebas-rectificativas.mjs'
+
+const PRUEBAS = [...DINERO, ...PRUEBAS_RECTIFICATIVAS]
 
 const env = entorno()
 if (!env.token) {

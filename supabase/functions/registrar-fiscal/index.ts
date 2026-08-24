@@ -83,8 +83,9 @@ function componerFactura(t: Record<string, unknown>) {
   // OJO: en factura simplificada (F2) NO se identifica al destinatario; los
   // campos nif/nombre son del CLIENTE y la AEAT los rechaza aquí. El emisor
   // va implícito en la API key (cada NIF tiene la suya).
-  return {
-    serie: emisor.serie || 'TPV',
+  const serie = emisor.serie || 'TPV'
+  const factura: Record<string, unknown> = {
+    serie,
     numero: String(t.numero),
     fecha_expedicion: fechaES(String(t.fecha)),
     tipo_factura: 'F2',                       // factura simplificada (ticket)
@@ -92,6 +93,33 @@ function componerFactura(t: Record<string, unknown>) {
     lineas,
     importe_total: dec(total),
   }
+
+  // ── Devolución: factura RECTIFICATIVA ────────────────────────────────────
+  //
+  // Un ticket ya registrado en la AEAT no se borra ni se edita: se corrige con
+  // una rectificativa. Como el original es una factura simplificada (F2), el
+  // tipo es siempre **R5**, sea cual sea el motivo — R1 a R4 son para facturas
+  // completas.
+  //
+  // Se rectifica POR DIFERENCIAS («I»): las bases y cuotas que van aquí son las
+  // de la devolución, en negativo. Por sustitución («S») habría que mandar lo
+  // que la factura «debería haber sido» y además el bloque
+  // `importe_rectificativa` con los importes del original; se eligió diferencias
+  // porque en un bar la devolución es dinero saliendo del cajón, y así la caja,
+  // los informes y lo que consta en Hacienda dicen el mismo número.
+  const rect = t.rectifica as Record<string, unknown> | null | undefined
+  if (rect && rect.numero != null) {
+    factura.tipo_factura = 'R5'
+    factura.tipo_rectificativa = 'I'
+    factura.descripcion = String(rect.motivo || 'Devolucion').slice(0, 500)
+    factura.facturas_rectificadas = [{
+      serie,
+      numero: String(rect.numero),
+      fecha_expedicion: fechaES(String(rect.fecha)),
+    }]
+  }
+
+  return factura
 }
 
 async function registrar(ticketId: string) {

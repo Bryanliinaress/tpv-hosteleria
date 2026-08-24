@@ -312,6 +312,16 @@ export const useStore = create(persist((set, get) => ({
     abiertaDesde: null,
   })),
 
+  // Devolver dinero de un ticket ya emitido. En la DEMO no hay registro fiscal
+  // ni caja de verdad, así que aquí solo se responde que no aplica: quien lo
+  // hace es el backend real, que emite la factura rectificativa.
+  // `async` a propósito, aunque aquí no espere a nada: en el backend real sí
+  // habla con el servidor y con la AEAT. Si una fuese síncrona y la otra no,
+  // la pantalla leería `r.ok` sobre una promesa y enseñaría un error falso
+  // habiendo devuelto el dinero. Siendo las dos iguales, olvidarse del `await`
+  // se rompe ya en la demo.
+  emitirRectificativa: async () => ({ ok: false, error: 'Las devoluciones necesitan el backend real' }),
+
   // La pestaña de Fichajes pide el mes que se está mirando. En la demo está
   // todo en el dispositivo, así que no hay nada que traer; en v2 lo baja del
   // servidor (el registro de jornada se conserva 4 años y no cabe entero).

@@ -7,12 +7,36 @@ import { sembrarCartaEjemplo, vaciarCartaV2 } from './plantillaCarta'
 import { cabezaDe, miembrosDe } from './grupos'
 import { revisarCorreccionFichaje } from '../fichajes'
 import { revisarNuevoEmpleado, revisarCambioEmpleado, revisarBajaEmpleado } from '../personal'
+import { registrarTicket } from '../fiscal'
 import { getLocalId, cargarTodo, cargarSala, cargarComandas, cargarReservas, cargarCarta, cargarLocal, cargarHistorial, cargarFichajes, cargarCierres } from './estado'
 
 // Segunda ola de acciones v2: KDS, agenda de reservas, CRUD de carta/sala/
 // personal, caja y config del local. Personal/admin operan por RLS.
 const err = (e) => { toast('No se pudo completar la operación', 'error'); console.warn('v2:', e) }
 const t = (n) => supabase.from(n)
+
+// Llama a una RPC y devuelve los datos, o lanza con el código del servidor.
+async function rpc(fn, args) {
+  const { data, error } = await supabase.rpc(fn, args)
+  if (error) { const e = new Error(error.message); e.codigo = error.message; throw e }
+  return data
+}
+
+// Los `raise exception` del servidor llegan como códigos ('supera_lo_pendiente').
+// Enseñarlos tal cual delante de un cliente que reclama su dinero no sirve.
+const MOTIVOS = {
+  motivo_obligatorio: 'Escribe el motivo de la devolución: queda en el registro fiscal.',
+  ticket_no_existe: 'Ese ticket ya no está.',
+  ya_es_rectificativa: 'Eso ya es una devolución: no se puede devolver una devolución.',
+  importe_invalido: 'Ese ticket ya está devuelto por completo.',
+  supera_lo_pendiente: 'No se puede devolver más de lo que queda pendiente de ese ticket.',
+  sin_sesion: 'Entra con tu PIN para poder devolver.',
+}
+const motivoLegible = (e) => {
+  const codigo = String(e?.codigo || e?.message || '')
+  const clave = Object.keys(MOTIVOS).find(k => codigo.includes(k))
+  return clave ? MOTIVOS[clave] : 'No se pudo emitir la devolución. Vuelve a intentarlo.'
+}
 
 // merge profundo de la config del local (identidad + reservas + carta)
 async function actualizarConfig(parche) {
@@ -321,6 +345,25 @@ export function accionesV2b() {
     },
 
     // ── Local / reservas config ─────────────────────────────────
+    // Devolución de un ticket ya emitido: el servidor crea la factura
+    // rectificativa (negativa, apuntando al original) y aquí solo se refresca
+    // y se manda a registrar en la AEAT, por la misma vía que un ticket normal
+    // —con sus reintentos si Hacienda no responde—.
+    emitirRectificativa: async ({ ticketId, motivo, importe, metodo, por }) => {
+      try {
+        const filas = await rpc('emitir_rectificativa', {
+          p_ticket: ticketId, p_motivo: motivo,
+          p_importe: importe ?? null, p_metodo: metodo || 'efectivo', p_por: por || null,
+        })
+        const r = Array.isArray(filas) ? filas[0] : filas
+        await cargarHistorial()
+        if (r?.id) registrarTicket(r.id).then(() => cargarHistorial())
+        return { ok: true, numero: r?.numero, total: Number(r?.total) }
+      } catch (e) {
+        return { ok: false, error: motivoLegible(e) }
+      }
+    },
+
     pedirFichajesDe: (mes) => { cargarFichajes(mes) },
 
     updateLocal: (cambios) => actualizarConfig(cambios).catch(err),
