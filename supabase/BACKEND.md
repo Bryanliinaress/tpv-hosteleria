@@ -52,7 +52,8 @@ Suscripciones por tabla filtradas por `local_id` (en vez de una fila global):
    E2E por RPC (unirse→pedir con precio en servidor→confirmar→cobrar→ticket
    correlativo→aforo de reservas) y comprobación de RLS con la anon key
    (lectura pública solo de carta/mesas; escritura y RPC de personal
-   denegadas). Runner reutilizable: `scripts/aplicar-migraciones.mjs`.
+   denegadas). Runner: `npm run migraciones -- --todas` (lleva registro de lo aplicado;
+   `--estado` dice en qué esquema está un proyecto sin tocar nada).
 2. ✅ **Migración 02 ESCRITA** (`migrations/20260714T02_rpc_servicio.sql`):
    RPC transaccionales de servicio — cliente QR (`qr_*`: unirse, pedir con
    precio resuelto EN SERVIDOR, confirmar, llamar, cuenta), reservas online con
