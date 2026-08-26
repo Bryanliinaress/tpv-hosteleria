@@ -100,3 +100,43 @@ describe('lo que aguanta sin romperse', () => {
     expect(screen.getByText(/Total:/)).toBeTruthy()
   })
 })
+
+// ────────────────────────────────────────────────────────────────────────────
+// PAGADO / PENDIENTE DE PAGO en un ticket YA EMITIDO.
+//
+// `cobrar_mesa` cerraba la mesa sin marcar a los comensales, así que el
+// detalle guardado decía `pagado: false` para todos aunque el dinero hubiera
+// entrado. Al reimprimir desde Admin, a un cliente que ya había pagado se le
+// daba un papel que decía PENDIENTE DE PAGO.
+//
+// La migración 20260826T35 lo arregla de aquí en adelante, pero los tickets ya
+// emitidos no se reescriben: son documentos fiscales. Se leen por su desglose
+// de cobro, que es el apunte que usa el arqueo.
+// ────────────────────────────────────────────────────────────────────────────
+describe('si un ticket emitido está cobrado', () => {
+  const emitido = (pagos) => ({
+    numero: 6, camarero: 'Ana', pagos,
+    personas: [{ id: 'p1', nombre: 'Dani', pagado: false, metodoPago: null, items: [{ nombre: 'Café', precio: 1.3, cantidad: 1, ivaPct: 10 }] }],
+  })
+
+  it('dice PAGADO aunque el detalle por comensal se quedara sin marcar', () => {
+    render(<Ticket tipo="cuenta" mesa={emitido({ efectivo: 1.3 })} onClose={() => {}} />)
+    expect(texto()).toContain('PAGADO')
+    expect(texto()).not.toContain('PENDIENTE DE PAGO')
+  })
+
+  it('sigue diciendo PENDIENTE si la mesa se liberó sin cobrar', () => {
+    render(<Ticket tipo="cuenta" mesa={emitido({ sincobrar: 1.3 })} onClose={() => {}} />)
+    expect(texto()).toContain('PENDIENTE DE PAGO')
+  })
+
+  it('el descuento no es dinero que entre: no basta para darlo por cobrado', () => {
+    render(<Ticket tipo="cuenta" mesa={emitido({ descuento: 2 })} onClose={() => {}} />)
+    expect(texto()).toContain('PENDIENTE DE PAGO')
+  })
+
+  it('una mesa viva, sin desglose todavía, se lee por sus comensales', () => {
+    render(<Ticket tipo="cuenta" mesa={mesa([{ nombre: 'Café', precio: 1.5, cantidad: 1, ivaPct: 10 }])} onClose={() => {}} />)
+    expect(texto()).toContain('PAGADO')
+  })
+})

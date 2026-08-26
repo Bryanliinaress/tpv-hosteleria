@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore'
 import TemaToggle from '../components/TemaToggle'
-import { perfil, urlLogo } from '../lib/perfil'
+import { perfil, urlLogo, esDemo } from '../lib/perfil'
 
 const grupos = (mesa1) => [
   {
@@ -128,7 +128,9 @@ export default function Home() {
           ))}
         </div>
 
-        <p style={{ marginTop: '2.75rem', fontSize: '0.75rem', color: 'var(--color-faint)', textAlign: 'center' }}>v0.44.0 · Demo en desarrollo</p>
+        <p style={{ marginTop: '2.75rem', fontSize: '0.75rem', color: 'var(--color-faint)', textAlign: 'center' }}>
+          v{__VERSION__}{esDemo() ? ' · Demostración' : ''}
+        </p>
       </div>
     </div>
   )

@@ -104,7 +104,7 @@ export default function PanelCamarero() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 20, background: 'linear-gradient(180deg, var(--color-surface), var(--color-surface-2))', borderBottom: '1px solid var(--color-border)', boxShadow: '0 6px 18px -10px rgba(0,0,0,0.6)', padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.6rem' }}>
+      <div style={{ position: 'sticky', top: 'var(--alto-aviso, 0px)', zIndex: 20, background: 'linear-gradient(180deg, var(--color-surface), var(--color-surface-2))', borderBottom: '1px solid var(--color-border)', boxShadow: '0 6px 18px -10px rgba(0,0,0,0.6)', padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.6rem' }}>
         <div>
           <h1 style={{ fontWeight: 800, fontSize: '1.25rem' }}>🧾 Mostrador · TPV</h1>
           <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>{mesas.filter(m => m.estado !== 'libre').length} ocupadas de {mesas.length} · {empleado?.nombre || ''}</p>
@@ -170,7 +170,15 @@ export default function PanelCamarero() {
                   <span style={{ flex: 1, height: '1px', background: 'var(--color-border-soft)' }} />
                   <span style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{ocup}/{ms.length} ocupadas</span>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(155px, 1fr))', gap: '0.875rem' }}>
+                {/* 132px y no 155: el panel de mesa mide 340px fijos y ENCOGE
+                    esta rejilla (es un hermano flex, no una hoja superpuesta).
+                    Con 155 se pasaba de 5 columnas a 3 al abrirlo y cada zona
+                    de 4 mesas dejaba una suelta en su propia fila. Con 132 caben
+                    4 con el panel abierto y 6 sin él: fila entera en los dos
+                    casos. Ojo: una zona con un número de mesas que no divida a
+                    las columnas seguirá teniendo la última fila incompleta —eso
+                    es cómo funciona `auto-fill`, no un fallo. */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(132px, 1fr))', gap: '0.875rem' }}>
                   {ms.map(m => {
                     const est = ESTADO[m.estado]
                     const sel = mesaSeleccionada === m.id

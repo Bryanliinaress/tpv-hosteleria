@@ -7,6 +7,7 @@ import ReservasManager from '../../components/ReservasManager'
 import ReservasConfig from '../../components/ReservasConfig'
 import BotonSalir from '../../components/BotonSalir'
 import TemaToggle from '../../components/TemaToggle'
+import { useAltoCSS } from '../../components/useAltoCSS'
 import EstadoFiscal from '../../components/EstadoFiscal'
 import { productosVisibles } from '../../lib/carta'
 import { esDelMes, horasEntre } from '../../lib/fechas'
@@ -29,6 +30,9 @@ export default function PanelAdmin() {
   const [form, setForm] = useState(emptyForm)
   const [devolviendo, setDevolviendo] = useState(null)   // ticket que se está devolviendo
   const [ticket, setTicket] = useState(null)
+  // La tira de pestañas se pega DEBAJO de la cabecera, y la cabecera debajo de
+  // la banda de demostración. Los tres altos se miden porque los tres cambian.
+  const refCabecera = useAltoCSS('--alto-cabecera-admin')
   const [nuevaCat, setNuevaCat] = useState({ nombre: '', tipo: 'comida' })
   const [nuevoExtra, setNuevoExtra] = useState({ nombre: '', precio: '0.20' })
   const [nuevoPan, setNuevoPan] = useState({ nombre: '', sup: '' })
@@ -122,7 +126,7 @@ export default function PanelAdmin() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 20, background: 'linear-gradient(180deg, var(--color-surface), var(--color-surface-2))', borderBottom: '1px solid var(--color-border)', boxShadow: '0 6px 18px -10px rgba(0,0,0,0.6)', padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.6rem' }}>
+      <div ref={refCabecera} style={{ position: 'sticky', top: 'var(--alto-aviso, 0px)', zIndex: 20, background: 'linear-gradient(180deg, var(--color-surface), var(--color-surface-2))', borderBottom: '1px solid var(--color-border)', boxShadow: '0 6px 18px -10px rgba(0,0,0,0.6)', padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.6rem' }}>
         <div>
           <h1 style={{ fontWeight: 800, fontSize: '1.25rem' }}>🛠 Panel Administración</h1>
           <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>{local.nombre || 'Gestión del local'}</p>
@@ -166,7 +170,7 @@ export default function PanelAdmin() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '0', borderBottom: '1px solid var(--color-border)', background: 'var(--color-surface)', overflowX: 'auto', position: 'sticky', top: 0, zIndex: 15, scrollbarWidth: 'thin' }}>
+      <div style={{ display: 'flex', gap: '0', borderBottom: '1px solid var(--color-border)', background: 'var(--color-surface)', overflowX: 'auto', position: 'sticky', top: 'calc(var(--alto-aviso, 0px) + var(--alto-cabecera-admin, 0px))', zIndex: 15, scrollbarWidth: 'thin' }}>
         {[
           { id: 'carta', label: '📋 Carta' },
           { id: 'local', label: '🏪 Local' },
@@ -681,7 +685,7 @@ export default function PanelAdmin() {
                 { label: 'Propinas (mes)', value: `${propinasMes.toFixed(2)} €`, color: '#10b981' },
               ].map(s => (
                 <div key={s.label} style={{ background: 'var(--color-surface)', borderRadius: '0.75rem', padding: '1rem', border: '1px solid var(--color-border)' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)', marginBottom: '0.25rem', textTransform: 'capitalize' }}>{s.label}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)', marginBottom: '0.25rem' }}>{s.label}</div>
                   <div style={{ fontWeight: 800, fontSize: '1.4rem', color: s.color }}>{s.value}</div>
                 </div>
               ))}
@@ -753,6 +757,9 @@ export default function PanelAdmin() {
                         )}
                         <button onClick={() => setTicket({
                           numero: r.mesaNumero, personas: r.personas,
+                          // el desglose de cobro: es lo que dice si el ticket
+                          // está pagado (ver Ticket.jsx)
+                          pagos: r.pagos,
                           // si es una devolución, el papel tiene que decirlo
                           rectifica: r.rectificaA
                             ? { numero: historial.find(t => t.id === r.rectificaA)?.numero ?? '—', motivo: r.motivoRectificacion }

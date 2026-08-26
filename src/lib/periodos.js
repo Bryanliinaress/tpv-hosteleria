@@ -47,6 +47,16 @@ export function rangoDe(id, ahora = new Date()) {
 }
 
 /** Cómo se llama el periodo por escrito, para el encabezado y el CSV. */
+// Primera letra en mayúscula y el resto tal cual.
+//
+// No vale el `text-transform: capitalize` de CSS: en español pone mayúscula en
+// CADA palabra y salía «Miércoles, 26 De Agosto» o «Últimos 7 Días». Las
+// preposiciones y los meses van en minúscula.
+export function mayusculaInicial(txt) {
+  const s = String(txt ?? '')
+  return s ? s[0].toLocaleUpperCase('es-ES') + s.slice(1) : s
+}
+
 export function nombreDe(id, ahora = new Date()) {
   const mes = (d) => d.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
   switch (id) {
