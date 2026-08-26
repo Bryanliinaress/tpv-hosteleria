@@ -85,3 +85,34 @@ export function preciosNumericos(precios) {
   }
   return limpio
 }
+
+/**
+ * Por dónde se puede devolver el dinero de un ticket.
+ *
+ * Manda cómo se cobró: devolver a la tarjeta un cobro que entró en efectivo es
+ * imposible, y apuntar como efectivo la devolución de una tarjeta descuadra el
+ * arqueo de esa noche —de ese cajón no ha salido nada—. `online` va primero
+ * cuando existe, porque es lo que hay que hacer por defecto.
+ */
+export function metodosDeDevolucion(pagos = {}) {
+  const cobrado = Object.entries(pagos || {})
+    .filter(([, v]) => Number(v) > 0)
+    .map(([k]) => k)
+  if (!cobrado.length) return ['efectivo']
+  return [...(cobrado.includes('online') ? ['online'] : []), ...cobrado.filter(k => k !== 'online')]
+}
+
+/**
+ * Lo que queda por devolver de un ticket, visto desde la pantalla.
+ *
+ * Las rectificativas tienen importe NEGATIVO, así que se SUMAN. Restándolas
+ * salía «quedan 15,90 €» de un ticket de 11,90 € del que ya se habían devuelto
+ * 4: la pantalla ofrecía devolver más de lo que se cobró. El servidor lo
+ * rechazaba, pero el encargado ya se lo había prometido al cliente.
+ *
+ * Es el mismo cálculo que `_pendiente_de_rectificar` en el servidor, que es
+ * quien manda.
+ */
+export const pendienteDeDevolver = (ticket, rectificativas = []) =>
+  Math.max(0, cent(Number(ticket?.total || 0) +
+    rectificativas.reduce((s, r) => s + Number(r?.total || 0), 0)))

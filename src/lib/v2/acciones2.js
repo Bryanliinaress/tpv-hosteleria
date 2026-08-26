@@ -52,6 +52,32 @@ async function actualizarConfig(parche) {
 }
 const cartaCfg = () => useStore.getState().carta
 
+// Devuelve el dinero a la tarjeta. La clave de Stripe vive en la Edge Function,
+// nunca aquí.
+async function devolverEnStripe(rectificativaId) {
+  try {
+    const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
+    const { data: ses } = await supabase.auth.getSession()
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/devolver-pago`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // Las DOS cabeceras: `apikey` es la del proyecto y `Authorization` la
+        // sesión de ESTE dispositivo. Sin la primera, la puerta de enlace de
+        // Supabase no deja pasar y la función responde «hace falta sesión».
+        Authorization: `Bearer ${ses?.session?.access_token || KEY}`,
+        apikey: KEY,
+      },
+      body: JSON.stringify({ rectificativaId }),
+    })
+    const cuerpo = await res.json().catch(() => ({}))
+    if (!res.ok) return { ok: false, error: cuerpo?.error || `HTTP ${res.status}` }
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: `Sin conexión con la pasarela: ${e.message}` }
+  }
+}
+
 // Un producto sin tamaños llega con `precio` suelto y sin `precios`: si se
 // guardara el mapa vacío se quedaría sin precio.
 const conPrecio = (mapa, precio) =>
@@ -356,9 +382,23 @@ export function accionesV2b() {
           p_importe: importe ?? null, p_metodo: metodo || 'efectivo', p_por: por || null,
         })
         const r = Array.isArray(filas) ? filas[0] : filas
+        // Si se devuelve a la tarjeta, el dinero tiene que VOLVER de verdad: la
+        // rectificativa nace 'pendiente' y esto la cierra. Se espera a
+        // propósito —el encargado necesita saber si el cliente ya tiene su
+        // dinero antes de despedirle—, y si falla queda a la vista para
+        // reintentarla.
+        let reembolso = r?.reembolso ?? null
+        if (reembolso === 'pendiente') {
+          const res = await devolverEnStripe(r.id)
+          reembolso = res.ok ? 'hecho' : 'error'
+          if (!res.ok) {
+            await cargarHistorial()
+            return { ok: true, numero: r?.numero, total: Number(r?.total), reembolso, avisoReembolso: res.error }
+          }
+        }
         await cargarHistorial()
         if (r?.id) registrarTicket(r.id).then(() => cargarHistorial())
-        return { ok: true, numero: r?.numero, total: Number(r?.total) }
+        return { ok: true, numero: r?.numero, total: Number(r?.total), reembolso }
       } catch (e) {
         return { ok: false, error: motivoLegible(e) }
       }
@@ -371,6 +411,12 @@ export function accionesV2b() {
       try {
         return await rpc('informe_ventas', { p_desde: desde, p_hasta: hasta })
       } catch (e) { console.warn('informe:', e); return null }
+    },
+
+    reintentarReembolso: async (rectificativaId) => {
+      const res = await devolverEnStripe(rectificativaId)
+      await cargarHistorial()
+      return res
     },
 
     pedirFichajesDe: (mes) => { cargarFichajes(mes) },

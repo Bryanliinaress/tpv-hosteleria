@@ -46,7 +46,12 @@ revoke all on function _pendiente_de_rectificar(uuid) from public, anon, authent
 -- forma que la suma cuadre exactamente con lo devuelto (misma técnica que el
 -- reparto de un plato compartido: si cada parte se redondea por su cuenta, la
 -- suma se va un céntimo).
-create or replace function emitir_rectificativa(
+-- Se tira antes de crearla porque una migración POSTERIOR le cambia el tipo de
+-- retorno, y `create or replace` no puede cambiarlo: sin esto, reaplicar el
+-- juego entero moría aquí y las migraciones dejaban de ser repetibles.
+drop function if exists emitir_rectificativa(uuid, text, numeric, text, text);
+
+create function emitir_rectificativa(
   p_ticket uuid,
   p_motivo text,
   p_importe numeric default null,

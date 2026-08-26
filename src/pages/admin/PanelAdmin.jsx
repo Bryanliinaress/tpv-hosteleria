@@ -15,12 +15,12 @@ import EditorMenu from '../../components/EditorMenu'
 import Informes from './Informes'
 import Dispositivos from '../../components/Dispositivos'
 import Devolver from '../../components/Devolver'
-import { desgloseIVA, totalDe, cent } from '../../lib/dinero'
+import { desgloseIVA, totalDe, cent, pendienteDeDevolver } from '../../lib/dinero'
 
 const emptyForm = { nombre: '', nombreEn: '', categoria: '', descripcion: '', descripcionEn: '', alergenos: [], imagen: '', conFormatos: false, precios: {}, precio: '', menu: null, ivaPct: '' }
 
 export default function PanelAdmin() {
-  const { carta, mesas, historial, cierres, anulaciones, pagosSinCuenta, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, addCategoria, removeCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, editarFichaje, borrarFichaje, pedirFichajesDe } = useStore()
+  const { carta, mesas, historial, cierres, anulaciones, pagosSinCuenta, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, addCategoria, removeCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, editarFichaje, borrarFichaje, pedirFichajesDe, reintentarReembolso } = useStore()
   const hoyStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
   const reservasHoy = reservas.filter(r => r.fecha === hoyStr && r.estado === 'confirmada').length
   const [tab, setTab] = useState('carta')
@@ -700,7 +700,7 @@ export default function PanelAdmin() {
                     // no se le ofrece «Devolver» a una devolución.
                     const esDevolucion = !!r.rectificaA
                     const devuelto = devueltoDe(r.id)
-                    const pendiente = cent(r.total - devuelto)
+                    const pendiente = pendienteDeDevolver(r, historial.filter(t => t.rectificaA === r.id))
                     return (
                     <div key={r.id} style={{ background: 'var(--color-surface)', border: `1px solid ${esDevolucion ? 'var(--tint-warning-bd)' : 'var(--color-border)'}`, borderRadius: '0.625rem', padding: '0.75rem 0.875rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
                       <div style={{ minWidth: 0 }}>
@@ -714,6 +714,25 @@ export default function PanelAdmin() {
                         {esDevolucion && r.motivoRectificacion && (
                           <div style={{ fontSize: '0.7rem', color: 'var(--color-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.motivoRectificacion}</div>
                         )}
+                        {/* Una devolución a tarjeta emitida pero sin que el
+                            dinero haya vuelto es lo peor de los dos mundos: hay
+                            constancia fiscal y el cliente sigue sin su dinero.
+                            Tiene que verse, y poder reintentarse. */}
+                        {esDevolucion && r.reembolsoEstado === 'pendiente' && (
+                          <div style={{ fontSize: '0.7rem', color: 'var(--tint-warning-fg)', fontWeight: 700 }}>
+                            ⏳ el dinero aún no ha vuelto a la tarjeta
+                          </div>
+                        )}
+                        {esDevolucion && r.reembolsoEstado === 'error' && (
+                          <div style={{ fontSize: '0.7rem', color: '#f43f5e', fontWeight: 700 }}>
+                            ✖ no se pudo devolver a la tarjeta{r.reembolsoError ? `: ${r.reembolsoError}` : ''}
+                          </div>
+                        )}
+                        {esDevolucion && r.reembolsoEstado === 'hecho' && (
+                          <div style={{ fontSize: '0.7rem', color: 'var(--tint-success-fg)' }}>
+                            ✓ devuelto a la tarjeta
+                          </div>
+                        )}
                         {!esDevolucion && devuelto < 0 && (
                           <div style={{ fontSize: '0.7rem', color: 'var(--tint-warning-fg)' }}>
                             devuelto {(-devuelto).toFixed(2)} €{pendiente > 0 ? ` · quedan ${pendiente.toFixed(2)} €` : ' · entero'}
@@ -721,6 +740,13 @@ export default function PanelAdmin() {
                         )}
                       </div>
                       <div style={{ display: 'flex', gap: '0.3rem', flexShrink: 0 }}>
+                        {esDevolucion && (r.reembolsoEstado === 'pendiente' || r.reembolsoEstado === 'error') && (
+                          <button onClick={async () => {
+                            const res = await reintentarReembolso(r.id)
+                            toast(res?.ok ? 'Devuelto a la tarjeta' : (res?.error || 'Sigue sin poder devolverse'), res?.ok ? 'success' : 'error')
+                          }} title="Volver a intentar la devolución a la tarjeta"
+                            style={{ background: 'none', color: 'var(--tint-warning-fg)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.4rem 0.6rem', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>↻ Reintentar</button>
+                        )}
                         {!esDevolucion && pendiente > 0 && (
                           <button onClick={() => setDevolviendo({ ticket: r, pendiente })} title="Emitir una factura rectificativa"
                             style={{ background: 'none', color: '#f43f5e', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.4rem 0.6rem', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>↩ Devolver</button>

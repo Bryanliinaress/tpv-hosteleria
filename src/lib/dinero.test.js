@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { cent, importeLinea, totalDe, totalDeMesa, pendienteDeMesa, desgloseIVA, desglosePorTipo, lineasDe, preciosNumericos } from './dinero'
+import { cent, importeLinea, totalDe, totalDeMesa, pendienteDeMesa, desgloseIVA, desglosePorTipo, lineasDe, preciosNumericos, metodosDeDevolucion, pendienteDeDevolver } from './dinero'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
@@ -164,5 +164,64 @@ describe('precios de la carta', () => {
   it('aguanta que no venga nada', () => {
     expect(preciosNumericos(null)).toEqual({})
     expect(preciosNumericos('2.5')).toEqual({})
+  })
+})
+
+// ────────────────────────────────────────────────────────────────────────────
+// Por dónde se devuelve el dinero.
+//
+// El fallo que esto impide: emitir la devolución de un ticket pagado por Stripe
+// y apuntarla como efectivo. El cliente se quedaba sin su dinero (nadie tocaba
+// su tarjeta) y el arqueo de esa noche cantaba un faltante de caja que no
+// existía, porque de ese cajón no había salido nada.
+// ────────────────────────────────────────────────────────────────────────────
+describe('métodos de devolución', () => {
+  it('un ticket pagado con tarjeta se devuelve a la tarjeta, y va primero', () => {
+    expect(metodosDeDevolucion({ online: 11.9 })).toEqual(['online'])
+  })
+
+  it('uno pagado en efectivo NO ofrece devolver a ninguna tarjeta', () => {
+    expect(metodosDeDevolucion({ efectivo: 10 })).toEqual(['efectivo'])
+  })
+
+  it('con cuenta mixta se puede elegir, pero la tarjeta manda por defecto', () => {
+    expect(metodosDeDevolucion({ efectivo: 5, online: 5 })[0]).toBe('online')
+    expect(metodosDeDevolucion({ efectivo: 5, online: 5 })).toContain('efectivo')
+  })
+
+  it('un método a cero no cuenta: por ahí no entró nada', () => {
+    expect(metodosDeDevolucion({ efectivo: 10, online: 0 })).toEqual(['efectivo'])
+  })
+
+  it('sin datos de cobro, efectivo (que es lo que un bar sabe hacer siempre)', () => {
+    expect(metodosDeDevolucion({})).toEqual(['efectivo'])
+    expect(metodosDeDevolucion(null)).toEqual(['efectivo'])
+  })
+})
+
+describe('lo que queda por devolver de un ticket', () => {
+  const ticket = { id: 't6', total: 11.90 }
+
+  it('sin devoluciones, queda todo', () => {
+    expect(pendienteDeDevolver(ticket, [])).toBe(11.90)
+  })
+
+  it('con una devolución parcial, queda el resto', () => {
+    // El fallo que esto impide: las rectificativas son NEGATIVAS, así que hay
+    // que sumarlas. Restándolas salía «quedan 15,90 €» de un ticket de 11,90 —
+    // la pantalla ofrecía devolver más de lo que se había cobrado.
+    expect(pendienteDeDevolver(ticket, [{ total: -4 }])).toBe(7.90)
+  })
+
+  it('devuelto entero, no queda nada', () => {
+    expect(pendienteDeDevolver(ticket, [{ total: -11.90 }])).toBe(0)
+  })
+
+  it('en varias veces, se suman todas', () => {
+    expect(pendienteDeDevolver(ticket, [{ total: -4 }, { total: -3 }])).toBe(4.90)
+  })
+
+  it('nunca sale negativo', () => {
+    expect(pendienteDeDevolver(ticket, [{ total: -50 }])).toBe(0)
   })
 })

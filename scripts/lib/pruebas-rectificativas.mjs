@@ -38,6 +38,12 @@ const debeFallar = (llamada, codigo, queHacia) => `
   end;
 `
 
+// Cobro con tarjeta de prueba, atado a un ticket.
+const cobroOnline = (importe, ref) => `
+  insert into pagos_online (local_id, mesa_id, comensal_id, importe, propina, referencia, ticket)
+  values (v_local, v_mesa, null, ${importe}, 0, '${ref}', v_num);
+`
+
 export const PRUEBAS_RECTIFICATIVAS = [
   {
     nombre: 'una devolución completa no se puede repetir',
@@ -138,6 +144,118 @@ ${comprobarIgual("(v_json ->> 'total')::numeric", '-8.00', 'y el importe en nega
   -- un ticket normal NO lleva ese bloque: se sigue mandando como F2
   v_json := ticket_para_fiscal(v_id);
 ${comprobar("coalesce(v_json -> 'rectifica', 'null'::jsonb) = 'null'::jsonb", 'un ticket normal se sigue mandando como factura simplificada')}
+`,
+  },
+
+  // ── Devolver un cobro con TARJETA ────────────────────────────────────────
+  // Emitir la rectificativa de un ticket pagado por Stripe sin devolver el
+  // dinero deja al cliente sin sus euros y descuadra el arqueo: la devolucion
+  // se apuntaba como efectivo y de ese cajon no habia salido nada.
+
+  {
+    nombre: 'la devolución de una tarjeta se apunta como online, no como efectivo',
+    cuerpo: ({ comprobarIgual }) => `
+${montarMesa()}
+${linea('20.00')}
+${cobrar('20.00')}
+${cobroOnline('20.00', 'cs_prueba_tarjeta')}
+  select * into v_fila from emitir_rectificativa(v_id, 'Cobrado de mas', 5.00, 'online', 'Encargado');
+
+  select (pagos ->> 'online')::numeric into v_dato from tickets where id = v_fila.id;
+${comprobarIgual('v_dato', '-5.00', 'sale de donde entro: online, no del cajon de efectivo')}
+${comprobarIgual('v_fila.reembolso', "'pendiente'", 'nace pendiente: el dinero AUN no ha vuelto a la tarjeta')}
+`,
+  },
+
+  {
+    nombre: 'no se promete devolver a la tarjeta si no hay cobro con tarjeta detrás',
+    cuerpo: () => `
+${montarMesa()}
+${linea('20.00')}
+${cobrar('20.00')}
+  -- este ticket se cobro en efectivo: no hay tarjeta a la que devolver
+${debeFallar("emitir_rectificativa(v_id, 'Intento', 5.00, 'online', 'Encargado')", 'sin_cobro_online_suficiente', 'ha prometido devolver a una tarjeta que no existe')}
+`,
+  },
+
+  {
+    nombre: 'no se puede devolver a la tarjeta más de lo que se cobró por ella',
+    cuerpo: () => `
+${montarMesa()}
+${linea('20.00')}
+${cobrar('20.00')}
+${cobroOnline('6.00', 'cs_prueba_parcial')}
+  -- solo 6 € entraron por tarjeta, aunque el ticket sea de 20
+${debeFallar("emitir_rectificativa(v_id, 'Pasarse', 10.00, 'online', 'Encargado')", 'sin_cobro_online_suficiente', 'ha dejado devolver a la tarjeta mas de lo cobrado por ella')}
+  perform emitir_rectificativa(v_id, 'Lo que hay', 6.00, 'online', 'Encargado');
+`,
+  },
+
+  {
+    nombre: 'una tarjeta ya devuelta no se puede volver a devolver',
+    cuerpo: ({ comprobarIgual }) => `
+  -- Ticket de 20 € del que solo 8 entraron por tarjeta (el resto, en efectivo).
+${montarMesa()}
+${linea('20.00')}
+${cobrar('20.00')}
+${cobroOnline('8.00', 'cs_prueba_doble')}
+  select * into v_fila from emitir_rectificativa(v_id, 'Primera', 8.00, 'online', 'Encargado');
+  -- Stripe confirma: se anota lo devuelto de ESE cobro
+  perform anotar_reembolso(v_fila.id, 'hecho', 're_prueba',
+    null, jsonb_build_array(jsonb_build_object('pago',
+      (select id from pagos_online where referencia = 'cs_prueba_doble'), 'importe', 8.00)));
+
+  select coalesce(sum(disponible), 0) into v_dato from pagos_devolubles(v_num);
+${comprobarIgual('v_dato', '0', 'esa tarjeta ya esta devuelta entera')}
+
+  -- Fiscalmente aun quedan 12 € por rectificar, pero NO por tarjeta: si se
+  -- dejara, se devolveria dos veces la misma tarjeta.
+${comprobarIgual('_pendiente_de_rectificar(v_id)', '12.00', 'queda pendiente de rectificar')}
+${debeFallar("emitir_rectificativa(v_id, 'Otra vez', 5.00, 'online', 'Encargado')", 'sin_cobro_online_suficiente', 'ha dejado devolver dos veces la misma tarjeta')}
+  -- en efectivo si se puede: ese dinero si esta en el cajon
+  perform emitir_rectificativa(v_id, 'El resto en efectivo', 5.00, 'efectivo', 'Encargado');
+`,
+  },
+
+  {
+    nombre: 'si Stripe falla, la devolución queda en error y a la vista',
+    cuerpo: ({ comprobar, comprobarIgual }) => `
+${montarMesa()}
+${linea('12.00')}
+${cobrar('12.00')}
+${cobroOnline('12.00', 'cs_prueba_fallo')}
+  select * into v_fila from emitir_rectificativa(v_id, 'Devolucion', null, 'online', 'Encargado');
+  perform anotar_reembolso(v_fila.id, 'error', null, 'La tarjeta ha caducado');
+
+  select count(*) into v_dato from reembolsos_pendientes() where id = v_fila.id;
+${comprobarIgual('v_dato', '1', 'sale en la lista de lo que hay que reintentar')}
+  select devuelto into v_dato from pagos_online where referencia = 'cs_prueba_fallo';
+${comprobarIgual('v_dato', '0', 'y NO se da por devuelto nada de esa tarjeta')}
+`,
+  },
+
+  {
+    nombre: 'todos los cobros de una mesa quedan atados a su ticket, no solo el último',
+    cuerpo: ({ comprobarIgual }) => `
+  -- Dos comensales pagando su parte por el movil. Antes, el del primero se
+  -- quedaba con ticket = null y parecia un cobro huerfano: imposible saber a
+  -- que tarjetas devolver.
+${montarMesa()}
+${linea('10.00')}
+  insert into comensales (local_id, mesa_id, nombre) values (v_local, v_mesa, 'Dos') returning id into v_com2;
+  insert into lineas_pedido (local_id, comensal_id, producto_id, nombre, precio, cantidad, tipo, estado)
+  values (v_local, v_com2, v_prod, 'Prueba', 10.00, 1, 'comida', 'enviado');
+
+  v_json := registrar_pago_online(v_mesa, v_com, 10.00, 0, 'cs_dos_primero', v_local);
+  v_json := registrar_pago_online(v_mesa, v_com2, 10.00, 0, 'cs_dos_segundo', v_local);
+
+  select count(*) into v_dato from pagos_online
+   where referencia in ('cs_dos_primero', 'cs_dos_segundo') and ticket is not null;
+${comprobarIgual('v_dato', '2', 'los DOS cobros quedan atados al ticket')}
+
+  select coalesce(sum(disponible), 0) into v_dato
+    from pagos_devolubles((select ticket from pagos_online where referencia = 'cs_dos_segundo'));
+${comprobarIgual('v_dato', '20.00', 'y se pueden devolver las dos tarjetas, no solo una')}
 `,
   },
 
