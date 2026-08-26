@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.97.0 · 575 tests JS + 37 pruebas de SQL en verde · repo limpio y desplegado.**
+**Estado: v0.98.0 · 652 tests JS + 37 pruebas de SQL en verde · repo limpio y desplegado.**
 Última sesión: 2026-08-19. Roadmap: [PRODUCCION.md](PRODUCCION.md) ·
 Historia de los 71 fallos encontrados: [docs/AUDITORIA.md](docs/AUDITORIA.md).
 
@@ -106,6 +106,37 @@ Cómo funciona, y por qué así:
 
 Queda apuntado en la auditoría de anulaciones, que es donde el encargado ya
 mira cuando algo no cuadra.
+
+### Tests de pantalla (26/08) — y tres fallos que sacaron
+
+**6.931 líneas de JSX no las tocaba ningún test**, porque no había con qué. Ese
+era el hueco de verdad: la lógica estaba bien cubierta, pero nada de lo que
+toca una persona lo estaba — y todos los fallos de las últimas sesiones vivían
+justo ahí.
+
+Ya hay arnés (jsdom + testing-library) y están cubiertas las pantallas donde
+más caro sale equivocarse: **Devolver, Ticket, Informes, la vista de Pagar del
+cliente, la red de seguridad y la cola de cocina/barra.** De 575 a 652 tests.
+
+Los tests de pantalla se marcan con `@vitest-environment jsdom` en su cabecera;
+el resto sigue en Node, que es más rápido.
+
+**Encontraron tres fallos reales, dos de dinero:**
+
+1. **«2,50» se convertía en 250.** En un `<input type="number">` el navegador se
+   come la coma. Con un ticket de 300 €, escribir «2,50» en la devolución
+   devolvía **250 €** — y el tope de «no más de lo pendiente» ni se entera. Los
+   campos de dinero pasan a `type="text" inputMode="decimal"` (el móvil sigue
+   sacando el teclado numérico) y todo se lee con `importeDesdeTexto`.
+2. **El efectivo del arqueo con coma daba CERO.** `Number('2,50')` es NaN y
+   acababa en `|| 0`: contar el cajón como «2,50» cantaba un descuadre de toda
+   la caja. Además, vacío ahora es `null` y no 0 — «no he contado» y «hay 0 €»
+   no son lo mismo.
+3. **Una carta sin categorías reventaba la pantalla del cliente.** Pasa en un
+   bar recién montado, o si alguien las borra desde Admin.
+
+El mismo arreglo del parser va a los precios de la carta, los extras, los
+suplementos de pan y el menú del día, que tenían el mismo problema.
 
 ### Devolver con tarjeta — ARREGLADO (26/08)
 

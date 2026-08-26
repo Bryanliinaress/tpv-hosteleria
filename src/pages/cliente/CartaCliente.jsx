@@ -22,7 +22,10 @@ export default function CartaCliente() {
 
   const [miPersonaId, setMiPersonaId] = useState(() => localStorage.getItem(`tpv-yo-${mesaId}`))
   const [nombre, setNombre] = useState('')
-  const [categoriaActiva, setCategoriaActiva] = useState(carta.categorias[0].id)
+  // Con `?.`: una carta SIN categorías —un bar recién montado, o alguien que
+  // las borra desde Admin— reventaba aquí y dejaba muerta la pantalla del
+  // cliente, que es la que tiene delante quien iba a pedir.
+  const [categoriaActiva, setCategoriaActiva] = useState(carta.categorias[0]?.id ?? null)
   const [pidiendoPara, setPidiendoPara] = useState(null) // personaId; null = yo
   const [vista, setVista] = useState('carta') // carta | pedido | cuenta
   const [cerrada, setCerrada] = useState(false)
@@ -151,7 +154,7 @@ export default function CartaCliente() {
   // cliente concluye que el bar no tiene bebidas.
   useEffect(() => {
     if (carta.categorias.length && !carta.categorias.some(c => c.id === categoriaActiva)) {
-      setCategoriaActiva(carta.categorias[0].id)
+      setCategoriaActiva(carta.categorias[0]?.id ?? null)
     }
   }, [carta.categorias, categoriaActiva])
 

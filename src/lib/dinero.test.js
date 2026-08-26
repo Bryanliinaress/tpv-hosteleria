@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { cent, importeLinea, totalDe, totalDeMesa, pendienteDeMesa, desgloseIVA, desglosePorTipo, lineasDe, preciosNumericos, metodosDeDevolucion, pendienteDeDevolver } from './dinero'
+import { cent, importeLinea, totalDe, totalDeMesa, pendienteDeMesa, desgloseIVA, desglosePorTipo, lineasDe, preciosNumericos, metodosDeDevolucion, pendienteDeDevolver, importeDesdeTexto } from './dinero'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
@@ -223,5 +223,61 @@ describe('lo que queda por devolver de un ticket', () => {
 
   it('nunca sale negativo', () => {
     expect(pendienteDeDevolver(ticket, [{ total: -50 }])).toBe(0)
+  })
+})
+
+// ────────────────────────────────────────────────────────────────────────────
+// Importes tecleados por una persona.
+//
+// En España se escribe «2,50», y eso rompía dos cosas de verdad:
+//  · en un `<input type="number">` la coma se PIERDE y «2,50» llega como
+//    «250»: en un ticket de 300 €, devolver 250 en vez de 2,50;
+//  · `Number('2,50')` es NaN, que acababa en 0: contando el cajón «2,50» el
+//    arqueo daba 0 y cantaba un descuadre de toda la caja.
+// ────────────────────────────────────────────────────────────────────────────
+describe('importes tecleados', () => {
+  it('con coma, como se escribe aquí', () => {
+    expect(importeDesdeTexto('2,50')).toBe(2.5)
+    expect(importeDesdeTexto('2,5')).toBe(2.5)
+  })
+
+  it('con punto, como sale de un teclado numérico', () => {
+    expect(importeDesdeTexto('2.50')).toBe(2.5)
+  })
+
+  it('con separador de miles', () => {
+    expect(importeDesdeTexto('1.234,56')).toBe(1234.56)
+  })
+
+  it('los espacios sobran', () => {
+    expect(importeDesdeTexto('  12,30 ')).toBe(12.3)
+  })
+
+  it('vacío es null, NO cero: en un arqueo no es lo mismo', () => {
+    // «no he contado el cajón» y «el cajón tiene 0 €» son cosas distintas.
+    expect(importeDesdeTexto('')).toBeNull()
+    expect(importeDesdeTexto('   ')).toBeNull()
+    expect(importeDesdeTexto(null)).toBeNull()
+    expect(importeDesdeTexto(undefined)).toBeNull()
+  })
+
+  it('cero sí es cero', () => {
+    expect(importeDesdeTexto('0')).toBe(0)
+    expect(importeDesdeTexto('0,00')).toBe(0)
+  })
+
+  it('lo que no es un número es null, no 0', () => {
+    // Devolver 0 aquí sería inventarse un dato: mejor que la pantalla lo
+    // rechace a que el arqueo cuente un cajón vacío.
+    expect(importeDesdeTexto('dos euros')).toBeNull()
+    expect(importeDesdeTexto('--')).toBeNull()
+  })
+
+  it('redondea a céntimos', () => {
+    expect(importeDesdeTexto('2,509')).toBe(2.51)
+  })
+
+  it('los precios de la carta pasan por el mismo sitio', () => {
+    expect(preciosNumericos({ viena: '2,50', pitufo: '1,50' })).toEqual({ viena: 2.5, pitufo: 1.5 })
   })
 })

@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { nombreDeLocalPorDefecto } from '../lib/perfil'
+import { importeDesdeTexto } from '../lib/dinero'
 import { revisarCorreccionFichaje } from '../lib/fichajes'
 import { revisarNuevoEmpleado, revisarCambioEmpleado, revisarBajaEmpleado } from '../lib/personal'
 import { totalDeMesa } from '../lib/dinero'
@@ -1062,7 +1063,9 @@ export const useStore = create(persist((set, get) => ({
     const propinasPorMetodo = {}
     tickets.forEach(r => Object.entries(propinasPorMetodoDe(r)).forEach(([k, v]) => { propinasPorMetodo[k] = cent((propinasPorMetodo[k] || 0) + v) }))
     const efectivoEsperado = cent((pagos.efectivo || 0) + (propinasPorMetodo.efectivo || 0))
-    const cont = contado === '' || contado == null ? null : Number(contado) || 0
+    // Por `importeDesdeTexto`: `Number('2,50')` da NaN y acababa en 0, o sea
+    // un descuadre de toda la caja por escribir el efectivo con coma.
+    const cont = importeDesdeTexto(contado)
     const descuadre = cont == null ? null : cent(cont - efectivoEsperado)
     return {
       cierres: [...state.cierres, {

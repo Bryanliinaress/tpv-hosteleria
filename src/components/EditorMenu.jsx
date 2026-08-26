@@ -1,4 +1,5 @@
 import { grupoVacio } from '../lib/menuDia'
+import { importeDesdeTexto } from '../lib/dinero'
 
 // Editor de menú del día / combo dentro del formulario de producto:
 // grupos ("Primero", "Segundo"…) con sus opciones y suplementos.
@@ -42,7 +43,7 @@ export default function EditorMenu({ menu, onChange }) {
             <div key={oi} style={{ display: 'flex', gap: '0.35rem', marginBottom: '0.3rem' }}>
               <input value={o.nombre} onChange={e => editarOpcion(gi, oi, { nombre: e.target.value })}
                 placeholder="Ensalada mixta" style={{ ...inp, flex: 1, marginBottom: 0 }} />
-              <input type="number" step="0.10" value={o.sup ?? ''} onChange={e => editarOpcion(gi, oi, { sup: Number(e.target.value) || 0 })}
+              <input type="text" inputMode="decimal" value={o.sup ?? ''} onChange={e => editarOpcion(gi, oi, { sup: importeDesdeTexto(e.target.value) ?? 0 })}
                 placeholder="+€" title="Suplemento" style={{ ...inp, width: '4.5rem', marginBottom: 0 }} />
               <button type="button" onClick={() => editarGrupo(gi, { opciones: g.opciones.filter((_, j) => j !== oi) })}
                 style={btnMini('var(--color-surface-3)')}>✕</button>
