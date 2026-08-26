@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.98.0 · 652 tests JS + 37 pruebas de SQL en verde · CI y deploy en
+**Estado: v0.99.0 · 655 tests JS + 37 pruebas de SQL en verde · CI y deploy en
 verde · repo limpio.** Última sesión: 2026-08-26.
 
 Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los 71 fallos de la auditoría:
@@ -108,7 +108,7 @@ dice «tickets sin registrar», hay que atenderlo **ese mismo día**.
 ## Comandos
 
 ```bash
-npm test                           # 652 tests, pantallas incluidas
+npm test                           # 655 tests, pantallas incluidas
 npm run test:sql                   # 37 pruebas del dinero, contra la base real
 npm run lint
 npm run permisos                   # ¿se ha abierto algo sin querer?
@@ -135,12 +135,17 @@ resultado y ya se subió una vez con CI en rojo.
 3. **Nada de diagnosticar leyendo `innerText`.** Así se inventaron tres fallos
    que no existían (la hoja de unirse sí es un panel fijo, la carta sí carga, la
    PDA sí ocupa el ancho). Si no hay panel de navegador, **pídelo**.
-4. **Si tocas SQL**: `npm run permisos` antes de darlo por bueno. Supabase
+4. **Si tocas `src/lib/` , usa la extensión `.js` en los imports.** El servicio
+   de impresión importa de ahí y corre en **Node puro**: Vite resuelve
+   `./dinero`, Node no. Un import sin extensión compila, pasa el lint y pasa los
+   tests… y deja al bar sin imprimir. Hay un test que lo vigila
+   (`scripts/lib/node-puro.test.mjs`).
+5. **Si tocas SQL**: `npm run permisos` antes de darlo por bueno. Supabase
    concede EXECUTE a `anon` y `authenticated` **en cuanto se crea una función**,
    y eso ya ha mordido tres veces.
-5. **Limpia lo que ensucies**: `scripts/limpiar-servicio.sql`, y revoca los
+6. **Limpia lo que ensucies**: `scripts/limpiar-servicio.sql`, y revoca los
    dispositivos de prueba al terminar.
-6. **La impresión está activa**: si envías un pedido de prueba **sale papel de
+7. **La impresión está activa**: si envías un pedido de prueba **sale papel de
    verdad**. Párala antes y devuélvela después.
 
 ### Para ver las pantallas de personal (ahorra media hora)
@@ -350,7 +355,7 @@ saliendo, pero conviene fijar el precio sabiéndolo.
   7 días / Este mes / Mes pasado), con CSV y las devoluciones restando.
 - **Monitorización**: el bar deja constancia de lo que se rompe en su propia
   base y `npm run salud` lo lee. Encontró sola dos fallos de producción.
-- **652 tests JS** (incluidas seis pantallas) **+ 37 pruebas de SQL** contra la
+- **655 tests JS** (incluidas seis pantallas) **+ 37 pruebas de SQL** contra la
   base real, lint limpio, CI y deploy en verde.
 
 
