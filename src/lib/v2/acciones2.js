@@ -1,5 +1,5 @@
 import { supabase } from '../supabase'
-import { preciosNumericos } from '../dinero'
+import { preciosNumericos, importeDesdeTexto, cent } from '../dinero'
 import { useStore, propinasPorMetodoDe } from '../../store/useStore'
 import { reservas as rpcReservas, personal } from '../repo'
 import { toast } from '../../store/useUI'
@@ -475,6 +475,7 @@ export function accionesV2b() {
 
     // ── Caja (arqueo Z sobre tickets del servidor) ──────────────
     cerrarCaja: async (contado) => {
+      const contadoNum = importeDesdeTexto(contado)
       try {
         const { data: cierres } = await t('cierres_caja').select('hasta').order('hasta', { ascending: false }).limit(1)
         const desde = cierres?.[0]?.hasta || null
@@ -491,8 +492,10 @@ export function accionesV2b() {
         const efectivoEsperado = Math.round(((pagos.efectivo || 0) + propinasEfectivo) * 100) / 100
         await t('cierres_caja').insert({
           local_id: getLocalId(), desde, total, propinas, pagos, n_tickets: tk.length,
-          contado: contado != null ? Number(contado) : null,
-          descuadre: contado != null ? Math.round((Number(contado) - efectivoEsperado) * 100) / 100 : null,
+          // `Number('2,50')` es NaN. Contando el cajón «2,50» el arqueo daba 0
+          // y cantaba un descuadre de TODA la caja.
+          contado: contadoNum,
+          descuadre: contadoNum != null ? cent(contadoNum - efectivoEsperado) : null,
         })
         cargarHistorial(); cargarCierres()
       } catch (e) { err(e) }

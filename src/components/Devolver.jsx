@@ -3,7 +3,7 @@ import { useStore } from '../store/useStore'
 import { toast } from '../store/useUI'
 import { useEmpleadoActual } from '../lib/sesion'
 import { METODO_LABEL } from '../store/useStore'
-import { cent, metodosDeDevolucion } from '../lib/dinero'
+import { metodosDeDevolucion, importeDesdeTexto } from '../lib/dinero'
 
 // ────────────────────────────────────────────────────────────────────────────
 // Devolver dinero de un ticket ya emitido.
@@ -33,8 +33,8 @@ export default function Devolver({ ticket, pendiente, onCerrar, onHecho }) {
   const [metodo, setMetodo] = useState(metodos[0] || 'efectivo')
   const [enviando, setEnviando] = useState(false)
 
-  const parcial = modo === 'parte' ? Number(String(importe).replace(',', '.')) : null
-  const aDevolver = modo === 'todo' ? pendiente : (Number.isFinite(parcial) ? cent(parcial) : 0)
+  const parcial = modo === 'parte' ? importeDesdeTexto(importe) : null
+  const aDevolver = modo === 'todo' ? pendiente : (parcial ?? 0)
   const importeValido = aDevolver > 0 && aDevolver <= pendiente + 0.001
   const puede = importeValido && motivo.trim().length > 0 && !enviando
 
@@ -101,9 +101,14 @@ export default function Devolver({ ticket, pendiente, onCerrar, onHecho }) {
           </button>
         </div>
 
+        {/* `type="text"`, no `number`: en un campo numérico el navegador se
+            come la coma y «2,50» llega como «250» — en un ticket de 300 €, eso
+            es devolver 250 en vez de 2,50. Con `inputMode="decimal"` el móvil
+            sigue sacando el teclado de números, que es lo que importa en la
+            barra. */}
         {modo === 'parte' && (
           <input value={importe} onChange={e => setImporte(e.target.value)} autoFocus
-            type="number" inputMode="decimal" step="0.10" min="0" max={pendiente}
+            type="text" inputMode="decimal"
             placeholder={`€ a devolver (máx. ${pendiente.toFixed(2)})`}
             style={{ background: 'var(--color-inset)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.6rem 0.75rem', minHeight: '44px', fontSize: '1rem' }} />
         )}

@@ -519,7 +519,7 @@ export default function PanelAdmin() {
               ))}
               <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
                 <input value={nuevoPan.nombre} onChange={e => setNuevoPan(s => ({ ...s, nombre: e.target.value }))} placeholder="Nombre" style={{ ...inputStyle, flex: '1 1 110px' }} />
-                <input value={nuevoPan.sup} onChange={e => setNuevoPan(s => ({ ...s, sup: e.target.value }))} type="number" step="0.10" placeholder="+€" style={{ ...inputStyle, flex: '0 1 70px' }} />
+                <input value={nuevoPan.sup} onChange={e => setNuevoPan(s => ({ ...s, sup: e.target.value }))} type="text" inputMode="decimal" placeholder="+€" style={{ ...inputStyle, flex: '0 1 70px' }} />
                 <button onClick={() => { if (nuevoPan.nombre.trim()) { addTipoPan(nuevoPan.nombre, nuevoPan.sup); setNuevoPan({ nombre: '', sup: '' }) } }} style={addBtn}>Añadir</button>
               </div>
             </div>
@@ -540,7 +540,7 @@ export default function PanelAdmin() {
               </div>
               <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
                 <input value={nuevoExtra.nombre} onChange={e => setNuevoExtra(s => ({ ...s, nombre: e.target.value }))} placeholder="Nuevo extra" style={{ ...inputStyle, flex: '1 1 110px' }} />
-                <input value={nuevoExtra.precio} onChange={e => setNuevoExtra(s => ({ ...s, precio: e.target.value }))} type="number" step="0.05" placeholder="+€" style={{ ...inputStyle, flex: '0 1 70px' }} />
+                <input value={nuevoExtra.precio} onChange={e => setNuevoExtra(s => ({ ...s, precio: e.target.value }))} type="text" inputMode="decimal" placeholder="+€" style={{ ...inputStyle, flex: '0 1 70px' }} />
                 <button onClick={() => { if (nuevoExtra.nombre.trim()) { addExtra(nuevoExtra.nombre, nuevoExtra.precio); setNuevoExtra({ nombre: '', precio: '0.20' }) } }} style={addBtn}>Añadir</button>
               </div>
             </div>
@@ -1051,9 +1051,9 @@ function FormProducto({ carta, form, setForm, onGuardar, onCancelar, titulo }) {
         <input value={form.nombre} onChange={set('nombre')} placeholder="Nombre del producto" autoFocus style={{ ...inputStyle, flex: '2 1 180px', minHeight: '44px' }} />
         {form.conFormatos
           ? carta.formatos.map(f => (
-              <input key={f.id} value={form.precios[f.id] ?? ''} onChange={e => setForm(x => ({ ...x, precios: { ...x.precios, [f.id]: e.target.value } }))} placeholder={`€ ${f.nombre}`} type="number" inputMode="decimal" step="0.10" style={{ ...inputStyle, flex: '1 1 90px', minHeight: '44px' }} />
+              <input key={f.id} value={form.precios[f.id] ?? ''} onChange={e => setForm(x => ({ ...x, precios: { ...x.precios, [f.id]: e.target.value } }))} placeholder={`€ ${f.nombre}`} type="text" inputMode="decimal" style={{ ...inputStyle, flex: '1 1 90px', minHeight: '44px' }} />
             ))
-          : <input value={form.precio} onChange={set('precio')} placeholder="€ Precio" type="number" inputMode="decimal" step="0.10" style={{ ...inputStyle, flex: '1 1 100px', minHeight: '44px' }} />}
+          : <input value={form.precio} onChange={set('precio')} placeholder="€ Precio" type="text" inputMode="decimal" style={{ ...inputStyle, flex: '1 1 100px', minHeight: '44px' }} />}
         <select value={form.categoria} onChange={set('categoria')} style={{ ...inputStyle, flex: '1 1 140px', minHeight: '44px' }}>
           {carta.categorias.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.nombre}</option>)}
         </select>

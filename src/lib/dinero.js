@@ -80,8 +80,8 @@ export function preciosNumericos(precios) {
   const limpio = {}
   for (const [k, v] of Object.entries(precios)) {
     if (v === '' || v === null || v === undefined) continue
-    const n = Number(v)
-    if (Number.isFinite(n)) limpio[k] = cent(n)
+    const n = importeDesdeTexto(v)
+    if (n !== null) limpio[k] = n
   }
   return limpio
 }
@@ -116,3 +116,29 @@ export function metodosDeDevolucion(pagos = {}) {
 export const pendienteDeDevolver = (ticket, rectificativas = []) =>
   Math.max(0, cent(Number(ticket?.total || 0) +
     rectificativas.reduce((s, r) => s + Number(r?.total || 0), 0)))
+
+/**
+ * Un importe tecleado por una persona, a número.
+ *
+ * En España se escribe «2,50». Y esto no es un detalle de estilo:
+ *
+ *  · en un `<input type="number">` la coma se PIERDE, así que «2,50» llega
+ *    como «250». En un ticket de 300 € eso es devolver 250 en vez de 2,50;
+ *  · con `Number('2,50')` sale NaN, que acaba en 0. Tecleando el efectivo del
+ *    cajón como «2,50» el arqueo contaba 0 y cantaba un descuadre de toda la
+ *    caja.
+ *
+ * Devuelve `null` si no hay nada que leer, para poder distinguir «vacío» de
+ * «cero» —que en un arqueo no es lo mismo—.
+ */
+export function importeDesdeTexto(txt) {
+  if (txt === null || txt === undefined) return null
+  const limpio = String(txt).trim().replace(/\s/g, '')
+  if (!limpio) return null
+  // «1.234,56» → separador de miles y coma decimal; «1234.56» → punto decimal.
+  const normalizado = limpio.includes(',')
+    ? limpio.replace(/\./g, '').replace(',', '.')
+    : limpio
+  const n = Number(normalizado)
+  return Number.isFinite(n) ? cent(n) : null
+}
