@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.96.0 · 565 tests JS + 31 pruebas de SQL en verde · repo limpio y desplegado.**
+**Estado: v0.97.0 · 575 tests JS + 37 pruebas de SQL en verde · repo limpio y desplegado.**
 Última sesión: 2026-08-19. Roadmap: [PRODUCCION.md](PRODUCCION.md) ·
 Historia de los 71 fallos encontrados: [docs/AUDITORIA.md](docs/AUDITORIA.md).
 
@@ -106,6 +106,36 @@ Cómo funciona, y por qué así:
 
 Queda apuntado en la auditoría de anulaciones, que es donde el encargado ya
 mira cuando algo no cuadra.
+
+### Devolver con tarjeta — ARREGLADO (26/08)
+
+Un fallo mío al hacer las rectificativas, que apareció al preguntarme si estaba
+todo bien: **se emitía la rectificativa de un ticket pagado por Stripe pero el
+dinero no volvía a la tarjeta**, y encima se apuntaba como efectivo, así que el
+arqueo cantaba un faltante de caja que no existía.
+
+Ahora el diálogo sabe cómo se cobró y **solo ofrece por dónde se puede
+devolver**; el reembolso lo hace de verdad la Edge Function `devolver-pago`.
+Probado con dinero contra Stripe: 3,00 € del ticket nº 6 → refund
+`pyr_1U8bYE24tSTGfXgQQamQUQEW`, y ese cobro queda con `devuelto = 3.00` para
+que no se pueda devolver dos veces la misma tarjeta.
+
+**El riesgo se trata como el fiscal**: la rectificativa se emite primero (es el
+documento legal) y el reembolso puede quedar `pendiente` o `error`. Se ve en
+Admin → Tickets con un botón de reintentar, y el aviso lo dice sin rodeos
+—«emitida, pero el dinero NO ha vuelto a la tarjeta»—, porque el encargado
+tiene delante a alguien esperando.
+
+**Un fallo de raíz de paso**: `pagos_online.ticket` solo se rellenaba en el
+cobro que CERRABA la mesa, así que con tres comensales pagando su parte por el
+móvil dos quedaban indistinguibles de un cobro huérfano. Ahora se atan todos
+los del servicio (acotando por `abierta_desde`, para no arrastrar los de un
+servicio anterior de la misma mesa). Esto además **afina el aviso de «cobros
+sin cuenta»**: los que eran partes de una cuenta cerrada dejan de contar.
+
+⚠️ En la demo, la rectificativa nº 7 (de la primera prueba) quedó apuntada como
+efectivo cuando el original era online. Es dato viejo de antes del arreglo; se
+deja porque un documento fiscal emitido no se reescribe.
 
 ### Informes — rehechos en el servidor (24/08)
 
