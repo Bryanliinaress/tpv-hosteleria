@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useStore, METODO_LABEL, METODO_EMOJI } from '../../store/useStore'
-import { PERIODOS, rangoDe, nombreDe } from '../../lib/periodos'
+import { PERIODOS, rangoDe, nombreDe, mayusculaInicial } from '../../lib/periodos'
 
 // ────────────────────────────────────────────────────────────────────────────
 // Informes de ventas.
@@ -80,7 +80,7 @@ export default function Informes({ moneda = '€' }) {
         {/* La cifra grande: lo que se queda el bar */}
         <div style={{ ...card, marginBottom: '1rem', borderColor: 'var(--color-accent)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.5rem' }}>
-            <h3 style={{ ...titulo, marginBottom: 0, textTransform: 'capitalize' }}>{nombreDe(periodo)}</h3>
+            <h3 style={{ ...titulo, marginBottom: 0 }}>{mayusculaInicial(nombreDe(periodo))}</h3>
             <span style={{ fontSize: '0.72rem', color: 'var(--color-faint)' }}>{datos.zona}</span>
           </div>
           <div style={{ fontWeight: 900, fontSize: 'clamp(1.9rem, 9vw, 2.6rem)', color: 'var(--color-accent)', lineHeight: 1 }}>

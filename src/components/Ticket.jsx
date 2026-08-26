@@ -87,7 +87,17 @@ function Cuenta({ mesa, persona, local, fiscal, rectifica }) {
   // la factura simplificada tiene que separarlos.
   const desglose = desglosePorTipo(lineasDe(personas), local?.ivaPct ?? 10)
   const mon = local?.moneda || '€'
-  const pagado = personas.length > 0 && personas.every(p => p.pagado)
+  // Un ticket YA EMITIDO trae su desglose de cobro (`mesa.pagos`), que es el
+  // apunte que usa el arqueo y, por tanto, el que dice de verdad si entró el
+  // dinero. `personas[].pagado` es el detalle por comensal, y en los tickets
+  // cobrados en mostrador antes de la migración 20260826T35 quedó en `false`
+  // para todos. Se leen los dos: primero lo cobrado, y si no hay desglose
+  // —una mesa viva, que todavía no es un ticket— el detalle por comensal.
+  // 'sincobrar' es justo lo contrario (mesa liberada sin cobrar) y 'descuento'
+  // no es dinero que entre: ninguno de los dos cuenta.
+  const cobrado = mesa.pagos && Object.entries(mesa.pagos)
+    .some(([m, importe]) => m !== 'sincobrar' && m !== 'descuento' && Number(importe) > 0)
+  const pagado = cobrado || (personas.length > 0 && personas.every(p => p.pagado))
   const nCom = personas.length
   const f = (n) => n.toFixed(2)
   const urlQR = local?.urlResena || `${window.location.origin}${window.location.pathname}#/mesa/${mesa.id}`

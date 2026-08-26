@@ -1,4 +1,5 @@
 import { esDemo } from '../lib/perfil'
+import { useAltoCSS } from './useAltoCSS'
 
 // ────────────────────────────────────────────────────────────────────────────
 // «Esto es una demostración».
@@ -16,9 +17,14 @@ import { esDemo } from '../lib/perfil'
 // primera pantalla de lo que se quiere enseñar.
 // ────────────────────────────────────────────────────────────────────────────
 export default function AvisoDemo() {
+  // El hook va SIEMPRE, también cuando no hay banda: si se llamara después del
+  // `return null` React se quedaría sin su orden de hooks. Con la ref vacía
+  // deja `--alto-aviso` en 0px, que es lo que corresponde sin banda.
+  const ref = useAltoCSS('--alto-aviso')
   if (!esDemo()) return null
   return (
     <div
+      ref={ref}
       role="status"
       className="no-print"
       style={{

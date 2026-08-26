@@ -58,8 +58,14 @@ function pluginMarca() {
   }
 }
 
+// La versión sale de package.json y no de un literal en la pantalla: el que
+// había en la portada se quedó en v0.44.0 durante 55 releases, a la vista de
+// cualquiera al que se le enseñara el producto.
+const version = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version
+
 export default defineConfig(({ command }) => ({
   base: command === 'build' ? (process.env.VITE_BASE || '/tpv-hosteleria/') : '/',
+  define: { __VERSION__: JSON.stringify(version) },
   plugins: [
     react(),
     tailwindcss(),
