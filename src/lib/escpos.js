@@ -1,4 +1,7 @@
-import { desglosePorTipo } from './dinero'
+// Con la extensión: este fichero lo importa TAMBIÉN el servicio de impresión,
+// que corre en Node puro. Vite resuelve `./dinero` sin ella, pero Node no, y el
+// servicio moría al arrancar con ERR_MODULE_NOT_FOUND — el bar sin imprimir.
+import { desglosePorTipo } from './dinero.js'
 // ────────────────────────────────────────────────────────────────────────────
 // Generador de comandos ESC/POS para impresoras térmicas de 80 mm.
 //
