@@ -31,18 +31,21 @@ const supabase = createClient(
 // local es quien llama, cualquiera con la clave anon (que es pública) podía
 // pedir el reintento en lote de OTRO local y llevarse sus UUID y sus QR.
 // Devuelve el local del JWT del llamante, o null si viene como anónimo.
+//
+// El local sale del PROPIO token (el `app_metadata.local_id` que se le pone a
+// la cuenta del dispositivo al autorizarlo), que es la misma fuente que usa
+// `local_actual()` en la base. Antes se creaba un SEGUNDO cliente de Supabase
+// para preguntárselo, y eso revienta el runtime actual
+// («Deno.core.runMicrotasks() is not supported»): el reintento en lote
+// respondía «hace falta sesión» con la sesión perfecta, y por eso había tickets
+// del 12 de agosto sin registrar en Hacienda con CERO intentos.
 async function localDelLlamante(req: Request): Promise<string | null> {
   const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
-  if (!token || token === (Deno.env.get('SUPABASE_ANON_KEY') ?? '')) return null
-  const comoUsuario = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    { global: { headers: { Authorization: `Bearer ${token}` } } },
-  )
-  const { data, error } = await comoUsuario.rpc('mi_local')
-  if (error) return null
-  const fila = Array.isArray(data) ? data[0] : data
-  return (fila as Record<string, string>)?.local_id ?? null
+  if (!token) return null
+  const { data, error } = await supabase.auth.getUser(token)
+  if (error || !data?.user) return null
+  const meta = (data.user.app_metadata ?? {}) as Record<string, string>
+  return meta.local_id ?? null
 }
 
 // dd-mm-aaaa, como espera Verifacti
