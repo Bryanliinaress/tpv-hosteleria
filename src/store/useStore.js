@@ -312,6 +312,10 @@ export const useStore = create(persist((set, get) => ({
     abiertaDesde: null,
   })),
 
+  // Volver a intentar devolver a la tarjeta una devolución que quedó a medias.
+  // `async` a los dos lados: la pantalla la espera y lee `r.ok`.
+  reintentarReembolso: async () => ({ ok: false, error: 'Las devoluciones a tarjeta necesitan el backend real' }),
+
   // Informe de ventas de un periodo. En el backend real lo calcula el
   // servidor (así sirve para cualquier fecha, no solo para lo que el
   // dispositivo tenga descargado); en la demo no hay servidor, así que se

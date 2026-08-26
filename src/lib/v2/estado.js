@@ -255,7 +255,7 @@ export async function cargarReservas() {
 export async function cargarHistorial() {
   const ultimoCierre = useStore.getState().cierres?.[0]?.hasta ?? null
   const desde = { col: 'cerrado_en', valor: inicioVentanaHistorial(new Date(), ultimoCierre) }
-  const tickets = await q('tickets', 'id, numero, mesa_numero, cerrado_en, total, propina, pagos, detalle, camarero, cobrado_por, fiscal_estado, fiscal_qr, fiscal_url, fiscal_error, rectifica_a, motivo_rectificacion', {}, desde)
+  const tickets = await q('tickets', 'id, numero, mesa_numero, cerrado_en, total, propina, pagos, detalle, camarero, cobrado_por, fiscal_estado, fiscal_qr, fiscal_url, fiscal_error, rectifica_a, motivo_rectificacion, reembolso_estado, reembolso_error', {}, desde)
   useStore.setState({
     historial: tickets.sort((a, b) => a.cerrado_en < b.cerrado_en ? 1 : -1).map(t => ({
       id: t.id, numero: t.numero, mesaNumero: t.mesa_numero, cerradaEn: t.cerrado_en,
@@ -265,6 +265,9 @@ export async function cargarHistorial() {
       // Devoluciones: `rectificaA` apunta al ticket corregido (y el importe va
       // en negativo). Un ticket normal no lleva nada de esto.
       rectificaA: t.rectifica_a || null, motivoRectificacion: t.motivo_rectificacion || null,
+      // Devolución a tarjeta: 'pendiente' mientras el dinero no ha vuelto,
+      // 'error' si Stripe la rechazó. En efectivo no aplica y viene null.
+      reembolsoEstado: t.reembolso_estado || null, reembolsoError: t.reembolso_error || null,
     })),
   })
 }

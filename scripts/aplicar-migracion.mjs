@@ -99,9 +99,12 @@ if (args.includes('--estado')) {
 }
 
 const rehacer = args.includes('--rehacer')
-const pedidas = (args.includes('--todas') || rehacer)
+const numeros = args.filter(a => !a.startsWith('--'))
+// `--rehacer 34` rehace la 34, no las treinta y cuatro: si se nombran, mandan
+// los nombres. Solo sin números se entiende «todas».
+const pedidas = (!numeros.length && (args.includes('--todas') || rehacer))
   ? todas
-  : args.filter(a => !a.startsWith('--')).map(n => {
+  : numeros.map(n => {
       const f = todas.find(x => numeroDe(x) === String(n).padStart(2, '0'))
       if (!f) { console.error(`No hay ninguna migración ${n}`); process.exit(1) }
       return f

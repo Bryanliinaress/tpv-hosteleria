@@ -3,7 +3,7 @@ import { useStore } from '../store/useStore'
 import { toast } from '../store/useUI'
 import { useEmpleadoActual } from '../lib/sesion'
 import { METODO_LABEL } from '../store/useStore'
-import { cent } from '../lib/dinero'
+import { cent, metodosDeDevolucion } from '../lib/dinero'
 
 // ────────────────────────────────────────────────────────────────────────────
 // Devolver dinero de un ticket ya emitido.
@@ -21,7 +21,7 @@ import { cent } from '../lib/dinero'
 //     y el arqueo de la noche tiene que contar con ello.
 // ────────────────────────────────────────────────────────────────────────────
 
-const METODOS = ['efectivo', 'tarjeta']
+
 
 export default function Devolver({ ticket, pendiente, onCerrar, onHecho }) {
   const emitirRectificativa = useStore(s => s.emitirRectificativa)
@@ -29,7 +29,8 @@ export default function Devolver({ ticket, pendiente, onCerrar, onHecho }) {
   const [modo, setModo] = useState('todo')   // 'todo' | 'parte'
   const [importe, setImporte] = useState('')
   const [motivo, setMotivo] = useState('')
-  const [metodo, setMetodo] = useState('efectivo')
+  const metodos = metodosDeDevolucion(ticket.pagos)
+  const [metodo, setMetodo] = useState(metodos[0] || 'efectivo')
   const [enviando, setEnviando] = useState(false)
 
   const parcial = modo === 'parte' ? Number(String(importe).replace(',', '.')) : null
@@ -51,7 +52,16 @@ export default function Devolver({ ticket, pendiente, onCerrar, onHecho }) {
     })
     setEnviando(false)
     if (!r?.ok) return toast(r?.error || 'No se pudo emitir la devolución', 'error')
-    toast(`Devueltos ${aDevolver.toFixed(2)} € · rectificativa nº ${r.numero}`, 'success')
+    if (r.avisoReembolso) {
+      // La rectificativa está emitida (es el documento legal), pero el dinero
+      // NO ha vuelto. Decirlo claro: el encargado tiene a alguien delante
+      // esperando su dinero y no puede despedirle creyendo que ya está.
+      toast(`Rectificativa nº ${r.numero} emitida, pero el dinero NO ha vuelto a la tarjeta: ${r.avisoReembolso}. Reinténtalo desde Tickets.`, 'error', 10000)
+    } else if (r.reembolso === 'hecho') {
+      toast(`Devueltos ${aDevolver.toFixed(2)} € a la tarjeta · rectificativa nº ${r.numero}`, 'success')
+    } else {
+      toast(`Devueltos ${aDevolver.toFixed(2)} € · rectificativa nº ${r.numero}`, 'success')
+    }
     onHecho?.()
     onCerrar()
   }
@@ -101,7 +111,7 @@ export default function Devolver({ ticket, pendiente, onCerrar, onHecho }) {
         <div>
           <label style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>¿Cómo se devuelve?</label>
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
-            {METODOS.map(m => (
+            {metodos.map(m => (
               <button key={m} onClick={() => setMetodo(m)} style={boton(metodo === m)}>
                 {METODO_LABEL[m] || m}
               </button>
@@ -110,6 +120,12 @@ export default function Devolver({ ticket, pendiente, onCerrar, onHecho }) {
           {metodo === 'efectivo' && (
             <p style={{ fontSize: '0.72rem', color: 'var(--color-muted)', marginTop: '0.3rem' }}>
               Sale del cajón: el arqueo de esta noche ya lo cuenta.
+            </p>
+          )}
+          {metodo === 'online' && (
+            <p style={{ fontSize: '0.72rem', color: 'var(--color-muted)', marginTop: '0.3rem' }}>
+              Vuelve a la <strong>misma tarjeta</strong> con la que se pagó. Puede tardar
+              unos días en aparecerle al cliente en su banco.
             </p>
           )}
         </div>
@@ -122,7 +138,8 @@ export default function Devolver({ ticket, pendiente, onCerrar, onHecho }) {
         </div>
 
         <p style={{ fontSize: '0.75rem', color: 'var(--color-muted)', lineHeight: 1.45 }}>
-          Se emite una <strong>factura rectificativa</strong> por {aDevolver > 0 ? `${aDevolver.toFixed(2)} €` : '—'}.
+          Se emite una <strong>factura rectificativa</strong> por {aDevolver > 0 ? `${aDevolver.toFixed(2)} €` : '—'}
+          {metodo === 'online' ? ' y el dinero vuelve a la tarjeta' : ''}.
           El ticket original no se toca: es un documento ya emitido y se queda como está.
         </p>
 
