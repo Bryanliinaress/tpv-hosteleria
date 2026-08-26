@@ -1,254 +1,188 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.98.0 · 652 tests JS + 37 pruebas de SQL en verde · repo limpio y desplegado.**
-Última sesión: 2026-08-19. Roadmap: [PRODUCCION.md](PRODUCCION.md) ·
-Historia de los 71 fallos encontrados: [docs/AUDITORIA.md](docs/AUDITORIA.md).
+**Estado: v0.98.0 · 652 tests JS + 37 pruebas de SQL en verde · CI y deploy en
+verde · repo limpio.** Última sesión: 2026-08-26.
 
----
-
-## 🩺 Revisión de arquitectura (19/08) — lo arreglado y lo que queda
-
-Repaso completo de `src`, el SQL, las Edge Functions, los scripts y el CI.
-**Seis fallos reales**, todos demostrados contra la base de datos antes de
-tocar nada, y todos ya arreglados:
-
-1. **La numeración fiscal se pisaba.** El trigger hacía `max(numero)+1` sin
-   bloquear. Con 12 cobros en paralelo fallaban **2**: `duplicate key ...
-   tickets_local_id_numero_key`. Ahora hay un contador por local en su propia
-   tabla (RLS sin políticas, como `intentos_pin`): 12 de 12 y sin huecos.
-2. **El historial se bajaba entero** —todos los tickets con su `detalle`— en
-   cada arranque y **cada vez que la tablet vuelve del segundo plano**. A 100
-   tickets/día son decenas de MB por despertar y por aparato. Ahora va por
-   ventana (mes anterior, estirada hasta el último cierre de caja).
-3. **La sesión de PIN no caducaba nunca.** El encargado dejaba la tablet en la
-   barra y quien la cogiera tenía Admin. Ahora caduca por inactividad: 5 min
-   admin, 12 h camarero (al camarero no se le puede pedir el PIN cada diez
-   minutos: acabaría poniéndose 0000). El plazo sale del **padrón**, no del
-   dispositivo, o bastaba escribirse `rol: camarero` para durar 12 h.
-4. **Un fallo de render dejaba la tablet en blanco.** No había `ErrorBoundary`.
-   Ahora hay pantalla con Recargar / Volver al inicio, y distingue el caso de
-   «trozo de la app que no llega» (pestaña vieja tras un despliegue).
-5. **El papel imprimía mal el IVA.** El desglose estaba escrito **cuatro
-   veces** y `escpos.js` no redondeaba la base: al 4 % (pan, leche) imprimía
-   «base + IVA» un céntimo por encima del total en 3.976 importes de 199.951.
-   Todo pasa ya por `src/lib/dinero.js` (también los 13 sitios que calculaban
-   el total de un comensal).
-6. **La cola offline duplicaba productos** cuando la petición llegaba y se
-   perdía la respuesta. Clave de idempotencia desde el primer intento:
-   probado, 3 reenvíos sin clave = 3 unidades, con clave = 1.
-
-Y **Admin → Caja avisa de los cobros sin cuenta** (4 en la demo, 13,25 €):
-dinero cobrado que no está en ningún ticket y hay que devolver por Stripe.
-
-### Lo que quedaba pendiente — ya está TODO hecho (24/08)
-
-1. **Tests del SQL del dinero** → `npm run test:sql`, 15 pruebas contra la base
-   de verdad y sin dejar rastro (cada una en una transacción que se deshace, y
-   el runner compara una foto de antes y después). Comprobado que SIRVEN:
-   metiendo a propósito el reparto ingenuo, canta «esperaba 20.00, obtuve
-   20.01».
-2. **Registro de migraciones** → `npm run migraciones -- --estado` dice en qué
-   esquema está un proyecto sin tocar nada; `--todas` aplica solo lo que falta.
-   Guarda la huella del contenido: una migración editada DESPUÉS de aplicarse
-   sale como «cambiada», que es un bar cuyo esquema ya no es el del repo.
-3. **Monitorización** → el bar deja constancia de lo que se rompe en su propia
-   base (nada sale a servicios de terceros) y `npm run salud` responde «cómo
-   está este bar». Se pagó sola: encontró que **editar un producto con tamaños
-   guardaba los precios como texto y reventaba la carta del cliente**.
-4. **IVA por producto** → `productos.iva_pct`, congelado en la línea al pedir, y
-   desglose por tipo en pantalla, papel, recibo y AEAT.
-5. **Fichajes por mes** → se pide el mes que se mira, con margen de un día a
-   cada lado (un turno de madrugada del día 1 se guarda en UTC como el último
-   día del mes anterior).
-6. **Segundo bar publicable** → probado compilando dos a la vez; hay tests que
-   impiden los fallos silenciosos (un bar fuera de `dist` no se sube y nadie se
-   entera). Ver `locales/README.md`.
-7. **Tope a `solicitar_dispositivo`** → 20 esperando y 5 por minuto, por local.
-8. **`npm audit` limpio** → react-router-dom 7.18.2.
-
-### Comandos nuevos
-
-```bash
-npm run salud                      # ¿cómo está este bar?
-npm run migraciones -- --estado    # ¿en qué esquema está?
-npm run test:sql                   # el dinero, contra la base real
-PROJECT_REF=<otro> npm run salud   # cualquier otro bar
-```
-
-### Devoluciones (rectificativas) — HECHO (24/08)
-
-Era el bloqueo fiscal de verdad y ya está cerrado, de punta a punta y
-**probado contra la AEAT de pruebas**: la devolución de 4,00 € del ticket nº 6
-salió con UUID `50eccb10-…`, su QR y su URL de verificación en `prewww2.aeat.es`.
-
-Cómo funciona, y por qué así:
-
-- **Siempre R5.** El original es una factura simplificada (F2), así que su
-  rectificativa es R5 sea cual sea el motivo; R1-R4 son para facturas completas.
-- **Por diferencias, no por sustitución.** Las dos son válidas. Se eligió «I»
-  porque en un bar la devolución es dinero que sale del cajón: así la caja, los
-  informes y lo que consta en Hacienda dicen **el mismo número**. Por
-  sustitución el documento diría «esto eran 8 € y no 11 €» y el movimiento del
-  cajón habría que deducirlo, que es como se descuadra un arqueo.
-- **Una rectificativa es un ticket más**, negativo y apuntando al que corrige.
-  Entra sola por donde ya pasa todo: se numera con el mismo contador (serie
-  correlativa y sin huecos, que es lo que pide Verifactu), se registra en la
-  AEAT por la misma vía con sus reintentos, resta en el arqueo y sale en los
-  informes. Nada de un circuito paralelo.
-- **El original NO se toca nunca**: es un documento ya emitido.
-- Devolución **entera o parcial**; la parcial se reparte entre los tipos de IVA
-  en proporción y con los céntimos cuadrados. No se puede devolver dos veces lo
-  mismo (el servidor bloquea el ticket), ni más de lo pendiente, ni sin motivo,
-  ni una rectificativa, ni el ticket de otro local. Las siete cosas, con test.
-- Se usa desde **Admin → Tickets → ↩ Devolver**. El motivo es obligatorio
-  porque va al registro fiscal, y el método importa: en efectivo sale del cajón
-  y el arqueo de la noche lo cuenta.
-
-Queda apuntado en la auditoría de anulaciones, que es donde el encargado ya
-mira cuando algo no cuadra.
-
-### Tests de pantalla (26/08) — y tres fallos que sacaron
-
-**6.931 líneas de JSX no las tocaba ningún test**, porque no había con qué. Ese
-era el hueco de verdad: la lógica estaba bien cubierta, pero nada de lo que
-toca una persona lo estaba — y todos los fallos de las últimas sesiones vivían
-justo ahí.
-
-Ya hay arnés (jsdom + testing-library) y están cubiertas las pantallas donde
-más caro sale equivocarse: **Devolver, Ticket, Informes, la vista de Pagar del
-cliente, la red de seguridad y la cola de cocina/barra.** De 575 a 652 tests.
-
-Los tests de pantalla se marcan con `@vitest-environment jsdom` en su cabecera;
-el resto sigue en Node, que es más rápido.
-
-**Encontraron tres fallos reales, dos de dinero:**
-
-1. **«2,50» se convertía en 250.** En un `<input type="number">` el navegador se
-   come la coma. Con un ticket de 300 €, escribir «2,50» en la devolución
-   devolvía **250 €** — y el tope de «no más de lo pendiente» ni se entera. Los
-   campos de dinero pasan a `type="text" inputMode="decimal"` (el móvil sigue
-   sacando el teclado numérico) y todo se lee con `importeDesdeTexto`.
-2. **El efectivo del arqueo con coma daba CERO.** `Number('2,50')` es NaN y
-   acababa en `|| 0`: contar el cajón como «2,50» cantaba un descuadre de toda
-   la caja. Además, vacío ahora es `null` y no 0 — «no he contado» y «hay 0 €»
-   no son lo mismo.
-3. **Una carta sin categorías reventaba la pantalla del cliente.** Pasa en un
-   bar recién montado, o si alguien las borra desde Admin.
-
-El mismo arreglo del parser va a los precios de la carta, los extras, los
-suplementos de pan y el menú del día, que tenían el mismo problema.
-
-### Devolver con tarjeta — ARREGLADO (26/08)
-
-Un fallo mío al hacer las rectificativas, que apareció al preguntarme si estaba
-todo bien: **se emitía la rectificativa de un ticket pagado por Stripe pero el
-dinero no volvía a la tarjeta**, y encima se apuntaba como efectivo, así que el
-arqueo cantaba un faltante de caja que no existía.
-
-Ahora el diálogo sabe cómo se cobró y **solo ofrece por dónde se puede
-devolver**; el reembolso lo hace de verdad la Edge Function `devolver-pago`.
-Probado con dinero contra Stripe: 3,00 € del ticket nº 6 → refund
-`pyr_1U8bYE24tSTGfXgQQamQUQEW`, y ese cobro queda con `devuelto = 3.00` para
-que no se pueda devolver dos veces la misma tarjeta.
-
-**El riesgo se trata como el fiscal**: la rectificativa se emite primero (es el
-documento legal) y el reembolso puede quedar `pendiente` o `error`. Se ve en
-Admin → Tickets con un botón de reintentar, y el aviso lo dice sin rodeos
-—«emitida, pero el dinero NO ha vuelto a la tarjeta»—, porque el encargado
-tiene delante a alguien esperando.
-
-**Un fallo de raíz de paso**: `pagos_online.ticket` solo se rellenaba en el
-cobro que CERRABA la mesa, así que con tres comensales pagando su parte por el
-móvil dos quedaban indistinguibles de un cobro huérfano. Ahora se atan todos
-los del servicio (acotando por `abierta_desde`, para no arrastrar los de un
-servicio anterior de la misma mesa). Esto además **afina el aviso de «cobros
-sin cuenta»**: los que eran partes de una cuenta cerrada dejan de contar.
-
-⚠️ En la demo, la rectificativa nº 7 (de la primera prueba) quedó apuntada como
-efectivo cuando el original era online. Es dato viejo de antes del arreglo; se
-deja porque un documento fiscal emitido no se reescribe.
-
-### ⚠️ El reintento fiscal estaba roto — y eso deja tickets sin registrar PARA SIEMPRE
-
-Apareció tirando del hilo de la devolución con tarjeta. «Reintentar envío» de
-Admin → Tickets respondía **401 «hace falta sesión»** aunque la sesión fuera
-perfecta: la función creaba un SEGUNDO cliente de Supabase para preguntar de
-qué local era el llamante, y eso revienta el runtime actual
-(«Deno.core.runMicrotasks() is not supported»). Ya arreglado —el local sale del
-propio token—, y ahora procesa.
-
-**Lo grave es la consecuencia.** Al reintentar, Verifacti responde:
-
-> El campo `fecha_expedicion` debe ser la fecha actual.
-
-Es decir: **un ticket solo se puede registrar el día que se emitió.** Los que
-fallaron y no se reintentaron ese mismo día ya no entran nunca. En la demo hay
-cuatro así (nº 2, 4, 5 y 6, del 12 y 13 de agosto) que llevaban pendientes
-justamente porque el reintento no funcionaba.
-
-**Qué hay que aclarar con Verifacti antes de producción**: la norma permite
-registrar fuera de plazo (con sus límites), así que esto puede ser una
-restricción del entorno de pruebas o de su API. Importa mucho: define qué pasa
-si la AEAT o Verifacti no responden durante un día entero. Mientras no esté
-claro, **`npm run salud` es el aviso** — si sale «tickets sin registrar», hay
-que atenderlo el mismo día.
-
-### Informes — rehechos en el servidor (24/08)
-
-Ya tenían producto, camarero y hora, pero se calculaban **en el navegador**
-sobre el historial descargado, y eso traía dos cosas:
-
-- **Solo se veía el mes en curso** —y desde que el historial va por ventana, ni
-  eso: el día 1 de mes la pantalla salía vacía—.
-- **Las devoluciones los ensuciaban.** Una rectificativa es un ticket con líneas
-  sintéticas, así que aparecía en el ranking como un producto llamado
-  «Devolución (IVA 10%)», sumaba un comensal que nunca existió y contaba como
-  ticket hundiendo el medio. Fallo introducido al añadir las rectificativas.
-
-Ahora los calcula el servidor (`informe_ventas`, por rango de fechas), así que
-valen para **cualquier periodo** sin depender de lo que el aparato tenga bajado.
-Selector de Hoy / Ayer / 7 días / Este mes / Mes pasado, y **CSV** con `;` y BOM
-(Excel en español lo abre bien; con comas mete todo en una columna).
-
-Tres cosas que se arreglaron por el camino:
-
-- **Las devoluciones restan y se enseñan aparte** («↩ 2 devoluciones · −14,40 €
-  · vendido 253,10 € antes de devolver»), y no salen en ningún ranking.
-- **La hora, en la zona del local** (`config.zonaHoraria`, Europe/Madrid por
-  defecto). Agrupar en UTC daba las horas punta desplazadas dos horas en verano
-  — y con eso se contrata personal para la hora equivocada.
-- **Quién atendió y quién cobró son cosas distintas** y ya no se mezclan: en un
-  bar cobra quien está en la caja, no quien sirvió la mesa.
-
-Para enseñarlo: `scripts/sembrar-ventas.sql` crea un día de servicio creíble
-(desayunos, comidas, cenas, dos camareros y una devolución) y
-`scripts/limpiar-ventas-ejemplo.sql` lo quita. **Solo para la demo**: en un bar
-de verdad inventaría ventas en su contabilidad.
-
-### Pendiente
-
-1. **Declaración responsable del fabricante** — obligación tuya, no es código.
-2. **Los tres de siempre de Bryan**: teléfono y dirección del local, Supabase
-   Pro, y la prueba del papel (corte, acentos, QR).
-3. **Backups** (vienen con Supabase Pro).
-4. **KDS y Barra en tableta** — no vueltos a mirar desde los últimos cambios.
-5. **Mostrador**: la rejilla pierde el cuadre al abrir el panel lateral.
-
-### Lo que se revisó y está BIEN
-
-RLS activo en las 17 tablas (`intentos_pin` con deny-all). `npm run permisos`
-limpio. El webhook de Stripe verifica firma, calcula el importe en el servidor
-y es idempotente. `crear-checkout` valida el retorno contra el `Origin`. Los
-dispositivos usan secreto de 256 bits con bcrypt y cuenta propia por aparato.
-Los secretos están fuera del repo. Y `contrato.test.js` —el test que impide
-que una acción del store se quede sin implementar en v2— es de lo mejor que
-hay aquí.
+Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los 71 fallos de la auditoría:
+[docs/AUDITORIA.md](docs/AUDITORIA.md)
 
 ---
 
 ## ⭐ EMPIEZA POR AQUÍ
 
-### 1. La impresión ya arranca sola
+### 1. Comprueba que sigue todo en pie
+
+```bash
+npm run salud
+```
+
+Dice cómo está el bar en diez segundos: ventas, tickets sin registrar en
+Hacienda, cobros sin cuenta, comandas atascadas, dispositivos con acceso y lo
+que se haya roto en las pantallas. Si el proyecto no responde, casi seguro es
+que **Supabase lo pausó por inactividad** (plan gratuito, ~1 semana): se
+arregla entrando al panel y pulsando *Resume project*.
+
+### 2. Lo único que llevo siete releases sin poder hacer
+
+**Repasar las pantallas nuevas MIRÁNDOLAS**, en móvil (375 px) y el KDS en
+tableta.
+
+El panel del navegador ha estado cerrado sesión tras sesión, así que he
+verificado por DOM y por números, pero **no he visto renderizada** ninguna de
+estas: Informes, el diálogo de Devolver, el selector de IVA del producto, la
+marca de «devuelto X · quedan Y» en Tickets, la pantalla de error, ni el
+desglose por tipos en el ticket.
+
+Si el panel está disponible, eso es lo primero. **Si no lo está, pídelo antes
+de tocar estética** (el porqué, más abajo).
+
+---
+
+## Qué queda — una sola lista
+
+### De Bryan (no es código)
+
+1. **Declaración responsable del fabricante** — obligación desde el 29-7-2025
+   por comercializar software de facturación. Es el único bloqueo legal que
+   queda.
+2. **Rellenar teléfono y dirección** en Admin → Local. El CIF ya está puesto
+   (B75777847) y la pantalla avisa de lo que falta. Salen en el ticket, en el
+   recibo del cliente y en «Llámanos» de reservas. No lo relleno yo: un número
+   inventado en una página pública acaba haciendo que alguien llame a un
+   desconocido.
+3. **Supabase Pro (~23 €/mes)** — quita las pausas por inactividad y trae los
+   backups. Enseñar la demo a un bar y que no cargue es el peor momento para
+   descubrirlo.
+4. **Comprobar el papel** (corte, acentos, QR) — aplazado a propósito.
+5. **Pasar a producción**: NIF real en Verifacti (solo cambia el secreto
+   `VERIFACTI_API_KEY`, de `vf_test_…` a `vf_prod_…`; la URL es la misma). Con
+   Stripe en `sk_live_` hay que **rehacer el webhook** —otro endpoint y otro
+   secreto de firma—: `node scripts/configurar-stripe.mjs marchando`.
+6. **Probar el alta de un bar nuevo** de punta a punta una vez: aprovisionar el
+   proyecto, autorizar el primer dispositivo desde el terminal y entrar.
+
+### ⚠️ Aclarar con Verifacti antes de producción
+
+Al reintentar un envío, Verifacti responde **«el campo `fecha_expedicion` debe
+ser la fecha actual»**: un ticket solo se puede registrar **el día que se
+emitió**. Los que fallen y no se reintenten ese mismo día no entran nunca (en
+la demo hay cuatro así, del 12 y 13 de agosto).
+
+La norma permite registrar fuera de plazo, así que puede ser una restricción de
+su entorno de pruebas o de su API — pero **define qué pasa si la AEAT no
+responde durante un día entero**. Mientras no esté claro: si `npm run salud`
+dice «tickets sin registrar», hay que atenderlo **ese mismo día**.
+
+### De pantalla
+
+1. **El repaso visual de todo lo nuevo** (arriba).
+2. **KDS y Barra en tableta** — hay tests de la cola, pero nadie los ha visto
+   renderizados desde los últimos cambios.
+3. **Mostrador**: la rejilla de mesas pierde el cuadre al abrir el panel
+   lateral (queda una mesa huérfana por zona). Cosmético, pero se ve.
+
+### De código
+
+1. **Tests de pantalla que faltan**: PDA (482 líneas) y Mostrador (543), que son
+   las que usa el personal a diario; Reservar (360) y Onboarding (261).
+2. **La cola offline en una caída de red real** — está probada la RPC, no el
+   comportamiento con la conexión cayéndose de verdad.
+3. **Realtime entre dispositivos**: sin cubrir.
+4. **Admin → Tickets** marca en el aviso cuáles faltan por registrar, pero no en
+   la lista: la pantalla saca el ticket del store y el estado fiscal vive en la
+   RPC. Si molesta, hay que juntar las dos fuentes.
+5. **Actualizar N instancias** de una vez: con un bar por instalación, cada
+   mejora hay que desplegarla a cada uno.
+6. **Dominio propio para cada bar.**
+
+### Dato, no código
+
+- En Ajustes → Tipo de pan hay un «Con Gluten» junto a «Sin gluten +1,20 €».
+  Suena a resto de la carta de ejemplo, y sale en la hoja del cliente.
+- En la demo, la rectificativa nº 7 quedó apuntada como efectivo cuando el
+  original era online (dato anterior al arreglo). Se deja: un documento fiscal
+  emitido no se reescribe.
+
+---
+
+## Comandos
+
+```bash
+npm test                           # 652 tests, pantallas incluidas
+npm run test:sql                   # 37 pruebas del dinero, contra la base real
+npm run lint
+npm run permisos                   # ¿se ha abierto algo sin querer?
+npm run migraciones -- --estado    # ¿en qué esquema está este bar?
+npm run migraciones -- --todas     # aplica solo lo que falte
+npm run salud                      # ¿cómo está este bar?
+```
+
+Los tres últimos aceptan `PROJECT_REF=<ref>` delante, para apuntar a otro bar.
+
+**Los tests, con `grep`, nunca con `tail`:**
+`npm test 2>&1 | grep -E "Test Files|Tests |FAIL"`. Con `tail -3` se oculta el
+resultado y ya se subió una vez con CI en rojo.
+
+---
+
+## Cómo se trabaja aquí (leer antes de tocar)
+
+1. **Mirando la pantalla, y en móvil** (`resize_window` → `mobile`, 375 px). Es
+   donde se usa. Para el KDS, `tablet`: una cocina no usa un teléfono.
+2. **Comprueba qué bundle corre.** El service worker sirve el anterior y ya hizo
+   dar por bueno un arreglo que no estaba cargado: `curl` a la página y comparar
+   con el `<script src>` de la pestaña.
+3. **Nada de diagnosticar leyendo `innerText`.** Así se inventaron tres fallos
+   que no existían (la hoja de unirse sí es un panel fijo, la carta sí carga, la
+   PDA sí ocupa el ancho). Si no hay panel de navegador, **pídelo**.
+4. **Si tocas SQL**: `npm run permisos` antes de darlo por bueno. Supabase
+   concede EXECUTE a `anon` y `authenticated` **en cuanto se crea una función**,
+   y eso ya ha mordido tres veces.
+5. **Limpia lo que ensucies**: `scripts/limpiar-servicio.sql`, y revoca los
+   dispositivos de prueba al terminar.
+6. **La impresión está activa**: si envías un pedido de prueba **sale papel de
+   verdad**. Párala antes y devuélvela después.
+
+### Para ver las pantallas de personal (ahorra media hora)
+
+`npm run dev` **sin perfil** enseña la pantalla vieja de email+contraseña, no el
+código de 6 dígitos: el flujo sin contraseñas depende del perfil del local. Hay
+que **compilar con perfil y servir el bundle**:
+
+```bash
+LOCAL=marchando VITE_BASE=/ VITE_PAGOS_ONLINE=1 npm run build
+cd dist && python -m http.server 5186
+```
+
+Ojo con `LOCAL` en Windows: `set LOCAL=marchando && …` mete el espacio dentro de
+la variable y vite muere con «No existe el local "marchando "». Va
+`set "LOCAL=marchando"&& …`.
+
+### Probar sin ensuciar nada
+
+`npm run dev -- --mode pruebas` levanta la app **sin backend**: todo a
+localStorage, sin tocar la demo compartida ni el bar.
+
+Para **enseñar** los informes con datos delante de un cliente:
+`scripts/sembrar-ventas.sql` crea un día de servicio creíble y
+`scripts/limpiar-ventas-ejemplo.sql` lo quita. **Solo para la demo**: en un bar
+de verdad inventaría ventas en su contabilidad.
+
+---
+
+## El papel — APLAZADO a propósito (13/08)
+
+No se ha olvidado: Bryan decidió dejarlo para más adelante. **No lo retomes por
+tu cuenta**, pregúntale antes. Cuando toque, hay que mirarlo con las impresoras
+delante:
+
+- ¿**cortan** el papel? (si no, quitar `GS V` para que no salga basura)
+- ¿los **acentos** salen bien? («Salchichón», «Café», «Menú del día»)
+- ⚠️ **el QR del ticket de cuenta**: el único riesgo que sigue sin descartar. Si
+  el ticket sale bien **pero sin QR**, la impresora no implementa el QR nativo
+  (`GS ( k`) y hay que mandarlo como imagen.
+
+## La impresión arranca sola
 
 Está instalada como **tarea de Windows** y se levanta 20 s después de iniciar
 sesión. No hay que hacer nada al empezar el día.
@@ -262,142 +196,14 @@ pedido sale en papel: comida por 🍳 `TPV-Cocina` y bebida por 🍺 `TPV-Barra`
 **sin navegador**. Si el PC estuvo apagado, al arrancar saca lo pendiente sin
 repetir lo ya impreso.
 
-**Al montar un bar nuevo**, una sola vez:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts\instalar-impresion.ps1
-```
-
-No pide administrador a propósito: es una tarea del usuario del TPV, que
-arranca al iniciar sesión. Corre oculta (`scripts\impresion-oculta.vbs`) para
-no dejar una consola negra en la pantalla del bar, y todo va a
-`logs\impresion.log` — que se lee con `Get-Content … -Encoding UTF8`, o los
-acentos salen como basura. Si el proceso se cae, Windows lo reintenta 3 veces.
-
-Se quita con `-Quitar`.
-
-### 2. El papel — APLAZADO a propósito (13/08)
-
-No es que se haya olvidado: Bryan decidió dejarlo para más adelante. **No lo
-retomes por tu cuenta**, pregúntale antes. Cuando toque, hay que mirarlo con
-las impresoras delante:
-
-- ¿**cortan** el papel? (si no, quitar `GS V` para que no salga basura)
-- ¿los **acentos** salen bien? («Salchichón», «Café», «Menú del día»)
-- ⚠️ **el QR del ticket de cuenta**: es el único riesgo que sigue sin
-  descartar. Si el ticket sale bien **pero sin QR**, la impresora no
-  implementa el QR nativo (`GS ( k`) y hay que mandarlo como imagen.
-
-### 3. Pago con tarjeta — HECHO y verificado
-
-Cobro de punta a punta funcionando (12/08): 3 pagos reales entrados, 3 tickets
-con desglose `{"online": …}` —no efectivo— y las mesas cerradas solas.
-
-El fallo era que el webhook moría SIEMPRE: los metadatos de Stripe son texto,
-así que `localId` llegaba como `""` y `?? null` no lo convierte. A un parámetro
-`uuid` le entraba una cadena vacía. Encima `String(e)` lo tapaba con
-«[object Object]» en el panel de Stripe.
-
-Queda solo **pasar a producción**: con `sk_live_` hay que **rehacer el
-webhook**, porque el endpoint de producción es otro y su secreto de firma
-también. Mismo comando: `node scripts/configurar-stripe.mjs marchando`.
+**Al montar un bar nuevo**, una sola vez, el mismo comando sin `-Estado`. No
+pide administrador a propósito: es una tarea del usuario del TPV, que arranca al
+iniciar sesión. Corre oculta (`scripts\impresion-oculta.vbs`) para no dejar una
+consola negra en la pantalla del bar, y todo va a `logs\impresion.log` — que se
+lee con `Get-Content … -Encoding UTF8`, o los acentos salen como basura. Si el
+proceso se cae, Windows lo reintenta 3 veces. Se quita con `-Quitar`.
 
 ---
-
-## 🎨 Estética y facilidad de uso — en curso
-
-Encargo abierto de Bryan: que **un cliente que nunca ha visto esto sepa pedir a
-la primera**, y que la PDA y el resto de pantallas sean fáciles e intuitivas.
-
-### Cómo se hace esto (leer antes de tocar)
-
-1. **Mirando la pantalla, y en móvil** (`resize_window` → `mobile`, 375 px).
-   Es donde se usa. Para el KDS, `tablet`: una cocina no usa un teléfono.
-2. **Comprueba qué bundle corre.** El service worker sirve el anterior y ya me
-   hizo dar por bueno un arreglo que no estaba cargado: `curl` a la página y
-   comparar con el `<script src>` de la pestaña.
-3. **Nada de diagnosticar leyendo `innerText`.** Así me inventé tres fallos que
-   no existían (la hoja de unirse sí es un panel fijo, la carta sí carga, la PDA
-   sí ocupa el ancho). Si no hay panel de navegador, **pídelo**.
-4. Los tests: `npm test 2>&1 | grep -E "Test Files|Tests |FAIL"`. Con `tail -3`
-   se oculta el resultado y ya subí una vez con CI en rojo.
-
-### Arreglado (todo verificado en pantalla)
-
-- La carta ya no dice «No hay nada» al escanear el QR (bandera `hidratado`).
-- **Frase de bienvenida** que explica cómo funciona, solo hasta que se une.
-- El aviso de «versión nueva» ya no tapa el nombre del bar, y no se le enseña
-  al cliente: es del personal.
-- Fuera el punto suelto tras el precio: era un alérgeno nulo, en 18 de 58
-  productos (venía de `array[null]` en el script de siembra).
-- Tocar una categoría mientras carga ya no la deja vacía.
-- Tras unirse y pedir, las pestañas aparecen al instante (antes hasta 4 s sin
-  poder llegar a «Mi pedido» ni a «Pagar»).
-- La banda de demostración ya cabe en una línea en móvil.
-- PDA: «1 comensal» (concordancia) y arranca en **Mesas**, no en Avisos.
-- Barra: «4 bebidas» en vez de «4 platos».
-- Reservas: «Llámanos» ahora marca el teléfono de un toque, si está puesto.
-- **Pagar (cliente)**: tu tarjeta va primero y con borde de acento —llegando
-  el segundo, el primer botón grande de la pantalla era «pagar lo de otro»—;
-  cada botón dice cuánto cobra; la propina, en euros además de en porcentaje;
-  «Pagar toda la cuenta» solo si queda más de uno por pagar, y nunca a la vez
-  que estás pagando tu parte; «Total mesa» solo cuando dice algo distinto de
-  «Pendiente de pago»; y quien se une sin pedir ya no ve «Pagar mi parte ·
-  0.00 €», que abría la pasarela por cero euros.
-- **Mostrador**: «Cerrar mesa sin cobrar» ahora confirma, en rojo y diciendo
-  cuánto se queda sin cobrar. Se iba de un toque con la cuenta encima.
-- **Admin → Carta**: el precio va debajo del nombre y con el formato al lado
-  («Viena 2.50 € · Pitufo 1.50 €»). Eran dos números sueltos, y el formato
-  solo estaba en un `title` que en una tablet no se ve nunca.
-- **Admin → Tickets**: los días salían desordenados (4/8, 13/8, 12/8) porque
-  se agrupaba por «4/8/2026» y se ordenaba **como texto**. Y el aviso fiscal
-  decía «4 tickets sin registrar» sin decir cuáles; ahora los lista.
-- **Admin → Personal**: el hueco del PIN sale vacío siempre —en v2 el PIN se
-  guarda cifrado y no vuelve al navegador— y no lo decía; parecía perdido.
-- **Admin → Local**: avisa de qué dato falta y dónde se va a ver.
-- **Admin → Mesas**: doce botones rojos «Borrar mesa» a ancho completo
-  mandaban más que las mesas; ahora borrar es discreto, como en Carta.
-
-### Revisado y BIEN — no tocar
-
-Carta del cliente, hoja del nombre, hoja de personalización, «Mi pedido» y su
-confirmación antes de enviar, «Enviar pedido» (destaca de sobra), rejilla de
-mesas de la PDA, cola de cocina y barra, y el asistente de reservas.
-
-### Revisado y BIEN — no tocar (Admin)
-
-Reservas, Ajustes, Informes, QR Codes y Dispositivos. Fichajes está correcto,
-solo que su «Sin fichajes este mes» es texto pelado mientras Reservas tiene
-un vacío con icono; si se retoca, que sea por consistencia, no por fallo.
-
-### Pendiente
-
-1. **KDS y Barra en tableta** — dados por buenos, pero no vueltos a mirar
-   desde los últimos cambios.
-2. **Mostrador, el resto**: la rejilla de mesas pierde el cuadre al abrir el
-   panel lateral (queda una mesa huérfana por zona). Cosmético, pero se ve.
-3. **Admin → Tickets** marca cuáles faltan por registrar en el aviso, pero
-   **no en la lista**: el ticket de la lista no lleva su estado fiscal porque
-   la pantalla lo saca del store y el estado vive en la RPC. Si molesta, hay
-   que juntar las dos fuentes.
-4. **Dato**, no código: en Ajustes → Tipo de pan hay un «Con Gluten» junto a
-   «Sin gluten +1.20 €». Suena a resto de la carta de ejemplo.
-
-### Cómo se llegó a las pantallas de personal (ahorra media hora)
-
-`npm run dev` **sin perfil** enseña la pantalla vieja de email+contraseña, no
-el código de 6 dígitos: el flujo sin contraseñas depende del perfil del local.
-Para revisar personal hay que **compilar con perfil y servir el bundle**:
-
-```bash
-LOCAL=marchando VITE_BASE=/ VITE_PAGOS_ONLINE=1 npm run build
-cd dist && python -m http.server 5186
-```
-
-Y ojo con `LOCAL` en Windows: `set LOCAL=marchando && …` mete el espacio
-dentro de la variable y vite muere con «No existe el local "marchando "».
-Va `set "LOCAL=marchando"&& …`.
-
 ## Cómo se conecta un aparato (no hay contraseñas)
 
 Nadie se registra y no hay credenciales que custodiar. El aparato pide permiso
@@ -481,31 +287,29 @@ npm run locales build demo     # → dist-demo-v1/
 Al abrir, **Ctrl+Shift+R**: es una PWA y el service worker sirve la versión
 vieja hasta que avisa (cada 30 min).
 
-## Cómo probar sin ensuciar nada
 
-`npm run dev -- --mode pruebas` levanta la app **sin backend**: todo a
-localStorage, sin tocar la demo compartida ni el bar.
-Para ver un local concreto: `LOCAL=marchando npm run dev`.
+## El modelo: un bar, una instalación
 
-## Si algo no conecta
+Cada bar tendrá **su proyecto Supabase, su despliegue, su dominio y su marca**.
+No es un SaaS compartido. Lo que evita acabar con ocho copias divergentes:
+**un repo con el producto + un perfil por bar** (`locales/<slug>/perfil.json`),
+con módulos opcionales por local. Nunca copiar el repo.
 
-⚠️ **El plan gratuito de Supabase pausa el proyecto tras ~1 semana sin
-actividad.** Síntoma: el subdominio no resuelve y todo da «Failed to fetch».
-No es el código: entra al dashboard y pulsa **Resume project**. Ya pasó (18
-días parados). Por eso **Supabase Pro es requisito de producción**.
+Coste a tener en cuenta: **Supabase Pro ~23 €/mes por bar**. Con 10 bares son
+~230 €/mes; cobrando 25-40 €/bar el margen baja del ~95% al ~30-40%. Sigue
+saliendo, pero conviene fijar el precio sabiéndolo.
 
----
 
 ## Qué está hecho y verificado de verdad
 
-- **Backend multi-tenant**: 16 migraciones aplicadas, RLS por local, RPC
-  transaccionales. Las 10-13 se aplicaron el 11/08 contra la BBDD real; las
-  14-16, el 12/08.
+- **Backend multi-tenant**: 34 migraciones aplicadas (con registro: `npm run
+  migraciones -- --estado` dice en cuál va cada bar), RLS en las 17 tablas, RPC
+  transaccionales.
 - **⚠️ Los `grant` no bastan: hay que MIRAR los permisos en la BBDD.** Supabase
   tiene `alter default privileges` que conceden EXECUTE a `anon` y
-  `authenticated` **en cuanto se crea una función**. Ha mordido dos veces:
-  `_debe_por_comensal` (fuga: lo que debe cada comensal de cualquier mesa) y
-  `registrar_pago_online` (grave: cerrar la cuenta **sin pagar**). Su migración
+  `authenticated` **en cuanto se crea una función**. Ha mordido cuatro veces:
+  `_debe_por_comensal` (fuga), `registrar_pago_online` (grave: cerrar la cuenta
+  **sin pagar**), `marchar_siguiente_idem` y `_congelar_iva_linea`. Su migración
   ya decía «no se concede a anon» y aun así estaba concedida. Al crear una
   función de servidor, `revoke … from public, anon, authenticated` y
   comprobarlo con `has_function_privilege`.
@@ -535,51 +339,20 @@ días parados). Por eso **Supabase Pro es requisito de producción**.
 - **Impresión**: dos impresoras por destino, automática y sin navegador.
 - **Cola offline**, menú del día desde la PDA, grupos de mesas, arqueo con
   propinas en efectivo, carta e interfaz **en inglés** (incluidos los platos).
-- **473 tests**, lint limpio, CI y deploy en verde.
+- **Numeración fiscal sin carrera**: contador por local en su propia tabla. Con
+  el trigger viejo, 12 cobros simultáneos hacían fallar 2 con `duplicate key`.
+- **IVA por producto**, congelado en la línea al pedir, con desglose por tipo en
+  pantalla, papel, recibo del cliente y AEAT.
+- **Devoluciones (rectificativas R5)** por diferencias, enteras o parciales,
+  probadas contra la AEAT de pruebas — y el dinero **vuelve de verdad a la
+  tarjeta** por Stripe, con reintento si falla.
+- **Informes** calculados en el servidor por rango de fechas (Hoy / Ayer /
+  7 días / Este mes / Mes pasado), con CSV y las devoluciones restando.
+- **Monitorización**: el bar deja constancia de lo que se rompe en su propia
+  base y `npm run salud` lo lee. Encontró sola dos fallos de producción.
+- **652 tests JS** (incluidas seis pantallas) **+ 37 pruebas de SQL** contra la
+  base real, lint limpio, CI y deploy en verde.
 
-## Pendiente — y de quién depende
-
-### De Bryan
-1. **Rellenar los datos del local** en Admin → Local: **faltan el teléfono y
-   la dirección** (el CIF ya está puesto: B75777847). La pantalla ya avisa. Salen en el ticket, en el recibo del cliente y en la
-   pantalla de reservas («Llámanos» sin número al que llamar). Un hostelero que
-   ve un ticket sin dirección piensa que el software no lo contempla. No lo
-   relleno yo: un número inventado en una página pública acaba haciendo que
-   alguien llame a un desconocido.
-2. **Supabase Pro (~23 €/mes)**. El plan gratuito **pausa el proyecto tras ~1
-   semana sin actividad** y todo da «Failed to fetch». Ya pasó, 18 días parado.
-   Enseñar la demo a un bar y que no cargue es el peor momento para descubrirlo.
-3. **Comprobar el papel** (corte, acentos, QR) — aplazado a propósito.
-4. **NIF real en Verifacti** y pasar a producción: solo cambia el secreto
-   `VERIFACTI_API_KEY` (`vf_test_…` → `vf_prod_…`), la URL es la misma.
-5. **Probar el alta de un bar nuevo** de punta a punta: aprovisionar el
-   proyecto, autorizar el primer dispositivo desde el terminal y entrar. El
-   fallo 39 dejaba el local **sin mesas**; está arreglado y con tests, pero
-   conviene verlo una vez entero.
-
-### Bloqueos antes de facturar de verdad
-1. **Facturas rectificativas (R1-R5)**: si un ticket registrado en la AEAT
-   necesita devolución, hoy no hay salida. En un bar pasa: se cobra de más y el
-   cliente reclama al día siguiente.
-2. **Declaración responsable del fabricante**: obligación de Bryan desde el
-   29-7-2025 por comercializar software de facturación. No es código.
-
-### De código (sin depender de nadie)
-1. **Dominio propio para cada bar**.
-2. Backups (vienen con Supabase Pro).
-3. **Actualizar N instancias** de una vez: con un bar por instalación, sin esto
-   cada mejora hay que desplegarla a mano en cada uno.
-
-## El modelo: un bar, una instalación
-
-Cada bar tendrá **su proyecto Supabase, su despliegue, su dominio y su marca**.
-No es un SaaS compartido. Lo que evita acabar con ocho copias divergentes:
-**un repo con el producto + un perfil por bar** (`locales/<slug>/perfil.json`),
-con módulos opcionales por local. Nunca copiar el repo.
-
-Coste a tener en cuenta: **Supabase Pro ~23 €/mes por bar**. Con 10 bares son
-~230 €/mes; cobrando 25-40 €/bar el margen baja del ~95% al ~30-40%. Sigue
-saliendo, pero conviene fijar el precio sabiéndolo.
 
 ## Detalles que ahorran tiempo
 
