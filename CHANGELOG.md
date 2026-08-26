@@ -5,6 +5,15 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.99.1] - 2026-08-26
+
+### Arreglado
+- **Un ticket cobrado en mostrador se reimprimía como «PENDIENTE DE PAGO»**: `cobrar_mesa` cerraba la mesa sin marcar a los comensales, así que el detalle guardado decía `pagado: false` para todos aunque el dinero hubiera entrado (`pagos` y el arqueo sí cuadraban). Al reimprimir desde Admin → Tickets, a un cliente que **ya había pagado** se le daba un papel diciendo que no. Nueva migración `20260826T35`: el comensal se marca antes de cerrar, respetando a quien ya hubiera pagado su parte y deduciendo el método del desglose (uno solo → ese; varios → `mixto`). Los tickets **ya emitidos no se reescriben** —son documentos fiscales—: el ticket los lee por su desglose de cobro, que es el apunte que usa el arqueo.
+- **La banda de demostración cortaba la cabecera, y las pestañas desaparecían detrás**: banda, cabecera y tira de pestañas eran las tres `position: sticky; top: 0`, y tres elementos con el mismo `top` no se apilan, se superponen. Ahora cada una se pega debajo de la anterior midiendo el alto real de la de arriba (los altos cambian: la banda se acorta en móvil y la cabecera reparte sus botones en dos líneas). Afecta a Admin y a Mostrador.
+- **Las fechas de Informes salían con mayúscula en cada palabra**: «Miércoles, 26 De Agosto», «Últimos 7 Días», «Tickets De Agosto». Era el `text-transform: capitalize` de CSS, que en español no vale: las preposiciones y los meses van en minúscula. Sustituido por `mayusculaInicial()`.
+- **La rejilla de mesas de Mostrador perdía el cuadre al abrir el panel lateral**: el panel mide 340 px fijos y **encoge** la rejilla (es un hermano flex, no una hoja superpuesta), que pasaba de 5 columnas a 3 y dejaba una mesa suelta en su propia fila en cada zona. Con el ancho mínimo de tarjeta en 132 px caben 4 columnas con el panel abierto y 6 sin él: fila entera en ambos casos.
+- **La portada decía «v0.44.0 · Demo en desarrollo»**, un literal escrito a mano que llevaba 55 releases sin tocarse en la primera pantalla que ve un cliente. Ahora sale de `package.json` (`__VERSION__`, inyectado por Vite) y la coletilla de demostración solo aparece si el local lo es.
+
 ## [0.28.1] - 2026-07-09
 
 ### Arreglado

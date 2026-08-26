@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { rangoDe, nombreDe, PERIODOS } from './periodos'
+import { rangoDe, nombreDe, PERIODOS, mayusculaInicial } from './periodos'
 
 // ────────────────────────────────────────────────────────────────────────────
 // Los periodos de Informes.
@@ -89,5 +89,28 @@ describe('nombres', () => {
 
   it('«mes pasado» dice el mes, no «mes pasado»', () => {
     expect(nombreDe('mesPasado', MARTES)).toMatch(/julio/)
+  })
+})
+
+// ────────────────────────────────────────────────────────────────────────────
+// El título de Informes lleva mayúscula inicial. Se hacía con el
+// `text-transform: capitalize` de CSS, que en español la pone en CADA palabra:
+// salía «Miércoles, 26 De Agosto» y «Últimos 7 Días».
+// ────────────────────────────────────────────────────────────────────────────
+describe('mayusculaInicial', () => {
+  it('sube solo la primera letra y deja el resto', () => {
+    expect(mayusculaInicial('miércoles, 26 de agosto')).toBe('Miércoles, 26 de agosto')
+    expect(mayusculaInicial('últimos 7 días')).toBe('Últimos 7 días')
+    expect(mayusculaInicial('agosto de 2026')).toBe('Agosto de 2026')
+  })
+
+  it('no se rompe con vacío ni con nada', () => {
+    expect(mayusculaInicial('')).toBe('')
+    expect(mayusculaInicial(null)).toBe('')
+    expect(mayusculaInicial(undefined)).toBe('')
+  })
+
+  it('deja en paz lo que ya venía en mayúscula', () => {
+    expect(mayusculaInicial('Tickets de agosto')).toBe('Tickets de agosto')
   })
 })

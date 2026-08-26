@@ -19,7 +19,8 @@ export default defineConfig([
     // sin el plugin de React, no-unused-vars no ve que <Componente /> lo usa
     plugins: { react },
     languageOptions: {
-      globals: globals.browser,
+      // __VERSION__ lo inyecta Vite (define) desde package.json
+      globals: { ...globals.browser, __VERSION__: 'readonly' },
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
     rules: {
