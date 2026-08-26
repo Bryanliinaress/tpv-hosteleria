@@ -137,6 +137,31 @@ sin cuenta»**: los que eran partes de una cuenta cerrada dejan de contar.
 efectivo cuando el original era online. Es dato viejo de antes del arreglo; se
 deja porque un documento fiscal emitido no se reescribe.
 
+### ⚠️ El reintento fiscal estaba roto — y eso deja tickets sin registrar PARA SIEMPRE
+
+Apareció tirando del hilo de la devolución con tarjeta. «Reintentar envío» de
+Admin → Tickets respondía **401 «hace falta sesión»** aunque la sesión fuera
+perfecta: la función creaba un SEGUNDO cliente de Supabase para preguntar de
+qué local era el llamante, y eso revienta el runtime actual
+(«Deno.core.runMicrotasks() is not supported»). Ya arreglado —el local sale del
+propio token—, y ahora procesa.
+
+**Lo grave es la consecuencia.** Al reintentar, Verifacti responde:
+
+> El campo `fecha_expedicion` debe ser la fecha actual.
+
+Es decir: **un ticket solo se puede registrar el día que se emitió.** Los que
+fallaron y no se reintentaron ese mismo día ya no entran nunca. En la demo hay
+cuatro así (nº 2, 4, 5 y 6, del 12 y 13 de agosto) que llevaban pendientes
+justamente porque el reintento no funcionaba.
+
+**Qué hay que aclarar con Verifacti antes de producción**: la norma permite
+registrar fuera de plazo (con sus límites), así que esto puede ser una
+restricción del entorno de pruebas o de su API. Importa mucho: define qué pasa
+si la AEAT o Verifacti no responden durante un día entero. Mientras no esté
+claro, **`npm run salud` es el aviso** — si sale «tickets sin registrar», hay
+que atenderlo el mismo día.
+
 ### Informes — rehechos en el servidor (24/08)
 
 Ya tenían producto, camarero y hora, pero se calculaban **en el navegador**
