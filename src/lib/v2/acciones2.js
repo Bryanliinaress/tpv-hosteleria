@@ -392,6 +392,10 @@ export function accionesV2b() {
           const res = await devolverEnStripe(r.id)
           reembolso = res.ok ? 'hecho' : 'error'
           if (!res.ok) {
+            // El reembolso ha fallado, pero la rectificativa EXISTE y es un
+            // documento fiscal: se manda a registrar igual. Que el dinero no
+            // haya vuelto todavía no la borra.
+            if (r?.id) registrarTicket(r.id).then(() => cargarHistorial())
             await cargarHistorial()
             return { ok: true, numero: r?.numero, total: Number(r?.total), reembolso, avisoReembolso: res.error }
           }
@@ -415,6 +419,11 @@ export function accionesV2b() {
 
     reintentarReembolso: async (rectificativaId) => {
       const res = await devolverEnStripe(rectificativaId)
+      // Si el primer intento falló en Stripe, la rectificativa se quedó SIN
+      // registrar en Hacienda (esa rama devolvía antes de llegar al registro).
+      // Al reintentar hay que cerrarlo también, o queda un documento fiscal que
+      // no consta en ningún sitio.
+      if (res.ok) await registrarTicket(rectificativaId).catch(() => {})
       await cargarHistorial()
       return res
     },
