@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.99.0 · 655 tests JS + 37 pruebas de SQL en verde · CI y deploy en
+**Estado: v0.99.1 · 662 tests JS + 37 pruebas de SQL en verde · CI y deploy en
 verde · repo limpio.** Última sesión: 2026-08-26.
 
 Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los 71 fallos de la auditoría:
@@ -22,19 +22,25 @@ que se haya roto en las pantallas. Si el proyecto no responde, casi seguro es
 que **Supabase lo pausó por inactividad** (plan gratuito, ~1 semana): se
 arregla entrando al panel y pulsando *Resume project*.
 
-### 2. Lo único que llevo siete releases sin poder hacer
+### 2. El repaso visual: hecho en la v0.99.1, y lo que quedó fuera
 
-**Repasar las pantallas nuevas MIRÁNDOLAS**, en móvil (375 px) y el KDS en
-tableta.
+**Ya están vistas renderizadas** (móvil 375 px y tableta): portada, Reservar,
+Onboarding, Informes, Tickets, el selector de IVA del producto, el diálogo de
+Devolver (Todo y Una parte), el «devuelto X · quedan Y», el ticket con su
+desglose de IVA y QR, las **dos** pantallas de error, Mostrador, KDS Cocina y
+KDS Barra. Salieron cinco fallos, los cinco arreglados y desplegados.
 
-El panel del navegador ha estado cerrado sesión tras sesión, así que he
-verificado por DOM y por números, pero **no he visto renderizada** ninguna de
-estas: Informes, el diálogo de Devolver, el selector de IVA del producto, la
-marca de «devuelto X · quedan Y» en Tickets, la pantalla de error, ni el
-desglose por tipos en el ticket.
+**Lo que sigue sin verse, y por qué:**
 
-Si el panel está disponible, eso es lo primero. **Si no lo está, pídelo antes
-de tocar estética** (el porqué, más abajo).
+1. **Los KDS con comandas dentro.** Están a cero y llenarlos exige mandar
+   pedidos: eso escribe en la demo compartida y **saca papel de verdad** por las
+   dos térmicas. Hay que parar la tarea de Windows antes, devolverla después y
+   limpiar los pedidos. Un KDS vacío no prueba lo que hay que probar: el cuadre
+   de las tarjetas de comanda.
+2. **La PDA** y **la carta del cliente por QR**.
+3. **La interacción táctil de todo.** En la sesión del repaso los clics y el
+   scroll con ratón del panel se agotaban a los 30 s y hubo que navegar por JS,
+   así que lo visto está mirado pero **no tocado**.
 
 ---
 
@@ -75,11 +81,8 @@ dice «tickets sin registrar», hay que atenderlo **ese mismo día**.
 
 ### De pantalla
 
-1. **El repaso visual de todo lo nuevo** (arriba).
-2. **KDS y Barra en tableta** — hay tests de la cola, pero nadie los ha visto
-   renderizados desde los últimos cambios.
-3. **Mostrador**: la rejilla de mesas pierde el cuadre al abrir el panel
-   lateral (queda una mesa huérfana por zona). Cosmético, pero se ve.
+1. **Los KDS con carga, la PDA y la carta del QR** (arriba, punto 2).
+2. **Probar tocando**, no solo mirando (arriba, punto 3).
 
 ### De código
 
@@ -108,7 +111,7 @@ dice «tickets sin registrar», hay que atenderlo **ese mismo día**.
 ## Comandos
 
 ```bash
-npm test                           # 655 tests, pantallas incluidas
+npm test                           # 662 tests, pantallas incluidas
 npm run test:sql                   # 37 pruebas del dinero, contra la base real
 npm run lint
 npm run permisos                   # ¿se ha abierto algo sin querer?
@@ -162,6 +165,15 @@ cd dist && python -m http.server 5186
 Ojo con `LOCAL` en Windows: `set LOCAL=marchando && …` mete el espacio dentro de
 la variable y vite muere con «No existe el local "marchando "». Va
 `set "LOCAL=marchando"&& …`.
+
+⚠️ **Y ojo con `VITE_BASE=/` en Git Bash**: convierte la barra en una ruta de
+Windows y la build sale apuntando a `/Program Files/Git/assets/…`. La página
+queda **en negro** y solo se ve en la consola, como cuatro 404. Delante va
+`MSYS_NO_PATHCONV=1`:
+
+```bash
+MSYS_NO_PATHCONV=1 LOCAL=marchando VITE_BASE=/ VITE_PAGOS_ONLINE=1 npm run build
+```
 
 ### Probar sin ensuciar nada
 
@@ -229,6 +241,13 @@ node scripts/autorizar-dispositivo.mjs --revocar <id>
 ```
 
 Es también la salida de emergencia si se revocan todos y nadie puede entrar.
+
+**Sin confirmar, visto de pasada en el repaso de la v0.99.1**: tras revocar el
+dispositivo de prueba, la pestaña que ya estaba abierta **seguía entrando en
+Admin** y pintando los datos. Lo más probable es que sea el estado que quedó en
+`localStorage` —la pantalla se protege con la sesión local, y el servidor
+rechazaría cualquier escritura por RLS—, o sea que sería cosmético y no una
+fuga. Pero no está comprobado: merece un rato.
 
 Cada aparato tiene **su propia cuenta** (la crea el servidor al autorizarlo):
 por eso revocar uno no echa a los demás, y al revocarlo se borra su cuenta —si
