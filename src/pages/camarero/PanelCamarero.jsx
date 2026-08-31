@@ -9,6 +9,7 @@ import BotonSalir from '../../components/BotonSalir'
 import PedirPda from '../pda/PedirPda'
 import CobroMesa from '../pda/CobroMesa'
 import { totalDe, totalDeMesa, pendienteDeMesa } from '../../lib/dinero'
+import { resumenSala } from '../../lib/sala'
 
 const ESTADO = {
   libre: { label: 'Libre', color: '#10b981', bg: 'var(--tint-success-bg)' },
@@ -107,7 +108,7 @@ export default function PanelCamarero() {
       <div style={{ position: 'sticky', top: 'var(--alto-aviso, 0px)', zIndex: 20, background: 'linear-gradient(180deg, var(--color-surface), var(--color-surface-2))', borderBottom: '1px solid var(--color-border)', boxShadow: '0 6px 18px -10px rgba(0,0,0,0.6)', padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.6rem' }}>
         <div>
           <h1 style={{ fontWeight: 800, fontSize: '1.25rem' }}>🧾 Mostrador · TPV</h1>
-          <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>{mesas.filter(m => m.estado !== 'libre').length} ocupadas de {mesas.length} · {empleado?.nombre || ''}</p>
+          <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>{resumenSala(mesas)} · {empleado?.nombre || ''}</p>
         </div>
         <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
           {totalCocina > 0 && <div style={{ background: 'var(--tint-success-bg)', color: 'var(--tint-success-fg)', borderRadius: '0.5rem', padding: '0.375rem 0.75rem', fontSize: '0.8rem', fontWeight: 700 }}>🍳 {totalCocina} listo(s)</div>}
@@ -162,13 +163,12 @@ export default function PanelCamarero() {
 
           {[...new Set(mesas.map(m => m.zona || 'Sala'))].map(zona => {
             const ms = mesas.filter(m => (m.zona || 'Sala') === zona)
-            const ocup = ms.filter(m => m.estado !== 'libre').length
             return (
               <div key={zona} style={{ marginBottom: '1.9rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.85rem' }}>
                   <span style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-faint)' }}>📍 {zona}</span>
                   <span style={{ flex: 1, height: '1px', background: 'var(--color-border-soft)' }} />
-                  <span style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{ocup}/{ms.length} ocupadas</span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{resumenSala(ms, { conTotal: false })}</span>
                 </div>
                 {/* 132px y no 155: el panel de mesa mide 340px fijos y ENCOGE
                     esta rejilla (es un hermano flex, no una hoja superpuesta).

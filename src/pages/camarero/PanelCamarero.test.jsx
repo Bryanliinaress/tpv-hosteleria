@@ -79,16 +79,27 @@ describe('el mapa de la sala', () => {
 
   it('cada zona dice cuántas tiene ocupadas', () => {
     render(<Mostrador />)
-    // Terraza: la 2 (ocupada) y la 3 (pide cuenta) de 3 mesas.
-    // Interior: la reservada cuenta como no libre, que es lo que quiere ver
-    // quien busca dónde sentar a alguien.
+    // Terraza: la 2 (ocupada) y la 3 (pide cuenta) de 3 mesas
     expect(texto()).toContain('2/3 ocupadas')
-    expect(texto()).toContain('1/1 ocupadas')
   })
 
-  it('la cabecera cuenta las ocupadas del local entero', () => {
+  // Una reservada no está ocupada: no hay nadie sentado. Contarlas juntas hacía
+  // parecer el bar más lleno de lo que estaba y escondía cuántas reservas había.
+  it('las reservadas se cuentan APARTE, no como ocupadas', () => {
     render(<Mostrador />)
-    expect(texto()).toContain('3 ocupadas de 4')   // incluye la reservada
+    expect(texto()).toContain('0/1 ocupadas · 1 reservada')   // Interior
+  })
+
+  it('la cabecera cuenta las ocupadas del local, con las reservas aparte', () => {
+    render(<Mostrador />)
+    expect(texto()).toContain('2 ocupadas de 4 · 1 reservada')
+  })
+
+  it('sin reservas no se enseña un «0 reservadas» que es ruido', () => {
+    estado.mesas = estado.mesas.filter(m => m.estado !== 'reservada')
+    render(<Mostrador />)
+    expect(texto()).toContain('2 ocupadas de 3')
+    expect(texto()).not.toContain('reservada')
   })
 
   it('una mesa libre invita a abrirla', () => {

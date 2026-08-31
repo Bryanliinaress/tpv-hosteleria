@@ -5,6 +5,12 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.102.0] - 2026-08-31
+
+### Cambiado
+- **Una mesa reservada ya no cuenta como ocupada.** Mostrador y la PDA decían «3 ocupadas de 4» metiendo dentro las reservadas, y la palabra en pantalla era literalmente «ocupadas». Engañaba en las dos direcciones: el bar parecía más lleno de lo que estaba, y no se veía cuántas reservas había encima. Ahora se lee **«2 ocupadas de 4 · 1 reservada»** (y en el encabezado de cada zona, «0/4 ocupadas · 1 reservada»); sin reservas no se añade nada, que sería ruido. El globo de «Mesas» de la PDA tampoco las cuenta: una reservada no necesita nada todavía.
+- La regla vive en **`src/lib/sala.js`** (`estaOcupada`, `contarSala`, `resumenSala`) y no en cada pantalla: las dos enseñan el mismo número con las mismas palabras, y escrito dos veces una de las dos acaba diciendo otra cosa. Los estados se cuentan **por su nombre y no por descarte**, para que un estado nuevo no se cuele silenciosamente en «libres» y alguien siente ahí a un cliente.
+
 ## [0.101.0] - 2026-08-31
 
 ### Añadido
