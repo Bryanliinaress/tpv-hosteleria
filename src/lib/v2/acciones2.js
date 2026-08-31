@@ -5,7 +5,7 @@ import { reservas as rpcReservas, personal } from '../repo'
 import { toast } from '../../store/useUI'
 import { sembrarCartaEjemplo, vaciarCartaV2 } from './plantillaCarta'
 import { cabezaDe, miembrosDe } from './grupos'
-import { revisarCorreccionFichaje } from '../fichajes'
+import { revisarCorreccionFichaje, revisarNuevoFichaje } from '../fichajes'
 import { revisarNuevoEmpleado, revisarCambioEmpleado, revisarBajaEmpleado } from '../personal'
 import { registrarTicket } from '../fiscal'
 import { getLocalId, cargarTodo, cargarSala, cargarComandas, cargarReservas, cargarCarta, cargarLocal, cargarHistorial, cargarFichajes, cargarCierres } from './estado'
@@ -472,6 +472,25 @@ export function accionesV2b() {
       return { ok: true }
     },
     borrarFichaje: async (id) => { try { await t('fichajes').delete().eq('id', id); cargarFichajes() } catch (e) { err(e) } },
+
+    // Alta manual de una jornada que nadie fichó. Como `editarFichaje`,
+    // responde en el acto y escribe por detrás: la pantalla lee `r.ok` ya.
+    crearFichaje: ({ empleadoId, entrada, salida } = {}) => {
+      const r = revisarNuevoFichaje({ empleadoId, entrada, salida }, st().empleados)
+      if (!r.ok) return r
+      ;(async () => {
+        try {
+          await t('fichajes').insert({
+            local_id: getLocalId(), empleado_id: empleadoId,
+            entrada: r.entrada, salida: r.salida,
+            // queda auditado: esto no lo marcó el trabajador
+            editado_por: 'admin',
+          })
+          cargarFichajes()
+        } catch (e) { err(e) }
+      })()
+      return { ok: true }
+    },
 
     // ── Caja (arqueo Z sobre tickets del servidor) ──────────────
     cerrarCaja: async (contado) => {

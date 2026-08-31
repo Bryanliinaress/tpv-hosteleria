@@ -12,6 +12,7 @@ import EstadoFiscal from '../../components/EstadoFiscal'
 import { productosVisibles } from '../../lib/carta'
 import { perfil, urlPublica, urlDeMesa } from '../../lib/perfil'
 import { esDelMes, horasEntre } from '../../lib/fechas'
+import { conNombre } from '../../lib/fichajes'
 import ConfigImpresora from '../../components/ConfigImpresora'
 import EditorMenu from '../../components/EditorMenu'
 import Informes from './Informes'
@@ -22,7 +23,7 @@ import { desgloseIVA, totalDe, cent, pendienteDeDevolver } from '../../lib/diner
 const emptyForm = { nombre: '', nombreEn: '', categoria: '', descripcion: '', descripcionEn: '', alergenos: [], imagen: '', conFormatos: false, precios: {}, precio: '', menu: null, ivaPct: '' }
 
 export default function PanelAdmin() {
-  const { carta, mesas, historial, cierres, anulaciones, pagosSinCuenta, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, addCategoria, removeCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, editarFichaje, borrarFichaje, pedirFichajesDe, reintentarReembolso } = useStore()
+  const { carta, mesas, historial, cierres, anulaciones, pagosSinCuenta, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, addCategoria, removeCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, crearFichaje, editarFichaje, borrarFichaje, pedirFichajesDe, reintentarReembolso } = useStore()
   const hoyStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
   const reservasHoy = reservas.filter(r => r.fecha === hoyStr && r.estado === 'confirmada').length
   const [tab, setTab] = useState('carta')
@@ -667,7 +668,7 @@ export default function PanelAdmin() {
 
         {/* Tab Fichajes (registro de jornada) */}
         {tab === 'fichajes' && (
-          <FichajesTab fichajes={fichajes} empleados={empleados} editarFichaje={editarFichaje} borrarFichaje={borrarFichaje} local={local} pedirFichajesDe={pedirFichajesDe} />
+          <FichajesTab fichajes={fichajes} empleados={empleados} crearFichaje={crearFichaje} editarFichaje={editarFichaje} borrarFichaje={borrarFichaje} local={local} pedirFichajesDe={pedirFichajesDe} />
         )}
 
         {/* Tab Personal (empleados y accesos) */}
@@ -859,9 +860,10 @@ function CampoGuardado({ valor, onGuardar, ...props }) {
   )
 }
 
-function FichajesTab({ fichajes, editarFichaje, borrarFichaje, local, pedirFichajesDe }) {
+function FichajesTab({ fichajes, empleados = [], crearFichaje, editarFichaje, borrarFichaje, local, pedirFichajesDe }) {
   const [mes, setMes] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` })
   const [edit, setEdit] = useState(null) // { id, entrada, salida } en formato datetime-local
+  const [alta, setAlta] = useState(null) // { empleadoId, entrada, salida } al añadir una jornada
 
   // El mes que se mira se pide al servidor: la jornada se conserva cuatro años
   // y bajarla entera para enseñar un mes es lo que hacía antes.
@@ -870,7 +872,10 @@ function FichajesTab({ fichajes, editarFichaje, borrarFichaje, local, pedirFicha
   // ojo: comparar en LOCAL. Un turno que entra a la 01:00 del día 1 se guarda
   // como las 23:00 del último día del mes anterior en UTC, y caía en la nómina
   // del mes que no era.
-  const delMes = fichajes.filter(f => esDelMes(f.entrada, mes))
+  // En v2 el fichaje solo trae `empleadoId`: sin resolverlo contra la plantilla
+  // la lista decía «👤 undefined» y el resumen sumaba las horas de TODOS bajo
+  // esa misma clave, que es justo el número que se usa para la nómina.
+  const delMes = conNombre(fichajes.filter(f => esDelMes(f.entrada, mes)), empleados)
     .slice().sort((a, b) => new Date(b.entrada) - new Date(a.entrada))
 
   // Horas por empleado
@@ -883,13 +888,24 @@ function FichajesTab({ fichajes, editarFichaje, borrarFichaje, local, pedirFicha
     if (!r.ok) return toast(r.error, 'error')
     toast('Fichaje corregido', 'success'); setEdit(null)
   }
+  const anadir = () => {
+    const r = crearFichaje({
+      empleadoId: alta.empleadoId,
+      entrada: alta.entrada ? localAIso(alta.entrada) : null,
+      salida: alta.salida ? localAIso(alta.salida) : null,
+    })
+    if (!r.ok) return toast(r.error, 'error')
+    toast('Jornada añadida', 'success'); setAlta(null)
+  }
   const borrar = async (f) => {
     if (await confirmar({ titulo: 'Borrar fichaje', mensaje: `¿Borrar el fichaje de ${f.nombre} del ${new Date(f.entrada).toLocaleDateString('es-ES')}?`, peligro: true, confirmar: 'Borrar' })) {
       borrarFichaje(f.id); toast('Fichaje borrado', 'success')
     }
   }
   const exportarCSV = () => {
-    const filas = [['Empleado', 'Fecha', 'Entrada', 'Salida', 'Horas']]
+    // «Registro» distingue lo fichado por el trabajador de lo puesto a mano: es
+    // lo primero que mira quien audita una jornada.
+    const filas = [['Empleado', 'Fecha', 'Entrada', 'Salida', 'Horas', 'Registro']]
     delMes.slice().reverse().forEach(f => {
       const e = new Date(f.entrada)
       filas.push([
@@ -898,6 +914,7 @@ function FichajesTab({ fichajes, editarFichaje, borrarFichaje, local, pedirFicha
         e.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
         f.salida ? new Date(f.salida).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '(abierto)',
         f.salida ? horasEntre(f.entrada, f.salida).toFixed(2) : '',
+        f.editadoPor ? `a mano (${f.editadoPor})` : 'fichado',
       ])
     })
     const csv = filas.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\n')
@@ -915,7 +932,41 @@ function FichajesTab({ fichajes, editarFichaje, borrarFichaje, local, pedirFicha
         <button onClick={exportarCSV} disabled={delMes.length === 0} style={{ ...addBtn, marginLeft: 'auto', opacity: delMes.length ? 1 : 0.5 }}>⬇ Exportar CSV</button>
       </div>
 
-      <p style={{ fontSize: '0.75rem', color: 'var(--color-faint)', marginBottom: '1rem' }}>Registro de jornada obligatorio (RD-ley 8/2019): conservar 4 años. El personal ficha desde su PDA (pestaña Turno). Aquí puedes corregir errores.</p>
+      <p style={{ fontSize: '0.75rem', color: 'var(--color-faint)', marginBottom: '1rem' }}>Registro de jornada obligatorio (RD-ley 8/2019): conservar 4 años. El personal ficha desde su PDA (pestaña Turno). Aquí puedes corregir errores y añadir una jornada que nadie llegó a fichar.</p>
+
+      {/* Alta manual. Se podía corregir un fichaje pero no crearlo: si alguien
+          olvidaba fichar la entrada del todo, esa jornada no existía para el
+          registro y no había forma de meterla. */}
+      <div style={{ ...ajusteCard, marginBottom: '1.25rem' }}>
+        {!alta ? (
+          <button onClick={() => setAlta({ empleadoId: empleados[0]?.id || '', entrada: '', salida: '' })} style={addBtn}>+ Añadir jornada</button>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+            <h3 style={ajusteTitulo}>Añadir una jornada</h3>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <div style={{ flex: '1 1 150px' }}>
+                <label style={lblCampo}>Empleado</label>
+                <select value={alta.empleadoId} onChange={e => setAlta(s2 => ({ ...s2, empleadoId: e.target.value }))} style={inputStyle}>
+                  {empleados.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+                </select>
+              </div>
+              <div style={{ flex: '1 1 170px' }}>
+                <label style={lblCampo}>Entrada</label>
+                <input type="datetime-local" value={alta.entrada} onChange={e => setAlta(s2 => ({ ...s2, entrada: e.target.value }))} style={inputStyle} />
+              </div>
+              <div style={{ flex: '1 1 170px' }}>
+                <label style={lblCampo}>Salida (vacío = turno abierto)</label>
+                <input type="datetime-local" value={alta.salida} onChange={e => setAlta(s2 => ({ ...s2, salida: e.target.value }))} style={inputStyle} />
+              </div>
+            </div>
+            <p style={{ fontSize: '0.72rem', color: 'var(--color-faint)', margin: 0 }}>Quedará marcada como <strong>añadida por el encargado</strong>: en el registro tiene que verse qué marcó el trabajador y qué se puso a mano.</p>
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+              <button onClick={() => setAlta(null)} style={{ background: 'var(--color-surface-3)', color: 'var(--color-text)', border: 'none', borderRadius: '0.5rem', padding: '0.4rem 0.9rem', cursor: 'pointer', fontSize: '0.82rem' }}>Cancelar</button>
+              <button onClick={anadir} style={addBtn}>Guardar jornada</button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Horas por empleado */}
       {Object.keys(porEmpleado).length > 0 && (
@@ -954,7 +1005,11 @@ function FichajesTab({ fichajes, editarFichaje, borrarFichaje, local, pedirFicha
               ) : (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>👤 {f.nombre} <span style={{ fontWeight: 400, color: 'var(--color-muted)', fontSize: '0.78rem' }}>· {new Date(f.entrada).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}</span></div>
+                    <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>👤 {f.nombre} <span style={{ fontWeight: 400, color: 'var(--color-muted)', fontSize: '0.78rem' }}>· {new Date(f.entrada).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
+                      {/* Un registro de jornada tiene que distinguir lo que
+                          marcó el trabajador de lo que puso el encargado. */}
+                      {f.editadoPor && <span style={{ marginLeft: '0.4rem', fontSize: '0.68rem', fontWeight: 700, background: 'var(--tint-warning-bg)', color: 'var(--tint-warning-fg)', borderRadius: '9999px', padding: '0.1rem 0.5rem', whiteSpace: 'nowrap' }}>✍️ a mano</span>}
+                    </div>
                     <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>
                       🟢 {new Date(f.entrada).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
                       {' → '}
