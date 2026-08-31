@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.100.0 · 665 tests JS + 37 pruebas de SQL en verde · CI y deploy en
+**Estado: v0.101.0 · 743 tests JS + 37 pruebas de SQL en verde · CI y deploy en
 verde · repo limpio.** Última sesión: 2026-08-26.
 
 Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los 71 fallos de la auditoría:
@@ -86,8 +86,10 @@ dice «tickets sin registrar», hay que atenderlo **ese mismo día**.
 
 ### De código
 
-1. **Tests de pantalla que faltan**: PDA (482 líneas) y Mostrador (543), que son
-   las que usa el personal a diario; Reservar (360) y Onboarding (261).
+1. ~~Tests de pantalla que faltan~~ ✅ **hecho en la v0.101.0**: PDA, Mostrador,
+   Reservar y Onboarding. Las diez pantallas están cubiertas. Ojo: estos 78
+   tests **no encontraron ningún fallo** —a diferencia de los de la v0.98.0,
+   que sacaron tres de dinero—; son red de seguridad, no hallazgo.
 2. **La cola offline en una caída de red real** — está probada la RPC, no el
    comportamiento con la conexión cayéndose de verdad.
 3. **Realtime entre dispositivos**: sin cubrir.
@@ -111,7 +113,7 @@ dice «tickets sin registrar», hay que atenderlo **ese mismo día**.
 ## Comandos
 
 ```bash
-npm test                           # 665 tests, pantallas incluidas
+npm test                           # 743 tests, 10 pantallas cubiertas
 npm run test:sql                   # 37 pruebas del dinero, contra la base real
 npm run lint
 npm run permisos                   # ¿se ha abierto algo sin querer?
