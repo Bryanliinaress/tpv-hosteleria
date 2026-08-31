@@ -1,24 +1,35 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.102.0 · 759 tests JS + 37 pruebas de SQL en verde · CI y deploy en
-verde · repo limpio.** Última sesión: 2026-08-31.
+**Estado: v0.106.0 · 809 tests JS + 37 pruebas de SQL en verde · CI y deploy en
+verde · repo limpio · 0 vulnerabilidades.** Última sesión: 2026-08-31.
 
 Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a uno:
 [docs/AUDITORIA.md](docs/AUDITORIA.md) (es historia, no estado).
 
-### Lo último — cuatro releases, del 26 al 31 de agosto
+### Lo último — ocho releases, del 26 al 31 de agosto
 
 | | | |
 |---|---|---|
-| **v0.99.1** | 26/08 | El primer repaso **mirando las pantallas** en siete releases. Cinco fallos, los cinco arreglados; el gordo, un ticket ya cobrado que se reimprimía como «PENDIENTE DE PAGO». |
+| **v0.99.1** | 26/08 | El primer repaso **mirando las pantallas** en siete releases. Cinco fallos; el gordo, un ticket ya cobrado que se reimprimía como «PENDIENTE DE PAGO». |
 | **v0.100.0** | 28/08 | 🔴 **La impresión llevaba 16 días sin imprimir y decía que sí.** Ahora se confirma que el trabajo sale de la cola, se cancela si no sale, y queda anotado para `npm run salud`. |
-| **v0.101.0** | 31/08 | Tests de las cuatro pantallas que faltaban (PDA, Mostrador, Reservar, Onboarding). Las diez están cubiertas. |
+| **v0.101.0** | 31/08 | Tests de las cuatro pantallas que faltaban. Las diez están cubiertas. |
 | **v0.102.0** | 31/08 | Una mesa **reservada** ya no cuenta como ocupada, ni en Mostrador ni en la PDA. |
+| **v0.103.0** | 31/08 | Al mirar por fin los KDS con comandas: el aviso de «Nueva versión» tapaba el reloj de la cocina, y quedaban **cuatro cabeceras** pegadas a `top: 0` que la v0.99.1 no tocó. |
+| **v0.103.1** | 31/08 | Cinco vulnerabilidades altas de desarrollo a cero (producción ya estaba a cero). |
+| **v0.104.0** | 31/08 | 🔴 **El QR de mesa se construía con la dirección desde la que se abría Admin**: abrirlo desde una build local imprimía doce pegatinas apuntando a `localhost`. Y hoja A4 para imprimirlos todos. |
+| **v0.105.0** | 31/08 | 🔴 **Las horas por empleado salían todas en un mismo «undefined»** —el número que va a la nómina—, y no se podía añadir una jornada que nadie fichó. |
+| **v0.106.0** | 31/08 | 🔴 **Admin → Local no guardaba NADA** (ver abajo), y el descuadre del cierre Z no significaba nada sin fondo de caja. |
 
-Lo que más conviene recordar de la sesión: **el fallo de impresión era invisible
-porque el spooler de Windows acepta los bytes aunque no haya nada al otro lado
-del USB**. Si algo «funciona» sin que nadie lo haya visto funcionar de verdad,
-merece la misma desconfianza.
+**Lo que hay que llevarse de la sesión**, que se repitió tres veces con distinta
+cara: *«éxito» que solo significa «se lo he dado a otro»*. El spooler aceptaba
+los bytes sin que saliera papel; el QR se generaba con una dirección que nadie
+comprobaba; `updateLocal` devolvía sin error tras un 403. La pregunta que lo
+destapa siempre es la misma: **¿esto confirma que la cosa PASÓ, o solo que se
+pidió?**
+
+Y la segunda: **los tres fallos gordos salieron de mirar la pantalla**, no de
+leer código. Los 78 tests de pantalla escritos después no encontraron ninguno:
+sirven para que no vuelvan, no para hallarlos.
 
 ---
 
@@ -38,21 +49,20 @@ arregla entrando al panel y pulsando *Resume project*.
 
 ### 2. Qué está visto renderizado y qué no
 
-**Vistas** (móvil 375 px y tableta): portada, Reservar, Onboarding, Informes,
-Tickets, el selector de IVA del producto, el diálogo de Devolver (Todo y Una
-parte), el «devuelto X · quedan Y», el ticket con su desglose de IVA y QR, las
-**dos** pantallas de error, Mostrador (con y sin panel lateral), la PDA, KDS
-Cocina y KDS Barra.
+**Vistas** (móvil 375 px, tableta y 1280): portada, Reservar, Onboarding,
+Mostrador (con y sin panel lateral), la PDA, **los KDS de Cocina y Barra con
+comandas dentro** —incluido el recorrido en cola → Preparando → Listo—, el
+ticket con su desglose de IVA y QR, las **dos** pantallas de error, y **las doce
+pestañas de Admin** una por una.
+
+De ahí salieron los cuatro fallos gordos de la sesión. Ninguno se veía leyendo
+el código.
 
 **Lo que sigue sin verse, y por qué:**
 
-1. **Los KDS con comandas dentro.** Se llegaron a generar 7 comandas y a
-   verlas en la cola, pero el panel del navegador se cerró antes de mirarlas.
-   Repetirlo exige mandar pedidos otra vez: escribe en la demo compartida y
-   **saca papel** por las dos térmicas. Un KDS vacío no prueba lo que hay que
-   probar: el cuadre de las tarjetas de comanda.
-2. **La carta del cliente por QR.**
-3. **La interacción táctil de todo.** Los clics y el scroll con ratón del panel
+1. **La carta del cliente por QR.** Es la última, y la única pantalla que ve
+   alguien que todavía no es cliente tuyo.
+2. **La interacción táctil de todo.** Los clics y el scroll con ratón del panel
    se agotaban a los 30 s y hubo que navegar por JS: lo visto está mirado pero
    **no tocado**.
 
@@ -65,11 +75,17 @@ Cocina y KDS Barra.
 1. **Declaración responsable del fabricante** — obligación desde el 29-7-2025
    por comercializar software de facturación. Es el único bloqueo legal que
    queda.
-2. **Rellenar teléfono y dirección** en Admin → Local. El CIF ya está puesto
-   (B75777847) y la pantalla avisa de lo que falta. Salen en el ticket, en el
+2. **Rellenar teléfono y dirección** en Admin → Local. Salen en el ticket, en el
    recibo del cliente y en «Llámanos» de reservas. No lo relleno yo: un número
    inventado en una página pública acaba haciendo que alguien llame a un
    desconocido.
+
+   ⚠️ **Esto llevaba semanas aquí y no era culpa tuya: la pantalla no podía
+   guardar.** `locales` era la única tabla cuya política exigía un empleado
+   admin enlazado por `user_id`, y con el modelo de dispositivos esa cuenta
+   nunca está en `empleados`: todo se iba en un 403. Arreglado en la v0.106.0 —
+   el CIF que había puesto (B75777847) lo escribió el script de
+   aprovisionamiento, no la pantalla. **Ahora sí se guarda.**
 3. **Supabase Pro (~23 €/mes)** — quita las pausas por inactividad y trae los
    backups. Enseñar la demo a un bar y que no cargue es el peor momento para
    descubrirlo.
@@ -104,7 +120,8 @@ dice «tickets sin registrar», hay que atenderlo **ese mismo día**.
 
 ### De pantalla
 
-1. **Los KDS con comandas dentro** y **la carta del QR** (arriba, punto 2).
+1. **La carta del cliente por QR**: la última sin repasar, y la única que ve
+   alguien que todavía no es cliente tuyo.
 2. **Probar tocando**, no solo mirando (arriba, punto 3).
 
 ### De código
@@ -118,17 +135,45 @@ dice «tickets sin registrar», hay que atenderlo **ese mismo día**.
    - **Stripe Connect** (§4): «para que el dinero llegue a la cuenta del
      restaurante». Con un bar por instalación quizá cada uno pone su propia
      cuenta y no hace falta — pero conviene decidirlo, no dejarlo por omisión.
-2. **La cola offline en una caída de red real** — está probada la RPC, no el
+2. **Del repaso del panel de Admin (31/08)**, lo que quedó sin hacer. Los
+   cuatro primeros de aquella lista ya están (QR con la dirección buena, hoja de
+   impresión, fondo de caja y alta de jornada):
+   - **No se puede crear una reserva desde Admin.** `ReservasManager` solo
+     gestiona las que entran por la web, y un bar coge reservas por teléfono
+     todo el día. Desde Mostrador se puede, pero obliga a asignar mesa ya y no
+     genera el email ni el enlace de gestión del cliente.
+   - **Los «cobros sin cuenta» no se pueden accionar**: el aviso escupe la
+     referencia de Stripe entera en texto corrido y hay que copiar 60 caracteres
+     a mano para devolver el dinero. Un botón de copiar y un enlace al pago.
+   - **«Por camarero» mezcla personas con métodos**: en el arqueo sale «Pago
+     online 34,20 €» junto a «QA 7,00 €», como si fuera un empleado.
+   - **Solo hay dos roles** (Administrador y Camarero): un camarero entra a PDA,
+     cocina, barra e impresión. Falta un rol de cocina.
+   - **Mesas**: no se pueden renumerar ni reordenar, y la zona es texto libre por
+     mesa (con datalist, pero un dedo torcido crea una zona fantasma). Tampoco
+     se puede renombrar una zona en todas sus mesas a la vez.
+   - **Dispositivos**: no se puede renombrar uno ya autorizado ni se ve para qué
+     se usa. Con cuatro tablets iguales, los nombres no dicen cuál es la de
+     cocina.
+   - Menor: las tarjetas de arriba miden «Categorías 3», que es un dato de
+     desarrollador; un dueño querría lo facturado hoy.
+
+3. **La cola offline en una caída de red real** — está probada la RPC, no el
    comportamiento con la conexión cayéndose de verdad.
-3. **Realtime entre dispositivos**: sin cubrir.
-4. **Admin → Tickets** marca en el aviso cuáles faltan por registrar, pero no en
+4. ~~Realtime entre dispositivos~~ ✅ **visto funcionar** el 31/08: el KDS
+   estaba abierto y recogió las 7 comandas sin recargar.
+5. **Admin → Tickets** marca en el aviso cuáles faltan por registrar, pero no en
    la lista: la pantalla saca el ticket del store y el estado fiscal vive en la
    RPC. Si molesta, hay que juntar las dos fuentes.
-5. **Actualizar N instancias** de una vez: con un bar por instalación, cada
+6. **Actualizar N instancias** de una vez: con un bar por instalación, cada
    mejora hay que desplegarla a cada uno.
-6. **Dominio propio para cada bar.**
+7. **Dominio propio para cada bar.**
 
 ### Dato, no código
+
+- El **fondo de caja de la demo está a 0 €** (Admin → Caja). Es lo correcto para
+  enseñarla, pero un bar de verdad tiene 100-150 € de cambio en el cajón: si no
+  se pone, el arqueo canta descuadre todos los días.
 
 - En Ajustes → Tipo de pan hay un «Con Gluten» junto a «Sin gluten +1,20 €».
   Suena a resto de la carta de ejemplo, y sale en la hoja del cliente.
@@ -141,7 +186,7 @@ dice «tickets sin registrar», hay que atenderlo **ese mismo día**.
 ## Comandos
 
 ```bash
-npm test                           # 759 tests, 10 pantallas cubiertas
+npm test                           # 809 tests, 10 pantallas cubiertas
 npm run test:sql                   # 37 pruebas del dinero, contra la base real
 npm run lint
 npm run permisos                   # ¿se ha abierto algo sin querer?
@@ -451,8 +496,14 @@ saliendo, pero conviene fijar el precio sabiéndolo.
   7 días / Este mes / Mes pasado), con CSV y las devoluciones restando.
 - **Monitorización**: el bar deja constancia de lo que se rompe en su propia
   base y `npm run salud` lo lee. Encontró sola dos fallos de producción.
-- **759 tests JS** (las **diez** pantallas cubiertas) **+ 37 pruebas de SQL**
-  contra la base real, lint limpio, CI y deploy en verde.
+- **809 tests JS** (las **diez** pantallas cubiertas) **+ 37 pruebas de SQL**
+  contra la base real, lint limpio, CI y deploy en verde, **0 vulnerabilidades**
+  en todo el árbol de dependencias.
+- **Arqueo de caja completo** (v0.106.0): fondo de cambio y entradas/salidas del
+  cajón con motivo obligatorio. La cuenta vive en `src/lib/caja.js`, que usan el
+  arqueo de Admin, el cierre de la demo y el cierre contra el servidor.
+- **El QR de mesa lleva la dirección del bar**, no la de por dónde se abrió
+  Admin, y hay hoja A4 para imprimirlos todos recortables.
 - **Un fallo de impresión deja rastro** (v0.100.0): se confirma que el trabajo
   sale de la cola de Windows, se cancela si no sale —para que reintentar no lo
   apile— y se anota como incidencia `impresora`, que `npm run salud` enseña.
@@ -509,7 +560,16 @@ rentable de todas:
   la cosa PASÓ, o solo que se pidió?** Vale igual para el envío a Hacienda, para
   el webhook de Stripe y para cualquier cola.
 
-Tres fallos de los de este mes se encontraron **mirando la pantalla**, no
-leyendo código: el ticket que decía PENDIENTE DE PAGO, la cabecera cortada y las
-fechas con mayúscula en cada palabra. Los tests de pantalla que se escribieron
-después no encontraron ninguno — sirven para que no vuelvan, no para hallarlos.
+- **Reglas escritas para el modelo de autenticación anterior.** La política de
+  escritura de `locales` exigía `empleados.user_id = auth.uid()` con rol admin:
+  correcto cuando cada persona entraba con su email, imposible de cumplir desde
+  que cada aparato tiene su propia cuenta y a la persona la identifica el PIN.
+  Nadie la volvió a mirar al cambiar el modelo y **Admin → Local quedó de solo
+  lectura durante semanas**. Cuando cambie *cómo se entra*, hay que repasar todo
+  lo que dependa de *quién entra*.
+
+Cuatro fallos de los de este mes se encontraron **mirando la pantalla**, no
+leyendo código: el ticket que decía PENDIENTE DE PAGO, la cabecera cortada, las
+fechas con mayúscula en cada palabra y las horas de la nómina sumadas en un
+«undefined». Los tests de pantalla que se escribieron después no encontraron
+ninguno — sirven para que no vuelvan, no para hallarlos.
