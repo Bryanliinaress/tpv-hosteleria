@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.106.0 · 809 tests JS + 37 pruebas de SQL en verde · CI y deploy en
+**Estado: v0.107.0 · 819 tests JS + 37 pruebas de SQL en verde · CI y deploy en
 verde · repo limpio · 0 vulnerabilidades.** Última sesión: 2026-08-31.
 
 Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a uno:
@@ -19,6 +19,8 @@ Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a un
 | **v0.104.0** | 31/08 | 🔴 **El QR de mesa se construía con la dirección desde la que se abría Admin**: abrirlo desde una build local imprimía doce pegatinas apuntando a `localhost`. Y hoja A4 para imprimirlos todos. |
 | **v0.105.0** | 31/08 | 🔴 **Las horas por empleado salían todas en un mismo «undefined»** —el número que va a la nómina—, y no se podía añadir una jornada que nadie fichó. |
 | **v0.106.0** | 31/08 | 🔴 **Admin → Local no guardaba NADA** (ver abajo), y el descuadre del cierre Z no significaba nada sin fondo de caja. |
+| **v0.106.1** | 31/08 | La tira de categorías de la carta se metía detrás de la cabecera — regresión de la v0.103.0 que el test de barras pegajosas no cazaba. |
+| **v0.107.0** | 31/08 | 🔴 **Se podía pagar un pedido que la cocina nunca había recibido.** Ahora se manda a cocina antes de cobrar. |
 
 **Lo que hay que llevarse de la sesión**, que se repitió tres veces con distinta
 cara: *«éxito» que solo significa «se lo he dado a otro»*. El spooler aceptaba
@@ -47,24 +49,25 @@ que se haya roto en las pantallas. Si el proyecto no responde, casi seguro es
 que **Supabase lo pausó por inactividad** (plan gratuito, ~1 semana): se
 arregla entrando al panel y pulsando *Resume project*.
 
-### 2. Qué está visto renderizado y qué no
+### 2. Qué está visto renderizado
 
-**Vistas** (móvil 375 px, tableta y 1280): portada, Reservar, Onboarding,
-Mostrador (con y sin panel lateral), la PDA, **los KDS de Cocina y Barra con
-comandas dentro** —incluido el recorrido en cola → Preparando → Listo—, el
-ticket con su desglose de IVA y QR, las **dos** pantallas de error, y **las doce
-pestañas de Admin** una por una.
+**Ya está TODO visto** (móvil 375 px, tableta y 1280): portada, Reservar,
+Onboarding, Mostrador con y sin panel lateral, la PDA, **los KDS de Cocina y
+Barra con comandas dentro** —con el recorrido en cola → Preparando → Listo—, el
+ticket con su desglose de IVA y QR, el **recibo del cliente**, las **dos**
+pantallas de error, **las doce pestañas de Admin** una por una, y la **carta del
+cliente por QR** entera: carta, personalización, carrito y cuenta.
 
-De ahí salieron los cuatro fallos gordos de la sesión. Ninguno se veía leyendo
-el código.
+De ahí salieron **seis fallos** que ninguna lectura de código habría dado: el
+ticket cobrado que se reimprimía como pendiente, las horas de la nómina en un
+«undefined», Admin → Local sin poder guardar, el QR con la dirección de
+localhost, el arqueo sin fondo de caja y el pago de un pedido que la cocina no
+había visto.
 
-**Lo que sigue sin verse, y por qué:**
-
-1. **La carta del cliente por QR.** Es la última, y la única pantalla que ve
-   alguien que todavía no es cliente tuyo.
-2. **La interacción táctil de todo.** Los clics y el scroll con ratón del panel
-   se agotaban a los 30 s y hubo que navegar por JS: lo visto está mirado pero
-   **no tocado**.
+**Lo único que queda de pantalla: probarlo TOCANDO.** Los clics y el scroll con
+ratón del panel se agotaban a los 30 s y hubo que navegar por JS, así que todo
+lo anterior está **mirado pero no tocado**. Falta un móvil y una tableta de
+verdad.
 
 ---
 
@@ -120,9 +123,8 @@ dice «tickets sin registrar», hay que atenderlo **ese mismo día**.
 
 ### De pantalla
 
-1. **La carta del cliente por QR**: la última sin repasar, y la única que ve
-   alguien que todavía no es cliente tuyo.
-2. **Probar tocando**, no solo mirando (arriba, punto 3).
+1. **Probarlo tocando**, en un móvil y una tableta de verdad. Es lo único que
+   queda: todas las pantallas están vistas, pero ninguna manipulada con el dedo.
 
 ### De código
 
@@ -176,7 +178,10 @@ dice «tickets sin registrar», hay que atenderlo **ese mismo día**.
   se pone, el arqueo canta descuadre todos los días.
 
 - En Ajustes → Tipo de pan hay un «Con Gluten» junto a «Sin gluten +1,20 €».
-  Suena a resto de la carta de ejemplo, y sale en la hoja del cliente.
+  **Confirmado el 31/08 mirándolo: el cliente lo ve** al personalizar un
+  bocadillo, justo al lado de la opción sin gluten, y leído seguido queda raro —
+  como si el bar ofreciera «con gluten» a propósito. Resto de la carta de
+  ejemplo: se quita desde Admin → Ajustes.
 - En la demo, la rectificativa nº 7 quedó apuntada como efectivo cuando el
   original era online (dato anterior al arreglo). Se deja: un documento fiscal
   emitido no se reescribe.
@@ -186,7 +191,7 @@ dice «tickets sin registrar», hay que atenderlo **ese mismo día**.
 ## Comandos
 
 ```bash
-npm test                           # 809 tests, 10 pantallas cubiertas
+npm test                           # 819 tests, 10 pantallas cubiertas
 npm run test:sql                   # 37 pruebas del dinero, contra la base real
 npm run lint
 npm run permisos                   # ¿se ha abierto algo sin querer?
@@ -496,7 +501,7 @@ saliendo, pero conviene fijar el precio sabiéndolo.
   7 días / Este mes / Mes pasado), con CSV y las devoluciones restando.
 - **Monitorización**: el bar deja constancia de lo que se rompe en su propia
   base y `npm run salud` lo lee. Encontró sola dos fallos de producción.
-- **809 tests JS** (las **diez** pantallas cubiertas) **+ 37 pruebas de SQL**
+- **819 tests JS** (las **diez** pantallas cubiertas) **+ 37 pruebas de SQL**
   contra la base real, lint limpio, CI y deploy en verde, **0 vulnerabilidades**
   en todo el árbol de dependencias.
 - **Arqueo de caja completo** (v0.106.0): fondo de cambio y entradas/salidas del
@@ -504,6 +509,12 @@ saliendo, pero conviene fijar el precio sabiéndolo.
   arqueo de Admin, el cierre de la demo y el cierre contra el servidor.
 - **El QR de mesa lleva la dirección del bar**, no la de por dónde se abrió
   Admin, y hay hoja A4 para imprimirlos todos recortables.
+- **No se puede cobrar lo que la cocina no ha recibido** (v0.107.0): antes de
+  cobrar —por tarjeta o llamando al camarero— se manda lo que quede sin enviar.
+  Verificado contra la base: línea `pendiente` → `enviado`, comanda creada y
+  mesa en `esperando_cobro`.
+- **El registro de jornada** distingue lo fichado por el trabajador de lo puesto
+  a mano por el encargado, en la lista y en el CSV.
 - **Un fallo de impresión deja rastro** (v0.100.0): se confirma que el trabajo
   sale de la cola de Windows, se cancela si no sale —para que reintentar no lo
   apile— y se anota como incidencia `impresora`, que `npm run salud` enseña.
@@ -568,8 +579,20 @@ rentable de todas:
   lectura durante semanas**. Cuando cambie *cómo se entra*, hay que repasar todo
   lo que dependa de *quién entra*.
 
-Cuatro fallos de los de este mes se encontraron **mirando la pantalla**, no
-leyendo código: el ticket que decía PENDIENTE DE PAGO, la cabecera cortada, las
-fechas con mayúscula en cada palabra y las horas de la nómina sumadas en un
-«undefined». Los tests de pantalla que se escribieron después no encontraron
-ninguno — sirven para que no vuelvan, no para hallarlos.
+- **Una pantalla puede cobrar algo que otra no ha llegado a mandar.** La cuenta
+  del cliente sumaba las líneas sin enviar, y el botón de pagar no miraba si la
+  cocina las tenía: se pagaba comida que nadie estaba haciendo. Cuando dos
+  pantallas comparten un dato pero cada una lo usa para algo distinto —una para
+  cobrar, otra para cocinar—, hay que preguntarse qué pasa si solo una de las
+  dos ha corrido.
+
+**Casi todo lo gordo de este mes salió de mirar la pantalla**, no de leer
+código: el ticket cobrado que se reimprimía como PENDIENTE DE PAGO, la cabecera
+cortada, las fechas con mayúscula en cada palabra, las horas de la nómina
+sumadas en un «undefined», el QR apuntando a `localhost`, Admin → Local sin
+poder guardar, el arqueo sin fondo de caja y el pago de un pedido que la cocina
+no había visto.
+
+Los tests de pantalla que se escribieron después **no encontraron ninguno**:
+sirven para que no vuelvan, no para hallarlos. Si hay que elegir entre escribir
+un test más y abrir la pantalla, abre la pantalla.
