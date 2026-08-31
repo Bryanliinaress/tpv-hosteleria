@@ -8,7 +8,7 @@ import { useIdioma, tr } from '../../lib/i18n'
 import { traducirCarta, nombreProducto, descripcionProducto, textoBuscable } from '../../lib/cartaI18n'
 import { useUnaVez } from '../../lib/unaVez'
 import { esMenu, conFormatos, conOpciones, lineaDeMenu, menuCompleto, siguientePendiente, precioMenu, alternarOpcion } from '../../lib/menuDia'
-import { productosVisibles, descripcionUtil, lineaSimplePendiente, unidades, configDeItem, ultimaRonda } from '../../lib/carta'
+import { productosVisibles, descripcionUtil, lineaSimplePendiente, unidades, configDeItem, ultimaRonda, hayLineasSinEnviar } from '../../lib/carta'
 import { construirRecibo, lineasDeConsumo, guardarRecibo, leerRecibo, olvidarRecibo, descargarRecibo, reciboReciente } from '../../lib/recibo'
 import { backendV2 } from '../../lib/repo'
 import { totalDeMesa, importeLinea, cent } from '../../lib/dinero'
@@ -319,7 +319,31 @@ export default function CartaCliente() {
     return lineas
   }
 
+  // ── Pagar da por hecho que se ha pedido ──────────────────────────────────
+  //
+  // La cuenta incluye las líneas que aún no se han enviado a cocina (así lo
+  // calcula `_debe_por_comensal`, sin mirar el estado). Sin esto, un cliente
+  // podía añadir, ir directo a Pagar, pagar por Stripe y marcharse: **el dinero
+  // entra y la comida no existe para nadie** — ni la cocina la ha visto.
+  //
+  // Se envía ANTES de cobrar, nunca después. Si el pago se abandona, un pedido
+  // en cocina sin pagar es el estado normal de cualquier mesa; al revés no hay
+  // vuelta atrás.
+  const hayPendientes = hayLineasSinEnviar(mesa)
+  const enviarSiFalta = async () => {
+    if (!hayPendientes) return true
+    try {
+      await Promise.resolve(confirmarPedido(mesaId))
+      toast(t('Mandamos tu pedido a la cocina antes de cobrar 🚀'), 'success')
+      return true
+    } catch {
+      toast(t('No hemos podido mandar tu pedido a la cocina. Avisa al camarero antes de pagar.'), 'error')
+      return false
+    }
+  }
+
   const pagarOnline = async (p) => {
+    if (!(await enviarSiFalta())) return
     const total = owed[p.id]
     const propina = total * propinaPct / 100
     try {
@@ -331,6 +355,7 @@ export default function CartaCliente() {
 
   // Paga la cuenta completa de la mesa (un comensal por todos)
   const pagarTodoOnline = async () => {
+    if (!(await enviarSiFalta())) return
     const total = totalPendienteMesa
     const propina = total * propinaTodoPct / 100
     try {
@@ -338,6 +363,13 @@ export default function CartaCliente() {
     } catch (e) {
       toast(e.message + '. Avisa al camarero para pagar en efectivo o con datáfono.', 'error')
     }
+  }
+
+  // Que venga el camarero a cobrar: mismo problema, mismo orden. Si quedan
+  // platos sin enviar, cobrarlos deja a la cocina sin la comanda.
+  const pedirCuentaConEnvio = async () => {
+    if (!(await enviarSiFalta())) return
+    pedirCuenta(mesaId)
   }
 
   // ── Vista CUENTA ──────────────────────────────────────
@@ -459,7 +491,7 @@ export default function CartaCliente() {
             <p style={{ fontSize: '0.85rem', color: 'var(--color-muted)', marginBottom: '0.75rem' }}>
               {t('Pide la cuenta y págala en la mesa o en la barra.')}
             </p>
-            <button onClick={() => { pedirCuenta(mesaId); toast(t('Aviso enviado: ya van'), 'success') }}
+            <button onClick={async () => { await pedirCuentaConEnvio(); toast(t('Aviso enviado: ya van'), 'success') }}
               style={btnStyle('var(--color-accent)', { width: '100%', padding: '0.85rem', fontSize: '0.95rem' })}>
               🧾 {t('Pedir la cuenta')}
             </button>
@@ -496,7 +528,7 @@ export default function CartaCliente() {
         )}
 
         {mesa.estado !== 'esperando_cobro' ? (
-          <button onClick={() => pedirCuenta(mesaId)} style={btnStyle('var(--color-surface-2)', { width: '100%', padding: '0.875rem', minHeight: `${TOQUE + 6}px`, fontSize: '0.95rem' })}>{t('🧑‍🍳 Que cobre el camarero (efectivo/tarjeta)')}</button>
+          <button onClick={pedirCuentaConEnvio} style={btnStyle('var(--color-surface-2)', { width: '100%', padding: '0.875rem', minHeight: `${TOQUE + 6}px`, fontSize: '0.95rem' })}>{t('🧑‍🍳 Que cobre el camarero (efectivo/tarjeta)')}</button>
         ) : (
           <div style={{ textAlign: 'center', padding: '1rem', background: 'var(--tint-success-bg)', borderRadius: '0.75rem', color: 'var(--tint-success-fg)', fontWeight: 700 }}>✅ {t('✅ El camarero viene a cobrar').replace('✅ ','')}</div>
         )}

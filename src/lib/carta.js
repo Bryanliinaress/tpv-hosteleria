@@ -91,3 +91,14 @@ export function ultimaRonda(items) {
   const mismoMinuto = (a, b) => a && b && a.slice(0, 16) === b.slice(0, 16)
   return enviados.filter(i => mismoMinuto(sello(i), ultimo))
 }
+
+/**
+ * ¿Queda algo en la mesa que la cocina no haya visto?
+ *
+ * La cuenta incluye las líneas sin enviar (`_debe_por_comensal` no mira el
+ * estado), así que se podía pagar por Stripe un plato que nadie estaba
+ * haciendo: el dinero entra y la comida no existe para nadie. Antes de cobrar
+ * —por tarjeta o llamando al camarero— hay que mandarlas.
+ */
+export const hayLineasSinEnviar = (mesa) =>
+  (mesa?.personas || []).some(p => (p?.items || []).some(i => i?.estado === 'pendiente'))
