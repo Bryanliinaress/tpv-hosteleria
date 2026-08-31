@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.99.1 · 662 tests JS + 37 pruebas de SQL en verde · CI y deploy en
+**Estado: v0.100.0 · 665 tests JS + 37 pruebas de SQL en verde · CI y deploy en
 verde · repo limpio.** Última sesión: 2026-08-26.
 
 Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los 71 fallos de la auditoría:
@@ -111,7 +111,7 @@ dice «tickets sin registrar», hay que atenderlo **ese mismo día**.
 ## Comandos
 
 ```bash
-npm test                           # 662 tests, pantallas incluidas
+npm test                           # 665 tests, pantallas incluidas
 npm run test:sql                   # 37 pruebas del dinero, contra la base real
 npm run lint
 npm run permisos                   # ¿se ha abierto algo sin querer?
@@ -149,7 +149,25 @@ resultado y ya se subió una vez con CI en rojo.
 6. **Limpia lo que ensucies**: `scripts/limpiar-servicio.sql`, y revoca los
    dispositivos de prueba al terminar.
 7. **La impresión está activa**: si envías un pedido de prueba **sale papel de
-   verdad**. Párala antes y devuélvela después.
+   verdad**. Párala antes y devuélvela después:
+
+   ```powershell
+   Disable-ScheduledTask -TaskName 'TPV Marchando - Impresion'
+   Get-CimInstance Win32_Process -Filter "Name='node.exe'" |
+     Where-Object { $_.CommandLine -like '*impresion-automatica*' } |
+     ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+   # y para devolverla:
+   Enable-ScheduledTask -TaskName 'TPV Marchando - Impresion'
+   Start-ScheduledTask  -TaskName 'TPV Marchando - Impresion'
+   ```
+
+   Limpia las comandas **antes** de reactivarla: al arrancar recupera lo
+   pendiente, así que si no, las saca todas en papel.
+
+8. **Un fallo de impresión ya se ve** (v0.100.0). Si una impresora no saca el
+   trabajo, se cancela y queda anotado como incidencia `impresora`, que
+   `npm run salud` enseña. Si `salud` dice que una impresora no imprime, es que
+   no imprime: durante 16 días el sistema dijo lo contrario y no salió nada.
 
 ### Para ver las pantallas de personal (ahorra media hora)
 
@@ -187,17 +205,32 @@ de verdad inventaría ventas en su contabilidad.
 
 ---
 
-## El papel — APLAZADO a propósito (13/08)
+## El papel — lo que ya se sabe y lo que falta (31/08)
 
-No se ha olvidado: Bryan decidió dejarlo para más adelante. **No lo retomes por
-tu cuenta**, pregúntale antes. Cuando toque, hay que mirarlo con las impresoras
-delante:
+**Del lado del software está comprobado**, volcando los bytes reales a una
+impresora de fichero y decodificándolos:
 
-- ¿**cortan** el papel? (si no, quitar `GS V` para que no salga basura)
-- ¿los **acentos** salen bien? («Salchichón», «Café», «Menú del día»)
-- ⚠️ **el QR del ticket de cuenta**: el único riesgo que sigue sin descartar. Si
-  el ticket sale bien **pero sin QR**, la impresora no implementa el QR nativo
-  (`GS ( k`) y hay que mandarlo como imagen.
+- **Corte**: sale `GS V B` (corte parcial) al final del tique. ✔
+- **Acentos**: se selecciona `ESC t 0x13` (PC858) y las tildes van codificadas
+  para esa tabla — «JAMÓN» → `4a 41 4d **e0** 4e`, «BOTELLÍN» → `4c 4c **d6**
+  4e`, que en PC858 son `Ó` e `Í`. ✔
+- **QR**: se emiten los **cinco** `GS ( k` completos (modelo, tamaño,
+  corrección, datos con la URL de la AEAT y orden de impresión). ✔
+
+**Lo que sigue faltando es papel de verdad**, y ya solo por una razón: si la
+impresora **no implementa** PC858 o el QR nativo (`GS ( k`), saldrá mal aunque
+los bytes sean correctos. Eso no se puede saber sin verlo. Si el tique sale bien
+pero **sin QR**, hay que mandarlo como imagen.
+
+⚠️ **Y las impresoras llevan desde el 12/08 sin conectarse.** Antes de la
+prueba, mira lo que hay encallado en la cola o saldrá una montaña de tiques
+viejos:
+
+```powershell
+Get-PrintJob -PrinterName TPV-Cocina; Get-PrintJob -PrinterName TPV-Barra
+# para vaciarla:
+Get-PrintJob -PrinterName TPV-Cocina | Remove-PrintJob
+```
 
 ## La impresión arranca sola
 
