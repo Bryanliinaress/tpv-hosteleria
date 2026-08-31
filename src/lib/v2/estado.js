@@ -272,6 +272,28 @@ export async function cargarHistorial() {
   })
 }
 
+/**
+ * Movimientos de caja (entradas y salidas que no son ventas).
+ *
+ * Solo hacen falta los de la caja ABIERTA: los anteriores ya quedaron sumados
+ * dentro de su cierre.
+ */
+export async function cargarMovimientosCaja() {
+  try {
+    const desde = useStore.getState().cierres?.[0]?.hasta || null
+    let q = supabase.from('movimientos_caja').select('id, tipo, importe, motivo, creado_por, creado_en')
+    if (desde) q = q.gt('creado_en', desde)
+    const { data, error } = await q
+    if (error) throw new Error(error.message)
+    useStore.setState({
+      movimientosCaja: data.map(m => ({
+        id: m.id, tipo: m.tipo, importe: Number(m.importe), motivo: m.motivo,
+        creadoPor: m.creado_por, creadoEn: m.creado_en,
+      })),
+    })
+  } catch { /* tabla aún no migrada: se ignora */ }
+}
+
 export async function cargarCierres() {
   const haceUnAno = new Date(Date.now() - 365 * 86400000).toISOString()
   const cierres = await q('cierres_caja', 'id, desde, hasta, total, propinas, pagos, n_tickets, contado, descuadre', {}, { col: 'hasta', valor: haceUnAno })
@@ -353,6 +375,8 @@ export async function cargarTodo() {
   // hasta el último cierre, y si aún no están cargados no hay hasta dónde.
   await cargarCierres().catch(() => {})
   await Promise.all([cargarComandas(), cargarAvisos(), cargarReservas(), cargarHistorial(), cargarFichajes(), cargarPagosSinCuenta()])
+  // después de los cierres: la ventana de movimientos arranca en el último
+  await cargarMovimientosCaja()
 }
 
 // ── Cliente QR anónimo: su mesa vía estado_mesa (RLS no le deja ver tablas) ──

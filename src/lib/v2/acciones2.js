@@ -1,5 +1,5 @@
 import { supabase } from '../supabase'
-import { preciosNumericos, importeDesdeTexto, cent } from '../dinero'
+import { preciosNumericos, importeDesdeTexto } from '../dinero'
 import { useStore, propinasPorMetodoDe } from '../../store/useStore'
 import { reservas as rpcReservas, personal } from '../repo'
 import { toast } from '../../store/useUI'
@@ -7,8 +7,9 @@ import { sembrarCartaEjemplo, vaciarCartaV2 } from './plantillaCarta'
 import { cabezaDe, miembrosDe } from './grupos'
 import { revisarCorreccionFichaje, revisarNuevoFichaje } from '../fichajes'
 import { revisarNuevoEmpleado, revisarCambioEmpleado, revisarBajaEmpleado } from '../personal'
+import { efectivoEsperado, descuadreDe, saldoMovimientos, revisarMovimiento } from '../caja'
 import { registrarTicket } from '../fiscal'
-import { getLocalId, cargarTodo, cargarSala, cargarComandas, cargarReservas, cargarCarta, cargarLocal, cargarHistorial, cargarFichajes, cargarCierres } from './estado'
+import { getLocalId, cargarTodo, cargarSala, cargarComandas, cargarReservas, cargarCarta, cargarLocal, cargarHistorial, cargarFichajes, cargarCierres, cargarMovimientosCaja } from './estado'
 
 // Segunda ola de acciones v2: KDS, agenda de reservas, CRUD de carta/sala/
 // personal, caja y config del local. Personal/admin operan por RLS.
@@ -493,6 +494,22 @@ export function accionesV2b() {
     },
 
     // ── Caja (arqueo Z sobre tickets del servidor) ──────────────
+    // Apunta dinero que entra o sale del cajón sin ser una venta.
+    registrarMovimiento: ({ tipo, importe, motivo, creadoPor } = {}) => {
+      const r = revisarMovimiento({ tipo, importe, motivo })
+      if (!r.ok) return r
+      ;(async () => {
+        try {
+          await t('movimientos_caja').insert({
+            local_id: getLocalId(), tipo: r.tipo, importe: r.importe,
+            motivo: r.motivo, creado_por: creadoPor || null,
+          })
+          cargarMovimientosCaja()
+        } catch (e) { err(e) }
+      })()
+      return { ok: true }
+    },
+
     cerrarCaja: async (contado) => {
       const contadoNum = importeDesdeTexto(contado)
       try {
@@ -508,15 +525,26 @@ export function accionesV2b() {
         const pagos = {}
         tk.forEach(x => Object.entries(x.pagos || {}).forEach(([k, v]) => { if (k !== 'descuento') pagos[k] = (pagos[k] || 0) + (Number(v) || 0) }))
         const propinasEfectivo = tk.reduce((s, x) => s + (propinasPorMetodoDe({ personas: x.detalle }).efectivo || 0), 0)
-        const efectivoEsperado = Math.round(((pagos.efectivo || 0) + propinasEfectivo) * 100) / 100
+        // El fondo de cambio y los movimientos del cajón: sin ellos el
+        // «descuadre» era la diferencia contra una cuenta incompleta y cantaba
+        // el fondo entero como sobrante todos los días (ver src/lib/caja.js).
+        const fondo = Number(st().local?.fondoCaja) || 0
+        let movs = []
+        try {
+          let qm = t('movimientos_caja').select('tipo, importe')
+          if (desde) qm = qm.gt('creado_en', desde)
+          movs = (await qm).data || []
+        } catch { /* tabla aún no migrada */ }
+        const esperado = efectivoEsperado({ fondo, ventasEfectivo: pagos.efectivo || 0, propinasEfectivo, movimientos: movs })
         await t('cierres_caja').insert({
           local_id: getLocalId(), desde, total, propinas, pagos, n_tickets: tk.length,
+          fondo, movimientos: saldoMovimientos(movs),
           // `Number('2,50')` es NaN. Contando el cajón «2,50» el arqueo daba 0
           // y cantaba un descuadre de TODA la caja.
           contado: contadoNum,
-          descuadre: contadoNum != null ? cent(contadoNum - efectivoEsperado) : null,
+          descuadre: descuadreDe(contadoNum, esperado),
         })
-        cargarHistorial(); cargarCierres()
+        cargarHistorial(); cargarCierres(); cargarMovimientosCaja()
       } catch (e) { err(e) }
     },
   }

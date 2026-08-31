@@ -5,6 +5,18 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.106.0] - 2026-08-31
+
+El arqueo de caja. Y por el camino salió algo peor de lo que iba a arreglar.
+
+### Arreglado
+- **🔴 Admin → Local no podía guardar NADA.** `locales` era la única tabla del esquema cuya política de escritura exigía un `empleados.user_id = auth.uid()` con rol admin. Eso valía cuando cada persona entraba con su email y contraseña; con el modelo de dispositivos —cada aparato tiene su cuenta y quien identifica a la persona es el PIN— esa cuenta **nunca** está en `empleados`, así que la condición no podía cumplirse jamás y toda escritura se iba en un 403. En la práctica: nombre, dirección, **teléfono**, CIF, IVA, razón social y pie del ticket eran de solo lectura desde la app. El CIF que había puesto lo escribió el script de aprovisionamiento con la clave de servicio, no la pantalla — y por eso llevaba semanas en la lista de pendientes «rellenar teléfono y dirección en Admin → Local»: no se podía. Ahora `locales` va como el resto del esquema (`tenant_all` para `authenticated`), y que sea admin lo sigue exigiendo el PIN, igual que en las demás pestañas.
+- **El descuadre del cierre Z no significaba nada.** El efectivo esperado era «ventas en efectivo + propinas en metálico», y por un cajón pasa mucho más: el **fondo de cambio** con el que se abre y sigue ahí al contar, lo que se **saca** para pagar al proveedor o llevar al banco, y el que se **mete** cuando se acaba el suelto. Con un fondo de 150 € el arqueo cantaba «sobran 150 €» todos los días, y un descuadre que siempre dice lo mismo se deja de mirar a la semana — que es peor que no tenerlo, porque parece que lo tienes.
+
+### Añadido
+- **Fondo de caja** configurable, y **entradas y salidas del cajón** con importe y motivo obligatorio (un movimiento sin motivo es dinero que desapareció sin explicación). Migración `20260831T37`. El cierre guarda el fondo y el saldo de movimientos, para poder releer un arqueo viejo sin recalcular nada.
+- La cuenta vive en **`src/lib/caja.js`** y no en cada pantalla: la usan el arqueo que se ve en Admin, el cierre de la demo y el cierre contra el servidor.
+
 ## [0.105.0] - 2026-08-31
 
 El registro de jornada, que es obligatorio por ley (RD-ley 8/2019) y hay que

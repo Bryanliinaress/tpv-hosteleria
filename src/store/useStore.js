@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import { nombreDeLocalPorDefecto } from '../lib/perfil'
 import { importeDesdeTexto } from '../lib/dinero'
 import { revisarCorreccionFichaje, revisarNuevoFichaje } from '../lib/fichajes'
+import { efectivoEsperado, descuadreDe, saldoMovimientos, movimientosDesde, revisarMovimiento } from '../lib/caja'
 import { revisarNuevoEmpleado, revisarCambioEmpleado, revisarBajaEmpleado } from '../lib/personal'
 import { totalDeMesa } from '../lib/dinero'
 
@@ -360,6 +361,9 @@ export const useStore = create(persist((set, get) => ({
 
   // ── FICHAJES (registro de jornada, RD-ley 8/2019) ──────
   fichajes: [], // { id, empleadoId, nombre, entrada, salida } (ISO); salida null = turno abierto
+  // Dinero que entra o sale del cajón sin ser una venta: el cambio que se mete,
+  // lo que se saca para pagar al del pan. Sin esto el arqueo no cuadra nunca.
+  movimientosCaja: [], // { id, tipo:'entrada'|'salida', importe, motivo, creadoEn, creadoPor }
 
   // ── AGENDA DE RESERVAS (reservas online del cliente) ───
   // Reserva tipo CoverManager: el cliente pide fecha/hora/personas/zona y el
@@ -1061,6 +1065,19 @@ export const useStore = create(persist((set, get) => ({
     return { local: { ...state.local, ...next } }
   }),
 
+  // ── MOVIMIENTOS DE CAJA ────────────────────────────────
+  // Apunta dinero que entra o sale del cajón y no es una venta.
+  registrarMovimiento: ({ tipo, importe, motivo, creadoPor } = {}) => {
+    const r = revisarMovimiento({ tipo, importe, motivo })
+    if (!r.ok) return r
+    set(state => ({ movimientosCaja: [...state.movimientosCaja, {
+      id: crearId('mv'), _ts: Date.now(),
+      tipo: r.tipo, importe: r.importe, motivo: r.motivo,
+      creadoEn: new Date().toISOString(), creadoPor: creadoPor || null,
+    }] }))
+    return { ok: true }
+  },
+
   // ── CIERRE DE CAJA (arqueo Z) ──────────────────────────
   // Cierra la caja desde el último cierre hasta ahora: agrega ventas, propinas
   // y desglose por método. `contado` (efectivo real en cajón) calcula descuadre.
@@ -1076,18 +1093,29 @@ export const useStore = create(persist((set, get) => ({
     // un sobrante falso cada vez que alguien dejaba propina en metálico.
     const propinasPorMetodo = {}
     tickets.forEach(r => Object.entries(propinasPorMetodoDe(r)).forEach(([k, v]) => { propinasPorMetodo[k] = cent((propinasPorMetodo[k] || 0) + v) }))
-    const efectivoEsperado = cent((pagos.efectivo || 0) + (propinasPorMetodo.efectivo || 0))
+    // Con el fondo de cambio y los movimientos: sin ellos el descuadre era la
+    // diferencia contra una cuenta incompleta (ver src/lib/caja.js).
+    const fondo = Number(state.local?.fondoCaja) || 0
+    const movs = movimientosDesde(state.movimientosCaja, desde)
+    const esperado = efectivoEsperado({
+      fondo,
+      ventasEfectivo: pagos.efectivo || 0,
+      propinasEfectivo: propinasPorMetodo.efectivo || 0,
+      movimientos: movs,
+    })
     // Por `importeDesdeTexto`: `Number('2,50')` da NaN y acababa en 0, o sea
     // un descuadre de toda la caja por escribir el efectivo con coma.
     const cont = importeDesdeTexto(contado)
-    const descuadre = cont == null ? null : cent(cont - efectivoEsperado)
+    const descuadre = descuadreDe(cont, esperado)
     return {
       cierres: [...state.cierres, {
         id: crearId('z'),
         _ts: Date.now(),
         desde,
         hasta: new Date().toISOString(),
-        total, propinas, pagos, propinasPorMetodo, efectivoEsperado,
+        total, propinas, pagos, propinasPorMetodo,
+        efectivoEsperado: esperado,
+        fondo, movimientos: saldoMovimientos(movs),
         nTickets: tickets.length,
         contado: cont,
         descuadre,

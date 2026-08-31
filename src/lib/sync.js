@@ -32,7 +32,7 @@ export const syncListo = new Promise(r => { resolverListo = r })
 export const CLAVES_SYNC = [
   'local', 'empleados', 'carta', 'mesas',
   'pedidosCocina', 'pedidosBarra', 'avisos',
-  'historial', 'cierres', 'anulaciones', 'fichajes',
+  'historial', 'cierres', 'anulaciones', 'fichajes', 'movimientosCaja',
   'reservas', 'reservasConfig',
 ]
 
@@ -76,6 +76,7 @@ function aplicarRemoto(data) {
     cierres: mergeLog(st.cierres, data.cierres),
     anulaciones: mergeLog(st.anulaciones, data.anulaciones),
     fichajes: mergeLog(st.fichajes, data.fichajes),
+    movimientosCaja: mergeLog(st.movimientosCaja, data.movimientosCaja),
     reservas: data.reservas || [],
   })
   aplicandoRemoto = false
