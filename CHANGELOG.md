@@ -5,6 +5,11 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.106.1] - 2026-08-31
+
+### Arreglado
+- **La tira de categorías de la carta del cliente se metía detrás de la cabecera.** Regresión de la v0.103.0: al pegar la cabecera a `var(--alto-aviso)` para que la banda de demostración no la cortara, la tira siguió anclada a la **altura** de la cabecera (85 px) en vez de a dónde termina (117 px), así que sus 32 px de arriba quedaban detrás y los chips salían cortados. El test que vigila las barras pegajosas no la cazó porque no usaba `top: 0`: ahora exige que **todo** lo pegajoso cuente con la banda, no solo lo que se anclaba a cero.
+
 ## [0.106.0] - 2026-08-31
 
 El arqueo de caja. Y por el camino salió algo peor de lo que iba a arreglar.

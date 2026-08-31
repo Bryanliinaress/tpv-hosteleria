@@ -697,7 +697,11 @@ export default function CartaCliente() {
 
       {/* Categorías: se quedan pegadas bajo la cabecera al bajar por la carta */}
       {!q && (
-        <div style={{ display: 'flex', gap: '0.5rem', padding: '0.6rem 1.25rem', overflowX: 'auto', background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)', position: 'sticky', top: altoCabecera, zIndex: 9 }}>
+        <div style={{ display: 'flex', gap: '0.5rem', padding: '0.6rem 1.25rem', overflowX: 'auto', background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)', position: 'sticky',
+          // DÓNDE ACABA la cabecera, no cuánto mide: con la banda de
+          // demostración empujándola 32 px hacia abajo, anclarse a su altura
+          // metía la tira detrás de ella y los chips salían cortados por arriba.
+          top: `calc(var(--alto-aviso, 0px) + ${altoCabecera}px)`, zIndex: 9 }}>
           <button onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); buscadorRef.current?.focus() }} aria-label={t('🔍 Buscar en la carta…')}
             style={btnStyle('var(--color-surface-2)', { ...paso, padding: 0, flexShrink: 0 })}>🔍</button>
           {carta.categorias.map(cat => (

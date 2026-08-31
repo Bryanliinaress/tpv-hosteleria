@@ -53,6 +53,21 @@ describe('barras que se pegan arriba', () => {
     expect(bloque).not.toMatch(/top:\s*['"]?[\d.]/)
   })
 
+  // El caso que se escapó: la tira de categorías de la carta no se pegaba a
+  // `top: 0` —así que el test de arriba la daba por buena— sino a la ALTURA de
+  // la cabecera, medida con un ref. Correcto mientras la cabecera empezaba en 0;
+  // en cuanto la banda de demostración la empujó 32 px, la tira se quedó detrás
+  // de ella y los chips salían cortados. Todo lo que se pegue arriba tiene que
+  // contar con la banda.
+  it('todo lo pegajoso cuenta con la banda, no solo lo que iba a `top: 0`', () => {
+    const culpables = todos
+      .filter(f => f.ruta !== EXCEPCION)
+      .filter(f => /position:\s*['"]sticky['"]/.test(f.src))
+      .filter(f => !f.src.includes('--alto-aviso'))
+      .map(f => f.ruta)
+    expect(culpables).toEqual([])
+  })
+
   // Si alguien renombra la variable en un sitio y no en el otro, esto lo caza.
   it('la variable que se usa es la que publica AvisoDemo', () => {
     const hook = todos.find(f => f.ruta === 'components/useAltoCSS.js')
