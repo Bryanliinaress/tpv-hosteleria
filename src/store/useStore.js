@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { nombreDeLocalPorDefecto } from '../lib/perfil'
 import { importeDesdeTexto } from '../lib/dinero'
-import { revisarCorreccionFichaje } from '../lib/fichajes'
+import { revisarCorreccionFichaje, revisarNuevoFichaje } from '../lib/fichajes'
 import { revisarNuevoEmpleado, revisarCambioEmpleado, revisarBajaEmpleado } from '../lib/personal'
 import { totalDeMesa } from '../lib/dinero'
 
@@ -1037,6 +1037,20 @@ export const useStore = create(persist((set, get) => ({
     return { ok: true }
   },
   borrarFichaje: (id) => set(state => ({ fichajes: state.fichajes.filter(x => x.id !== id) })),
+
+  // Alta manual de una jornada que nadie fichó (solo admin). Queda marcada como
+  // corregida: en un registro de jornada hay que poder distinguir lo que marcó
+  // el trabajador de lo que puso el encargado a mano.
+  crearFichaje: ({ empleadoId, entrada, salida } = {}) => {
+    const r = revisarNuevoFichaje({ empleadoId, entrada, salida }, get().empleados)
+    if (!r.ok) return r
+    const e = get().empleados.find(x => x.id === empleadoId)
+    set(state => ({ fichajes: [...state.fichajes, {
+      id: crearId('fj'), _ts: Date.now(), empleadoId, nombre: e?.nombre,
+      entrada: r.entrada, salida: r.salida, editadoPor: 'admin',
+    }] }))
+    return { ok: true }
+  },
 
   // ── IDENTIDAD DEL LOCAL ────────────────────────────────
   // Actualiza los datos del negocio (nombre, IVA, moneda, pie de ticket…).

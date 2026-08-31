@@ -24,3 +24,40 @@ export function revisarCorreccionFichaje(fichaje, cambios = {}) {
   }
   return { ok: true, entrada, salida: salida || null }
 }
+
+/**
+ * El nombre de quien fichó.
+ *
+ * En v1 el fichaje se guarda con el nombre dentro; en v2 solo viaja
+ * `empleadoId` y hay que resolverlo contra la plantilla. Sin esto, la app real
+ * enseñaba «👤 undefined» en cada línea y —peor— sumaba las horas de TODOS bajo
+ * esa misma clave: el resumen por empleado, que es para lo que existe la
+ * pantalla, daba un solo total mezclado.
+ */
+export function nombreDeFichaje(f, empleados = []) {
+  if (f?.nombre) return f.nombre
+  const e = empleados.find(x => x.id === f?.empleadoId)
+  return e?.nombre || 'Sin asignar'
+}
+
+/** Fichajes con el nombre ya resuelto, para pintarlos y para el CSV. */
+export const conNombre = (fichajes = [], empleados = []) =>
+  fichajes.map(f => ({ ...f, nombre: nombreDeFichaje(f, empleados) }))
+
+/**
+ * Comprueba un alta manual de jornada.
+ *
+ * Se podían corregir fichajes pero no CREARLOS: si alguien olvidaba fichar la
+ * entrada del todo, no había forma de dejar constancia de esa jornada. Un
+ * registro legal en el que no puedes añadir lo que falta es un registro con
+ * agujeros — y el RD-ley 8/2019 obliga a conservarlo cuatro años.
+ */
+export function revisarNuevoFichaje({ empleadoId, entrada, salida } = {}, empleados = []) {
+  if (!empleadoId) return { ok: false, error: 'Elige de quién es la jornada' }
+  if (empleados.length && !empleados.some(e => e.id === empleadoId)) {
+    return { ok: false, error: 'Ese empleado no está en la plantilla' }
+  }
+  // Las mismas reglas que una corrección: la entrada manda y la salida no puede
+  // ir antes.
+  return revisarCorreccionFichaje({ entrada: null, salida: null }, { entrada, salida })
+}

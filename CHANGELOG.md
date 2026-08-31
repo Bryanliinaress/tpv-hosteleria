@@ -5,6 +5,18 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.105.0] - 2026-08-31
+
+El registro de jornada, que es obligatorio por ley (RD-ley 8/2019) y hay que
+conservar cuatro años.
+
+### Arreglado
+- **🔴 Las horas por empleado salían todas mezcladas en un solo total.** En v2 el fichaje solo trae `empleadoId` —el nombre no se hidrata—, y la pantalla agrupaba por `f.nombre`: cada línea decía «👤 undefined» y, peor, **todas caían en la misma clave**, así que el resumen sumaba las horas de toda la plantilla en un único «undefined». Es el número que va a la nómina. `empleados` ya se le pasaba a la pestaña, pero la firma no lo recogía. Ahora el nombre se resuelve contra la plantilla (`nombreDeFichaje`), y un empleado que ya no está sale como «Sin asignar» en vez de `undefined`.
+
+### Añadido
+- **Añadir una jornada que nadie fichó.** Se podían corregir fichajes pero no crearlos: si alguien olvidaba fichar la entrada del todo, esa jornada no existía para el registro y no había forma de meterla. Un registro legal en el que no puedes añadir lo que falta es un registro con agujeros.
+- **Se distingue lo fichado de lo puesto a mano.** Las jornadas que toca el encargado salen marcadas con «✍️ a mano» en la lista y con una columna **Registro** en el CSV. La tabla ya guardaba `editado_por`; ahora se ve.
+
 ## [0.104.0] - 2026-08-31
 
 Salió de repasar el panel de Admin pantalla por pantalla. Las dos son de la
