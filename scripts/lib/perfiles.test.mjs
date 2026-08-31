@@ -142,4 +142,16 @@ describe('perfilPublico', () => {
     expect(JSON.stringify(pub)).not.toContain('supabase')
     expect(pub.logo).toBeNull()
   })
+
+  // Los QR de mesa se imprimen desde el navegador y tienen que llevar la
+  // dirección del bar, no la de por dónde se abrió el panel.
+  it('lleva la dirección pública del local', () => {
+    escribir('bar-manolo', { ...base, despliegue: { ...(base.despliegue || {}), url: 'https://bar-manolo.es/' } })
+    expect(perfilPublico(cargarPerfil('bar-manolo', dir)).url).toBe('https://bar-manolo.es/')
+  })
+
+  it('sin dirección configurada va a null, y la app se cae a la actual', () => {
+    escribir('bar-manolo', base)
+    expect(perfilPublico(cargarPerfil('bar-manolo', dir)).url).toBeNull()
+  })
 })

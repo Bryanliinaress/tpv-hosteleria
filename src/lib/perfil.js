@@ -15,6 +15,7 @@ export const PERFIL_GENERICO = {
   logo: null,
   demo: false,
   modulos: {},
+  url: null,
 }
 
 /** Parsea el JSON inyectado en el build; si falta o está roto, marca genérica. */
@@ -59,6 +60,28 @@ export const esDemo = (p = perfil) => p?.demo === true
  * la vista solo dan formas de romperlo, como crear un local duplicado.
  */
 export const esLocalMontado = (p = perfil) => !!(p?.slug && p.slug !== 'generico')
+
+/**
+ * Dirección pública de este local, terminada en «/».
+ *
+ * Es la que va dentro de los QR de mesa. NO se puede usar `window.location`
+ * para eso: los QR se imprimen una vez, se pegan en las mesas y se quedan ahí
+ * meses. Bastaba con abrir Admin desde una build local o de pruebas para
+ * imprimir doce pegatinas apuntando a `localhost`.
+ *
+ * Si el perfil no la trae (build genérica, tests) se cae a la dirección actual,
+ * que es lo que había antes y para un vistazo rápido vale.
+ */
+export function urlPublica(p = perfil, loc = (typeof window !== 'undefined' ? window.location : null), base = import.meta.env.BASE_URL) {
+  const conBarra = (u) => (String(u).endsWith('/') ? String(u) : `${u}/`)
+  if (p?.url) return conBarra(p.url)
+  if (!loc) return '/'
+  return conBarra(`${loc.origin}${base || '/'}`)
+}
+
+/** La dirección de la carta de una mesa: lo que se mete en su QR. */
+export const urlDeMesa = (mesaId, p = perfil, loc, base) =>
+  `${urlPublica(p, loc, base)}#/mesa/${mesaId}`
 
 /** ¿Está activo un módulo opcional de este local? */
 export const modulo = (nombre) => !!perfil.modulos[nombre]

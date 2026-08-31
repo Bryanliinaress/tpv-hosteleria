@@ -156,6 +156,12 @@ export function perfilPublico(perfil) {
     logo: ficherosDeMarca(perfil).find(f => f.startsWith('logo.')) || null,
     demo: perfil.demo === true,
     modulos: perfil.modulos,
+    // La dirección pública del local. Viaja al navegador porque los QR de mesa
+    // se imprimen desde Admin y NO pueden depender de por dónde se haya abierto
+    // el panel: con `window.location` bastaba con entrar desde una build local
+    // para imprimir doce pegatinas apuntando a `localhost` y pegarlas en las
+    // mesas. No es un secreto: es la URL que ya se reparte impresa.
+    url: perfil.despliegue.url || null,
   }
 }
 

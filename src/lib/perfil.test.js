@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { leerPerfil, cssDeMarca, aplicarMarca, urlLogo, nombreDeLocalPorDefecto, PERFIL_GENERICO, esDemo } from './perfil'
+import { leerPerfil, cssDeMarca, aplicarMarca, urlLogo, nombreDeLocalPorDefecto, PERFIL_GENERICO, esDemo, urlPublica, urlDeMesa } from './perfil'
 
 describe('leerPerfil', () => {
   it('sin perfil inyectado usa la marca genérica', () => {
@@ -107,5 +107,45 @@ describe('una demo tiene que saberse que es una demo', () => {
 
     aplicarMarca(leerPerfil('{"slug":"casa-loli","nombre":"Casa Loli"}'), doc)
     expect(doc.title).toBe('Casa Loli')
+  })
+})
+
+// ────────────────────────────────────────────────────────────────────────────
+// La dirección que va DENTRO del QR de mesa.
+//
+// Se imprime una vez, se pega en la mesa y se queda ahí meses. Se construía con
+// `window.location`, así que bastaba con abrir Admin desde una build local para
+// imprimir doce pegatinas apuntando a `localhost`.
+// ────────────────────────────────────────────────────────────────────────────
+describe('la dirección pública del local', () => {
+  const loc = { origin: 'http://localhost:5186' }
+
+  it('manda la del perfil, no por dónde se haya abierto el panel', () => {
+    const p = { ...PERFIL_GENERICO, url: 'https://bar-manolo.es/' }
+    expect(urlPublica(p, loc, '/')).toBe('https://bar-manolo.es/')
+  })
+
+  it('le pone la barra final si el perfil la trae sin ella', () => {
+    const p = { ...PERFIL_GENERICO, url: 'https://bar-manolo.es' }
+    expect(urlPublica(p, loc, '/')).toBe('https://bar-manolo.es/')
+  })
+
+  it('respeta el subdirectorio del despliegue', () => {
+    const p = { ...PERFIL_GENERICO, url: 'https://usuario.github.io/tpv-hosteleria/' }
+    expect(urlPublica(p, loc, '/')).toBe('https://usuario.github.io/tpv-hosteleria/')
+  })
+
+  it('sin dirección propia se cae a la actual, que es lo que había antes', () => {
+    expect(urlPublica(PERFIL_GENERICO, loc, '/')).toBe('http://localhost:5186/')
+    expect(urlPublica(PERFIL_GENERICO, loc, '/tpv-hosteleria/')).toBe('http://localhost:5186/tpv-hosteleria/')
+  })
+
+  it('el QR de una mesa cuelga de ahí', () => {
+    const p = { ...PERFIL_GENERICO, url: 'https://bar-manolo.es/' }
+    expect(urlDeMesa('abc-123', p, loc, '/')).toBe('https://bar-manolo.es/#/mesa/abc-123')
+  })
+
+  it('y sin perfil sigue funcionando, aunque apunte a donde estés', () => {
+    expect(urlDeMesa('abc-123', PERFIL_GENERICO, loc, '/')).toBe('http://localhost:5186/#/mesa/abc-123')
   })
 })
