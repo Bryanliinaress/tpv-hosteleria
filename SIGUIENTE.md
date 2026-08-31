@@ -177,11 +177,10 @@ dice «tickets sin registrar», hay que atenderlo **ese mismo día**.
   enseñarla, pero un bar de verdad tiene 100-150 € de cambio en el cajón: si no
   se pone, el arqueo canta descuadre todos los días.
 
-- En Ajustes → Tipo de pan hay un «Con Gluten» junto a «Sin gluten +1,20 €».
-  **Confirmado el 31/08 mirándolo: el cliente lo ve** al personalizar un
-  bocadillo, justo al lado de la opción sin gluten, y leído seguido queda raro —
-  como si el bar ofreciera «con gluten» a propósito. Resto de la carta de
-  ejemplo: se quita desde Admin → Ajustes.
+- ~~El «Con Gluten» de Ajustes → Tipo de pan~~ ✅ **quitado el 31/08.** Era resto
+  de la carta de ejemplo y el cliente lo veía al personalizar un bocadillo,
+  justo al lado de «Sin gluten +1,20 €». Comprobado que ningún ticket emitido lo
+  mencionaba antes de tocarlo.
 - En la demo, la rectificativa nº 7 quedó apuntada como efectivo cuando el
   original era online (dato anterior al arreglo). Se deja: un documento fiscal
   emitido no se reescribe.
