@@ -475,7 +475,7 @@ function FilaAgotado({ prod, onToggle }) {
   )
 }
 
-const cab = { position: 'sticky', top: 0, zIndex: 10, background: 'color-mix(in srgb, var(--color-surface) 88%, transparent)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', borderBottom: '1px solid var(--color-border)', boxShadow: '0 6px 18px -10px rgba(0,0,0,0.6)', padding: '0.875rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }
+const cab = { position: 'sticky', top: 'var(--alto-aviso, 0px)', zIndex: 10, background: 'color-mix(in srgb, var(--color-surface) 88%, transparent)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', borderBottom: '1px solid var(--color-border)', boxShadow: '0 6px 18px -10px rgba(0,0,0,0.6)', padding: '0.875rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }
 const card = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.875rem', boxShadow: 'var(--shadow-sm)' }
 const inp = { background: 'var(--color-inset)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.55rem 0.7rem', color: 'var(--color-text)', fontSize: '0.9rem', width: '100%' }
 const btn = (bg, extra = {}) => ({ background: bg, color: /surface|inset|transparent|none|tint-[a-z]+-bg/.test(bg) ? 'var(--color-text)' : '#fff', border: 'none', borderRadius: '0.55rem', padding: '0.55rem 0.9rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', boxShadow: '0 1px 2px rgba(0,0,0,0.2)', ...extra })
