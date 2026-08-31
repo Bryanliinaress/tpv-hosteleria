@@ -5,6 +5,11 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.103.1] - 2026-08-31
+
+### Seguridad
+- **Cinco vulnerabilidades altas en dependencias de desarrollo** (`brace-expansion`, `fast-uri`, `js-yaml`, `nanoid`, `postcss`), todas transitivas y todas resueltas sin cambio de API. Las de **producción ya estaban a cero** —que es lo que llega al bar—, pero estas corren en el CI y en la máquina de quien desarrolla. Ahora el árbol entero está a cero.
+
 ## [0.103.0] - 2026-08-31
 
 Salió de mirar por fin **los KDS con comandas dentro**, que era lo último que
