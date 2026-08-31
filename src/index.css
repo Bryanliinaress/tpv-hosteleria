@@ -160,7 +160,12 @@ button:focus-visible { outline: none; box-shadow: var(--ring); }
 .anim-slide-up { animation: slideUp 0.25s cubic-bezier(0.16,1,0.3,1) both; }
 .pulse-attn { animation: pulseRing 1.8s ease-out infinite; }
 
-/* Impresión: solo se imprime el ticket */
+/* Solo visible en papel: en pantalla estorbaría (el nombre del bar ya está en
+   la cabecera), pero una pegatina suelta sobre una mesa tiene que decir de qué
+   bar es y qué hacer con ella. */
+.solo-print { display: none; }
+
+/* Impresión: o el ticket, o la hoja de QR de mesa. */
 @media print {
   body { background: #fff; }
   body * { visibility: hidden; }
@@ -174,6 +179,33 @@ button:focus-visible { outline: none; box-shadow: var(--ring); }
     border-radius: 0 !important;
   }
   .no-print { display: none !important; }
+  .solo-print { display: block !important; }
+
+  /* ── Hoja de QR de mesa ───────────────────────────────────────────────────
+     Tres por fila entran en un A4 con sitio de sobra para recortar. El borde
+     discontinuo es la línea de corte: se imprime una vez, se recorta y se pega
+     en las mesas. */
+  .qr-print, .qr-print * { visibility: visible; }
+  .qr-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 6mm !important;
+  }
+  .qr-print .qr-tarjeta {
+    /* Que una pegatina no se parta entre dos páginas. */
+    break-inside: avoid;
+    page-break-inside: avoid;
+    background: #fff !important;
+    color: #000 !important;
+    border: 1px dashed #94a3b8 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 5mm !important;
+  }
+  .qr-print .qr-tarjeta * { color: #000 !important; }
 }
 
 /* Trozos de texto que solo caben en pantallas anchas. Se usa en la banda de

@@ -10,6 +10,7 @@ import TemaToggle from '../../components/TemaToggle'
 import { useAltoCSS } from '../../components/useAltoCSS'
 import EstadoFiscal from '../../components/EstadoFiscal'
 import { productosVisibles } from '../../lib/carta'
+import { perfil, urlPublica, urlDeMesa } from '../../lib/perfil'
 import { esDelMes, horasEntre } from '../../lib/fechas'
 import ConfigImpresora from '../../components/ConfigImpresora'
 import EditorMenu from '../../components/EditorMenu'
@@ -785,21 +786,38 @@ export default function PanelAdmin() {
 
         {tab === 'qr' && (
           <div>
-            <p style={{ color: 'var(--color-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
-              Cada mesa tiene su QR único. Imprímelo y colócalo en la mesa: al escanearlo, el cliente abre directamente su carta.
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.875rem' }}>
+            <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+              <p style={{ color: 'var(--color-muted)', fontSize: '0.9rem', margin: 0, flex: '1 1 320px' }}>
+                Cada mesa tiene su QR único. Imprímelo y colócalo en la mesa: al escanearlo, el cliente abre directamente su carta.
+                {' '}Apuntan a <code style={{ fontSize: '0.8rem', color: 'var(--color-accent)' }}>{urlPublica()}</code>
+              </p>
+              <button onClick={() => window.print()} style={{ background: 'var(--color-accent)', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.6rem 1rem', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                🖨 Imprimir todos ({mesas.length})
+              </button>
+            </div>
+            {/* Sin `url` en el perfil (build genérica) los QR salen con la
+                dirección desde la que se abrió Admin, que puede no ser la del
+                bar. Mejor decirlo que imprimir doce pegatinas muertas. */}
+            {!perfil.url && (
+              <div className="no-print" style={{ background: 'var(--tint-warning-bg)', color: 'var(--tint-warning-fg)', border: '1px solid var(--tint-warning-bd)', borderRadius: 'var(--radius)', padding: '0.75rem 0.9rem', marginBottom: '1.25rem', fontSize: '0.83rem' }}>
+                ⚠️ Esta instalación no tiene dirección propia configurada, así que los QR usan <strong>la dirección desde la que has abierto este panel</strong>. Compruébala arriba antes de imprimir.
+              </div>
+            )}
+            <div className="qr-print" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.875rem' }}>
               {mesas.map(m => {
-                const url = `${window.location.origin}${import.meta.env.BASE_URL}#/mesa/${m.id}`
+                const url = urlDeMesa(m.id)
                 return (
-                  <div key={m.id} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.75rem', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.625rem' }}>
+                  <div key={m.id} className="qr-tarjeta" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.75rem', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.625rem' }}>
+                    <div className="solo-print" style={{ fontWeight: 700, fontSize: '0.9rem' }}>{local.nombre || ''}</div>
                     <div style={{ fontWeight: 700 }}>Mesa {m.numero}</div>
                     <div style={{ background: 'white', padding: '0.625rem', borderRadius: '0.5rem' }}>
                       <QRCodeSVG value={url} size={128} level="M" />
                     </div>
-                    <code style={{ fontSize: '0.65rem', color: '#a78bfa', wordBreak: 'break-all', textAlign: 'center' }}>{url}</code>
+                    <div className="solo-print" style={{ fontSize: '0.75rem', textAlign: 'center' }}>Escanea para ver la carta y pedir</div>
+                    <code className="no-print" style={{ fontSize: '0.65rem', color: '#a78bfa', wordBreak: 'break-all', textAlign: 'center' }}>{url}</code>
                     <button
-                      onClick={() => navigator.clipboard?.writeText(url)}
+                      className="no-print"
+                      onClick={() => { navigator.clipboard?.writeText(url); toast('Dirección copiada', 'success') }}
                       style={{ background: 'var(--color-surface-2)', color: 'var(--color-muted)', border: '1px solid var(--color-border)', borderRadius: '0.375rem', padding: '0.375rem 0.75rem', cursor: 'pointer', fontSize: '0.75rem', width: '100%' }}
                     >
                       Copiar URL
