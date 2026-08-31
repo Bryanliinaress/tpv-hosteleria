@@ -5,6 +5,19 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.100.0] - 2026-08-28
+
+### Añadido
+- **La impresión avisa cuando no imprime.** `WritePrinter` solo confirma que el **spooler aceptó** los bytes, no que saliera papel: con la impresora apagada, sin papel o con el USB suelto, Windows los acepta igual y el trabajo se queda encallado en la cola. Así estuvo del **12 al 28 de agosto** — cada comanda marcada como impresa, el log escribiendo su `🖨`, y nueve trabajos muertos en la cola. Ahora `imprimir-raw.ps1` recoge el ID del trabajo (`StartDocPrinter`, que ya lo devolvía y se estaba tirando) y espera a que **desaparezca de la cola**, que es como Windows dice «esto ha salido por el puerto».
+- **Un trabajo que no sale se cancela.** Si no se confirma, se quita de la cola: sin esto, cada reintento dejaba otro encallado y al reconectar la impresora salían todos de golpe.
+- **Clase de incidencia `impresora`** (migración `20260828T36`): el servicio de impresión anota el fallo en la base y `npm run salud` lo saca junto a lo demás. Antes, una impresora muerta solo se notaba porque no llegaba la comida. Cuando vuelve a imprimir, lo dice en el log.
+
+### Cambiado
+- **Los fallos que no se arreglan insistiendo ya no se reintentan.** Un error marcado `noReintentar` —la impresora está apagada— se abandona al primer intento en vez de gastar tres: insistir a los 400 ms no la enciende. Del reintento se sigue encargando el repaso de pendientes, un minuto después.
+
+### Arreglado
+- `docs/AUDITORIA.md` abría con un **🔴 PENDIENTE DE APLICAR** sobre los suplementos que llevaba resuelto y verificado desde hacía semanas.
+
 ## [0.99.1] - 2026-08-26
 
 ### Arreglado

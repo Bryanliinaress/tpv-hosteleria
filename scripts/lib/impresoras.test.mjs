@@ -151,3 +151,45 @@ describe('impresora local de Windows (por nombre)', () => {
     }
   })
 })
+
+// ────────────────────────────────────────────────────────────────────────────
+// Que el spooler acepte los bytes NO es que haya salido papel.
+//
+// Del 12 al 28 de agosto de 2026 no salió ni un tique y el sistema decía que
+// todo iba bien: nueve trabajos muertos en la cola de Windows. Ahora
+// `imprimir-raw.ps1` espera a que el trabajo salga de la cola y, si no sale, lo
+// cancela y devuelve «sin-confirmar».
+//
+// Insistir con la impresora apagada no la enciende: solo deja otro trabajo
+// encallado por intento, y al reconectarla se vomitan todos de golpe. Por eso
+// ese error concreto se abandona al primer intento.
+// ────────────────────────────────────────────────────────────────────────────
+describe('la impresora acepta el trabajo pero no imprime', () => {
+  const sinConfirmar = () => {
+    const e = new Error('sin-confirmar: el trabajo 7 seguia en la cola tras 8 s')
+    e.noReintentar = true
+    return e
+  }
+
+  it('no insiste: un intento y fuera', async () => {
+    let n = 0
+    const enviarFn = async () => { n++; throw sinConfirmar() }
+    await expect(enviarConReintentos('TPV-Cocina', 'x', { enviarFn, dormir: async () => {} }))
+      .rejects.toThrow(/sin-confirmar/)
+    expect(n).toBe(1)
+  })
+
+  it('un fallo normal sí se reintenta, que puede ser el cable flojo', async () => {
+    let n = 0
+    const enviarFn = async () => { n++; throw new Error('la impresora no responde') }
+    await expect(enviarConReintentos('TPV-Cocina', 'x', { enviarFn, dormir: async () => {} }))
+      .rejects.toThrow(/no responde/)
+    expect(n).toBe(3)
+  })
+
+  it('el error llega entero a quien lo tiene que anotar', async () => {
+    const enviarFn = async () => { throw sinConfirmar() }
+    await expect(enviarConReintentos('TPV-Barra', 'x', { enviarFn, dormir: async () => {} }))
+      .rejects.toThrow(/seguia en la cola/)
+  })
+})
