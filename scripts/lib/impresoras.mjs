@@ -16,6 +16,10 @@ import { fileURLToPath } from 'node:url'
 
 const PUERTO = Number(process.env.PUERTO || 9110)
 const PUERTO_IMPRESORA = Number(process.env.PUERTO_IMPRESORA || 9100)
+// Cuánto se espera a que el trabajo salga de la cola de Windows antes de darlo
+// por no impreso. Ver la cabecera de `imprimir-raw.ps1`: que el spooler acepte
+// los bytes NO es que haya salido papel.
+const ESPERA_CONFIRMACION = Number(process.env.ESPERA_CONFIRMACION || 8)
 
 // Destino → impresora. `defecto` cubre lo que no encaje en ninguno.
 export const leerDestinos = (env = process.env) => {
@@ -100,14 +104,21 @@ const enviarLocal = async (nombre, datos) => {
   try {
     await new Promise((resolve, reject) => {
       const p = spawn('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script,
-        '-Impresora', nombre, '-Fichero', tmp], { windowsHide: true })
+        '-Impresora', nombre, '-Fichero', tmp,
+        '-EsperaSegundos', String(ESPERA_CONFIRMACION)], { windowsHide: true })
       let salida = ''
       p.stdout.on('data', (d) => { salida += d })
       p.stderr.on('data', (d) => { salida += d })
       p.on('error', reject)
       p.on('close', (code) => {
         if (code === 0 && /: ?ok:/.test(salida)) return resolve()
-        reject(new Error(salida.trim() || `la impresora «${nombre}» no aceptó el trabajo`))
+        const e = new Error(salida.trim() || `la impresora «${nombre}» no aceptó el trabajo`)
+        // El trabajo entró en la cola pero no llegó a salir por el puerto
+        // (impresora apagada, sin papel o desconectada). Insistir a los 400 ms
+        // no la enciende: solo deja más trabajos encallados. Se falla ya, y el
+        // repaso de lo pendiente lo reintentará dentro de un minuto.
+        if (/sin-confirmar/.test(salida)) e.noReintentar = true
+        reject(e)
       })
     })
   } finally {
@@ -135,6 +146,11 @@ export function enColaDe(impresora, tarea) {
 // ── Reintentos ──────────────────────────────────────────────────────────────
 // La térmica puede estar un segundo ocupada, o el cable flojo. Perder una
 // comanda es un plato que no sale, así que se insiste antes de rendirse.
+//
+// Pero no con todo: un error marcado `noReintentar` es de los que no se
+// arreglan insistiendo —la impresora está apagada o sin papel—, y cada intento
+// dejaría otro trabajo en la cola. Esos se abandonan al primero; de reintentar
+// ya se encarga el repaso de comandas pendientes, un minuto después.
 export async function enviarConReintentos(destino, datos, { intentos = 3, espera = 400, enviarFn = enviar, dormir } = {}) {
   const pausa = dormir || ((ms) => new Promise(r => setTimeout(r, ms)))
   let ultimo
@@ -143,6 +159,7 @@ export async function enviarConReintentos(destino, datos, { intentos = 3, espera
       return await enviarFn(destino, datos)
     } catch (e) {
       ultimo = e
+      if (e?.noReintentar) break
       if (i < intentos) await pausa(espera * i)
     }
   }
