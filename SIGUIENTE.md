@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.101.0 · 743 tests JS + 37 pruebas de SQL en verde · CI y deploy en
+**Estado: v0.102.0 · 759 tests JS + 37 pruebas de SQL en verde · CI y deploy en
 verde · repo limpio.** Última sesión: 2026-08-26.
 
 Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los 71 fallos de la auditoría:
@@ -113,7 +113,7 @@ dice «tickets sin registrar», hay que atenderlo **ese mismo día**.
 ## Comandos
 
 ```bash
-npm test                           # 743 tests, 10 pantallas cubiertas
+npm test                           # 759 tests, 10 pantallas cubiertas
 npm run test:sql                   # 37 pruebas del dinero, contra la base real
 npm run lint
 npm run permisos                   # ¿se ha abierto algo sin querer?

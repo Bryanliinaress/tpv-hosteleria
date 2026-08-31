@@ -158,7 +158,10 @@ describe('los globos de la barra de abajo', () => {
     expect(pestana(/Avisos/).textContent).toContain('2')
   })
 
-  it('el de mesas cuenta las que NO están libres', () => {
+  // Una reservada no necesita nada todavía: no tiene que abultar el globo de
+  // «Mesas» ni contarse como ocupada. Ver src/lib/sala.js.
+  it('el de mesas cuenta las que tienen gente, no las reservadas', () => {
+    estado.mesas.push({ id: 'm4', numero: 4, zona: 'Interior', capacidad: 2, estado: 'reservada', personas: [], reserva: { nombre: 'Pérez' } })
     render(<Pda />)
     expect(pestana(/Mesas/).textContent).toContain('2')
   })
@@ -166,6 +169,20 @@ describe('los globos de la barra de abajo', () => {
   it('el de carta cuenta lo que está agotado, que es lo que hay que revisar', () => {
     render(<Pda />)
     expect(pestana(/Carta/).textContent).toContain('1')
+  })
+})
+
+describe('el recuento de la sala', () => {
+  it('las reservadas van aparte de las ocupadas', () => {
+    estado.mesas.push({ id: 'm4', numero: 4, zona: 'Interior', capacidad: 2, estado: 'reservada', personas: [], reserva: { nombre: 'Pérez' } })
+    render(<Pda />)
+    expect(texto()).toContain('2/4 ocupadas · 1 reservada')
+  })
+
+  it('sin reservas, solo las ocupadas', () => {
+    render(<Pda />)
+    expect(texto()).toContain('2/3 ocupadas')
+    expect(texto()).not.toContain('reservada')
   })
 })
 

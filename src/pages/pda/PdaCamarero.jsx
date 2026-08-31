@@ -8,6 +8,7 @@ import PedirPda from './PedirPda'
 import CobroMesa from './CobroMesa'
 import { productosVisibles, configDeItem, ultimaRonda } from '../../lib/carta'
 import { totalDeMesa } from '../../lib/dinero'
+import { resumenSala, estaOcupada } from '../../lib/sala'
 
 // Pitido + vibración para avisar de eventos nuevos
 function alerta() {
@@ -53,7 +54,8 @@ export default function PdaCamarero() {
   const [reservaForm, setReservaForm] = useState({ nombre: '', hora: '', personas: 2 })
 
   const mesa = mesas.find(m => m.id === mesaId)
-  const ocupadas = mesas.filter(m => m.estado !== 'libre')
+  // «ocupadas» = con gente sentada. Las reservadas se cuentan aparte (lib/sala.js)
+  const ocupadas = mesas.filter(estaOcupada)
   const zonasSala = [...new Set(mesas.map(m => m.zona || 'Sala'))]
 
   // Resumen del turno de este camarero (tickets de hoy atendidos por él)
@@ -288,7 +290,7 @@ export default function PdaCamarero() {
       <div style={cab}>
         <div>
           <div style={{ fontWeight: 800, fontSize: '1.05rem' }}>📟 {camarero}</div>
-          <div style={{ fontSize: '0.68rem', color: 'var(--color-muted)' }}>{ocupadas.length}/{mesas.length} mesas ocupadas</div>
+          <div style={{ fontSize: '0.68rem', color: 'var(--color-muted)' }}>{resumenSala(mesas, { conTotal: false })}</div>
         </div>
         <button onClick={() => setSonido(s => !s)} title="Aviso sonoro" aria-label="Aviso sonoro" style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', width: '2.5rem', height: '2.5rem', flexShrink: 0 }}>{sonido ? '🔔' : '🔕'}</button>
         <button onClick={clearSesion} title="Cerrar sesión" aria-label="Cerrar sesión" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem', color: 'var(--color-muted)', width: '2.5rem', height: '2.5rem', flexShrink: 0 }}>⎋</button>
@@ -441,7 +443,7 @@ export default function PdaCamarero() {
               <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>en propinas</div>
             </div>
           </div>
-          <p style={{ fontSize: '0.78rem', color: 'var(--color-muted)' }}>Aquí se cuentan las mesas que has abierto/cobrado tú hoy. Tus mesas activas: <strong>{mesas.filter(m => m.camarero === camarero && m.estado !== 'libre').length}</strong>.</p>
+          <p style={{ fontSize: '0.78rem', color: 'var(--color-muted)' }}>Aquí se cuentan las mesas que has abierto/cobrado tú hoy. Tus mesas activas: <strong>{mesas.filter(m => m.camarero === camarero && estaOcupada(m)).length}</strong>.</p>
         </div>
       )}
 
