@@ -5,6 +5,15 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.101.0] - 2026-08-31
+
+### Añadido
+- **Tests de pantalla para las cuatro que faltaban**: PDA del camarero, Mostrador, Reservar y Onboarding. Eran las únicas sin cubrir y entre ellas están las dos que el personal toca a diario. **743 tests** (78 nuevos), 58 ficheros.
+  - **PDA**: que abre en Mesas y no en Avisos (decisión que ya costó una corrección), el orden del feed —quien llama, luego lo listo, y la cuenta al final—, el «1 comensal» en singular, los globos de la barra inferior, y que el resumen del turno cuente solo lo de ese camarero y solo lo de hoy.
+  - **Mostrador**: el recuento por zona y por estado, que tocar una mesa unida abra la cuenta de la **principal** y no una vacía, que la pista de juntar mesas cambie entre ratón («arrastra») y táctil («mantén pulsada»), y que el diálogo de unir no se ofrezca a sí misma ni a una reservada. Incluye un candado sobre el ancho mínimo de tarjeta (`minmax(132px, 1fr)`) para que no vuelva el descuadre de la v0.99.1.
+  - **Reservar**: que una reserva **rechazada por el servidor no se enseñe como confirmada** —ni se mande el email, ni se apunte en el móvil—, la validación de nombre y email, el aviso de retención de datos (RGPD) y que el enlace del email no enseñe la reserva de nadie sin su token.
+  - **Onboarding**: que rehacer la sala avise de que **los QR ya impresos dejan de servir**, que no deje pasar sin nombre de local, y que vaciar la carta se pregunte antes.
+
 ## [0.100.0] - 2026-08-28
 
 ### Añadido
