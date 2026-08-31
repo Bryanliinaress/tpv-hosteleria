@@ -17,12 +17,12 @@ export default function PantallaKDS() {
   return (
     <div className="force-dark" style={{ minHeight: '100vh', background: 'var(--color-bg)', color: 'var(--color-text)' }}>
       {/* Header */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'linear-gradient(180deg, var(--tint-success-bg), var(--tint-success-bg))', borderBottom: '1px solid var(--tint-success-bd)', boxShadow: '0 8px 24px -12px rgba(0,0,0,0.7)', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ position: 'sticky', top: 'var(--alto-aviso, 0px)', zIndex: 10, background: 'linear-gradient(180deg, var(--tint-success-bg), var(--tint-success-bg))', borderBottom: '1px solid var(--tint-success-bd)', boxShadow: '0 8px 24px -12px rgba(0,0,0,0.7)', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
           <div style={{ width: '4px', height: '2.5rem', borderRadius: '9999px', background: '#10b981', boxShadow: '0 0 14px #10b981' }} />
           <div>
             <h1 style={{ fontWeight: 900, fontSize: '1.5rem', color: '#10b981', letterSpacing: '0.02em' }}>🍳 COCINA</h1>
-            <p style={{ fontSize: '0.8rem', color: '#6ee7b7' }}>{activos.length} en cola · {listos.length} listos</p>
+            <p style={{ fontSize: '0.8rem', color: '#6ee7b7' }}>{activos.length} en cola · {listos.length} {listos.length === 1 ? 'listo' : 'listos'}</p>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>

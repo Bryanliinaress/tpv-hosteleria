@@ -68,7 +68,7 @@ export default function ColaKDS({ pedidos, estados, acento, onAvanzar, unidad = 
                       <div style={{ fontWeight: 700, fontSize: '1.05rem', textDecoration: hecho ? 'line-through' : 'none' }}>
                         <span style={{ color: '#f59e0b' }}>{p.cantidad}×</span> {p.nombre}
                         {(p.tiempo || 1) > 1 && (
-                          <span style={{ marginLeft: '0.5rem', fontSize: '0.72rem', background: '#3b0764', color: '#c4b5fd', borderRadius: '9999px', padding: '0.12rem 0.5rem', fontWeight: 700, verticalAlign: 'middle' }}>
+                          <span style={{ marginLeft: '0.5rem', fontSize: '0.72rem', background: '#3b0764', color: '#c4b5fd', borderRadius: '9999px', padding: '0.12rem 0.5rem', fontWeight: 700, verticalAlign: 'middle', display: 'inline-block', whiteSpace: 'nowrap' }}>
                             {p.tiempo === 3 ? '🍰 Postre' : '2º plato'}{p.estado === 'espera' ? ' · sin marchar' : ''}
                           </span>
                         )}

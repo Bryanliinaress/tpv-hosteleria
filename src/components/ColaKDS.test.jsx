@@ -133,3 +133,39 @@ describe('lo que aguanta sin romperse', () => {
     expect(texto()).toMatch(/Tortilla/)
   })
 })
+
+// ────────────────────────────────────────────────────────────────────────────
+// El distintivo del segundo tiempo va DENTRO de la línea del plato. En la
+// columna estrecha del KDS (cuando aparece «Listos» al lado) se partía en dos
+// —«2º» arriba y «plato · sin marchar» abajo, encima del nombre del comensal—
+// y dejaba de leerse como una etiqueta.
+// ────────────────────────────────────────────────────────────────────────────
+describe('el distintivo de segundo tiempo', () => {
+  const conTiempo = (t, estado = 'recibido') =>
+    render(<ColaKDS pedidos={[pedido({ tiempo: t, estado })]} ESTADO={ESTADO} onAvanzar={() => {}} />)
+
+  it('no se parte en dos líneas', () => {
+    const { container } = conTiempo(2)
+    const badge = [...container.querySelectorAll('span')].find(s => /2º plato/.test(s.textContent))
+    expect(badge).toBeTruthy()
+    expect(badge.getAttribute('style')).toContain('nowrap')
+  })
+
+  it('dice «sin marchar» solo mientras está en espera', () => {
+    conTiempo(2, 'espera')
+    expect(document.body.textContent).toContain('sin marchar')
+    cleanup()
+    conTiempo(2, 'recibido')
+    expect(document.body.textContent).not.toContain('sin marchar')
+  })
+
+  it('el tercer tiempo es el postre', () => {
+    conTiempo(3)
+    expect(document.body.textContent).toContain('Postre')
+  })
+
+  it('un plato de primer tiempo no lleva distintivo', () => {
+    conTiempo(1)
+    expect(document.body.textContent).not.toMatch(/2º plato|Postre/)
+  })
+})

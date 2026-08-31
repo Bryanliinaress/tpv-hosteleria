@@ -41,7 +41,17 @@ export default function UIHost() {
           Es lo primero que veía quien escaneaba el QR. */}
       {hayNueva && !esCarta && (
         <div className="no-print anim-fade" style={{
-          position: 'fixed', top: '0.75rem', left: '50%', transform: 'translateX(-50%)', zIndex: 260,
+          // ABAJO, no arriba. Arriba está lleno: la banda de demostración, la
+          // cabecera de cada pantalla y, en el KDS, el reloj —que la píldora
+          // tapaba justo—. Cualquier cosa centrada arriba choca con una
+          // cabecera de ancho completo; bajarla quita el problema de raíz en
+          // vez de moverlo unos píxeles.
+          //
+          // Los 5,5rem dejan pasar la barra inferior de la PDA, que es lo único
+          // anclado abajo. En el resto de pantallas solo flota un poco más alto.
+          position: 'fixed',
+          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 5.5rem)',
+          left: '50%', transform: 'translateX(-50%)', zIndex: 260,
           display: 'flex', alignItems: 'center', gap: '0.5rem',
           background: 'var(--tint-info-bg)', color: 'var(--tint-info-fg)',
           border: '1px solid var(--color-info)', borderRadius: '9999px',

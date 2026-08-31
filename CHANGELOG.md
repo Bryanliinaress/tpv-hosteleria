@@ -5,6 +5,22 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.103.0] - 2026-08-31
+
+Salió de mirar por fin **los KDS con comandas dentro**, que era lo último que
+quedaba del repaso visual. Las pantallas están bien; lo que estaba mal era todo
+lo que se les monta encima.
+
+### Arreglado
+- **El aviso de «Nueva versión» tapaba el reloj de la cocina.** Era `position: fixed` anclado arriba del centro, y ahí ya están la banda de demostración y la cabecera de cada pantalla. Se baja: cualquier píldora centrada arriba choca con una cabecera de ancho completo, así que bajarla quita el problema de raíz en vez de moverlo unos píxeles.
+- **Cuatro cabeceras más seguían pegadas a `top: 0`** y quedaban cortadas por la banda de demostración al bajar: **KDS Cocina, KDS Barra, la carta del cliente y el detalle de mesa de la PDA**. En la v0.99.1 se arreglaron Admin y Mostrador y estas se quedaron fuera. Ahora las seis se pegan a `var(--alto-aviso, 0px)`, y hay un **test que lee el código** y no deja que vuelva a aparecer un `top: 0`.
+- **El distintivo de «2º plato · sin marchar» se partía en dos líneas** en la columna estrecha del KDS —«2º» arriba y el resto abajo, encima del nombre del comensal— porque era un `span` inline sin `nowrap`.
+- **«1 listos»**, en Cocina y en Barra. La misma falta que ya se corrigió con «1 comensales»: es lo primero que lee un hostelero al que le enseñas el producto.
+
+### De paso quedó comprobado
+- **El realtime entre dispositivos funciona**: el KDS estaba abierto y recogió las 7 comandas sin recargar.
+- **El recorrido de una comanda**: en cola → Preparando… → Listo, con la columna «Listos» apareciendo al lado y el contador de la cabecera siguiéndolo.
+
 ## [0.102.0] - 2026-08-31
 
 ### Cambiado

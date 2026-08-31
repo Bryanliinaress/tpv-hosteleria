@@ -651,7 +651,7 @@ export default function CartaCliente() {
   return (
     <div style={{ maxWidth: '480px', margin: '0 auto', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <div ref={cabeceraRef} style={{ padding: '1rem 1.25rem 0.75rem', background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', position: 'sticky', top: 0, zIndex: 10 }}>
+      <div ref={cabeceraRef} style={{ padding: '1rem 1.25rem 0.75rem', background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', position: 'sticky', top: 'var(--alto-aviso, 0px)', zIndex: 10 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
           <div>
             <span style={{ fontWeight: 800, fontSize: '1.1rem' }}>{local?.nombre || t('Mesa') + ' ' + mesa.numero}</span>
