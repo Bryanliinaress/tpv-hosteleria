@@ -107,14 +107,14 @@ verdad.
 
 Al reintentar un envío, Verifacti responde **«el campo `fecha_expedicion` debe
 ser la fecha actual»**: un ticket solo se puede registrar **el día que se
-emitió**. Los que fallen y no se reintenten ese mismo día no entran nunca. En la
-demo hay **cinco** así: cuatro del 12-13 de agosto y **el nº 9, del 28/08**, un
-pago online que entró solo.
+emitió**. Los que fallen y no se reintenten ese mismo día no entran nunca.
 
-⚠️ Ese nº 9 importa por lo que enseña: **el enlace de la demo es público**, así
-que cualquiera que entre, pida y pague por Stripe genera un ticket fiscal real —
-y si nadie lo atiende ese día, ya no se puede registrar. No es un problema
-teórico: pasa solo.
+La demo llegó a acumular cinco así (borrados el 31/08 al vaciarla). Uno de
+ellos, el nº 9, enseñaba lo que de verdad importa: **el enlace de la demo es
+público**, así que cualquiera que entre, pida y pague por Stripe genera un
+ticket fiscal — y si nadie lo atiende ese día, ya no se puede registrar. No es
+un problema teórico: **entró solo**, sin que nadie lo provocara. Mientras la
+demo siga publicada, volverá a pasar.
 
 La norma permite registrar fuera de plazo, así que puede ser una restricción de
 su entorno de pruebas o de su API — pero **define qué pasa si la AEAT no
@@ -181,9 +181,20 @@ dice «tickets sin registrar», hay que atenderlo **ese mismo día**.
   de la carta de ejemplo y el cliente lo veía al personalizar un bocadillo,
   justo al lado de «Sin gluten +1,20 €». Comprobado que ningún ticket emitido lo
   mencionaba antes de tocarlo.
-- En la demo, la rectificativa nº 7 quedó apuntada como efectivo cuando el
-  original era online (dato anterior al arreglo). Se deja: un documento fiscal
-  emitido no se reescribe.
+- ~~La rectificativa nº 7 apuntada como efectivo~~ — se fue con el vaciado.
+
+- **La demo se vació el 31/08**: 8 tickets, 9 pagos online y el contador de
+  numeración a 0, así que el próximo ticket vuelve a ser el **nº 1**, como un bar
+  recién montado. Había copia antes de tocar nada
+  (`tickets-demo-antes-de-borrar-2026-08-31.json`, en el scratchpad de la
+  sesión). Se hizo **solo porque no hay ningún bar real detrás**: en una
+  instalación con clientes esto no se toca jamás, ni los tickets ni el contador.
+  Quedan 2 anulaciones antiguas, que no salen en ninguna pantalla.
+
+- **Para enseñar la demo con datos** hace falta sembrarlos:
+  `scripts/sembrar-ventas.sql` crea un día de servicio creíble y
+  `scripts/limpiar-ventas-ejemplo.sql` lo quita. Ahora mismo los informes salen
+  a cero, que está limpio pero enseña poco.
 
 ---
 
