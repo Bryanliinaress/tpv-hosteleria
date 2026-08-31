@@ -65,6 +65,8 @@ const EN = {
   'Total mesa': 'Table total',
   'Pagar toda la cuenta': 'Pay the whole bill',
   '🧑‍🍳 Que cobre el camarero (efectivo/tarjeta)': '🧑‍🍳 Ask the waiter to charge (cash/card)',
+  'Mandamos tu pedido a la cocina antes de cobrar 🚀': 'Sending your order to the kitchen before charging 🚀',
+  'No hemos podido mandar tu pedido a la cocina. Avisa al camarero antes de pagar.': 'We could not send your order to the kitchen. Please tell the waiter before paying.',
   '✅ El camarero viene a cobrar': '✅ The waiter is coming to charge',
   '¡Cuenta pagada!': 'Bill paid!',
   'Gracias por tu visita a la Mesa': 'Thanks for visiting Table',
