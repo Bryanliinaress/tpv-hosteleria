@@ -5,6 +5,18 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.104.0] - 2026-08-31
+
+Salió de repasar el panel de Admin pantalla por pantalla. Las dos son de la
+pestaña de QR, que es la que usa el dueño **una vez**, el día que monta el bar —
+y si sale mal, se descubre con las pegatinas ya pegadas.
+
+### Arreglado
+- **El QR de mesa se construía con la dirección desde la que se abría Admin** (`window.location`). Bastaba con entrar desde una build local o de pruebas para imprimir doce pegatinas apuntando a `localhost`, pegarlas en las mesas y no enterarse hasta que un cliente escanea. Ahora sale de la **dirección propia del local** (`despliegue.url` del perfil), que ya existía pero no llegaba al navegador. La pestaña enseña a qué dirección apuntan, para poder comprobarlo antes de imprimir; y si la instalación no tiene dirección propia lo avisa en vez de callarse.
+
+### Añadido
+- **«🖨 Imprimir todos»**: una hoja A4 con todos los QR, tres por fila, cada uno con el nombre del bar, el número de mesa y «Escanea para ver la carta y pedir», recortable por una línea de puntos. Antes había que copiar la dirección de cada mesa a mano — justo en el momento en que el dueño lo que quiere es llevar una hoja a imprimir.
+
 ## [0.103.1] - 2026-08-31
 
 ### Seguridad
