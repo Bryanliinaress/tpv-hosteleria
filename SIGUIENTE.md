@@ -1,10 +1,24 @@
 # Punto de partida para la siguiente sesión
 
 **Estado: v0.102.0 · 759 tests JS + 37 pruebas de SQL en verde · CI y deploy en
-verde · repo limpio.** Última sesión: 2026-08-26.
+verde · repo limpio.** Última sesión: 2026-08-31.
 
-Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los 71 fallos de la auditoría:
-[docs/AUDITORIA.md](docs/AUDITORIA.md)
+Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a uno:
+[docs/AUDITORIA.md](docs/AUDITORIA.md) (es historia, no estado).
+
+### Lo último — cuatro releases, del 26 al 31 de agosto
+
+| | | |
+|---|---|---|
+| **v0.99.1** | 26/08 | El primer repaso **mirando las pantallas** en siete releases. Cinco fallos, los cinco arreglados; el gordo, un ticket ya cobrado que se reimprimía como «PENDIENTE DE PAGO». |
+| **v0.100.0** | 28/08 | 🔴 **La impresión llevaba 16 días sin imprimir y decía que sí.** Ahora se confirma que el trabajo sale de la cola, se cancela si no sale, y queda anotado para `npm run salud`. |
+| **v0.101.0** | 31/08 | Tests de las cuatro pantallas que faltaban (PDA, Mostrador, Reservar, Onboarding). Las diez están cubiertas. |
+| **v0.102.0** | 31/08 | Una mesa **reservada** ya no cuenta como ocupada, ni en Mostrador ni en la PDA. |
+
+Lo que más conviene recordar de la sesión: **el fallo de impresión era invisible
+porque el spooler de Windows acepta los bytes aunque no haya nada al otro lado
+del USB**. Si algo «funciona» sin que nadie lo haya visto funcionar de verdad,
+merece la misma desconfianza.
 
 ---
 
@@ -22,25 +36,25 @@ que se haya roto en las pantallas. Si el proyecto no responde, casi seguro es
 que **Supabase lo pausó por inactividad** (plan gratuito, ~1 semana): se
 arregla entrando al panel y pulsando *Resume project*.
 
-### 2. El repaso visual: hecho en la v0.99.1, y lo que quedó fuera
+### 2. Qué está visto renderizado y qué no
 
-**Ya están vistas renderizadas** (móvil 375 px y tableta): portada, Reservar,
-Onboarding, Informes, Tickets, el selector de IVA del producto, el diálogo de
-Devolver (Todo y Una parte), el «devuelto X · quedan Y», el ticket con su
-desglose de IVA y QR, las **dos** pantallas de error, Mostrador, KDS Cocina y
-KDS Barra. Salieron cinco fallos, los cinco arreglados y desplegados.
+**Vistas** (móvil 375 px y tableta): portada, Reservar, Onboarding, Informes,
+Tickets, el selector de IVA del producto, el diálogo de Devolver (Todo y Una
+parte), el «devuelto X · quedan Y», el ticket con su desglose de IVA y QR, las
+**dos** pantallas de error, Mostrador (con y sin panel lateral), la PDA, KDS
+Cocina y KDS Barra.
 
 **Lo que sigue sin verse, y por qué:**
 
-1. **Los KDS con comandas dentro.** Están a cero y llenarlos exige mandar
-   pedidos: eso escribe en la demo compartida y **saca papel de verdad** por las
-   dos térmicas. Hay que parar la tarea de Windows antes, devolverla después y
-   limpiar los pedidos. Un KDS vacío no prueba lo que hay que probar: el cuadre
-   de las tarjetas de comanda.
-2. **La PDA** y **la carta del cliente por QR**.
-3. **La interacción táctil de todo.** En la sesión del repaso los clics y el
-   scroll con ratón del panel se agotaban a los 30 s y hubo que navegar por JS,
-   así que lo visto está mirado pero **no tocado**.
+1. **Los KDS con comandas dentro.** Se llegaron a generar 7 comandas y a
+   verlas en la cola, pero el panel del navegador se cerró antes de mirarlas.
+   Repetirlo exige mandar pedidos otra vez: escribe en la demo compartida y
+   **saca papel** por las dos térmicas. Un KDS vacío no prueba lo que hay que
+   probar: el cuadre de las tarjetas de comanda.
+2. **La carta del cliente por QR.**
+3. **La interacción táctil de todo.** Los clics y el scroll con ratón del panel
+   se agotaban a los 30 s y hubo que navegar por JS: lo visto está mirado pero
+   **no tocado**.
 
 ---
 
@@ -59,7 +73,10 @@ KDS Barra. Salieron cinco fallos, los cinco arreglados y desplegados.
 3. **Supabase Pro (~23 €/mes)** — quita las pausas por inactividad y trae los
    backups. Enseñar la demo a un bar y que no cargue es el peor momento para
    descubrirlo.
-4. **Comprobar el papel** (corte, acentos, QR) — aplazado a propósito.
+4. **Enchufar las impresoras y comprobar el papel.** Del lado del software ya
+   está todo descartado (ver «El papel», abajo): lo único que puede fallar ya es
+   que la impresora no implemente PC858 o el QR nativo. **Vacía la cola antes**:
+   hay 9 trabajos de agosto esperando y saldrían todos de golpe.
 5. **Pasar a producción**: NIF real en Verifacti (solo cambia el secreto
    `VERIFACTI_API_KEY`, de `vf_test_…` a `vf_prod_…`; la URL es la misma). Con
    Stripe en `sk_live_` hay que **rehacer el webhook** —otro endpoint y otro
@@ -71,8 +88,14 @@ KDS Barra. Salieron cinco fallos, los cinco arreglados y desplegados.
 
 Al reintentar un envío, Verifacti responde **«el campo `fecha_expedicion` debe
 ser la fecha actual»**: un ticket solo se puede registrar **el día que se
-emitió**. Los que fallen y no se reintenten ese mismo día no entran nunca (en
-la demo hay cuatro así, del 12 y 13 de agosto).
+emitió**. Los que fallen y no se reintenten ese mismo día no entran nunca. En la
+demo hay **cinco** así: cuatro del 12-13 de agosto y **el nº 9, del 28/08**, un
+pago online que entró solo.
+
+⚠️ Ese nº 9 importa por lo que enseña: **el enlace de la demo es público**, así
+que cualquiera que entre, pida y pague por Stripe genera un ticket fiscal real —
+y si nadie lo atiende ese día, ya no se puede registrar. No es un problema
+teórico: pasa solo.
 
 La norma permite registrar fuera de plazo, así que puede ser una restricción de
 su entorno de pruebas o de su API — pero **define qué pasa si la AEAT no
@@ -81,15 +104,20 @@ dice «tickets sin registrar», hay que atenderlo **ese mismo día**.
 
 ### De pantalla
 
-1. **Los KDS con carga, la PDA y la carta del QR** (arriba, punto 2).
+1. **Los KDS con comandas dentro** y **la carta del QR** (arriba, punto 2).
 2. **Probar tocando**, no solo mirando (arriba, punto 3).
 
 ### De código
 
-1. ~~Tests de pantalla que faltan~~ ✅ **hecho en la v0.101.0**: PDA, Mostrador,
-   Reservar y Onboarding. Las diez pantallas están cubiertas. Ojo: estos 78
-   tests **no encontraron ningún fallo** —a diferencia de los de la v0.98.0,
-   que sacaron tres de dinero—; son red de seguridad, no hallazgo.
+1. **⚠️ Dos cosas de la Fase 0 de PRODUCCION.md que no estaban en esta lista** y
+   conviene confirmar si están resueltas o solo se cayeron:
+   - **RGPD** (§5): se guardan nombres, emails y teléfonos de reservas y falta
+     base legal, política de privacidad visible y consentimiento. La pantalla de
+     Reservar ya explica finalidad y retención, pero eso no es lo mismo. Está
+     catalogado como **bloqueante crítico**.
+   - **Stripe Connect** (§4): «para que el dinero llegue a la cuenta del
+     restaurante». Con un bar por instalación quizá cada uno pone su propia
+     cuenta y no hace falta — pero conviene decidirlo, no dejarlo por omisión.
 2. **La cola offline en una caída de red real** — está probada la RPC, no el
    comportamiento con la conexión cayéndose de verdad.
 3. **Realtime entre dispositivos**: sin cubrir.
@@ -140,6 +168,16 @@ resultado y ya se subió una vez con CI en rojo.
 3. **Nada de diagnosticar leyendo `innerText`.** Así se inventaron tres fallos
    que no existían (la hoja de unirse sí es un panel fijo, la carta sí carga, la
    PDA sí ocupa el ancho). Si no hay panel de navegador, **pídelo**.
+
+   Y al revés: **antes de dar un descuadre por bueno, mídelo**. El 31/08 el KDS
+   en tableta parecía dejar una franja muerta a la derecha y no era la app —la
+   cabecera medía los 758 px completos—, era la captura del propio panel.
+
+   Sobre el panel, dos cosas que costaron tiempo: si dice que **no compone
+   frames**, relanzarlo (`preview_start`) suele arreglarlo, no hace falta pedir
+   nada; y los **clics y el scroll con ratón se agotan a los 30 s**, así que
+   para navegar toca `javascript_tool` (`.click()`, `scrollTop`). Eso permite
+   ver, pero **no prueba el táctil**.
 4. **Si tocas `src/lib/` , usa la extensión `.js` en los imports.** El servicio
    de impresión importa de ahí y corre en **Node puro**: Vite resuelve
    `./dinero`, Node no. Un import sin extensión compila, pasa el lint y pasa los
@@ -178,22 +216,21 @@ código de 6 dígitos: el flujo sin contraseñas depende del perfil del local. H
 que **compilar con perfil y servir el bundle**:
 
 ```bash
-LOCAL=marchando VITE_BASE=/ VITE_PAGOS_ONLINE=1 npm run build
+MSYS_NO_PATHCONV=1 LOCAL=marchando VITE_BASE=/ VITE_PAGOS_ONLINE=1 npm run build
 cd dist && python -m http.server 5186
 ```
 
-Ojo con `LOCAL` en Windows: `set LOCAL=marchando && …` mete el espacio dentro de
-la variable y vite muere con «No existe el local "marchando "». Va
-`set "LOCAL=marchando"&& …`.
+⚠️ **El `MSYS_NO_PATHCONV=1` no es adorno.** Sin él, Git Bash convierte el `/`
+de `VITE_BASE` en una ruta de Windows y la build sale apuntando a
+`/Program Files/Git/assets/…`: la página queda **en negro** y lo único que se ve
+son cuatro 404 en la consola. Cuesta un rato descubrirlo.
 
-⚠️ **Y ojo con `VITE_BASE=/` en Git Bash**: convierte la barra en una ruta de
-Windows y la build sale apuntando a `/Program Files/Git/assets/…`. La página
-queda **en negro** y solo se ve en la consola, como cuatro 404. Delante va
-`MSYS_NO_PATHCONV=1`:
+Ojo también con `LOCAL` en cmd de Windows: `set LOCAL=marchando && …` mete el
+espacio dentro de la variable y vite muere con «No existe el local
+"marchando "». Va `set "LOCAL=marchando"&& …`.
 
-```bash
-MSYS_NO_PATHCONV=1 LOCAL=marchando VITE_BASE=/ VITE_PAGOS_ONLINE=1 npm run build
-```
+Las rutas van por **hash** (`HashRouter`): `…:5186/index.html#/camarero`. Con un
+servidor estático es lo que hace que funcione sin reescrituras.
 
 ### Probar sin ensuciar nada
 
@@ -395,7 +432,12 @@ saliendo, pero conviene fijar el precio sabiéndolo.
   Edge Function desplegada (v3) con el arreglo de reintentos y autorización.
 - **Pagos**: `crear-checkout` y `stripe-webhook` desplegadas; el importe lo
   calcula **el servidor**, nunca el navegador.
-- **Impresión**: dos impresoras por destino, automática y sin navegador.
+- **Impresión**: dos impresoras por destino, automática y sin navegador. Está
+  probado que la tarea arranca sola, que el servicio escucha la base, que agrupa
+  por mesa y destino y que **recupera lo pendiente tras un apagón** (se vio
+  funcionar el 28/08, recuperando 7 comandas). ⚠️ **Lo que NO está probado es el
+  último tramo, del spooler al papel**: eso necesita las impresoras enchufadas.
+  Desde la v0.100.0, al menos, si no sale **se entera**.
 - **Cola offline**, menú del día desde la PDA, grupos de mesas, arqueo con
   propinas en efectivo, carta e interfaz **en inglés** (incluidos los platos).
 - **Numeración fiscal sin carrera**: contador por local en su propia tabla. Con
@@ -409,8 +451,14 @@ saliendo, pero conviene fijar el precio sabiéndolo.
   7 días / Este mes / Mes pasado), con CSV y las devoluciones restando.
 - **Monitorización**: el bar deja constancia de lo que se rompe en su propia
   base y `npm run salud` lo lee. Encontró sola dos fallos de producción.
-- **655 tests JS** (incluidas seis pantallas) **+ 37 pruebas de SQL** contra la
-  base real, lint limpio, CI y deploy en verde.
+- **759 tests JS** (las **diez** pantallas cubiertas) **+ 37 pruebas de SQL**
+  contra la base real, lint limpio, CI y deploy en verde.
+- **Un fallo de impresión deja rastro** (v0.100.0): se confirma que el trabajo
+  sale de la cola de Windows, se cancela si no sale —para que reintentar no lo
+  apile— y se anota como incidencia `impresora`, que `npm run salud` enseña.
+- **Cómo se cuenta la sala** vive en `src/lib/sala.js` y no en cada pantalla: una
+  mesa **reservada no está ocupada**, y Mostrador y la PDA lo dicen igual porque
+  leen del mismo sitio.
 
 
 ## Detalles que ahorran tiempo
@@ -450,3 +498,18 @@ han aparecido una y otra vez:
   `r.ok` en el acto) → hay un test que lee el código y lo impide;
 - **listas escritas a mano** que se quedan cortas al aparecer un valor nuevo;
 - **reglas escritas dos veces**: cuando pasa, una de las dos no funciona.
+
+Y la que apareció el 31/08, que es de otra familia y probablemente la más
+rentable de todas:
+
+- **«Éxito» que solo significa "se lo he dado a otro".** `WritePrinter` decía
+  que sí porque el spooler aceptaba los bytes; nadie comprobaba que salieran por
+  el puerto. Dieciséis días sin imprimir y el log escribiendo `🖨` en cada
+  comanda. La pregunta que lo destapa es siempre la misma: **¿esto confirma que
+  la cosa PASÓ, o solo que se pidió?** Vale igual para el envío a Hacienda, para
+  el webhook de Stripe y para cualquier cola.
+
+Tres fallos de los de este mes se encontraron **mirando la pantalla**, no
+leyendo código: el ticket que decía PENDIENTE DE PAGO, la cabecera cortada y las
+fechas con mayúscula en cada palabra. Los tests de pantalla que se escribieron
+después no encontraron ninguno — sirven para que no vuelvan, no para hallarlos.
