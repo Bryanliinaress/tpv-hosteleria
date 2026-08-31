@@ -5,6 +5,13 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.107.0] - 2026-08-31
+
+### Arreglado
+- **🔴 Se podía pagar un pedido que la cocina nunca había recibido.** La cuenta que ve el cliente incluye las líneas sin enviar —`_debe_por_comensal` no mira `lineas_pedido.estado`—, así que se podía añadir un plato, ir directo a Pagar sin pulsar «Enviar pedido», pagar por Stripe y marcharse: **el dinero entra y la comida no existe para nadie**. El flujo de cobro no comprobaba nada, ni enviaba, ni avisaba.
+
+  Ahora se **manda a la cocina antes de cobrar**, nunca después: si el pago se abandona, un pedido pendiente de pagar es el estado normal de cualquier mesa; al revés no hay vuelta atrás. Vale para los tres caminos: pagar mi parte, pagar la cuenta entera y «que cobre el camarero». Si el envío falla, no se sigue cobrando y se avisa. Hay un test que lee el código para que un cuarto camino de cobro no se lo salte.
+
 ## [0.106.1] - 2026-08-31
 
 ### Arreglado

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buscarProductos, productosVisibles, descripcionUtil, lineaSimplePendiente, unidades, normalizar, configDeItem, ultimaRonda } from './carta'
+import { buscarProductos, productosVisibles, descripcionUtil, lineaSimplePendiente, unidades, normalizar, configDeItem, ultimaRonda, hayLineasSinEnviar } from './carta'
 
 const P = [
   { id: 'a', nombre: 'Café con leche', descripcion: 'Café con leche', categoria: 'cafes', disponible: true },
@@ -141,5 +141,37 @@ describe('ultimaRonda', () => {
   it('sin nada enviado, nada que repetir', () => {
     expect(ultimaRonda([{ estado: 'pendiente' }])).toEqual([])
     expect(ultimaRonda([])).toEqual([])
+  })
+})
+
+// ────────────────────────────────────────────────────────────────────────────
+// La cuenta incluye las líneas SIN ENVIAR (`_debe_por_comensal` no mira el
+// estado). Sin esto, un cliente podía añadir un plato, ir directo a Pagar,
+// pagarlo por Stripe y marcharse: el dinero entra y la comida no existe para
+// nadie, porque la cocina nunca vio la comanda.
+// ────────────────────────────────────────────────────────────────────────────
+describe('¿queda algo que la cocina no haya visto?', () => {
+  const mesa = (...items) => ({ personas: [{ id: 'p1', items }] })
+
+  it('sí, si alguna línea sigue pendiente', () => {
+    expect(hayLineasSinEnviar(mesa({ estado: 'pendiente' }))).toBe(true)
+  })
+
+  it('no, si todo está enviado', () => {
+    expect(hayLineasSinEnviar(mesa({ estado: 'enviado' }, { estado: 'enviado' }))).toBe(false)
+  })
+
+  it('basta con que UNO de los comensales tenga algo sin enviar', () => {
+    const m = { personas: [
+      { id: 'p1', items: [{ estado: 'enviado' }] },
+      { id: 'p2', items: [{ estado: 'pendiente' }] },
+    ] }
+    expect(hayLineasSinEnviar(m)).toBe(true)
+  })
+
+  it('una mesa vacía o a medias no revienta', () => {
+    expect(hayLineasSinEnviar(null)).toBe(false)
+    expect(hayLineasSinEnviar({})).toBe(false)
+    expect(hayLineasSinEnviar({ personas: [{ id: 'p1' }] })).toBe(false)
   })
 })
