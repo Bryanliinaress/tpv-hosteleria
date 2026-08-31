@@ -6,7 +6,7 @@ Están por versión; el arreglo de cada una lleva su test de regresión.
 Esto es historia: para saber en qué punto está el proyecto, mira
 [SIGUIENTE.md](../SIGUIENTE.md).
 
-## 🔴 PENDIENTE DE APLICAR: los suplementos no se cobran en la app real
+## ✅ RESUELTO: los suplementos no se cobraban en la app real
 
 23. **`qr_agregar_linea` cobraba solo el precio del producto.** Todo lo que la
     app suma por encima se perdía en el backend real: el **tipo de pan** (sin
@@ -23,9 +23,15 @@ Esto es historia: para saber en qué punto está el proyecto, mira
     producto. El cliente ya manda las `elecciones` del menú, que hacían falta
     para cobrar el suplemento.
 
-    ⚠️ **Falta aplicarla** (necesita el token de Supabase, igual que la 10) y
-    comprobar contra la BBDD: bocadillo sin gluten con queso, y menú con
-    solomillo. Hasta entonces, el fallo sigue vivo en `/app/`.
+    ✅ **Aplicada y comprobada en vivo** con la carta de ejemplo: sin gluten
+    +1,20 € y queso+huevo +0,40 €. Antes se regalaban. La migración
+    `20260808T11_suplementos.sql` está entre las aplicadas (`npm run
+    migraciones -- --estado` lo confirma).
+
+    Esta entrada estuvo encabezando el fichero como 🔴 PENDIENTE mucho después
+    de estar resuelta, que es peor que no documentarlo: quien abría la auditoría
+    para saber cómo estaba el proyecto se encontraba de primeras un fallo de
+    dinero que ya no existía.
 
 ## Auditoría del dinero (v0.51.0)
 

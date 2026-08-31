@@ -53,6 +53,31 @@ const sb = createClient(URL_SB, CLAVE, { auth: { persistSession: false } })
 const hora = () => new Date().toLocaleTimeString('es-ES')
 const log = (...m) => console.log(hora(), ...m)
 
+// ── Que un fallo de impresión salga de este log ─────────────────────────────
+//
+// Este fichero lo lee alguien que ya sospecha. El bar no: por eso el fallo se
+// escribe también en la base, donde `npm run salud` lo encuentra. Hasta ahora
+// una impresora muerta solo se notaba porque no llegaba la comida.
+//
+// `caidas` evita repetir el aviso cada minuto por la misma impresora, y sirve
+// para poder decir «ya vuelve a imprimir» cuando se arregla.
+const caidas = new Set()
+
+async function avisarCaida(impresora, mensaje) {
+  if (caidas.has(impresora)) return          // ya avisado: la RPC ya lo cuenta
+  caidas.add(impresora)
+  log(`🚨 ${impresora} no está imprimiendo — queda anotado para «npm run salud»`)
+  const { error } = await sb.rpc('registrar_incidencia', {
+    p_clase: 'impresora', p_mensaje: `«${impresora}» no imprime: ${mensaje}`, p_pantalla: impresora,
+  })
+  if (error) log('⚠️  no pude anotar la incidencia:', error.message)
+}
+
+function avisarRecuperada(impresora) {
+  if (!caidas.delete(impresora)) return
+  log(`✓ ${impresora} vuelve a imprimir`)
+}
+
 // ── Datos de una comanda, listos para el papel ──────────────────────────────
 async function detalleDe(ids) {
   const { data, error } = await sb
@@ -100,9 +125,16 @@ async function imprimirGrupo(g) {
     destino: g.destino.toUpperCase(),
     lineas: g.lineas,
   }))
-  await enColaDe(impresora, () => enviarConReintentos(impresora, bytes))
-  // Solo se marca DESPUÉS de que la impresora acepte: si falla, sigue pendiente
-  // y se reintenta en el próximo arranque. Mejor repetir una comanda que perderla.
+  try {
+    await enColaDe(impresora, () => enviarConReintentos(impresora, bytes))
+  } catch (e) {
+    await avisarCaida(impresora, e.message)
+    throw e
+  }
+  avisarRecuperada(impresora)
+  // Solo se marca DESPUÉS de que la impresora CONFIRME que el trabajo salió de
+  // la cola: si falla, sigue pendiente y se reintenta. Mejor repetir una comanda
+  // que perderla —y mucho mejor que darla por impresa sin que salga papel.
   const { error } = await sb.from('comandas').update({ impresa_en: new Date().toISOString() }).in('id', g.ids)
   if (error) log('⚠️  impresa pero no pude marcarla:', error.message)
   log(`🖨  mesa ${g.mesa} → ${g.destino} (${impresora}) · ${g.lineas.length} línea(s)`)
