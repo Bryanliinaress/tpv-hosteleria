@@ -16,6 +16,9 @@ beforeEach(() => {
   useStore.setState(s => ({
     mesas: s.mesas.map(m => ({ ...m, estado: 'libre', personas: [], camarero: null, unidaA: null, unidas: [] })),
     historial: [], cierres: [], pedidosCocina: [], pedidosBarra: [], avisos: [],
+    // el cajón también arranca de cero: sin esto, el fondo y los movimientos de
+    // un test se le quedaban puestos al siguiente
+    movimientosCaja: [], local: { ...s.local, fondoCaja: 0 },
   }))
 })
 
@@ -106,6 +109,50 @@ describe('arqueo de caja', () => {
 
     st().cerrarCaja(7)                     // faltan 3 €
     expect(st().cierres.at(-1).descuadre).toBe(-3)
+  })
+
+  // Por un cajón pasa más que ventas: el fondo de cambio con el que se abre y
+  // lo que se saca para pagar al proveedor. Sin contarlo, el arqueo cantaba el
+  // fondo entero como sobrante TODOS los días y se dejaba de mirar.
+  it('el fondo de cambio está en el cajón y se espera', () => {
+    st().updateLocal({ fondoCaja: 150 })
+    const { mesaId, ana } = mesaConUno(5)
+    st().agregarItem(mesaId, ana, { productoId: 'cafe', nombre: 'Café', precio: 10, tipo: 'bebida' })
+    st().pagarParte(mesaId, ana, { metodo: 'efectivo' })
+
+    st().cerrarCaja(160)                   // 150 de fondo + 10 de la venta
+    const cierre = st().cierres.at(-1)
+    expect(cierre.descuadre).toBe(0)
+    expect(cierre.fondo).toBe(150)
+  })
+
+  it('lo que se saca para pagar al proveedor resta', () => {
+    st().updateLocal({ fondoCaja: 100 })
+    const { mesaId, ana } = mesaConUno(6)
+    st().agregarItem(mesaId, ana, { productoId: 'cafe', nombre: 'Café', precio: 20, tipo: 'bebida' })
+    st().pagarParte(mesaId, ana, { metodo: 'efectivo' })
+    st().registrarMovimiento({ tipo: 'salida', importe: 45, motivo: 'pan' })
+
+    st().cerrarCaja(75)                    // 100 + 20 − 45
+    const cierre = st().cierres.at(-1)
+    expect(cierre.descuadre).toBe(0)
+    expect(cierre.movimientos).toBe(-45)
+  })
+
+  it('y el cambio que se mete suma', () => {
+    st().updateLocal({ fondoCaja: 0 })
+    const { mesaId, ana } = mesaConUno(7)
+    st().agregarItem(mesaId, ana, { productoId: 'cafe', nombre: 'Café', precio: 10, tipo: 'bebida' })
+    st().pagarParte(mesaId, ana, { metodo: 'efectivo' })
+    st().registrarMovimiento({ tipo: 'entrada', importe: 20, motivo: 'cambio' })
+
+    st().cerrarCaja(30)
+    expect(st().cierres.at(-1).descuadre).toBe(0)
+  })
+
+  it('un movimiento sin motivo no se apunta: seria dinero desaparecido', () => {
+    const r = st().registrarMovimiento({ tipo: 'salida', importe: 40, motivo: '' })
+    expect(r.ok).toBe(false)
   })
 })
 

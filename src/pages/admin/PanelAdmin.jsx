@@ -18,12 +18,13 @@ import EditorMenu from '../../components/EditorMenu'
 import Informes from './Informes'
 import Dispositivos from '../../components/Dispositivos'
 import Devolver from '../../components/Devolver'
-import { desgloseIVA, totalDe, cent, pendienteDeDevolver } from '../../lib/dinero'
+import { desgloseIVA, totalDe, cent, pendienteDeDevolver, importeDesdeTexto } from '../../lib/dinero'
+import { efectivoEsperado, descuadreDe, saldoMovimientos, movimientosDesde } from '../../lib/caja'
 
 const emptyForm = { nombre: '', nombreEn: '', categoria: '', descripcion: '', descripcionEn: '', alergenos: [], imagen: '', conFormatos: false, precios: {}, precio: '', menu: null, ivaPct: '' }
 
 export default function PanelAdmin() {
-  const { carta, mesas, historial, cierres, anulaciones, pagosSinCuenta, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, addCategoria, removeCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, crearFichaje, editarFichaje, borrarFichaje, pedirFichajesDe, reintentarReembolso } = useStore()
+  const { carta, mesas, historial, cierres, anulaciones, pagosSinCuenta, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, addCategoria, removeCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, crearFichaje, editarFichaje, borrarFichaje, pedirFichajesDe, reintentarReembolso, movimientosCaja, registrarMovimiento } = useStore()
   const hoyStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
   const reservasHoy = reservas.filter(r => r.fecha === hoyStr && r.estado === 'confirmada').length
   const [tab, setTab] = useState('carta')
@@ -43,6 +44,7 @@ export default function PanelAdmin() {
   // el admin sí ve lo agotado: es lo que viene a reactivar
   const coincidencias = productosVisibles(carta, { busqueda: busquedaCarta, incluirNoDisponibles: true })
   const [contado, setContado] = useState('')
+  const [movim, setMovim] = useState({ tipo: 'salida', importe: '', motivo: '' })
 
   // Tickets del mes en curso, agrupados por día (más reciente primero)
   const ahora = new Date()
@@ -90,8 +92,23 @@ export default function PanelAdmin() {
   // detalle del ticket (ver propinasPorMetodoDe)
   const cajaPropinasEfectivo = ticketsCaja.reduce((s, r) => s + (propinasPorMetodoDe(r).efectivo || 0), 0)
   const efectivoVentas = cajaPagos.efectivo || 0
-  const efectivoEsperado = efectivoVentas + cajaPropinasEfectivo
-  const descuadre = contado === '' ? null : (Number(contado) || 0) - efectivoEsperado
+  // El fondo de cambio y lo que entra o sale del cajón sin ser venta. Sin esto
+  // el «descuadre» era la diferencia contra una cuenta incompleta y cantaba el
+  // fondo entero como sobrante cada día (ver src/lib/caja.js).
+  const fondoCaja = Number(local?.fondoCaja) || 0
+  const movsCaja = movimientosDesde(movimientosCaja, ultimoCierre?.hasta || null)
+  const saldoMovs = saldoMovimientos(movsCaja)
+  const efectivoEsp = efectivoEsperado({
+    fondo: fondoCaja, ventasEfectivo: efectivoVentas,
+    propinasEfectivo: cajaPropinasEfectivo, movimientos: movsCaja,
+  })
+  const descuadre = descuadreDe(importeDesdeTexto(contado), efectivoEsp)
+  const apuntarMovimiento = () => {
+    const r = registrarMovimiento({ ...movim, creadoPor: 'admin' })
+    if (!r.ok) return toast(r.error, 'error')
+    setMovim({ tipo: movim.tipo, importe: '', motivo: '' })
+    toast('Movimiento apuntado', 'success')
+  }
   const hacerCierre = async () => {
     if (ticketsCaja.length === 0) return
     if (!(await confirmar({ titulo: 'Cerrar caja', mensaje: `¿Cerrar caja con ${ticketsCaja.length} ticket(s) y ${cajaTotal.toFixed(2)} €?`, confirmar: 'Cerrar caja' }))) return
@@ -420,13 +437,24 @@ export default function PanelAdmin() {
               </p>
               <label style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Efectivo contado (opcional)</label>
               <input value={contado} onChange={e => setContado(e.target.value)} inputMode="decimal" placeholder="€ en el cajón" style={{ ...inputStyle, marginTop: '0.25rem', marginBottom: '0.5rem' }} />
-              <div style={ajusteFila}><span>Ventas en efectivo</span><strong>{efectivoVentas.toFixed(2)} €</strong></div>
+              {fondoCaja > 0 && (
+                <div style={{ ...ajusteFila, color: 'var(--color-muted)' }}>
+                  <span>Fondo de cambio</span><strong>{fondoCaja.toFixed(2)} €</strong>
+                </div>
+              )}
+              <div style={ajusteFila}><span>{fondoCaja > 0 ? '+ ventas' : 'Ventas'} en efectivo</span><strong>{efectivoVentas.toFixed(2)} €</strong></div>
               {cajaPropinasEfectivo > 0 && (
                 <div style={{ ...ajusteFila, color: 'var(--color-muted)' }}>
                   <span>+ propinas en efectivo</span><strong>{cajaPropinasEfectivo.toFixed(2)} €</strong>
                 </div>
               )}
-              <div style={{ ...ajusteFila, fontWeight: 700 }}><span>Efectivo esperado en el cajón</span><strong>{efectivoEsperado.toFixed(2)} €</strong></div>
+              {saldoMovs !== 0 && (
+                <div style={{ ...ajusteFila, color: 'var(--color-muted)' }}>
+                  <span>{saldoMovs > 0 ? '+ entradas' : '− salidas'} de caja ({movsCaja.length})</span>
+                  <strong>{saldoMovs > 0 ? '+' : ''}{saldoMovs.toFixed(2)} €</strong>
+                </div>
+              )}
+              <div style={{ ...ajusteFila, fontWeight: 700 }}><span>Efectivo esperado en el cajón</span><strong>{efectivoEsp.toFixed(2)} €</strong></div>
               {descuadre != null && (
                 <div style={{ ...ajusteFila, color: Math.abs(descuadre) < 0.005 ? '#10b981' : '#f43f5e' }}>
                   <span>Descuadre</span><strong>{descuadre >= 0 ? '+' : ''}{descuadre.toFixed(2)} €</strong>
@@ -453,6 +481,50 @@ export default function PanelAdmin() {
                     </div>
                   ))}
                 </>
+              )}
+            </div>
+
+            {/* ── Entradas y salidas del cajón ────────────────────────────
+                Por un cajón pasa mucho más que ventas: el fondo de cambio con
+                el que se abre, lo que se saca para pagar al del pan, el cambio
+                que se mete a media tarde. Sin apuntarlo, el arqueo no cuadra
+                nunca y se deja de mirar. */}
+            <div style={ajusteCard}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.75rem' }}>
+                <h3 style={ajusteTitulo}>Entradas y salidas de caja</h3>
+                <span style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{movsCaja.length} en esta caja</span>
+              </div>
+
+              <label style={lblCampo}>Fondo de cambio (queda siempre en el cajón)</label>
+              <CampoGuardado valor={local.fondoCaja != null ? String(local.fondoCaja) : ''} onGuardar={v => updateLocal({ fondoCaja: importeDesdeTexto(v) ?? 0 })} placeholder="0.00" style={{ ...inputStyle, marginBottom: '0.9rem' }} />
+
+              <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.5rem' }}>
+                {[['salida', '− Sacar'], ['entrada', '+ Meter']].map(([t2, etiqueta]) => (
+                  <button key={t2} onClick={() => setMovim(s2 => ({ ...s2, tipo: t2 }))}
+                    style={{ flex: 1, background: movim.tipo === t2 ? 'var(--color-accent)' : 'var(--color-surface-2)', color: movim.tipo === t2 ? '#fff' : 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700 }}>
+                    {etiqueta}
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.5rem' }}>
+                <input value={movim.importe} onChange={e => setMovim(s2 => ({ ...s2, importe: e.target.value }))} inputMode="decimal" placeholder="€" style={{ ...inputStyle, flex: '0 1 90px', marginBottom: 0 }} />
+                <input value={movim.motivo} onChange={e => setMovim(s2 => ({ ...s2, motivo: e.target.value }))} placeholder="Para qué (proveedor, banco, cambio…)" style={{ ...inputStyle, flex: 1, marginBottom: 0 }} />
+              </div>
+              <button onClick={apuntarMovimiento} style={{ ...addBtn, width: '100%' }}>Apuntar</button>
+
+              {movsCaja.length > 0 && (
+                <div style={{ marginTop: '0.9rem' }}>
+                  {movsCaja.slice().reverse().map(m => (
+                    <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '0.6rem', background: 'var(--color-inset)', borderRadius: '0.5rem', padding: '0.5rem 0.7rem', marginBottom: '0.35rem', fontSize: '0.82rem' }}>
+                      <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {new Date(m.creadoEn).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} · {m.motivo}
+                      </span>
+                      <strong style={{ color: m.tipo === 'salida' ? '#f43f5e' : '#10b981', whiteSpace: 'nowrap' }}>
+                        {m.tipo === 'salida' ? '−' : '+'}{Number(m.importe).toFixed(2)} €
+                      </strong>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
 
