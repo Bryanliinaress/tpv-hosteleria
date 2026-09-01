@@ -5,6 +5,19 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.110.0] - 2026-09-01
+
+### Añadido
+- **Recordatorio de reserva automático.** Existían la plantilla y un botón «🔔 Recordar», pero había que pulsarlo reserva por reserva: en un bar eso no pasa, y es la palanca más eficaz contra el no-show. Peor: la nota de privacidad que el cliente acepta al reservar promete «(confirmación, cambios y **recordatorio**)» — se le prometía un correo que no llegaba.
+
+  El vigilante lo manda solo, **4 horas antes** por defecto (`RECORDATORIO_HORAS`). No lo manda si la reserva está cancelada o ya sentada, si no dejó email, si ya se envió, si ya pasó, o **si se reservó dentro de la propia ventana** (reservar a la una para las tres y recibir el recordatorio a la una y media es recordarle lo que acaba de hacer). Nueva columna `reservas.recordatorio_en` (migración `20260901T40`) para no repetirlo en cada pasada.
+
+  Si el envío falla **no se marca**: se reintenta en la siguiente pasada. Marcar un correo que no salió es perderlo.
+- El texto de los correos se saca a **`src/lib/textosReserva.js`**, sin `window` ni store, para que lo compartan el navegador y el vigilante en vez de estar escrito dos veces.
+
+### Pendiente de una decisión tuya
+- **EmailJS bloquea de fábrica las llamadas fuera del navegador.** Verificado: el vigilante encuentra la reserva y compone el correo, pero EmailJS responde `403 · API access from non-browser environments is currently disabled`. Hay que habilitarlo en su panel (Account → Security). Como al habilitarlo la clave pública sola bastaría para mandar correos desde cualquier sitio, el vigilante manda además la **privada** como `accessToken` si se pone en `EMAILJS_PRIVATE_KEY`.
+
 ## [0.109.0] - 2026-09-01
 
 ### Añadido
