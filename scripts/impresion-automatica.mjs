@@ -22,18 +22,25 @@ import { createClient } from '@supabase/supabase-js'
 import { comandaESCPOS } from '../src/lib/escpos.js'
 import { leerDestinos, impresoraDe, enviarConReintentos, enColaDe } from './lib/impresoras.mjs'
 import { pasada as pasadaVigilante } from './lib/vigilante.mjs'
+import { pasadaRecordatorios } from './lib/recordatorios.mjs'
+import { paramsEmailJS } from '../src/lib/textosReserva.js'
 
 const AQUI = dirname(fileURLToPath(import.meta.url))
 
 // Configuración desde `.env.puente` (o del entorno, que manda)
 function cargarEntorno() {
-  try {
-    const txt = readFileSync(join(AQUI, '..', '.env.puente'), 'utf8')
-    for (const linea of txt.split('\n')) {
-      const m = linea.match(/^\s*([A-Z_]+)\s*=\s*(.*)\s*$/)
-      if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, '')
-    }
-  } catch { /* sin fichero: se usa lo que haya en el entorno */ }
+  // `.env.puente` primero (la config del servicio) y `.env` de respaldo, que es
+  // donde viven las claves de EmailJS que usa el build. Lo que ya esté en el
+  // entorno manda sobre los dos.
+  for (const fichero of ['.env.puente', '.env']) {
+    try {
+      const txt = readFileSync(join(AQUI, '..', fichero), 'utf8')
+      for (const linea of txt.split('\n')) {
+        const m = linea.match(/^\s*([A-Z_]+)\s*=\s*(.*)\s*$/)
+        if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, '')
+      }
+    } catch { /* sin ese fichero: se sigue con el siguiente */ }
+  }
 }
 cargarEntorno()
 
@@ -248,3 +255,86 @@ async function vigilar() {
 
 vigilar()
 setInterval(() => { vigilar().catch(() => {}) }, VIGILANTE_MS)
+
+// ── Recordatorios de reserva ────────────────────────────────────────────────
+//
+// Existían la plantilla y un botón «🔔 Recordar», pero había que pulsarlo
+// reserva por reserva: en un bar eso no pasa. Y la nota de privacidad que el
+// cliente acepta al reservar promete «(confirmación, cambios y recordatorio)»,
+// así que no mandarlo no es solo perder una mesa.
+// EmailJS bloquea de fábrica las llamadas que no vienen de un navegador. Hay
+// que habilitarlo en su panel (Account → Security) y, en cuanto se habilita, la
+// clave PÚBLICA sola permitiría mandar correos desde cualquier sitio: por eso
+// se manda también la PRIVADA como `accessToken`, que es la forma que ellos
+// documentan para servidor. Sin `EMAILJS_PRIVATE_KEY` funciona igual, pero
+// conviene ponerla.
+const EMAILJS = {
+  service: process.env.VITE_EMAILJS_SERVICE_ID || process.env.EMAILJS_SERVICE_ID,
+  template: process.env.VITE_EMAILJS_TEMPLATE_ID || process.env.EMAILJS_TEMPLATE_ID,
+  key: process.env.VITE_EMAILJS_PUBLIC_KEY || process.env.EMAILJS_PUBLIC_KEY,
+  privada: process.env.EMAILJS_PRIVATE_KEY || null,
+}
+const RECORDATORIO_HORAS = Number(process.env.RECORDATORIO_HORAS || 4)
+
+function urlDelPerfil(slug) {
+  if (!slug) return null
+  try {
+    const p = JSON.parse(readFileSync(join(AQUI, '..', 'locales', slug, 'perfil.json'), 'utf8'))
+    const u = p?.despliegue?.url
+    return u ? (u.endsWith('/') ? u : `${u}/`) : null
+  } catch { return null }
+}
+
+let avisadoSinCorreo = false
+async function recordar() {
+  if (!EMAILJS.service || !EMAILJS.template || !EMAILJS.key) {
+    // Callarse aquí sería repetir el fallo de la impresión: algo que no
+    // funciona y no lo dice. Se avisa una vez, no en cada pasada.
+    if (!avisadoSinCorreo) {
+      avisadoSinCorreo = true
+      log('📧 recordatorios apagados: faltan las claves de EmailJS (VITE_EMAILJS_* en .env.puente o .env)')
+    }
+    return
+  }
+  try {
+    const { data: loc } = await sb.from('locales').select('nombre, slug, config').limit(1).single()
+    // La dirección del bar sale de su perfil, igual que el QR de mesa: nunca de
+    // por dónde se haya abierto algo.
+    const urlPublica = process.env.URL_PUBLICA || urlDelPerfil(loc?.slug) || ''
+    await pasadaRecordatorios({
+      horas: RECORDATORIO_HORAS,
+      listar: async () => {
+        const hoy = new Date(); hoy.setHours(0, 0, 0, 0)
+        const { data, error } = await sb
+          .from('reservas')
+          .select('id, nombre, email, fecha, hora, personas, zona, estado, token, creada_en, recordatorio_en')
+          .gte('fecha', hoy.toISOString().slice(0, 10))
+          .eq('estado', 'confirmada')
+          .is('recordatorio_en', null)
+        if (error) throw error
+        return data
+      },
+      enviar: async (r) => {
+        const enlace = urlPublica && r.token ? `${urlPublica}#/reservar?r=${r.id}&t=${r.token}` : null
+        const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            service_id: EMAILJS.service, template_id: EMAILJS.template, user_id: EMAILJS.key,
+            ...(EMAILJS.privada ? { accessToken: EMAILJS.privada } : {}),
+            template_params: paramsEmailJS('recordatorio', r, { nombreLocal: loc?.nombre || 'el restaurante', enlace }),
+          }),
+        })
+        if (!res.ok) throw new Error(`EmailJS ${res.status}: ${(await res.text()).slice(0, 120)}`)
+      },
+      // Solo DESPUÉS de que salga: marcar un correo que falló es perderlo.
+      marcar: async (r) => { await sb.from('reservas').update({ recordatorio_en: new Date().toISOString() }).eq('id', r.id) },
+      log,
+    })
+  } catch (e) {
+    log('⚠️  los recordatorios no pudieron comprobarse:', e.message)
+  }
+}
+
+recordar()
+setInterval(() => { recordar().catch(() => {}) }, VIGILANTE_MS)
