@@ -21,6 +21,7 @@ import { fileURLToPath } from 'node:url'
 import { createClient } from '@supabase/supabase-js'
 import { comandaESCPOS } from '../src/lib/escpos.js'
 import { leerDestinos, impresoraDe, enviarConReintentos, enColaDe } from './lib/impresoras.mjs'
+import { pasada as pasadaVigilante } from './lib/vigilante.mjs'
 
 const AQUI = dirname(fileURLToPath(import.meta.url))
 
@@ -198,3 +199,52 @@ sb.channel('comandas-impresion')
 // Red de seguridad: si la conexión en vivo se cae sin avisar, cada minuto se
 // mira si quedó algo sin imprimir. Un bar no puede perder una comanda.
 setInterval(() => { recuperarPendientes().catch(() => {}) }, 60_000)
+
+// ── El vigilante de Hacienda ────────────────────────────────────────────────
+//
+// Va en ESTE proceso porque es el único que corre desatendido en el PC del bar,
+// y ese PC está encendido justo cuando hace falta: mientras se sirve. Con
+// Verifacti un ticket solo se registra el día que se emitió, así que reintentar
+// «cuando alguien abra el panel» es reintentar demasiado tarde.
+const VIGILANTE_MS = Number(process.env.VIGILANTE_MS || 10 * 60_000)
+
+async function vigilar() {
+  try {
+    const r = await pasadaVigilante({
+      listar: async () => {
+        const { data, error } = await sb
+          .from('tickets')
+          .select('id, numero, fiscal_estado, fiscal_intentos, cerrado_en')
+          .in('fiscal_estado', ['pendiente', 'error'])
+        if (error) throw error
+        return data
+      },
+      // Ticket a ticket, no en lote: el lote saca el local del JWT y exige una
+      // sesión de personal que este proceso no tiene. La vía por ticket no la
+      // necesita, así que no hay que relajar nada de la función.
+      reintentar: async (lista) => {
+        let ok = 0
+        for (const t of lista) {
+          const res = await fetch(`${URL_SB}/functions/v1/registrar-fiscal`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', apikey: CLAVE },
+            body: JSON.stringify({ ticketId: t.id }),
+          })
+          if (res.ok) ok++
+        }
+        log(`🧾 reintento fiscal · ${ok}/${lista.length} registrado(s)`)
+      },
+      avisar: async (mensaje) => {
+        await sb.rpc('registrar_incidencia', { p_clase: 'fiscal', p_mensaje: mensaje, p_pantalla: 'Hacienda' })
+      },
+      log,
+    })
+    if (!r.reintentados && !r.perdidos) log('🧾 todo registrado en Hacienda')
+  } catch (e) {
+    log('⚠️  el vigilante fiscal no pudo comprobar:', e.message)
+  }
+}
+
+
+vigilar()
+setInterval(() => { vigilar().catch(() => {}) }, VIGILANTE_MS)
