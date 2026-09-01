@@ -5,6 +5,17 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.109.0] - 2026-09-01
+
+### Añadido
+- **El reintento de envío a Hacienda ya no depende de que alguien abra el panel.** Con Verifacti, un ticket solo se registra **el día que se emitió**: si el envío falla un martes por la tarde y nadie mira hasta el jueves, ese ticket no entra nunca. El reintento existía (`reintentarPendientes`) pero solo corría «al abrir Admin o a mano» — dependía de acordarse justo el día que hay que acordarse. En la demo se acumularon cinco así sin que nadie lo provocara.
+
+  Nuevo **vigilante** (`scripts/lib/vigilante.mjs`) que cada 10 minutos reintenta lo del día y, cuando encuentra tickets de jornadas anteriores que ya no pueden entrar, lo **anota como incidencia** para que `npm run salud` lo cante. Nueva clase de incidencia `fiscal` (migración `20260831T39`).
+
+  Vive dentro del proceso de impresión porque es el único que corre desatendido en el PC del bar — y ese PC está encendido exactamente cuando hace falta: mientras se sirve, que es la única ventana en la que un reintento puede funcionar.
+
+  Reintenta **ticket a ticket** y no en lote: el lote saca el local del JWT y exige una sesión de personal que un proceso desatendido no tiene, mientras que la vía por ticket no la necesita. Así no hubo que relajar la seguridad de la Edge Function.
+
 ## [0.108.0] - 2026-08-31
 
 Las dos son de las pantallas que **nadie está mirando**: el KDS cuelga de una
