@@ -10,6 +10,7 @@ import PedirPda from '../pda/PedirPda'
 import CobroMesa from '../pda/CobroMesa'
 import { totalDe, totalDeMesa, pendienteDeMesa } from '../../lib/dinero'
 import { resumenSala } from '../../lib/sala'
+import { useReloj } from '../../components/useReloj'
 
 const ESTADO = {
   libre: { label: 'Libre', color: '#10b981', bg: 'var(--tint-success-bg)' },
@@ -30,6 +31,7 @@ function haceCuanto(iso) {
 export default function PanelCamarero() {
   const { mesas, pedidosCocina, pedidosBarra, avisos, historial, reservas, liberarMesa, atenderAviso, pagarParte, cobrarMesa, reservarMesa, cancelarReserva, sentarReserva, unirseAMesa, asignarCamarero, agruparMesas, separarMesas, marcharSiguiente, cambiarCantidad, moverItem, anularItem } = useStore()
   const empleado = useEmpleadoActual()
+  useReloj()   // «hace 20 min» de una mesa no puede quedarse parado
   const yo = empleado?.nombre || 'Mostrador'
   const [mesaSeleccionada, setMesaSeleccionada] = useState(null)
   const [ticket, setTicket] = useState(null) // { tipo, persona, mesa? }
