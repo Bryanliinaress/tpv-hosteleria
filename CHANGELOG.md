@@ -5,6 +5,19 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.108.0] - 2026-08-31
+
+Las dos son de las pantallas que **nadie está mirando**: el KDS cuelga de una
+pared con el cocinero de espaldas, en la plancha.
+
+### Arreglado
+- **🔴 El reloj del KDS y los «hace X min» de cada comanda se congelaban.** Se calculan al pintar, y en una pantalla que nadie toca no hay nada que provoque un repintado: se quedaban clavados en la hora del último cambio. **Medido**: con el KDS abierto y sin actividad, la pantalla marcó 11:48 durante 1 min 41 s de reloj real. Un cocinero usa ese número para decidir a qué plato va primero — que diga «2 min» en uno que lleva veinte es peor que no ponerlo. Nuevo `useReloj`, también en Mostrador y en la PDA, que tienen el mismo cálculo.
+
+### Añadido
+- **El KDS avisa cuando entra una comanda**: pitido doble y un **🔔 COMANDA NUEVA** destellando en la cabecera durante 8 segundos, con la cabecera resaltada. Hasta ahora solo avisaba la PDA — la pantalla que ya lleva encima quien puede mirarla. El sonido se puede silenciar por aparato (🔔/🔕, recordado en el navegador): la tablet de cocina puede tenerlo y la de barra no.
+- El aviso visual va **aparte** del sonido a propósito: el navegador bloquea el audio hasta que alguien toca la pantalla, y una tablet colgada lleva horas sin que nadie la roce. Si no suena, al menos la pantalla cambia.
+- El pitido se saca a **`src/lib/aviso.js`** y lo comparten la PDA y los dos KDS, en vez de estar escrito en la PDA y copiado.
+
 ## [0.107.0] - 2026-08-31
 
 ### Arreglado
