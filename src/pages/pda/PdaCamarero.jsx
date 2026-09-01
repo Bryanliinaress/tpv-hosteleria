@@ -8,19 +8,10 @@ import PedirPda from './PedirPda'
 import CobroMesa from './CobroMesa'
 import { productosVisibles, configDeItem, ultimaRonda } from '../../lib/carta'
 import { totalDeMesa } from '../../lib/dinero'
+// El pitido vive en lib/aviso.js: lo comparten la PDA y los dos KDS
+import { avisar } from '../../lib/aviso'
+import { useReloj } from '../../components/useReloj'
 import { resumenSala, estaOcupada } from '../../lib/sala'
-
-// Pitido + vibración para avisar de eventos nuevos
-function alerta() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)()
-    const o = ctx.createOscillator(), g = ctx.createGain()
-    o.connect(g); g.connect(ctx.destination)
-    o.frequency.value = 880; g.gain.value = 0.08
-    o.start(); o.stop(ctx.currentTime + 0.18)
-  } catch { /* sin audio */ }
-  navigator.vibrate?.([120, 60, 120])
-}
 
 function haceCuanto(iso) {
   if (!iso) return ''
@@ -35,6 +26,7 @@ export default function PdaCamarero() {
   const [mover, setMover] = useState(null) // { tipo:'mesa'|'comensal', personaId? }
   const [moverLinea, setMoverLinea] = useState(null) // { personaId, uid, nombre } línea a otro comensal
   const empleado = useEmpleadoActual()
+  useReloj()   // los «hace X min» del feed
   const camarero = empleado?.nombre || ''
   const [soloMias, setSoloMias] = useState(false)
   const [sonido, setSonido] = useState(true)
@@ -83,7 +75,7 @@ export default function PdaCamarero() {
   useEffect(() => {
     if (prevIds.current !== null && sonido) {
       const antes = new Set(prevIds.current.split('|').filter(Boolean))
-      if (idsActuales.split('|').filter(Boolean).some(id => !antes.has(id))) alerta()
+      if (idsActuales.split('|').filter(Boolean).some(id => !antes.has(id))) avisar()
     }
     prevIds.current = idsActuales
     // eslint-disable-next-line react-hooks/exhaustive-deps
