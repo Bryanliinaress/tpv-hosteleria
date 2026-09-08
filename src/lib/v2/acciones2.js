@@ -112,6 +112,29 @@ export function accionesV2b() {
     },
 
     // ── Reservas: agenda del personal ───────────────────────────
+    // Reserva cogida por el personal. Va por la tabla (RLS del local), no por
+    // la RPC pública: esa rechaza los grupos de más de `maxPersonasOnline` y el
+    // día cerrado, que es justo lo que el bar coge por teléfono. El aforo lo
+    // avisa la pantalla; decidir es del bar.
+    crearReservaPersonal: async (datos) => {
+      try {
+        const { data, error } = await t('reservas').insert({
+          local_id: getLocalId(),
+          fecha: datos.fecha,
+          hora: datos.hora,
+          personas: Math.max(1, Number(datos.personas) || 2),
+          nombre: (datos.nombre || '').trim() || 'Cliente',
+          email: (datos.email || '').trim() || null,
+          telefono: (datos.telefono || '').trim() || null,
+          zona: datos.zona || null,
+          notas: (datos.notas || '').trim() || null,
+        }).select('id, token').single()
+        if (error) throw error
+        await cargarReservas()
+        return data.id
+      } catch (e) { err(e); return null }
+    },
+
     cambiarEstadoReserva: async (id, estado) => {
       const r = st().reservas.find(x => x.id === id)
       try {

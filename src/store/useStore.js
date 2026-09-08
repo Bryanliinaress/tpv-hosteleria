@@ -898,25 +898,21 @@ export const useStore = create(persist((set, get) => ({
     const personas = Math.max(1, Number(datos.personas) || 2)
     const motivo = motivoNoReservable(st, { ...datos, personas })
     if (motivo) { avisar(motivo, 'error'); return null }
-    const id = crearId('rv')
-    set(state => ({
-      reservas: [...state.reservas, {
-        id,
-        token: Math.random().toString(36).slice(2, 10), // localizador para gestionar la reserva desde el email
-        fecha: datos.fecha,                 // 'YYYY-MM-DD'
-        hora: datos.hora || '',             // 'HH:MM'
-        personas,
-        nombre: (datos.nombre || '').trim() || 'Cliente',
-        email: (datos.email || '').trim(),
-        telefono: (datos.telefono || '').trim(),
-        zona: datos.zona || '',             // preferencia; '' = sin preferencia
-        notas: (datos.notas || '').trim(),
-        estado: 'confirmada',               // confirmada | sentada | cancelada | no_show
-        mesaId: null,
-        creada: new Date().toISOString(),
-      }],
-    }))
-    return id
+    const fila = filaReserva(datos)
+    set(state => ({ reservas: [...state.reservas, fila] }))
+    return fila.id
+  },
+
+  // Crea una reserva que coge el PERSONAL (por teléfono, en la barra…). A
+  // diferencia de la del cliente, no se rechaza por aforo ni por día cerrado:
+  // el bar decide si mete una mesa más o abre un día que tenía cerrado, y una
+  // pantalla que le dice que no a quien está al teléfono no sirve de nada. La
+  // agenda avisa de que va apretado, pero deja pasar.
+  crearReservaPersonal: (datos) => {
+    if (!datos.fecha || !datos.hora) { avisar('Falta la fecha o la hora', 'error'); return null }
+    const fila = filaReserva(datos)
+    set(state => ({ reservas: [...state.reservas, fila] }))
+    return fila.id
   },
 
   // Asigna (o reasigna) una mesa a la reserva y la marca como 'reservada'.
@@ -1400,6 +1396,27 @@ export function ocupacionEn(reservas, config, fecha, hora, zona, excluirId) {
     .filter(r => !zona || r.zona === zona)
     .filter(r => { const ri = minDe(r.hora), rf = ri + dur; return ri < fin && rf > ini })
     .reduce((s, r) => s + (Number(r.personas) || 0), 0)
+}
+
+// La fila de una reserva nueva. La escriben la reserva del cliente y la que
+// coge el personal: si cada una construyera la suya, una de las dos acabaría
+// guardando un campo distinto (ya pasó con `zona` y `notas`).
+function filaReserva(datos) {
+  return {
+    id: crearId('rv'),
+    token: Math.random().toString(36).slice(2, 10), // localizador para gestionar la reserva desde el email
+    fecha: datos.fecha,                 // 'YYYY-MM-DD'
+    hora: datos.hora || '',             // 'HH:MM'
+    personas: Math.max(1, Number(datos.personas) || 2),
+    nombre: (datos.nombre || '').trim() || 'Cliente',
+    email: (datos.email || '').trim(),
+    telefono: (datos.telefono || '').trim(),
+    zona: datos.zona || '',             // preferencia; '' = sin preferencia
+    notas: (datos.notas || '').trim(),
+    estado: 'confirmada',               // confirmada | sentada | cancelada | no_show
+    mesaId: null,
+    creada: new Date().toISOString(),
+  }
 }
 
 // Por qué NO se puede reservar (null = se puede). Se usa al crear y al editar.

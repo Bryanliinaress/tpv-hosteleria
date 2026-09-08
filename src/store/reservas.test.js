@@ -131,6 +131,48 @@ describe('crear reserva', () => {
   })
 })
 
+describe('reserva cogida por el personal (teléfono)', () => {
+  beforeEach(() => {
+    useStore.setState(s => ({
+      reservas: [],
+      mesas: s.mesas.map(m => ({ ...m, estado: 'libre', personas: [], reserva: null })),
+      reservasConfig: { ...s.reservasConfig, diasCerrados: [] },
+    }))
+  })
+
+  it('entra con su localizador, como la del cliente', () => {
+    const id = st().crearReservaPersonal({ fecha: manana(), hora: '13:00', personas: 4, nombre: 'Ana', email: 'a@b.com' })
+    const r = st().reservas.at(-1)
+    expect(id).toBeTruthy()
+    expect(r.estado).toBe('confirmada')
+    expect(r.token).toBeTruthy()   // sin token, el correo sale sin enlace de gestión
+    expect(r.email).toBe('a@b.com')
+  })
+
+  // El bar coge por teléfono justo lo que la web rechaza: el grupo que no cabe
+  // en la última mesa y el día que figura cerrado. Si la pantalla dice que no,
+  // el camarero lo apunta en un papel y la reserva no existe para nadie más.
+  it('el aforo lleno NO la bloquea (la web sí)', () => {
+    const aforo = aforoTotal(st().reservasConfig, st().mesas)
+    expect(st().crearReserva({ fecha: manana(), hora: '13:00', personas: aforo, nombre: 'Lleno' })).toBeTruthy()
+    expect(st().crearReserva({ fecha: manana(), hora: '13:00', personas: 4, nombre: 'Cliente' })).toBeNull()
+    expect(st().crearReservaPersonal({ fecha: manana(), hora: '13:00', personas: 4, nombre: 'Por teléfono' })).toBeTruthy()
+  })
+
+  it('un día cerrado tampoco la bloquea', () => {
+    const f = manana()
+    const dia = new Date(f + 'T12:00:00').getDay()
+    useStore.setState(s => ({ reservasConfig: { ...s.reservasConfig, diasCerrados: [dia] } }))
+    expect(st().crearReserva({ fecha: f, hora: '13:00', personas: 2, nombre: 'Cliente' })).toBeNull()
+    expect(st().crearReservaPersonal({ fecha: f, hora: '13:00', personas: 2, nombre: 'Por teléfono' })).toBeTruthy()
+  })
+
+  it('sin hora no se guarda a medias', () => {
+    expect(st().crearReservaPersonal({ fecha: manana(), personas: 2, nombre: 'Ana' })).toBeNull()
+    expect(st().reservas).toHaveLength(0)
+  })
+})
+
 describe('editar y cancelar', () => {
   beforeEach(() => {
     useStore.setState(s => ({
