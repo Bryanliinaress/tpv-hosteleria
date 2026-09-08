@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { useStore, METODO_LABEL, METODO_EMOJI, metodosDe, propinasPorMetodoDe, ALERGENOS, normalizarExtra, etiquetasDe, ETIQUETAS_DEFECTO } from '../../store/useStore'
 import { confirmar, toast } from '../../store/useUI'
+import { copiar } from '../../lib/portapapeles'
+import { urlStripe, refCorta } from '../../lib/stripe'
 import Ticket from '../../components/Ticket'
 import ReservasManager from '../../components/ReservasManager'
 import ReservasConfig from '../../components/ReservasConfig'
@@ -63,6 +65,16 @@ export default function PanelAdmin() {
   for (const k of Object.keys(porDia)) porDia[k].sort((a, b) => new Date(b.cerradaEn) - new Date(a.cerradaEn))
   const dias = Object.keys(porDia).sort().reverse()
   const diaBonito = (k) => new Date(`${k}T00:00:00`).toLocaleDateString('es-ES')
+
+  // Copiar avisando de lo que PASÓ, no de lo que se pidió: si el navegador no
+  // deja copiar —el TPV abierto por http en la red del bar no es contexto
+  // seguro— decir «copiado» manda al encargado a pegar en Stripe lo que hubiera
+  // antes en el portapapeles.
+  const copiarTexto = async (texto, queEs) => {
+    if (await copiar(texto)) toast(`${queEs} copiad${queEs.endsWith('a') ? 'a' : 'o'}`, 'success')
+    else toast(`No se pudo copiar: selecciónal${queEs.endsWith('a') ? 'a' : 'o'} a mano`, 'error')
+  }
+  const copiarRef = (ref) => copiarTexto(ref, 'Referencia')
 
   // Lo ya devuelto de cada ticket (negativo). El servidor es quien manda —no
   // deja devolver más de lo pendiente—, pero la pantalla tiene que saberlo
@@ -366,17 +378,27 @@ export default function PanelAdmin() {
               <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.15rem' }}>
                 ⚠️ {pagosSinCuenta.length} cobro(s) sin cuenta · {pagosSinCuenta.reduce((s2, p2) => s2 + p2.importe, 0).toFixed(2)} €
               </div>
-              <div style={{ fontSize: '0.8rem', opacity: 0.9, marginBottom: '0.5rem' }}>
+              <div style={{ fontSize: '0.8rem', opacity: 0.9, marginBottom: '0.6rem' }}>
                 Entraron cuando la cuenta ya estaba saldada (dos personas pagando a la vez).
                 El dinero está cobrado y <strong>hay que devolverlo desde Stripe</strong>: no está en ningún ticket.
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.2rem 1rem', fontSize: '0.78rem' }}>
-                {pagosSinCuenta.slice(0, 8).map(p2 => (
-                  <span key={p2.id} style={{ whiteSpace: 'nowrap' }}>
-                    {new Date(p2.creadoEn).toLocaleDateString('es-ES')} · {p2.importe.toFixed(2)} € · <code>{p2.referencia}</code>
-                  </span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                {pagosSinCuenta.map(p2 => (
+                  <div key={p2.id} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem', background: 'var(--color-surface)', borderRadius: '0.5rem', padding: '0.45rem 0.55rem' }}>
+                    <span style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
+                      {new Date(p2.creadoEn).toLocaleDateString('es-ES')} · {p2.importe.toFixed(2)} €
+                    </span>
+                    <Referencia texto={p2.referencia} />
+                    <button onClick={() => copiarRef(p2.referencia)} title="Copiar la referencia entera"
+                      style={{ background: 'var(--color-surface-2)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.375rem', padding: '0.3rem 0.6rem', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                      📋 Copiar
+                    </button>
+                    <a href={urlStripe(p2.referencia)} target="_blank" rel="noreferrer" title="Abrir este cobro en Stripe para devolverlo"
+                      style={{ background: '#635bff', color: '#fff', borderRadius: '0.375rem', padding: '0.3rem 0.6rem', fontSize: '0.75rem', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                      Devolver en Stripe ↗
+                    </a>
+                  </div>
                 ))}
-                {pagosSinCuenta.length > 8 && <span>y {pagosSinCuenta.length - 8} más</span>}
               </div>
             </div>
           )}
@@ -890,7 +912,7 @@ export default function PanelAdmin() {
                     <code className="no-print" style={{ fontSize: '0.65rem', color: '#a78bfa', wordBreak: 'break-all', textAlign: 'center' }}>{url}</code>
                     <button
                       className="no-print"
-                      onClick={() => { navigator.clipboard?.writeText(url); toast('Dirección copiada', 'success') }}
+                      onClick={() => copiarTexto(url, 'Dirección')}
                       style={{ background: 'var(--color-surface-2)', color: 'var(--color-muted)', border: '1px solid var(--color-border)', borderRadius: '0.375rem', padding: '0.375rem 0.75rem', cursor: 'pointer', fontSize: '0.75rem', width: '100%' }}
                     >
                       Copiar URL
@@ -1281,6 +1303,25 @@ const inputStyle = {
   color: 'var(--color-text)',
   fontSize: '0.85rem',
   width: '100%',
+}
+
+// La referencia de Stripe son ~60 caracteres: en una fila se enseña el
+// principio y el final, y al tocarla se abre entera para poder seleccionarla a
+// mano —que es lo que queda cuando el navegador no deja copiar—.
+function Referencia({ texto }) {
+  const [entera, setEntera] = useState(false)
+  return (
+    <code
+      onClick={() => setEntera(v => !v)}
+      title={entera ? 'Tocar para acortar' : texto}
+      style={{
+        flex: '1 1 120px', opacity: 0.75, cursor: 'pointer',
+        userSelect: entera ? 'all' : 'auto',
+        wordBreak: entera ? 'break-all' : 'normal',
+        overflow: entera ? 'visible' : 'hidden', textOverflow: 'ellipsis',
+      }}
+    >{entera ? texto : refCorta(texto)}</code>
+  )
 }
 
 // Acciones de fila (agotado, editar, borrar). Eran de 29x23 px y pegadas: con

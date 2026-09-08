@@ -5,6 +5,15 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.112.0] - 2026-09-08
+
+### Añadido
+- **Los «cobros sin cuenta» ya se pueden accionar.** El aviso decía que hay dinero que devolver y escupía la referencia de Stripe entera en texto corrido: para devolverla había que **copiar 60 caracteres a mano** de una pantalla táctil. Ahora cada cobro es una fila con su fecha y su importe, un botón **📋 Copiar** y un enlace **Devolver en Stripe ↗** que abre ese cobro en el Dashboard. El modo (pruebas o real) **sale del propio id** (`cs_test_…`), así que el día que el bar pase a producción no hay nada que acordarse de cambiar aquí.
+- La referencia se enseña acortada (principio y final, que es lo que se compara de un vistazo) y **se abre entera al tocarla**, seleccionable a mano: es lo que queda cuando el navegador no deja copiar.
+
+### Arreglado
+- **«Copiado» que solo significaba «se ha pedido».** El botón de copiar la URL del QR de mesa hacía `navigator.clipboard?.writeText(url)` y cantaba «Dirección copiada» pase lo que pase: sin el `?.` no hay portapapeles fuera de un contexto seguro —el TPV abierto por **http** en la red del bar es uno—, y `writeText` puede fallar por permiso. Se decía copiado sin copiar, y quien pegara en Stripe pegaría lo que hubiera antes en el portapapeles. Ahora se comprueba (`src/lib/portapapeles.js`, con vía de emergencia para contextos no seguros) y **si no se pudo, lo dice**.
+
 ## [0.111.0] - 2026-09-08
 
 ### Añadido
