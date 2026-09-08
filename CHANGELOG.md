@@ -5,6 +5,18 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.111.0] - 2026-09-08
+
+### Añadido
+- **Coger una reserva desde Admin (y desde la agenda del camarero).** Era el hueco funcional más visible del panel: un bar coge reservas **por teléfono todo el día** y `ReservasManager` solo sabía gestionar las que entraban solas por `/reservar`. Desde Mostrador sí se podía, pero eso es otra cosa: bloquea una mesa concreta en el acto, no crea una reserva de la agenda, y el cliente no recibe ni la confirmación ni el enlace para cancelarla o cambiarla.
+
+  El botón **«➕ Nueva reserva (teléfono)»** abre el alta en la propia agenda: día, personas, zona, hora, nombre, teléfono, email y notas. El desplegable de horas enseña **cuánto queda libre en cada franja** («14:00 · 12 libres», «completo»), calculado con las mismas funciones de aforo que la reserva online. Si se deja email, sale la confirmación con su enlace de gestión, igual que la del cliente.
+
+- **El alta del personal NO se bloquea por aforo ni por día cerrado**, al revés que la del cliente: avisa y deja pasar. La reserva online tiene que decir que no —si no, el bar se sobrevende sin enterarse—, pero al teléfono decide quien lo coge, que es justo quien sabe si cabe una mesa más o si ese lunes se abre. Una pantalla que le dice que no al encargado acaba con la reserva apuntada en un papel, que es donde se pierden. Nueva acción `crearReservaPersonal`, con su versión de servidor: va **por la tabla** (RLS del local) y no por la RPC pública, que rechaza los grupos de más de `maxPersonasOnline` — precisamente los que el bar manda llamar por teléfono.
+
+### Arreglado
+- **El correo que mandaba la agenda iba sin enlace de gestión.** `cargarReservas` no se traía la columna `token`, así que en la app real el «✉️ Confirmar» de la agenda componía el correo sin el enlace para cancelar o modificar: el cliente recibía una confirmación de la que no podía hacer nada. Solo lo tenía el navegador del cliente que acababa de reservar, en su copia local.
+
 ## [0.110.0] - 2026-09-01
 
 ### Añadido
