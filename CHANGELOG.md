@@ -5,6 +5,15 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.117.0] - 2026-09-08
+
+### Cambiado
+- **Las tarjetas de arriba de Admin ya miden el negocio, no la base de datos.** Decían «Productos en carta 58» y «Categorías 3»: dos números que solo le importan a quien programa la carta, y que no cambian en una semana. Lo primero que mira un dueño al abrir el panel es **cuánto lleva hecho hoy**.
+
+  Ahora: **Facturado hoy · Tickets hoy · Mesas ocupadas · Sin cobrar en sala**. Las devoluciones son tickets en negativo, así que restan solas. El corte del día es el del **local** (`esDelDia`), no el de UTC: un ticket cobrado a la 01:30 pertenece a ese día para quien cierra la caja — es el mismo desfase que mandó horas de la nómina al mes anterior.
+
+  «Consumo activo» pasa a llamarse **«Sin cobrar en sala»**, que es lo que es: dinero servido y pendiente de cobro. El recuento de la carta sigue donde tiene sentido, en su pestaña.
+
 ## [0.116.0] - 2026-09-08
 
 ### Añadido

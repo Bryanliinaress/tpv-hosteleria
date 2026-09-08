@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { mesLocal, diaLocal, esDelMes, horasEntre } from './fechas'
+import { mesLocal, diaLocal, esDelMes, horasEntre, esDelDia } from './fechas'
 
 // El desfase UTC↔local solo se nota de madrugada, que es justo cuando cierra
 // un bar. Construimos las fechas en hora local para que la prueba valga en
@@ -53,5 +53,22 @@ describe('horasEntre', () => {
 
   it('nunca devuelve horas negativas', () => {
     expect(horasEntre(local(2026, 8, 2, 2, 0), local(2026, 8, 1, 20, 0))).toBe(0)
+  })
+})
+
+// El panel enseña «Facturado hoy» arriba del todo, y ese corte tiene que ser
+// el del bar: un ticket cobrado a la 01:30 pertenece a ese día para quien
+// cierra la caja, aunque en UTC ya sea el siguiente. Es el mismo error que
+// mandó horas de la nómina al mes anterior.
+describe('esDelDia', () => {
+  it('compara en la hora del local, no cortando el texto ISO', () => {
+    const madrugada = new Date(2026, 8, 8, 1, 30)   // 8 de septiembre, 01:30 local
+    expect(esDelDia(madrugada.toISOString(), '2026-09-08')).toBe(true)
+    expect(esDelDia(madrugada.toISOString(), '2026-09-07')).toBe(false)
+  })
+
+  it('sin fecha no cuenta como de ningún día', () => {
+    expect(esDelDia(null, '2026-09-08')).toBe(false)
+    expect(esDelDia(undefined, '2026-09-08')).toBe(false)
   })
 })
