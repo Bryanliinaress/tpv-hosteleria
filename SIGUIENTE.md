@@ -1,12 +1,12 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.107.0 · 819 tests JS + 37 pruebas de SQL en verde · CI y deploy en
-verde · repo limpio · 0 vulnerabilidades.** Última sesión: 2026-08-31.
+**Estado: v0.110.0 · 867 tests JS + 37 pruebas de SQL en verde · CI y deploy en
+verde · repo limpio · 0 vulnerabilidades.** Última sesión: 2026-09-01.
 
 Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a uno:
 [docs/AUDITORIA.md](docs/AUDITORIA.md) (es historia, no estado).
 
-### Lo último — ocho releases, del 26 al 31 de agosto
+### Lo último — once releases, del 26 de agosto al 1 de septiembre
 
 | | | |
 |---|---|---|
@@ -21,6 +21,9 @@ Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a un
 | **v0.106.0** | 31/08 | 🔴 **Admin → Local no guardaba NADA** (ver abajo), y el descuadre del cierre Z no significaba nada sin fondo de caja. |
 | **v0.106.1** | 31/08 | La tira de categorías de la carta se metía detrás de la cabecera — regresión de la v0.103.0 que el test de barras pegajosas no cazaba. |
 | **v0.107.0** | 31/08 | 🔴 **Se podía pagar un pedido que la cocina nunca había recibido.** Ahora se manda a cocina antes de cobrar. |
+| **v0.108.0** | 31/08 | 🔴 **El reloj del KDS se congelaba**: los «hace X min» se calculan al pintar y una pantalla que nadie toca no repinta. Medido, 1 min 41 s clavado. Y el KDS ya avisa cuando entra comanda. |
+| **v0.109.0** | 01/09 | **El reintento de envío a Hacienda ya no depende de que alguien abra el panel.** Un vigilante cada 10 min reintenta lo del día y anota lo que ya no puede entrar. |
+| **v0.110.0** | 01/09 | **El recordatorio de reserva se manda solo**, 4 h antes. ⚠️ Falta un ajuste en el panel de EmailJS para que salga (ver abajo). |
 
 **Lo que hay que llevarse de la sesión**, que se repitió tres veces con distinta
 cara: *«éxito» que solo significa «se lo he dado a otro»*. El spooler aceptaba
@@ -75,10 +78,20 @@ verdad.
 
 ### De Bryan (no es código)
 
-1. **Declaración responsable del fabricante** — obligación desde el 29-7-2025
+1. **⚠️ Habilitar en EmailJS el acceso fuera del navegador** — *bloquea la única
+   función que quedó a medias.* El recordatorio automático (v0.110.0) está hecho
+   y verificado: encuentra la reserva, compone el correo y EmailJS responde
+   `403 · API access from non-browser environments is currently disabled`. Se
+   activa en **dashboard.emailjs.com → Account → Security**.
+
+   Y al activarlo, pon también `EMAILJS_PRIVATE_KEY=…` en `.env.puente`: en
+   cuanto se abre esa puerta, la clave *pública* —que viaja dentro del bundle,
+   a la vista de cualquiera— bastaría por sí sola para mandar correos desde tu
+   cuenta. El vigilante ya manda la privada como `accessToken` si está puesta.
+2. **Declaración responsable del fabricante** — obligación desde el 29-7-2025
    por comercializar software de facturación. Es el único bloqueo legal que
    queda.
-2. **Rellenar teléfono y dirección** en Admin → Local. Salen en el ticket, en el
+3. **Rellenar teléfono y dirección** en Admin → Local. Salen en el ticket, en el
    recibo del cliente y en «Llámanos» de reservas. No lo relleno yo: un número
    inventado en una página pública acaba haciendo que alguien llame a un
    desconocido.
@@ -89,18 +102,18 @@ verdad.
    nunca está en `empleados`: todo se iba en un 403. Arreglado en la v0.106.0 —
    el CIF que había puesto (B75777847) lo escribió el script de
    aprovisionamiento, no la pantalla. **Ahora sí se guarda.**
-3. **Supabase Pro (~23 €/mes)** — quita las pausas por inactividad y trae los
+4. **Supabase Pro (~23 €/mes)** — quita las pausas por inactividad y trae los
    backups. Enseñar la demo a un bar y que no cargue es el peor momento para
    descubrirlo.
-4. **Enchufar las impresoras y comprobar el papel.** Del lado del software ya
+5. **Enchufar las impresoras y comprobar el papel.** Del lado del software ya
    está todo descartado (ver «El papel», abajo): lo único que puede fallar ya es
    que la impresora no implemente PC858 o el QR nativo. **Vacía la cola antes**:
    hay 9 trabajos de agosto esperando y saldrían todos de golpe.
-5. **Pasar a producción**: NIF real en Verifacti (solo cambia el secreto
+6. **Pasar a producción**: NIF real en Verifacti (solo cambia el secreto
    `VERIFACTI_API_KEY`, de `vf_test_…` a `vf_prod_…`; la URL es la misma). Con
    Stripe en `sk_live_` hay que **rehacer el webhook** —otro endpoint y otro
    secreto de firma—: `node scripts/configurar-stripe.mjs marchando`.
-6. **Probar el alta de un bar nuevo** de punta a punta una vez: aprovisionar el
+7. **Probar el alta de un bar nuevo** de punta a punta una vez: aprovisionar el
    proyecto, autorizar el primer dispositivo desde el terminal y entrar.
 
 ### ⚠️ Aclarar con Verifacti antes de producción
@@ -201,7 +214,7 @@ dice «tickets sin registrar», hay que atenderlo **ese mismo día**.
 ## Comandos
 
 ```bash
-npm test                           # 819 tests, 10 pantallas cubiertas
+npm test                           # 867 tests, 10 pantallas cubiertas
 npm run test:sql                   # 37 pruebas del dinero, contra la base real
 npm run lint
 npm run permisos                   # ¿se ha abierto algo sin querer?
@@ -511,7 +524,7 @@ saliendo, pero conviene fijar el precio sabiéndolo.
   7 días / Este mes / Mes pasado), con CSV y las devoluciones restando.
 - **Monitorización**: el bar deja constancia de lo que se rompe en su propia
   base y `npm run salud` lo lee. Encontró sola dos fallos de producción.
-- **819 tests JS** (las **diez** pantallas cubiertas) **+ 37 pruebas de SQL**
+- **867 tests JS** (las **diez** pantallas cubiertas) **+ 37 pruebas de SQL**
   contra la base real, lint limpio, CI y deploy en verde, **0 vulnerabilidades**
   en todo el árbol de dependencias.
 - **Arqueo de caja completo** (v0.106.0): fondo de cambio y entradas/salidas del
@@ -528,6 +541,17 @@ saliendo, pero conviene fijar el precio sabiéndolo.
 - **Un fallo de impresión deja rastro** (v0.100.0): se confirma que el trabajo
   sale de la cola de Windows, se cancela si no sale —para que reintentar no lo
   apile— y se anota como incidencia `impresora`, que `npm run salud` enseña.
+- **Nada desatendido se queda esperando a que alguien abra el panel** (v0.109.0
+  y v0.110.0): el proceso de impresión hospeda además el **vigilante fiscal**
+  —reintenta cada 10 min lo del día y anota lo que ya no puede entrar— y los
+  **recordatorios de reserva**, 4 h antes. Ambos verificados de punta a punta
+  contra la base real. El recordatorio compone y lanza el correo; solo falta el
+  ajuste de EmailJS.
+- **Lo que se escribe en un correo vive en un solo sitio**
+  (`src/lib/textosReserva.js`): lo leen el navegador y el vigilante en Node.
+  Escrito dos veces, una de las dos habría acabado diciendo otra cosa.
+- **El reloj de las pantallas pasivas corre** (`useReloj`): en el KDS, Mostrador
+  y la PDA los «hace X min» se recalculan cada 10 s aunque nadie toque nada.
 - **Cómo se cuenta la sala** vive en `src/lib/sala.js` y no en cada pantalla: una
   mesa **reservada no está ocupada**, y Mostrador y la PDA lo dicen igual porque
   leen del mismo sitio.
@@ -537,6 +561,9 @@ saliendo, pero conviene fijar el precio sabiéndolo.
 
 - **Credenciales**: no puedo teclear contraseñas ni manejar claves que muevan
   dinero (la `sk_` de Stripe). Los tokens `sbp_` se usan y **se revocan**.
+- ⏳ **El token de Supabase de `.env.puente` caduca el 12/09/2026.** Cuando pase,
+  dejarán de funcionar las migraciones, `npm run permisos`, `npm run salud` y
+  autorizar dispositivos desde el terminal — todo a la vez y sin avisar antes.
 - **Migraciones**: Management API
   (`POST https://api.supabase.com/v1/projects/<ref>/database/query`). Sin Docker.
   Ojo: **Cloudflare bloquea al cliente de Python**; con `curl` pasa.
@@ -595,6 +622,18 @@ rentable de todas:
   pantallas comparten un dato pero cada una lo usa para algo distinto —una para
   cobrar, otra para cocinar—, hay que preguntarse qué pasa si solo una de las
   dos ha corrido.
+
+Y una de método, del 01/09, que costó una hora de desconcierto:
+
+- **Un parche que no se aplica y no lo dice.** Edité `cargarEntorno()` con un
+  script de Python sin `assert`: el texto buscado no coincidía, el script
+  terminó con éxito y el cambio nunca entró. El servicio siguió sin leer `.env`
+  y el recordatorio se saltaba **en silencio**, sin una sola línea en el log.
+  Es el mismo fallo que el del papel con otra ropa: algo que no funciona y no lo
+  cuenta. Dos reglas de ahí: **editar con la herramienta que falla si no
+  encuentra el texto**, y que **todo lo que se apaga por falta de configuración
+  lo diga en el log** —ahora escribe «recordatorios apagados: faltan las claves
+  de EmailJS»— en vez de no hacer nada.
 
 **Casi todo lo gordo de este mes salió de mirar la pantalla**, no de leer
 código: el ticket cobrado que se reimprimía como PENDIENTE DE PAGO, la cabecera
