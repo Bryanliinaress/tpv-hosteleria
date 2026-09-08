@@ -3,6 +3,7 @@ import { useEmpleadoActual, clearSesion } from '../lib/sesion'
 import PinLogin from './PinLogin'
 import { backendV2 } from '../lib/repo'
 import { haySesionLocal } from '../lib/v2'
+import { anotarPantalla } from '../lib/v2/dispositivo'
 import LoginLocal from '../pages/login/LoginLocal'
 import PedirAcceso from '../pages/login/PedirAcceso'
 import { esLocalMontado } from '../lib/perfil'
@@ -19,6 +20,13 @@ export default function Protegido({ pantalla, children }) {
   useEffect(() => {
     if (backendV2) haySesionLocal().then(setSesionLocal)
   }, [])
+
+  // Deja anotado para qué se usa este aparato. Con cuatro tablets iguales, lo
+  // que las distingue no es el nombre que alguien tecleó una vez: es que una
+  // lleva semanas abierta en el KDS de cocina.
+  useEffect(() => {
+    if (backendV2 && sesionLocal) anotarPantalla(pantalla)
+  }, [pantalla, sesionLocal])
 
   if (backendV2 && sesionLocal === null) return null            // comprobando sesión
   if (backendV2 && !sesionLocal) {
