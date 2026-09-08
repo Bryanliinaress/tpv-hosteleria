@@ -1,12 +1,12 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.115.0 · 928 tests JS + 37 pruebas de SQL en verde · CI y deploy en
+**Estado: v0.117.0 · 935 tests JS + 37 pruebas de SQL en verde · CI y deploy en
 verde · repo limpio · 0 vulnerabilidades.** Última sesión: 2026-09-08.
 
 Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a uno:
 [docs/AUDITORIA.md](docs/AUDITORIA.md) (es historia, no estado).
 
-### Lo último — dieciséis releases, del 26 de agosto al 8 de septiembre
+### Lo último — dieciocho releases, del 26 de agosto al 8 de septiembre
 
 | | | |
 |---|---|---|
@@ -29,6 +29,8 @@ Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a un
 | **v0.113.0** | 08/09 | **El arqueo dejó de mezclar personas con formas de pago**: «Pago online» salía en la lista de camareros como si fuera un empleado. |
 | **v0.114.0** | 08/09 | **Un tercer rol, Cocina**, que no entra donde se cobra. Y la regla del último administrador dejaba bajarlo a cocina, quedándose el local sin quien administre. |
 | **v0.115.0** | 08/09 | **Renumerar mesas** (comprobando que no se repitan) y **zonas que se eligen**, con renombrado en todas sus mesas de una vez. |
+| **v0.116.0** | 08/09 | **Renombrar dispositivos y ver para qué se usan** (cada aparato apunta en qué pantalla está). Y «último uso» llevaba desde siempre diciendo casi cualquier cosa. |
+| **v0.117.0** | 08/09 | Las tarjetas de arriba de Admin dejan de medir «Categorías 3»: **Facturado hoy · Tickets hoy · Mesas ocupadas · Sin cobrar en sala**. |
 
 **Lo que hay que llevarse de la sesión**, que se repitió tres veces con distinta
 cara: *«éxito» que solo significa «se lo he dado a otro»*. El spooler aceptaba
@@ -40,6 +42,17 @@ pidió?**
 Y la segunda: **los tres fallos gordos salieron de mirar la pantalla**, no de
 leer código. Los 78 tests de pantalla escritos después no encontraron ninguno:
 sirven para que no vuelvan, no para hallarlos.
+
+**De la sesión del 08/09** (siete releases seguidas, los siete huecos del
+repaso de Admin): el patrón que más apareció fue **una regla escrita cuando
+había menos casos de los que hay hoy**. La del último administrador comparaba
+con `'camarero'` porque solo había dos roles, así que al aparecer «cocina» se
+podía dejar el local sin quien administre. El alta de empleado forzaba el rol a
+uno de dos. `cargarReservas` no traía el `token`, así que el correo de la
+agenda salía sin el enlace de gestión. Y el botón de copiar cantaba «copiada»
+sin comprobar nada — la misma familia que el papel. Cuando se añade un caso
+nuevo (un rol, una columna, una zona), toca releer lo que enumeraba los
+anteriores **a mano**.
 
 ---
 
@@ -139,6 +152,61 @@ su entorno de pruebas o de su API — pero **define qué pasa si la AEAT no
 responde durante un día entero**. Mientras no esté claro: si `npm run salud`
 dice «tickets sin registrar», hay que atenderlo **ese mismo día**.
 
+### 🟡 Dos cosas que tienes que decidir tú (con mi recomendación)
+
+Están mirados el 08/09 y traídos aquí a propósito: no las decido yo.
+
+**1. RGPD (PRODUCCION.md Fase 0 §5) — no está resuelto, pero tampoco está en
+blanco: falta poco y casi todo es tuyo, no mío.**
+
+Lo que YA está hecho, comprobado hoy:
+- El borrador completo está en [docs/RGPD.md](docs/RGPD.md): mapa de
+  tratamientos (art. 30), política de privacidad y texto de consentimiento,
+  con los huecos marcados `【…】` para que los rellene una asesoría.
+- La pantalla de Reservar informa de finalidad y conservación antes de
+  confirmar, y hay un desplegable con responsable, plazo y cómo cancelar.
+- **La retención se cumple sola**: `purgarReservasAntiguas` borra nombres,
+  emails y teléfonos a los 30 días (configurable). ⚠️ Corre **al abrir la
+  app**, no desatendida — si el bar cierra una semana, esos días no se purga.
+- `anon` no puede leer el nombre ni el teléfono de una reserva (migración 12).
+- **El proyecto Supabase está en `eu-west-1` (Irlanda), UE.** Era uno de los
+  huecos del §4 del borrador: resuelto.
+
+Lo que falta, y es corto:
+- Una página `/privacidad` con el texto, enlazada desde Reservar y desde la
+  carta QR. **Eso sí es código y lo hago en una release** — pero necesita tu
+  email de contacto RGPD y el NIF, que van en Admin → Local (los mismos que
+  llevan semanas pendientes: teléfono y dirección).
+- Aceptar los DPA de Supabase, Stripe y EmailJS. Es de firmar, no de programar.
+- Que una asesoría valide los textos y diga si con base 6.1.b basta la capa
+  informativa o hace falta casilla.
+
+**Mi recomendación**: bájalo de «bloqueante crítico» a **«bloqueante para el
+primer bar real, no para enseñar la demo»**. Mientras la demo no tenga clientes
+de verdad, el riesgo real es que alguien reserve con su email — y eso ya se
+purga a los 30 días y no lo puede leer nadie sin sesión. Dime el email de
+contacto y saco la página `/privacidad` en la siguiente release; los DPA y la
+asesoría son gestión tuya y van en paralelo.
+
+**2. Stripe Connect (PRODUCCION.md Fase 0 §4) — mi recomendación es NO usarlo.**
+
+Connect existe para que una plataforma cobre en nombre de muchos negocios y les
+reparta el dinero. Aquí **cada bar es su propia instalación**: su proyecto
+Supabase, su despliegue y su `.env` — así que cada bar pone **su propia cuenta
+de Stripe** y el dinero le entra directo, sin pasar por ninguna cuenta tuya.
+Eso es más simple, más barato (Connect añade comisión) y **legalmente mucho más
+tranquilo**: en cuanto el dinero de los clientes pasa por tu cuenta antes de
+llegar al bar, estás intermediando pagos, que es terreno regulado.
+
+Solo haría falta Connect si algún día quisieras **cobrarles tu cuota
+descontándola de sus ventas**, o montar un SaaS de verdad con una sola cuenta.
+No es el modelo de hoy.
+
+**Lo que sí hay que hacer, con o sin Connect** (ya está anotado arriba): por
+cada bar, `sk_live_` suya + rehacer el webhook con
+`node scripts/configurar-stripe.mjs <slug>`. Si dices que sí a esto, quito el
+§4 de la lista de bloqueantes.
+
 ### De pantalla
 
 1. **Probarlo tocando**, en un móvil y una tableta de verdad. Es lo único que
@@ -146,15 +214,8 @@ dice «tickets sin registrar», hay que atenderlo **ese mismo día**.
 
 ### De código
 
-1. **⚠️ Dos cosas de la Fase 0 de PRODUCCION.md que no estaban en esta lista** y
-   conviene confirmar si están resueltas o solo se cayeron:
-   - **RGPD** (§5): se guardan nombres, emails y teléfonos de reservas y falta
-     base legal, política de privacidad visible y consentimiento. La pantalla de
-     Reservar ya explica finalidad y retención, pero eso no es lo mismo. Está
-     catalogado como **bloqueante crítico**.
-   - **Stripe Connect** (§4): «para que el dinero llegue a la cuenta del
-     restaurante». Con un bar por instalación quizá cada uno pone su propia
-     cuenta y no hace falta — pero conviene decidirlo, no dejarlo por omisión.
+1. **Las dos de la Fase 0 (RGPD y Stripe Connect) están miradas y esperan tu
+   decisión** — con recomendación, en la sección amarilla de aquí abajo.
 2. **Del repaso del panel de Admin (31/08)**, lo que quedó sin hacer. Los
    cuatro primeros de aquella lista ya están (QR con la dirección buena, hoja de
    impresión, fondo de caja y alta de jornada):
@@ -177,11 +238,12 @@ dice «tickets sin registrar», hay que atenderlo **ese mismo día**.
      (v0.115.0): el número se edita (rechazando repetidos), la zona se elige de
      la lista y se renombra en todas sus mesas de una vez. La rejilla va por
      zona y número, que es el orden de la sala.
-   - **Dispositivos**: no se puede renombrar uno ya autorizado ni se ve para qué
-     se usa. Con cuatro tablets iguales, los nombres no dicen cuál es la de
-     cocina.
-   - Menor: las tarjetas de arriba miden «Categorías 3», que es un dato de
-     desarrollador; un dueño querría lo facturado hoy.
+   - ~~Dispositivos: no se puede renombrar…~~ ✅ **hecho el 08/09** (v0.116.0):
+     renombrar con PIN de encargado, y cada aparato apunta **en qué pantalla
+     está** («🍳 Se usa en Cocina»). Migración 41.
+   - ~~Menor: las tarjetas de arriba miden «Categorías 3»~~ ✅ **hecho el 08/09**
+     (v0.117.0): Facturado hoy · Tickets hoy · Mesas ocupadas · Sin cobrar en
+     sala, con el corte del día en hora del local.
 
 3. **La cola offline en una caída de red real** — está probada la RPC, no el
    comportamiento con la conexión cayéndose de verdad.
@@ -224,7 +286,7 @@ dice «tickets sin registrar», hay que atenderlo **ese mismo día**.
 ## Comandos
 
 ```bash
-npm test                           # 928 tests, 10 pantallas cubiertas
+npm test                           # 935 tests, 10 pantallas cubiertas
 npm run test:sql                   # 37 pruebas del dinero, contra la base real
 npm run lint
 npm run permisos                   # ¿se ha abierto algo sin querer?
@@ -504,7 +566,7 @@ saliendo, pero conviene fijar el precio sabiéndolo.
 
 ## Qué está hecho y verificado de verdad
 
-- **Backend multi-tenant**: 34 migraciones aplicadas (con registro: `npm run
+- **Backend multi-tenant**: 41 migraciones aplicadas (con registro: `npm run
   migraciones -- --estado` dice en cuál va cada bar), RLS en las 17 tablas, RPC
   transaccionales.
 - **⚠️ Los `grant` no bastan: hay que MIRAR los permisos en la BBDD.** Supabase
@@ -557,7 +619,7 @@ saliendo, pero conviene fijar el precio sabiéndolo.
   7 días / Este mes / Mes pasado), con CSV y las devoluciones restando.
 - **Monitorización**: el bar deja constancia de lo que se rompe en su propia
   base y `npm run salud` lo lee. Encontró sola dos fallos de producción.
-- **928 tests JS** (las **diez** pantallas cubiertas) **+ 37 pruebas de SQL**
+- **935 tests JS** (las **diez** pantallas cubiertas) **+ 37 pruebas de SQL**
   contra la base real, lint limpio, CI y deploy en verde, **0 vulnerabilidades**
   en todo el árbol de dependencias.
 - **Arqueo de caja completo** (v0.106.0): fondo de cambio y entradas/salidas del
