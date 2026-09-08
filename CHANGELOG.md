@@ -5,6 +5,16 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.116.0] - 2026-09-08
+
+### Añadido
+- **Renombrar un dispositivo ya autorizado.** El nombre se ponía una sola vez, al darle acceso, y ahí se quedaba. Con cuatro tablets iguales llamadas «Tablet», el encargado que va a quitarle el acceso a una no sabe cuál es — y quitárselo a la de cocina en mitad de un servicio se nota. Con **PIN de encargado**, como autorizar y revocar, y comprobado en el servidor: que la pantalla pida el PIN no sirve de nada si la RPC se puede llamar por su cuenta.
+- **Ver para qué se usa cada aparato.** Un nombre dice lo que alguien *quiso*; lo que de verdad identifica a la tablet de cocina es que lleva semanas abierta en el KDS. Ahora cada aparato **apunta en qué pantalla está** al abrirla, y la lista lo enseña con la misma cara que lleva esa pantalla en su cabecera: «🍳 Se usa en Cocina · última vez hoy 13:40». Nueva columna `dispositivos.ultima_pantalla` y RPC `dispositivo_en_pantalla` (migración `20260908T41`), que solo puede tocar **su propia fila** — se busca por `auth.uid()`, así que un aparato no puede escribir sobre otro aunque llame a la función con lo que quiera.
+
+### Arreglado
+- **«Último uso» de una tablet que se usa a diario decía «hace tres semanas».** Solo se apuntaba al canjear el secreto por una sesión, o sea casi nunca — y ese dato es justo el que se mira para decidir a quién se le quita el acceso sin miedo. Ahora se refresca al abrir cualquier pantalla de personal.
+- **Los `prompt()` y `confirm()` del navegador, fuera de la pantalla de dispositivos.** Una PWA instalada a pantalla completa en Android puede no enseñarlos: el encargado pulsaba «Autorizar» y no pasaba nada. Ahora usan los diálogos de la app, como el resto.
+
 ## [0.115.0] - 2026-09-08
 
 ### Añadido

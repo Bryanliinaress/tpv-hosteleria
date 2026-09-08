@@ -11,6 +11,8 @@ vi.mock('../lib/sesion', () => ({
 }))
 vi.mock('../lib/repo', () => ({ backendV2: false }))
 vi.mock('../lib/v2', () => ({ haySesionLocal: async () => true }))
+// Anotar en qué pantalla está el aparato habla con Supabase: aquí no toca.
+vi.mock('../lib/v2/dispositivo', () => ({ anotarPantalla: vi.fn() }))
 vi.mock('../lib/perfil', () => ({ esLocalMontado: () => true }))
 vi.mock('./PinLogin', () => ({ default: () => <div>TECLADO DEL PIN</div> }))
 vi.mock('../pages/login/LoginLocal', () => ({ default: () => <div>login</div> }))
