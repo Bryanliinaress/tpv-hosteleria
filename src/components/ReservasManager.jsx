@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useStore, generarSlots, aforoTotal, ocupacionEn, mesasCandidatas } from '../store/useStore'
+import { useStore, generarSlots, aforoTotal, aforoZona, ocupacionEn, mesasCandidatas, diaCerrado } from '../store/useStore'
 import { enviarEmailReserva } from '../lib/email'
 import { confirmar, toast } from '../store/useUI'
 
@@ -30,7 +30,7 @@ const EST = {
 // Reutilizable en Admin (pestaña) y Camarero (drawer). `onSentada` se llama
 // con el mesaId tras sentar (para que el contenedor pueda navegar si quiere).
 export default function ReservasManager({ onSentada }) {
-  const { reservas, mesas, reservasConfig: cfg, asignarReservaMesa, sentarReservaAgenda, cambiarEstadoReserva } = useStore()
+  const { reservas, mesas, reservasConfig: cfg, asignarReservaMesa, sentarReservaAgenda, cambiarEstadoReserva, crearReservaPersonal } = useStore()
   const hoy = hoyLocal()
   const [filtro, setFiltro] = useState('hoy') // hoy | proximas | todas
   const [vista, setVista] = useState('agenda') // agenda | servicio
@@ -75,6 +75,8 @@ export default function ReservasManager({ onSentada }) {
       {vista === 'servicio' && <Servicio cfg={cfg} mesas={mesas} reservas={reservas} fecha={fechaSrv} setFecha={setFechaSrv} />}
 
       {vista === 'agenda' && (<>
+      <NuevaReserva cfg={cfg} mesas={mesas} reservas={reservas} crear={crearReservaPersonal} />
+
       <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1rem' }}>
         {[{ id: 'hoy', t: `Hoy${pendientesHoy ? ` (${pendientesHoy})` : ''}` }, { id: 'proximas', t: 'Próximas' }, { id: 'todas', t: 'Todas' }].map(o => (
           <button key={o.id} onClick={() => setFiltro(o.id)} style={btn(filtro === o.id ? 'var(--color-accent)' : 'var(--color-surface-2)', { flex: 1, fontSize: '0.82rem' })}>{o.t}</button>
@@ -137,6 +139,127 @@ export default function ReservasManager({ onSentada }) {
     </div>
   )
 }
+
+// ── Alta manual: la reserva que el bar coge por teléfono ──────────────────
+// Es la vía por la que entra la mayoría de las reservas de un bar, y hasta
+// ahora solo se podía desde Mostrador, que obliga a asignar mesa en el acto y
+// no manda ni la confirmación ni el enlace de gestión al cliente.
+//
+// A diferencia de la reserva online, aquí NO se bloquea por aforo ni por día
+// cerrado: se avisa y se deja pasar. Quien está al teléfono decide si mete una
+// mesa más, no la pantalla.
+const FORM0 = { fecha: '', hora: '', personas: 2, zona: '', nombre: '', email: '', telefono: '', notas: '' }
+const emailValido = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((e || '').trim())
+
+function NuevaReserva({ cfg, mesas, reservas, crear }) {
+  const [abierto, setAbierto] = useState(false)
+  const [form, setForm] = useState({ ...FORM0, fecha: hoyLocal() })
+  const [otraHora, setOtraHora] = useState(false)
+  const [guardando, setGuardando] = useState(false)
+  const set = (campo, val) => setForm(s => ({ ...s, [campo]: val }))
+
+  const zonas = [...new Set(mesas.map(m => m.zona).filter(Boolean))]
+  const personas = Math.max(1, Number(form.personas) || 1)
+  const aforo = form.zona ? aforoZona(cfg, mesas, form.zona) : aforoTotal(cfg, mesas)
+  const libresEn = (hora) => aforo - ocupacionEn(reservas, cfg, form.fecha, hora, form.zona || null)
+
+  const cerrado = !!form.fecha && diaCerrado(cfg, form.fecha)
+  const libres = form.fecha && form.hora ? libresEn(form.hora) : null
+  const sinAforo = libres != null && libres < personas
+  const emailMal = !!form.email.trim() && !emailValido(form.email)
+  const ok = !!form.fecha && !!form.hora && !!form.nombre.trim() && !emailMal && !guardando
+
+  const guardar = async () => {
+    setGuardando(true)
+    try {
+      const id = await Promise.resolve(crear({ ...form, personas }))
+      if (!id) return                       // la acción ya avisó del motivo
+      const r = useStore.getState().reservas.find(x => x.id === id)
+      toast(`Reserva de ${form.nombre.trim()} guardada`, 'success')
+      if (r?.email) await enviarCorreo('confirmacion', r)
+      setForm({ ...FORM0, fecha: hoyLocal() }); setOtraHora(false); setAbierto(false)
+    } finally { setGuardando(false) }
+  }
+
+  if (!abierto) {
+    return (
+      <button onClick={() => setAbierto(true)} style={btn('#10b981', { width: '100%', marginBottom: '1rem', padding: '0.7rem', fontSize: '0.9rem' })}>
+        ➕ Nueva reserva (teléfono)
+      </button>
+    )
+  }
+
+  return (
+    <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.875rem', marginBottom: '1rem', boxShadow: 'var(--shadow-sm)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.7rem' }}>
+        <strong style={{ fontSize: '0.95rem' }}>➕ Nueva reserva</strong>
+        <button onClick={() => setAbierto(false)} aria-label="Cerrar" style={btn('var(--color-surface-2)', { fontSize: '0.8rem', padding: '0.3rem 0.6rem' })}>✕</button>
+      </div>
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.5rem' }}>
+        <label style={campo}>
+          <span style={etiqueta}>Día</span>
+          <input type="date" value={form.fecha} min={hoyLocal()} onChange={e => set('fecha', e.target.value)} style={inp} />
+        </label>
+        <label style={campo}>
+          <span style={etiqueta}>Personas</span>
+          <input type="number" min="1" value={form.personas} onChange={e => set('personas', e.target.value)} style={inp} />
+        </label>
+        {zonas.length > 0 && (
+          <label style={campo}>
+            <span style={etiqueta}>Zona</span>
+            <select value={form.zona} onChange={e => set('zona', e.target.value)} style={inp}>
+              <option value="">Sin preferencia</option>
+              {zonas.map(z => <option key={z} value={z}>{z}</option>)}
+            </select>
+          </label>
+        )}
+        <label style={campo}>
+          <span style={etiqueta}>Hora</span>
+          {otraHora ? (
+            <input type="time" value={form.hora} onChange={e => set('hora', e.target.value)} style={inp} />
+          ) : (
+            <select value={form.hora} onChange={e => { if (e.target.value === '__otra') { setOtraHora(true); set('hora', '') } else set('hora', e.target.value) }} style={inp}>
+              <option value="">Elige hora…</option>
+              {generarSlots(cfg).map(s => {
+                const l = form.fecha ? libresEn(s.hora) : aforo
+                return <option key={s.hora} value={s.hora}>{s.hora} · {l >= personas ? `${l} libres` : l > 0 ? `solo ${l} libres` : 'completo'}</option>
+              })}
+              <option value="__otra">Otra hora…</option>
+            </select>
+          )}
+        </label>
+      </div>
+
+      {cerrado && <Nota>🔒 Ese día el local está cerrado. La reserva se guarda igual.</Nota>}
+      {sinAforo && <Nota>⚠️ A esa hora {libres <= 0 ? 'no queda sitio' : `solo quedan ${libres} plazas`} de {aforo}{form.zona && ` en ${form.zona}`}. La reserva se guarda igual.</Nota>}
+
+      <input value={form.nombre} onChange={e => set('nombre', e.target.value)} placeholder="Nombre *" style={{ ...inp, marginBottom: '0.4rem' }} />
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.4rem' }}>
+        <input value={form.telefono} onChange={e => set('telefono', e.target.value)} type="tel" inputMode="tel" placeholder="Teléfono" style={{ ...inp, flex: '1 1 140px' }} />
+        <input value={form.email} onChange={e => set('email', e.target.value)} type="email" inputMode="email" placeholder="Email (para confirmarle)" style={{ ...inp, flex: '1 1 180px', borderColor: emailMal ? '#f43f5e' : 'var(--color-border)' }} />
+      </div>
+      <input value={form.notas} onChange={e => set('notas', e.target.value)} placeholder="Alergias, trona, celebración…" style={{ ...inp, marginBottom: '0.6rem' }} />
+
+      <button onClick={guardar} disabled={!ok} style={btn(ok ? '#10b981' : 'var(--color-surface-3)', { width: '100%', padding: '0.7rem', cursor: ok ? 'pointer' : 'not-allowed' })}>
+        {guardando ? 'Guardando…' : 'Guardar reserva ✓'}
+      </button>
+      <p style={{ fontSize: '0.72rem', color: 'var(--color-muted)', textAlign: 'center', marginTop: '0.45rem' }}>
+        {emailMal ? 'Ese email no es válido.'
+          : form.email.trim() ? 'Se le manda la confirmación con el enlace para cancelar o cambiarla.'
+          : 'Sin email no hay confirmación ni recordatorio: apunta el teléfono.'}
+      </p>
+    </div>
+  )
+}
+
+const Nota = ({ children }) => (
+  <div style={{ background: 'var(--tint-warning-bg)', border: '1px solid var(--tint-warning-bd)', color: 'var(--tint-warning-fg)', borderRadius: '0.5rem', padding: '0.5rem 0.6rem', fontSize: '0.78rem', marginBottom: '0.5rem' }}>{children}</div>
+)
+
+const campo = { display: 'flex', flexDirection: 'column', gap: '0.2rem', flex: '1 1 130px' }
+const etiqueta = { fontSize: '0.7rem', color: 'var(--color-muted)', fontWeight: 600 }
+const inp = { background: 'var(--color-inset)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.6rem', color: 'var(--color-text)', fontSize: '0.85rem', width: '100%', boxSizing: 'border-box' }
 
 // Vista de servicio: ocupación por franja horaria del día elegido.
 function Servicio({ cfg, mesas, reservas, fecha, setFecha }) {

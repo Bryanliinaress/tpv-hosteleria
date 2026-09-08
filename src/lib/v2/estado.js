@@ -242,10 +242,12 @@ export async function cargarAvisos() {
 }
 
 export async function cargarReservas() {
-  const reservas = await q('reservas', 'id, fecha, hora, personas, nombre, email, telefono, zona, notas, estado, mesa_id')
+  // `token` es el localizador del enlace de gestión del cliente: sin él, el
+  // correo de confirmación que manda la agenda sale sin enlace para cancelar.
+  const reservas = await q('reservas', 'id, token, fecha, hora, personas, nombre, email, telefono, zona, notas, estado, mesa_id')
   useStore.setState({
     reservas: reservas.map(r => ({
-      id: r.id, fecha: r.fecha, hora: String(r.hora).slice(0, 5), personas: r.personas,
+      id: r.id, token: r.token, fecha: r.fecha, hora: String(r.hora).slice(0, 5), personas: r.personas,
       nombre: r.nombre, email: r.email, telefono: r.telefono, zona: r.zona,
       notas: r.notas, estado: r.estado, mesaId: r.mesa_id,
     })),

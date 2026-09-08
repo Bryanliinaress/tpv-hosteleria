@@ -343,7 +343,7 @@ export default function PanelAdmin() {
         {tab === 'reservas' && (
           <div style={{ maxWidth: '640px' }}>
             <p style={{ color: 'var(--color-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
-              Reservas online de los clientes. Asigna una mesa y siéntalos cuando lleguen. Las reservas entran desde la página pública <code style={{ color: 'var(--tint-info-fg)' }}>/reservar</code>.
+              Las reservas del día. Las que entran solas por la página pública <code style={{ color: 'var(--tint-info-fg)' }}>/reservar</code> y las que coges tú por teléfono. Asigna una mesa y siéntalos cuando lleguen.
             </p>
             <ReservasConfig />
             <ReservasManager />
