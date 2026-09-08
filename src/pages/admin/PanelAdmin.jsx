@@ -15,7 +15,7 @@ import { useAltoCSS } from '../../components/useAltoCSS'
 import EstadoFiscal from '../../components/EstadoFiscal'
 import { productosVisibles } from '../../lib/carta'
 import { perfil, urlPublica, urlDeMesa } from '../../lib/perfil'
-import { esDelMes, horasEntre } from '../../lib/fechas'
+import { esDelMes, esDelDia, horasEntre } from '../../lib/fechas'
 import { conNombre } from '../../lib/fichajes'
 import ConfigImpresora from '../../components/ConfigImpresora'
 import EditorMenu from '../../components/EditorMenu'
@@ -49,6 +49,12 @@ export default function PanelAdmin() {
   const coincidencias = productosVisibles(carta, { busqueda: busquedaCarta, incluirNoDisponibles: true })
   const [contado, setContado] = useState('')
   const [movim, setMovim] = useState({ tipo: 'salida', importe: '', motivo: '' })
+
+  // Lo facturado HOY. Es lo primero que mira un dueño al abrir el panel, y
+  // hasta ahora arriba ponía «Categorías 3», que es un dato de programador.
+  // Las devoluciones son tickets en negativo, así que restan solas.
+  const ticketsHoy = historial.filter(r => esDelDia(r.cerradaEn, hoyStr))
+  const facturadoHoy = ticketsHoy.reduce((s2, r) => s2 + r.total, 0)
 
   // Tickets del mes en curso, agrupados por día (más reciente primero)
   const ahora = new Date()
@@ -190,10 +196,10 @@ export default function PanelAdmin() {
       {/* Stats rápidas */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(8.5rem, 1fr))', gap: '0.75rem', padding: '1rem 1.25rem', borderBottom: '1px solid var(--color-border)' }}>
         {[
+          { label: 'Facturado hoy', value: `${facturadoHoy.toFixed(2)} €`, color: '#10b981' },
+          { label: 'Tickets hoy', value: ticketsHoy.length, color: 'var(--tint-info-fg)' },
           { label: 'Mesas ocupadas', value: `${mesasOcupadas}/${mesas.length}`, color: 'var(--tint-warning-fg)' },
-          { label: 'Productos en carta', value: carta.productos.length, color: 'var(--tint-info-fg)' },
-          { label: 'Categorías', value: carta.categorias.length, color: '#8b5cf6' },
-          { label: 'Consumo activo', value: `${totalVentas.toFixed(2)} €`, color: 'var(--color-accent)' },
+          { label: 'Sin cobrar en sala', value: `${totalVentas.toFixed(2)} €`, color: 'var(--color-accent)' },
         ].map(s => (
           <div key={s.label} style={{ position: 'relative', overflow: 'hidden', background: 'var(--color-surface)', borderRadius: 'var(--radius)', padding: '1rem', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
             <div style={{ position: 'absolute', top: 0, left: 0, width: '3px', height: '100%', background: s.color }} />

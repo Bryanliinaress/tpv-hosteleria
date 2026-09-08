@@ -30,3 +30,6 @@ export const esDelMes = (momento, mes) => !!momento && mesLocal(momento) === mes
 
 /** Horas entre dos marcas; 0 si falta alguna o el orden es imposible. */
 export const horasEntre = (a, b) => (a && b ? Math.max(0, (new Date(b) - new Date(a)) / 3600000) : 0)
+
+/** ¿Cae ese momento en el día 'YYYY-MM-DD' (hora local)? */
+export const esDelDia = (momento, dia) => !!momento && diaLocal(momento) === dia
