@@ -1,12 +1,12 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.110.0 · 867 tests JS + 37 pruebas de SQL en verde · CI y deploy en
-verde · repo limpio · 0 vulnerabilidades.** Última sesión: 2026-09-01.
+**Estado: v0.111.0 · 878 tests JS + 37 pruebas de SQL en verde · CI y deploy en
+verde · repo limpio · 0 vulnerabilidades.** Última sesión: 2026-09-08.
 
 Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a uno:
 [docs/AUDITORIA.md](docs/AUDITORIA.md) (es historia, no estado).
 
-### Lo último — once releases, del 26 de agosto al 1 de septiembre
+### Lo último — doce releases, del 26 de agosto al 8 de septiembre
 
 | | | |
 |---|---|---|
@@ -24,6 +24,7 @@ Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a un
 | **v0.108.0** | 31/08 | 🔴 **El reloj del KDS se congelaba**: los «hace X min» se calculan al pintar y una pantalla que nadie toca no repinta. Medido, 1 min 41 s clavado. Y el KDS ya avisa cuando entra comanda. |
 | **v0.109.0** | 01/09 | **El reintento de envío a Hacienda ya no depende de que alguien abra el panel.** Un vigilante cada 10 min reintenta lo del día y anota lo que ya no puede entrar. |
 | **v0.110.0** | 01/09 | **El recordatorio de reserva se manda solo**, 4 h antes. ⚠️ Falta un ajuste en el panel de EmailJS para que salga (ver abajo). |
+| **v0.111.0** | 08/09 | **Ya se pueden coger reservas por teléfono** desde Admin y desde la agenda del camarero, con confirmación y enlace de gestión. Y el correo que mandaba la agenda iba **sin ese enlace**: no se cargaba el localizador. |
 
 **Lo que hay que llevarse de la sesión**, que se repitió tres veces con distinta
 cara: *«éxito» que solo significa «se lo he dado a otro»*. El spooler aceptaba
@@ -153,10 +154,11 @@ dice «tickets sin registrar», hay que atenderlo **ese mismo día**.
 2. **Del repaso del panel de Admin (31/08)**, lo que quedó sin hacer. Los
    cuatro primeros de aquella lista ya están (QR con la dirección buena, hoja de
    impresión, fondo de caja y alta de jornada):
-   - **No se puede crear una reserva desde Admin.** `ReservasManager` solo
-     gestiona las que entran por la web, y un bar coge reservas por teléfono
-     todo el día. Desde Mostrador se puede, pero obliga a asignar mesa ya y no
-     genera el email ni el enlace de gestión del cliente.
+   - ~~No se puede crear una reserva desde Admin~~ ✅ **hecho el 08/09**
+     (v0.111.0): «➕ Nueva reserva (teléfono)» en la agenda, con las horas
+     libres por franja, sin bloquear por aforo ni día cerrado (avisa y deja
+     pasar: al teléfono decide el bar) y con la confirmación y el enlace de
+     gestión al cliente. Comprobado contra la base real.
    - **Los «cobros sin cuenta» no se pueden accionar**: el aviso escupe la
      referencia de Stripe entera en texto corrido y hay que copiar 60 caracteres
      a mano para devolver el dinero. Un botón de copiar y un enlace al pago.
@@ -214,7 +216,7 @@ dice «tickets sin registrar», hay que atenderlo **ese mismo día**.
 ## Comandos
 
 ```bash
-npm test                           # 867 tests, 10 pantallas cubiertas
+npm test                           # 878 tests, 10 pantallas cubiertas
 npm run test:sql                   # 37 pruebas del dinero, contra la base real
 npm run lint
 npm run permisos                   # ¿se ha abierto algo sin querer?
@@ -547,7 +549,7 @@ saliendo, pero conviene fijar el precio sabiéndolo.
   7 días / Este mes / Mes pasado), con CSV y las devoluciones restando.
 - **Monitorización**: el bar deja constancia de lo que se rompe en su propia
   base y `npm run salud` lo lee. Encontró sola dos fallos de producción.
-- **867 tests JS** (las **diez** pantallas cubiertas) **+ 37 pruebas de SQL**
+- **878 tests JS** (las **diez** pantallas cubiertas) **+ 37 pruebas de SQL**
   contra la base real, lint limpio, CI y deploy en verde, **0 vulnerabilidades**
   en todo el árbol de dependencias.
 - **Arqueo de caja completo** (v0.106.0): fondo de cambio y entradas/salidas del
