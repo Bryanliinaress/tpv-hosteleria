@@ -1,12 +1,12 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.113.0 · 894 tests JS + 37 pruebas de SQL en verde · CI y deploy en
+**Estado: v0.114.0 · 913 tests JS + 37 pruebas de SQL en verde · CI y deploy en
 verde · repo limpio · 0 vulnerabilidades.** Última sesión: 2026-09-08.
 
 Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a uno:
 [docs/AUDITORIA.md](docs/AUDITORIA.md) (es historia, no estado).
 
-### Lo último — catorce releases, del 26 de agosto al 8 de septiembre
+### Lo último — quince releases, del 26 de agosto al 8 de septiembre
 
 | | | |
 |---|---|---|
@@ -27,6 +27,7 @@ Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a un
 | **v0.111.0** | 08/09 | **Ya se pueden coger reservas por teléfono** desde Admin y desde la agenda del camarero, con confirmación y enlace de gestión. Y el correo que mandaba la agenda iba **sin ese enlace**: no se cargaba el localizador. |
 | **v0.112.0** | 08/09 | **Los «cobros sin cuenta» ya se pueden accionar**: botón de copiar y enlace directo al cobro en Stripe. Y el botón de copiar el QR de mesa decía «copiada» aunque no copiara. |
 | **v0.113.0** | 08/09 | **El arqueo dejó de mezclar personas con formas de pago**: «Pago online» salía en la lista de camareros como si fuera un empleado. |
+| **v0.114.0** | 08/09 | **Un tercer rol, Cocina**, que no entra donde se cobra. Y la regla del último administrador dejaba bajarlo a cocina, quedándose el local sin quien administre. |
 
 **Lo que hay que llevarse de la sesión**, que se repitió tres veces con distinta
 cara: *«éxito» que solo significa «se lo he dado a otro»*. El spooler aceptaba
@@ -167,8 +168,10 @@ dice «tickets sin registrar», hay que atenderlo **ese mismo día**.
    - ~~«Por camarero» mezcla personas con métodos~~ ✅ **hecho el 08/09**
      (v0.113.0): la lista solo lleva personas y el cobro por el móvil del
      cliente va separado y explicado, sin dejar de sumar el total de la caja.
-   - **Solo hay dos roles** (Administrador y Camarero): un camarero entra a PDA,
-     cocina, barra e impresión. Falta un rol de cocina.
+   - ~~Solo hay dos roles~~ ✅ **hecho el 08/09** (v0.114.0): rol **Cocina**, que
+     entra en Cocina, Barra e Impresión y no en Mostrador, PDA ni Admin. El
+     camarero conserva todo menos Admin a propósito (bar de dos personas).
+     Quien no tiene permiso ve por qué, no el teclado del PIN otra vez.
    - **Mesas**: no se pueden renumerar ni reordenar, y la zona es texto libre por
      mesa (con datalist, pero un dedo torcido crea una zona fantasma). Tampoco
      se puede renombrar una zona en todas sus mesas a la vez.
@@ -219,7 +222,7 @@ dice «tickets sin registrar», hay que atenderlo **ese mismo día**.
 ## Comandos
 
 ```bash
-npm test                           # 894 tests, 10 pantallas cubiertas
+npm test                           # 913 tests, 10 pantallas cubiertas
 npm run test:sql                   # 37 pruebas del dinero, contra la base real
 npm run lint
 npm run permisos                   # ¿se ha abierto algo sin querer?
@@ -552,7 +555,7 @@ saliendo, pero conviene fijar el precio sabiéndolo.
   7 días / Este mes / Mes pasado), con CSV y las devoluciones restando.
 - **Monitorización**: el bar deja constancia de lo que se rompe en su propia
   base y `npm run salud` lo lee. Encontró sola dos fallos de producción.
-- **894 tests JS** (las **diez** pantallas cubiertas) **+ 37 pruebas de SQL**
+- **913 tests JS** (las **diez** pantallas cubiertas) **+ 37 pruebas de SQL**
   contra la base real, lint limpio, CI y deploy en verde, **0 vulnerabilidades**
   en todo el árbol de dependencias.
 - **Arqueo de caja completo** (v0.106.0): fondo de cambio y entradas/salidas del
