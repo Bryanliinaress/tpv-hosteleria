@@ -7,6 +7,7 @@ import { sembrarCartaEjemplo, vaciarCartaV2 } from './plantillaCarta'
 import { cabezaDe, miembrosDe } from './grupos'
 import { revisarCorreccionFichaje, revisarNuevoFichaje } from '../fichajes'
 import { revisarNuevoEmpleado, revisarCambioEmpleado, revisarBajaEmpleado } from '../personal'
+import { rolDe } from '../roles'
 import { efectivoEsperado, descuadreDe, saldoMovimientos, revisarMovimiento } from '../caja'
 import { registrarTicket } from '../fiscal'
 import { getLocalId, cargarTodo, cargarSala, cargarComandas, cargarReservas, cargarCarta, cargarLocal, cargarHistorial, cargarFichajes, cargarCierres, cargarMovimientosCaja } from './estado'
@@ -364,7 +365,7 @@ export function accionesV2b() {
       if (!r.ok) return r
       ;(async () => {
         try {
-          const { data, error } = await t('empleados').insert({ local_id: getLocalId(), nombre: r.nombre, rol: rol === 'admin' ? 'admin' : 'camarero' }).select('id').single()
+          const { data, error } = await t('empleados').insert({ local_id: getLocalId(), nombre: r.nombre, rol: rolDe(rol) }).select('id').single()
           if (error) throw error
           await personal.fijarPin(data.id, r.pin)
           cargarSala()

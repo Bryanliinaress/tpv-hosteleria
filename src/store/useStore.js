@@ -5,6 +5,7 @@ import { importeDesdeTexto } from '../lib/dinero'
 import { revisarCorreccionFichaje, revisarNuevoFichaje } from '../lib/fichajes'
 import { efectivoEsperado, descuadreDe, saldoMovimientos, movimientosDesde, revisarMovimiento } from '../lib/caja'
 import { revisarNuevoEmpleado, revisarCambioEmpleado, revisarBajaEmpleado } from '../lib/personal'
+import { rolDe } from '../lib/roles'
 import { totalDeMesa } from '../lib/dinero'
 
 // Aviso al usuario desde el store. Import perezoso para no acoplar el estado a
@@ -984,7 +985,7 @@ export const useStore = create(persist((set, get) => ({
   addEmpleado: ({ nombre, pin, rol }) => {
     const r = revisarNuevoEmpleado(get().empleados, { nombre, pin })
     if (!r.ok) return r
-    set(state => ({ empleados: [...state.empleados, { id: crearId('emp'), nombre: r.nombre, pin: r.pin, rol: rol === 'admin' ? 'admin' : 'camarero', activo: true }] }))
+    set(state => ({ empleados: [...state.empleados, { id: crearId('emp'), nombre: r.nombre, pin: r.pin, rol: rolDe(rol), activo: true }] }))
     return { ok: true }
   },
 

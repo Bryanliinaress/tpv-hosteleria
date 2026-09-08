@@ -4,6 +4,7 @@ import { useStore, METODO_LABEL, METODO_EMOJI, metodosDe, propinasPorMetodoDe, A
 import { confirmar, toast } from '../../store/useUI'
 import { copiar } from '../../lib/portapapeles'
 import { urlStripe, refCorta } from '../../lib/stripe'
+import { ROLES, ROLES_ORDENADOS, rolDe } from '../../lib/roles'
 import Ticket from '../../components/Ticket'
 import ReservasManager from '../../components/ReservasManager'
 import ReservasConfig from '../../components/ReservasConfig'
@@ -1180,9 +1181,8 @@ function PersonalTab({ empleados, addEmpleado, updateEmpleado, removeEmpleado })
         {empleados.map(e => (
           <div key={e.id} style={{ ...ajusteCard, display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', opacity: e.activo ? 1 : 0.55 }}>
             <input value={e.nombre} onChange={ev => updateEmpleado(e.id, { nombre: ev.target.value })} style={{ ...inputStyle, flex: '2 1 140px' }} />
-            <select value={e.rol} onChange={ev => updateEmpleado(e.id, { rol: ev.target.value })} style={{ ...inputStyle, flex: '0 1 130px' }}>
-              <option value="camarero">Camarero</option>
-              <option value="admin">Administrador</option>
+            <select value={rolDe(e.rol)} onChange={ev => updateEmpleado(e.id, { rol: ev.target.value })} title={ROLES[rolDe(e.rol)].desc} style={{ ...inputStyle, flex: '0 1 130px' }}>
+              {ROLES_ORDENADOS.map(r => <option key={r} value={r}>{ROLES[r].label}</option>)}
             </select>
             <div style={{ flex: '0 1 110px' }}>
               <label style={lblCampo}>PIN</label>
@@ -1210,9 +1210,9 @@ function PersonalTab({ empleados, addEmpleado, updateEmpleado, removeEmpleado })
           <div style={{ flex: '1 1 120px' }}>
             <label style={lblCampo}>Rol</label>
             <select value={nuevo.rol} onChange={e => setNuevo(s => ({ ...s, rol: e.target.value }))} style={inputStyle}>
-              <option value="camarero">Camarero</option>
-              <option value="admin">Administrador</option>
+              {ROLES_ORDENADOS.map(r => <option key={r} value={r}>{ROLES[r].label}</option>)}
             </select>
+            <p style={{ fontSize: '0.7rem', color: 'var(--color-muted)', marginTop: '0.25rem', maxWidth: '15rem' }}>{ROLES[rolDe(nuevo.rol)].desc}</p>
           </div>
           <div style={{ flex: '0 1 100px' }}>
             <label style={lblCampo}>PIN (4 díg.)</label>

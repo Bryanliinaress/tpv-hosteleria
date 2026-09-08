@@ -46,14 +46,14 @@ export default function App() {
           <Route path="/mesa/:mesaId" element={<CartaCliente />} />
           <Route path="/reservar" element={<Reservar />} />
           {/* Personal: requiere PIN de empleado activo */}
-          <Route path="/camarero" element={<Protegido><PanelCamarero /></Protegido>} />
-          <Route path="/pda" element={<Protegido><PdaCamarero /></Protegido>} />
-          <Route path="/cocina" element={<Protegido><PantallaKDS /></Protegido>} />
-          <Route path="/barra" element={<Protegido><PantallaBarra /></Protegido>} />
-          <Route path="/print" element={<Protegido><PrintStation /></Protegido>} />
+          <Route path="/camarero" element={<Protegido pantalla="camarero"><PanelCamarero /></Protegido>} />
+          <Route path="/pda" element={<Protegido pantalla="pda"><PdaCamarero /></Protegido>} />
+          <Route path="/cocina" element={<Protegido pantalla="cocina"><PantallaKDS /></Protegido>} />
+          <Route path="/barra" element={<Protegido pantalla="barra"><PantallaBarra /></Protegido>} />
+          <Route path="/print" element={<Protegido pantalla="print"><PrintStation /></Protegido>} />
           {/* Admin: requiere PIN de administrador */}
-          <Route path="/admin" element={<Protegido rol="admin"><PanelAdmin /></Protegido>} />
-          <Route path="/setup" element={<Protegido rol="admin"><Onboarding /></Protegido>} />
+          <Route path="/admin" element={<Protegido pantalla="admin"><PanelAdmin /></Protegido>} />
+          <Route path="/setup" element={<Protegido pantalla="admin"><Onboarding /></Protegido>} />
           <Route path="/ticket-demo" element={<TicketDemo />} />
           <Route path="*" element={<Navigate to="/" /> } />
         </Routes>
