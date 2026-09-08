@@ -93,3 +93,18 @@ export async function comprobarAcceso() {
   try { await cargarTodo() } catch { /* si falla, lo reintenta el arranque */ }
   return 'aprobado'
 }
+
+/**
+ * Deja anotado en qué pantalla está este aparato. Es lo que permite que el
+ * encargado distinga cuatro tablets iguales: la de cocina lleva semanas
+ * abierta en el KDS. Un nombre dice lo que alguien quiso; esto, lo que hace.
+ *
+ * No espera ni avisa de nada: si falla, la lista enseñará la pantalla de
+ * antes. Parar una pantalla de servicio porque no se pudo apuntar dónde está
+ * sería cambiar un dato cómodo por dejar al bar sin cocina.
+ */
+export function anotarPantalla(pantalla) {
+  if (!pantalla) return
+  supabase.rpc('dispositivo_en_pantalla', { p_pantalla: pantalla })
+    .then(({ error }) => { if (error) console.warn('dispositivo_en_pantalla:', error.message) })
+}
