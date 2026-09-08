@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useStore, METODO_LABEL, METODO_EMOJI } from '../../store/useStore'
 import { PERIODOS, rangoDe, nombreDe, mayusculaInicial } from '../../lib/periodos'
+import { COBRO_ONLINE } from '../../lib/caja'
 
 // ────────────────────────────────────────────────────────────────────────────
 // Informes de ventas.
@@ -115,9 +116,14 @@ export default function Informes({ moneda = '€' }) {
             filas={datos.por_camarero} color="#10b981" moneda={moneda}
             etiqueta={c => `👤 ${c.nombre} · ${c.tickets} tickets`} />
 
+          {/* El pago por el móvil del cliente no lo cobra ninguna persona: el
+              servidor lo apunta como «Pago online» y aquí salía listado como si
+              fuera alguien del personal. */}
           <Lista titulo="Cobrado por" pie="Quien estaba en la caja al cerrar"
             filas={datos.por_cobrador} color="#f59e0b" moneda={moneda}
-            etiqueta={c => `💶 ${c.nombre} · ${c.tickets} tickets`} />
+            etiqueta={c => c.nombre === COBRO_ONLINE
+              ? `📱 Pagó el cliente por el móvil · ${c.tickets} tickets`
+              : `💶 ${c.nombre} · ${c.tickets} tickets`} />
 
           <Lista titulo="Método de pago" filas={datos.por_metodo} color="#8b5cf6" moneda={moneda}
             etiqueta={m => `${METODO_EMOJI[m.metodo] || '💰'} ${METODO_LABEL[m.metodo] || m.metodo}`} />
@@ -195,7 +201,8 @@ function descargarCSV(datos, periodo, moneda) {
   ], x => x)
   bloque('Productos', ['Producto', 'Uds', 'Importe'], datos.por_producto, p => [p.nombre, p.uds, p.importe])
   bloque('Camarero (atendió)', ['Camarero', 'Tickets', 'Importe', 'Propinas'], datos.por_camarero, c => [c.nombre, c.tickets, c.importe, c.propinas])
-  bloque('Cobrado por', ['Persona', 'Tickets', 'Importe'], datos.por_cobrador, c => [c.nombre, c.tickets, c.importe])
+  bloque('Cobrado por', ['Persona', 'Tickets', 'Importe'], datos.por_cobrador,
+    c => [c.nombre === COBRO_ONLINE ? 'Pagó el cliente por el móvil' : c.nombre, c.tickets, c.importe])
   bloque('Por hora', ['Hora', 'Tickets', 'Importe'], datos.por_hora, h => [`${h.hora}:00`, h.tickets, h.importe])
   bloque('Por día', ['Día', 'Tickets', 'Importe'], datos.por_dia, d => [d.dia, d.tickets, d.importe])
   bloque('Método de pago', ['Método', 'Importe'], datos.por_metodo, m => [METODO_LABEL[m.metodo] || m.metodo, m.importe])

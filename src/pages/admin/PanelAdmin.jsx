@@ -21,7 +21,7 @@ import Informes from './Informes'
 import Dispositivos from '../../components/Dispositivos'
 import Devolver from '../../components/Devolver'
 import { desgloseIVA, totalDe, cent, pendienteDeDevolver, importeDesdeTexto } from '../../lib/dinero'
-import { efectivoEsperado, descuadreDe, saldoMovimientos, movimientosDesde } from '../../lib/caja'
+import { efectivoEsperado, descuadreDe, saldoMovimientos, movimientosDesde, cobrosPorPersona } from '../../lib/caja'
 
 const emptyForm = { nombre: '', nombreEn: '', categoria: '', descripcion: '', descripcionEn: '', alergenos: [], imagen: '', conFormatos: false, precios: {}, precio: '', menu: null, ivaPct: '' }
 
@@ -96,8 +96,9 @@ export default function PanelAdmin() {
   const cajaPropinas = ticketsCaja.reduce((s, r) => s + (r.propina || 0), 0)
   const cajaPagos = {}
   ticketsCaja.forEach(r => Object.entries(r.pagos || {}).forEach(([k, v]) => { cajaPagos[k] = (cajaPagos[k] || 0) + v }))
-  const cajaPorCamarero = {}
-  ticketsCaja.forEach(r => { const c = r.cobradoPor || r.camarero || '—'; cajaPorCamarero[c] = (cajaPorCamarero[c] || 0) + r.total })
+  // Personas por un lado y cobro por el móvil del cliente por otro: la regla
+  // vive en `src/lib/caja.js`, que es donde están las cuentas del cajón.
+  const cobrado = cobrosPorPersona(ticketsCaja)
   // Las propinas dejadas EN EFECTIVO también están en el cajón: si no se
   // esperan, el arqueo canta un sobrante que no existe.
   // el backend real no guarda las propinas agrupadas por método: se derivan del
@@ -441,14 +442,31 @@ export default function PanelAdmin() {
                   </div>
                 ))}
 
-              <h4 style={{ fontSize: '0.85rem', fontWeight: 700, margin: '1rem 0 0.5rem', color: 'var(--color-muted)' }}>Por camarero</h4>
-              {Object.keys(cajaPorCamarero).length === 0
-                ? <p style={{ fontSize: '0.82rem', color: 'var(--color-muted)' }}>—</p>
-                : Object.entries(cajaPorCamarero).sort((a, b) => b[1] - a[1]).map(([c, v]) => (
-                  <div key={c} style={ajusteFila}>
-                    <span>👤 {c}</span><strong>{v.toFixed(2)} €</strong>
+              <h4 style={{ fontSize: '0.85rem', fontWeight: 700, margin: '1rem 0 0.5rem', color: 'var(--color-muted)' }}>Cobrado por cada persona</h4>
+              {cobrado.personas.length === 0
+                ? <p style={{ fontSize: '0.82rem', color: 'var(--color-muted)' }}>Nadie ha cobrado nada todavía.</p>
+                : cobrado.personas.map(c => (
+                  <div key={c.nombre} style={{ ...ajusteFila, gap: '0.75rem' }}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>👤 {c.nombre}</span>
+                    <strong style={{ whiteSpace: 'nowrap' }}>{c.total.toFixed(2)} €</strong>
                   </div>
                 ))}
+              {cobrado.sinAsignar > 0 && (
+                <div style={ajusteFila}>
+                  <span style={{ color: 'var(--color-muted)' }}>❓ Sin asignar</span><strong>{cobrado.sinAsignar.toFixed(2)} €</strong>
+                </div>
+              )}
+              {/* El pago online no lo cobra nadie: lo hace el cliente desde su
+                  móvil. Salía en la lista de arriba como si fuera un empleado. */}
+              {cobrado.online > 0 && (
+                <div style={{ ...ajusteFila, alignItems: 'flex-start', gap: '0.75rem', borderBottom: 'none', marginTop: '0.35rem', paddingTop: '0.5rem', borderTop: '1px solid var(--color-border)' }}>
+                  <span style={{ color: 'var(--color-muted)' }}>
+                    📱 Pagó el cliente por el móvil
+                    <span style={{ display: 'block', fontSize: '0.72rem', opacity: 0.75 }}>no lo cobró nadie: no pasó por el cajón</span>
+                  </span>
+                  <strong style={{ whiteSpace: 'nowrap' }}>{cobrado.online.toFixed(2)} €</strong>
+                </div>
+              )}
             </div>
 
             {/* Cierre de caja (Z) */}

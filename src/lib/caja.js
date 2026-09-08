@@ -59,3 +59,46 @@ export function revisarMovimiento({ tipo, importe, motivo } = {}) {
   if (!m) return { ok: false, error: 'Escribe para qué es' }
   return { ok: true, tipo, importe: cent(n), motivo: m }
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// Quién cobró qué, en el arqueo.
+//
+// Un cobro por el móvil del cliente no lo hace nadie: el servidor lo apunta
+// como `cobradoPor: 'Pago online'` porque en ese hueco no hay ninguna persona.
+// El arqueo lo pintaba en la lista «Por camarero» y salía «Pago online
+// 34,20 €» al lado de «QA 7,00 €», como si fuera un empleado más. Es un número
+// que se mira para cuadrar caja y para saber quién maneja el dinero: mezclar
+// una persona con una forma de pago lo estropea para las dos cosas.
+//
+// Se separa, no se esconde: si el pago online no saliera, la lista dejaría de
+// sumar el total de la caja y el descuadre volvería a no significar nada.
+// ────────────────────────────────────────────────────────────────────────────
+
+/** Lo que el servidor apunta cuando el cobro no lo hizo una persona. */
+export const COBRO_ONLINE = 'Pago online'
+
+/**
+ * Reparte los tickets de la caja entre las personas que cobraron, lo que se
+ * cobró solo por el móvil del cliente, y lo que no lleva nombre.
+ * Devuelve { personas: [{ nombre, total }], online, sinAsignar }, con las
+ * personas de más a menos.
+ */
+export function cobrosPorPersona(tickets = []) {
+  const personas = {}
+  let online = 0
+  let sinAsignar = 0
+  for (const t of (tickets || [])) {
+    const importe = Number(t?.total) || 0
+    const quien = String(t?.cobradoPor || t?.camarero || '').trim()
+    if (quien === COBRO_ONLINE) online += importe
+    else if (!quien) sinAsignar += importe
+    else personas[quien] = (personas[quien] || 0) + importe
+  }
+  return {
+    personas: Object.entries(personas)
+      .map(([nombre, total]) => ({ nombre, total: cent(total) }))
+      .sort((a, b) => b.total - a.total),
+    online: cent(online),
+    sinAsignar: cent(sinAsignar),
+  }
+}
