@@ -405,3 +405,40 @@ describe('reservas: aforo por zona y edición', () => {
     expect(ocupacionEn(reservas, cfg, '2026-07-01', '13:00', 'Salón')).toBe(0)
   })
 })
+
+// ────────────────────────────────────────────────────────────────────────────
+// Renumerar la sala y renombrar zonas, desde el store. La regla está probada
+// aparte (lib/sala): aquí lo que importa es que la sala QUEDE bien — ordenada
+// por número y con la zona cambiada en todas sus mesas, no solo en una.
+// ────────────────────────────────────────────────────────────────────────────
+describe('renumerar y renombrar zonas', () => {
+  beforeEach(() => {
+    useStore.setState({ mesas: [
+      { id: 'a', numero: 1, capacidad: 4, zona: 'Terraza', estado: 'libre', personas: [] },
+      { id: 'b', numero: 2, capacidad: 2, zona: 'Terraza', estado: 'libre', personas: [] },
+      { id: 'c', numero: 3, capacidad: 6, zona: 'Interior', estado: 'libre', personas: [] },
+    ] })
+  })
+
+  it('renumerar deja la sala ordenada por número', () => {
+    expect(S().renumerarMesa('a', 9).ok).toBe(true)
+    expect(S().mesas.map(m => m.numero)).toEqual([2, 3, 9])
+  })
+
+  it('no deja repetir un número: dos mesas iguales es un plato mal servido', () => {
+    const r = S().renumerarMesa('a', 3)
+    expect(r.ok).toBe(false)
+    expect(S().mesas.find(m => m.id === 'a').numero).toBe(1)
+  })
+
+  it('renombrar una zona la cambia en TODAS sus mesas', () => {
+    expect(S().renombrarZona('Terraza', 'Terraza de arriba').ok).toBe(true)
+    expect(S().mesas.filter(m => m.zona === 'Terraza de arriba')).toHaveLength(2)
+    expect(S().mesas.find(m => m.id === 'c').zona).toBe('Interior')
+  })
+
+  it('renombrar a una zona que ya existe no funde las dos', () => {
+    expect(S().renombrarZona('Terraza', 'Interior').ok).toBe(false)
+    expect(S().mesas.filter(m => m.zona === 'Interior')).toHaveLength(1)
+  })
+})

@@ -6,6 +6,7 @@ import { revisarCorreccionFichaje, revisarNuevoFichaje } from '../lib/fichajes'
 import { efectivoEsperado, descuadreDe, saldoMovimientos, movimientosDesde, revisarMovimiento } from '../lib/caja'
 import { revisarNuevoEmpleado, revisarCambioEmpleado, revisarBajaEmpleado } from '../lib/personal'
 import { rolDe } from '../lib/roles'
+import { revisarNumeroMesa, revisarNombreZona } from '../lib/sala'
 import { totalDeMesa } from '../lib/dinero'
 
 // Aviso al usuario desde el store. Import perezoso para no acoplar el estado a
@@ -1168,6 +1169,33 @@ export const useStore = create(persist((set, get) => ({
       ...(cambios.zona !== undefined ? { zona: cambios.zona.trim() || 'Sala' } : {}),
     }),
   })),
+
+  // Cambia el número de una mesa. Va aparte de `updateMesa` porque puede
+  // decir que NO: el número sale en el ticket, en la comanda de cocina y en el
+  // QR de la pegatina, y dos mesas con el mismo número mandan platos a la mesa
+  // equivocada. La sala se reordena al vuelo, que es el orden en el que se ve.
+  renumerarMesa: (mesaId, numero) => {
+    const r = revisarNumeroMesa(get().mesas, mesaId, numero)
+    if (!r.ok) return r
+    set(state => ({
+      mesas: state.mesas
+        .map(m => m.id === mesaId ? { ...m, numero: r.numero } : m)
+        .sort((a, b) => a.numero - b.numero),
+    }))
+    return { ok: true }
+  },
+
+  // Renombra una zona en TODAS sus mesas de una vez. A mano, en un bar de
+  // doce mesas, son doce oportunidades de escribirlo distinto —y cada errata
+  // crea una zona fantasma que la reserva online ofrece al cliente.
+  renombrarZona: (anterior, nueva) => {
+    const r = revisarNombreZona(get().mesas, anterior, nueva)
+    if (!r.ok) return r
+    set(state => ({
+      mesas: state.mesas.map(m => (m.zona || '').trim() === anterior ? { ...m, zona: r.nombre } : m),
+    }))
+    return { ok: true }
+  },
 
   // ── GESTIÓN DE CARTA (admin) ───────────────────────────
   // `producto.precios` = mapa {formatoId: precio} para productos con formatos;

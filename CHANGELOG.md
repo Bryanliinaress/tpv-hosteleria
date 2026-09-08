@@ -5,6 +5,16 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.115.0] - 2026-09-08
+
+### Añadido
+- **Renumerar mesas.** No se podía: el número solo salía del orden en que se crearon, y un bar cambia la sala de sitio. Ahora se edita, y se comprueba: **dos mesas con el mismo número mandan platos a la mesa equivocada** —el número va en el ticket, en la comanda que sale por la impresora de cocina y en el QR de la pegatina—, así que un repetido se rechaza diciendo por qué. La rejilla va ordenada por zona y número, que es el orden de la sala, así se ve el cambio sin recargar.
+- **Zonas de verdad, no texto libre.** La zona se escribía a mano en cada mesa: «Terazza» en una de doce creaba una zona fantasma… **que la reserva online le ofrece al cliente como si existiera**. Ahora se elige de la lista (o se crea a propósito, con «➕ Nueva zona…»).
+- **Renombrar una zona la cambia en todas sus mesas de una vez.** A mano son doce ocasiones de escribirlo distinto. Una tarjeta nueva en Admin → Mesas enseña las zonas con cuántas mesas tiene cada una —que es lo que delata a la fantasma: la que tiene una sola— y renombra con un toque. No deja fundir dos zonas por descuido.
+
+### Arreglado
+- **Un campo que se quedaba escrito con lo que no se había guardado.** Al rechazar un valor, `CampoGuardado` dejaba en el hueco lo tecleado mientras la tarjeta seguía diciendo lo de antes («Mesa 5» arriba, «6» en el campo): parecía guardado. Ahora, si quien guarda dice que no, el campo vuelve a lo que hay de verdad.
+
 ## [0.114.0] - 2026-09-08
 
 ### Añadido

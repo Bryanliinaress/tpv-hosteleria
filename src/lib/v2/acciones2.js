@@ -8,6 +8,7 @@ import { cabezaDe, miembrosDe } from './grupos'
 import { revisarCorreccionFichaje, revisarNuevoFichaje } from '../fichajes'
 import { revisarNuevoEmpleado, revisarCambioEmpleado, revisarBajaEmpleado } from '../personal'
 import { rolDe } from '../roles'
+import { revisarNumeroMesa, revisarNombreZona } from '../sala'
 import { efectivoEsperado, descuadreDe, saldoMovimientos, revisarMovimiento } from '../caja'
 import { registrarTicket } from '../fiscal'
 import { getLocalId, cargarTodo, cargarSala, cargarComandas, cargarReservas, cargarCarta, cargarLocal, cargarHistorial, cargarFichajes, cargarCierres, cargarMovimientosCaja } from './estado'
@@ -211,6 +212,27 @@ export function accionesV2b() {
       if (!Object.keys(parche).length) return
       try { await t('mesas').update(parche).eq('id', mesaId); cargarSala() } catch (e) { err(e) }
     },
+    // Renumerar y renombrar zonas. Como el alta de empleado: la pantalla lee
+    // `r.ok` EN EL ACTO, así que la comprobación es síncrona y la escritura va
+    // por detrás. Si fuera `async`, `r.ok` sería `undefined` y diría que ha
+    // fallado algo que acaba de funcionar.
+    renumerarMesa: (mesaId, numero) => {
+      const r = revisarNumeroMesa(st().mesas, mesaId, numero)
+      if (!r.ok) return r
+      ;(async () => {
+        try { await t('mesas').update({ numero: r.numero }).eq('id', mesaId); cargarSala() } catch (e) { err(e) }
+      })()
+      return { ok: true }
+    },
+    renombrarZona: (anterior, nueva) => {
+      const r = revisarNombreZona(st().mesas, anterior, nueva)
+      if (!r.ok) return r
+      ;(async () => {
+        try { await t('mesas').update({ zona: r.nombre }).eq('local_id', getLocalId()).eq('zona', anterior); cargarSala() } catch (e) { err(e) }
+      })()
+      return { ok: true }
+    },
+
     // El Mostrador junta mesas con `agruparMesas` y la PDA con `fusionarMesa`:
     // son la misma operación y las dos tienen que llegar al servidor.
     //

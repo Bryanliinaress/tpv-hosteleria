@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { contarSala, resumenSala, estaOcupada, estaReservada, estaLibre } from './sala'
+import { contarSala, resumenSala, estaOcupada, estaReservada, estaLibre, zonasDe, revisarNumeroMesa, revisarNombreZona } from './sala'
 
 // ────────────────────────────────────────────────────────────────────────────
 // Contar la sala. Una mesa RESERVADA no está ocupada: no hay nadie sentado.
@@ -74,5 +74,77 @@ describe('resumenSala', () => {
 
   it('la forma corta, para el encabezado de una zona', () => {
     expect(resumenSala(SALA, { conTotal: false })).toBe('2/5 ocupadas · 1 reservada')
+  })
+})
+
+// ────────────────────────────────────────────────────────────────────────────
+// Numerar la sala y nombrar las zonas.
+//
+// El número de mesa sale en el ticket, en la comanda de cocina y en el QR de
+// la pegatina: dos mesas con el mismo número es un plato en la mesa
+// equivocada. Y la zona era texto libre por mesa: una errata en una de doce
+// creaba una zona fantasma que la reserva online le ofrecía al cliente.
+// ────────────────────────────────────────────────────────────────────────────
+const PLANO = [
+  { id: 'm1', numero: 1, zona: 'Terraza', capacidad: 4 },
+  { id: 'm2', numero: 2, zona: 'Terraza', capacidad: 2 },
+  { id: 'm3', numero: 3, zona: 'Interior', capacidad: 6 },
+]
+
+describe('renumerar una mesa', () => {
+  it('un número libre se acepta', () => {
+    expect(revisarNumeroMesa(PLANO, 'm1', 7)).toEqual({ ok: true, numero: 7 })
+  })
+
+  it('un número que ya tiene otra mesa, no', () => {
+    const r = revisarNumeroMesa(PLANO, 'm1', 3)
+    expect(r.ok).toBe(false)
+    expect(r.error).toMatch(/ya existe/)
+  })
+
+  it('la mesa puede quedarse con el suyo (guardar sin cambiar nada)', () => {
+    expect(revisarNumeroMesa(PLANO, 'm1', 1).ok).toBe(true)
+  })
+
+  it('ni cero, ni negativos, ni con decimales, ni vacío', () => {
+    for (const v of [0, -3, 2.5, '', '  ', 'dos', null]) {
+      expect(revisarNumeroMesa(PLANO, 'm1', v).ok).toBe(false)
+    }
+  })
+
+  it('el número llega como texto desde el input y vale igual', () => {
+    expect(revisarNumeroMesa(PLANO, 'm1', ' 9 ')).toEqual({ ok: true, numero: 9 })
+  })
+})
+
+describe('zonas de la sala', () => {
+  it('salen las que hay, con sus mesas, en orden', () => {
+    expect(zonasDe(PLANO)).toEqual([
+      { nombre: 'Interior', mesas: 1 },
+      { nombre: 'Terraza', mesas: 2 },
+    ])
+  })
+
+  it('una mesa sin zona no inventa una zona vacía', () => {
+    expect(zonasDe([{ id: 'x', zona: '' }, { id: 'y', zona: '   ' }, { id: 'z' }])).toEqual([])
+  })
+
+  it('renombrar a un nombre nuevo vale', () => {
+    expect(revisarNombreZona(PLANO, 'Terraza', ' Terraza de arriba ')).toEqual({ ok: true, nombre: 'Terraza de arriba' })
+  })
+
+  // Fundir dos zonas por descuido cambiaría de sitio mesas que nadie ha tocado.
+  it('renombrar a una zona que ya existe, no', () => {
+    const r = revisarNombreZona(PLANO, 'Terraza', 'interior')
+    expect(r.ok).toBe(false)
+    expect(r.error).toMatch(/Ya hay una zona/)
+  })
+
+  it('dejarle el mismo nombre no es un choque consigo misma', () => {
+    expect(revisarNombreZona(PLANO, 'Terraza', 'Terraza').ok).toBe(true)
+  })
+
+  it('una zona sin nombre no se guarda', () => {
+    expect(revisarNombreZona(PLANO, 'Terraza', '   ').ok).toBe(false)
   })
 })
