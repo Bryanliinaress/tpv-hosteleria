@@ -435,6 +435,29 @@ banda de demostración. Es el que se enseña para vender.
 **No hay ningún bar real.** «Casa Loli» era un nombre de ejemplo; se renombró a
 Marchando el 12/08, también en la BBDD (`locales.nombre` y `slug`).
 
+### ⚠️ Todo esto es público
+
+El repositorio (`Bryanliinaress/tpv-hosteleria`) y el sitio de Pages son
+**públicos**. Tres cosas que hay que tener presentes siempre:
+
+1. **El código lo lee cualquiera**, y las notas de cada release también. Nada de
+   claves, ni en el código, ni en un commit, ni en una nota de versión — un
+   secreto en el historial sigue ahí aunque se borre después.
+2. **Ninguna variable `VITE_` es privada.** Vite mete todas las que empiezan así
+   dentro del bundle, y el bundle se publica en Pages. Por eso la clave privada
+   de EmailJS se llama `EMAILJS_PRIVATE_KEY` **sin prefijo**: con él la
+   estaríamos publicando justo al intentar protegerla. Lo mismo vale para
+   cualquier secreto futuro: si es privado, lo lee el servicio de Node desde
+   `.env.puente`, nunca el navegador.
+3. **La demo la puede usar cualquiera que tenga el enlace**: pedir, pagar por
+   Stripe y generar un ticket fiscal de verdad. No es teórico — el ticket nº 9
+   entró solo, sin que nadie lo provocara. Mientras siga publicada, si
+   `npm run salud` dice «tickets sin registrar» hay que atenderlo **ese mismo
+   día** (ver el aviso de Verifacti más arriba).
+
+Comprobado el 01/09: los únicos `.env` versionados son `.env.example` y
+`.env.pruebas`, ambos plantillas vacías, y `.env.puente` está en `.gitignore`.
+
 ### Por qué hubo dos enlaces (y por qué ya no)
 
 El 15/07, en la v0.35.0, se montó un **doble build** a propósito: la demo v1
