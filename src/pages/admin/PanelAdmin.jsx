@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { useStore, METODO_LABEL, METODO_EMOJI, metodosDe, propinasPorMetodoDe, ALERGENOS, normalizarExtra, etiquetasDe, ETIQUETAS_DEFECTO } from '../../store/useStore'
-import { confirmar, toast } from '../../store/useUI'
+import { confirmar, toast, pedirTexto } from '../../store/useUI'
+import { zonasDe } from '../../lib/sala'
 import { copiar } from '../../lib/portapapeles'
 import { urlStripe, refCorta } from '../../lib/stripe'
 import { ROLES, ROLES_ORDENADOS, rolDe } from '../../lib/roles'
@@ -27,7 +28,7 @@ import { efectivoEsperado, descuadreDe, saldoMovimientos, movimientosDesde, cobr
 const emptyForm = { nombre: '', nombreEn: '', categoria: '', descripcion: '', descripcionEn: '', alergenos: [], imagen: '', conFormatos: false, precios: {}, precio: '', menu: null, ivaPct: '' }
 
 export default function PanelAdmin() {
-  const { carta, mesas, historial, cierres, anulaciones, pagosSinCuenta, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, addCategoria, removeCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, crearFichaje, editarFichaje, borrarFichaje, pedirFichajesDe, reintentarReembolso, movimientosCaja, registrarMovimiento } = useStore()
+  const { carta, mesas, historial, cierres, anulaciones, pagosSinCuenta, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, renumerarMesa, renombrarZona, addCategoria, removeCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, crearFichaje, editarFichaje, borrarFichaje, pedirFichajesDe, reintentarReembolso, movimientosCaja, registrarMovimiento } = useStore()
   const hoyStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
   const reservasHoy = reservas.filter(r => r.fecha === hoyStr && r.estado === 'confirmada').length
   const [tab, setTab] = useState('carta')
@@ -325,12 +326,17 @@ export default function PanelAdmin() {
         {/* Tab Mesas (configuración de sala) */}
         {tab === 'mesas' && (
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <p style={{ color: 'var(--color-muted)', fontSize: '0.85rem' }}>Configura las mesas: capacidad, zona, añadir o quitar. (Solo se pueden borrar mesas libres.)</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              <p style={{ color: 'var(--color-muted)', fontSize: '0.85rem', flex: '1 1 240px' }}>Configura las mesas: número, capacidad y zona. (Solo se pueden borrar mesas libres.)</p>
               <button onClick={addMesa} style={{ background: 'var(--color-accent)', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 0.9rem', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap' }}>+ Añadir mesa</button>
             </div>
+
+            <Zonas mesas={mesas} renombrarZona={renombrarZona} />
+
+            {/* Ordenadas por zona y número: el número ES el orden de la sala, y
+                así se ve el efecto de renumerar sin recargar nada. */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.875rem' }}>
-              {mesas.map(m => {
+              {[...mesas].sort((a, b) => (a.zona || '').localeCompare(b.zona || '', 'es') || a.numero - b.numero).map(m => {
                 const libre = m.estado === 'libre'
                 return (
                   <div key={m.id} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.875rem', padding: '1rem' }}>
@@ -338,8 +344,21 @@ export default function PanelAdmin() {
                       <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>Mesa {m.numero}</span>
                       <span style={{ fontSize: '0.7rem', fontWeight: 700, color: libre ? '#10b981' : '#f59e0b' }}>{libre ? 'Libre' : 'Ocupada'}</span>
                     </div>
+                    {/* El número sale en el ticket, en la comanda de cocina y en
+                        el QR de la pegatina: cambiarlo se comprueba, no se
+                        guarda a lo que salga. */}
+                    <label style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Número</label>
+                    <CampoGuardado valor={m.numero} onGuardar={v => { const r = renumerarMesa(m.id, v); if (!r.ok) toast(r.error, 'error'); else toast(`Ahora es la mesa ${v}`, 'success'); return r }} type="number" min="1" style={{ ...inputStyle, marginBottom: '0.5rem' }} />
                     <label style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Zona</label>
-                    <CampoGuardado valor={m.zona || ''} onGuardar={v => updateMesa(m.id, { zona: v })} list="zonas-list" placeholder="Zona" style={{ ...inputStyle, marginBottom: '0.5rem' }} />
+                    <select value={m.zona || ''} onChange={async e => {
+                      if (e.target.value !== '__nueva') return updateMesa(m.id, { zona: e.target.value })
+                      const z = await pedirTexto({ titulo: 'Nueva zona', mensaje: '¿Cómo se llama?', placeholder: 'Terraza', confirmar: 'Crear' })
+                      if (z?.trim()) updateMesa(m.id, { zona: z.trim() })
+                    }} style={{ ...inputStyle, marginBottom: '0.5rem' }}>
+                      {zonasDe(mesas).map(z => <option key={z.nombre} value={z.nombre}>{z.nombre}</option>)}
+                      {!m.zona && <option value="">Sin zona</option>}
+                      <option value="__nueva">➕ Nueva zona…</option>
+                    </select>
                     <label style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Capacidad</label>
                     <CampoGuardado valor={m.capacidad} onGuardar={v => updateMesa(m.id, { capacidad: v })} type="number" min="1" style={{ ...inputStyle, marginBottom: '0.625rem' }} />
                     <button onClick={async () => { if (libre && await confirmar({ titulo: 'Borrar mesa', mensaje: `¿Borrar la mesa ${m.numero}?`, peligro: true, confirmar: 'Borrar' })) { removeMesa(m.id); toast('Mesa borrada', 'success') } }} disabled={!libre} style={{ width: '100%', background: 'none', color: libre ? '#f43f5e' : '#64748b', border: 'none', borderRadius: '0.5rem', padding: '0.4rem', cursor: libre ? 'pointer' : 'not-allowed', fontSize: '0.78rem' }}>{libre ? '🗑️ Borrar mesa' : 'Ocupada'}</button>
@@ -347,9 +366,6 @@ export default function PanelAdmin() {
                 )
               })}
             </div>
-            <datalist id="zonas-list">
-              {[...new Set(mesas.map(m => m.zona).filter(Boolean))].map(z => <option key={z} value={z} />)}
-            </datalist>
           </div>
         )}
 
@@ -962,13 +978,54 @@ const fmtH = (h) => `${Math.floor(h)}h ${Math.round((h % 1) * 60)}m`
 // Se guarda al SALIR del campo, no en cada tecla. En la app real cada pulsación
 // era una escritura en la BBDD; y en los datos del local, además, un
 // leer-modificar-escribir por letra: dos campos seguidos se pisaban entre sí.
+// Las zonas de la sala. No son una tabla: son el conjunto de nombres que hay
+// escritos en las mesas. Por eso renombrar una es cambiarlas todas de una vez
+// — a mano, en un bar de doce mesas, son doce ocasiones de escribirlo distinto,
+// y cada errata crea una zona fantasma que la reserva online le ofrece al
+// cliente como si existiera.
+function Zonas({ mesas, renombrarZona }) {
+  const zonas = zonasDe(mesas)
+  if (!zonas.length) return null
+  const renombrar = async (z) => {
+    const nombre = await pedirTexto({ titulo: `Renombrar «${z.nombre}»`, mensaje: `Se cambia en sus ${z.mesas} mesa(s).`, valor: z.nombre, confirmar: 'Renombrar' })
+    if (nombre == null || nombre.trim() === z.nombre) return
+    const r = renombrarZona(z.nombre, nombre)
+    if (!r.ok) toast(r.error, 'error')
+    else toast(`Zona renombrada en ${z.mesas} mesa(s)`, 'success')
+  }
+  return (
+    <div style={{ ...ajusteCard, marginBottom: '1rem' }}>
+      <h3 style={{ ...ajusteTitulo, marginBottom: '0.5rem' }}>Zonas</h3>
+      <p style={{ fontSize: '0.75rem', color: 'var(--color-muted)', marginBottom: '0.7rem' }}>
+        Salen en la reserva online, para que el cliente elija dónde sentarse.
+      </p>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+        {zonas.map(z => (
+          <button key={z.nombre} onClick={() => renombrar(z)} title="Renombrar en todas sus mesas"
+            style={{ background: 'var(--color-surface-2)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '9999px', padding: '0.35rem 0.75rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
+            📍 {z.nombre} <span style={{ opacity: 0.6, fontWeight: 400 }}>· {z.mesas} mesa{z.mesas === 1 ? '' : 's'} · ✏️</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function CampoGuardado({ valor, onGuardar, ...props }) {
   const [txt, setTxt] = useState(String(valor ?? ''))
   useEffect(() => { setTxt(String(valor ?? '')) }, [valor])
   return (
     <input {...props} value={txt}
       onChange={e => setTxt(e.target.value)}
-      onBlur={() => { if (txt !== String(valor ?? '')) onGuardar(txt) }}
+      // Si quien guarda RECHAZA el valor (un número de mesa repetido), el campo
+      // vuelve a lo que hay de verdad. Dejarlo escrito es enseñar en pantalla
+      // algo que no está guardado: la tarjeta seguía diciendo «Mesa 5» y el
+      // hueco «6».
+      onBlur={async () => {
+        if (txt === String(valor ?? '')) return
+        const r = await onGuardar(txt)
+        if (r && r.ok === false) setTxt(String(valor ?? ''))
+      }}
       onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }} />
   )
 }
