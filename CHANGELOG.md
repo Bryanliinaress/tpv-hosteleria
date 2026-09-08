@@ -5,6 +5,23 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.114.0] - 2026-09-08
+
+### Añadido
+- **Un tercer rol: Cocina.** Había dos, Administrador y Camarero, y «camarero» era en realidad *«todo lo que no es Admin»*: el mismo PIN abría el **Mostrador** —donde se cobra, se anula y se devuelve— y la pantalla de cocina. En un bar con cocinero eso no vale: su PIN acaba pegado en la pared de la plancha.
+
+  El rol **Cocina** entra en Cocina, Barra e Impresión, y **no** en Mostrador, PDA ni Administración. El camarero conserva todo menos Administración, a propósito: en un bar de dos personas la misma persona sirve y mira la plancha, y quitárselo sería estropear lo que hoy funciona por arreglar lo que falta.
+
+  La tabla `empleados` ya admitía `'cocina'` desde la primera migración — faltaban la regla y poder elegirlo. **No hay migración**: solo aplicación.
+
+- **Quien no tiene permiso ya no ve el teclado del PIN otra vez.** Volver a pedirlo a quien acaba de escribirlo bien es decirle «vuelve a intentarlo»: el cocinero lo teclearía tres veces antes de entender que su PIN no abre el Mostrador. Ahora ve quién es, con qué rol ha entrado, un botón a **la pantalla que sí es suya** y otro para entrar con otro PIN.
+
+- La regla de **qué abre cada rol vive en un solo sitio** (`src/lib/roles.js`), que miran las rutas, el panel de personal y ese aviso. Un control de acceso escrito tres veces es un control de acceso donde alguien entra por donde no debe.
+
+### Arreglado
+- **Se podía dejar el local sin administrador.** La regla del último admin comparaba con `'camarero'` —escrita cuando solo había dos roles—, así que bajar al **último** administrador a *Cocina* colaba y nadie volvía a entrar en Administración. Ahora se mira que el rol nuevo sea admin, sea cual sea el otro.
+- El alta de empleado en el backend real **forzaba** el rol a admin o camarero (`rol === 'admin' ? 'admin' : 'camarero'`): un empleado dado de alta como cocina se guardaba como camarero. Igual en la demo.
+
 ## [0.113.0] - 2026-09-08
 
 ### Arreglado

@@ -30,8 +30,10 @@ export function revisarCambioEmpleado(empleados = [], id, cambios = {}) {
     if (!PIN_VALIDO.test(p)) return { ok: false, error: 'El PIN debe tener 4 dígitos' }
     if (empleados.some(e => e.id !== id && e.pin === p)) return { ok: false, error: 'Ese PIN ya está en uso' }
   }
-  // Desactivar al último admin deja el local sin quien administre
-  if (cambios.activo === false || cambios.rol === 'camarero') {
+  // Desactivar al último admin —o bajarlo a cualquier otro rol— deja el local
+  // sin quien administre. Se comparó con 'camarero' mientras solo había dos
+  // roles: en cuanto apareció 'cocina', bajar al último admin a cocina colaba.
+  if (cambios.activo === false || (cambios.rol !== undefined && cambios.rol !== 'admin')) {
     if (esUltimoAdmin(empleados, id)) return { ok: false, error: 'Debe quedar al menos un administrador' }
   }
   return { ok: true }

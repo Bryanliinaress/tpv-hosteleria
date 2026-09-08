@@ -1,3 +1,4 @@
+import { ROLES, rolDe } from '../lib/roles'
 import { useEmpleadoActual, clearSesion } from '../lib/sesion'
 
 // Chip con el empleado conectado + botón de cerrar sesión, para las cabeceras
@@ -18,7 +19,7 @@ export default function BotonSalir({ oscuro = false }) {
         fontSize: '0.8rem', fontWeight: 600, whiteSpace: 'nowrap',
       }}
     >
-      <span style={{ opacity: 0.85 }}>{emp.rol === 'admin' ? '🔐' : '👤'} {emp.nombre}</span>
+      <span style={{ opacity: 0.85 }}>{ROLES[rolDe(emp.rol)].emoji} {emp.nombre}</span>
       <span style={{ opacity: 0.7 }}>⎋</span>
     </button>
   )
