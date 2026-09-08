@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { efectivoEsperado, saldoMovimientos, descuadreDe, movimientosDesde, revisarMovimiento } from './caja'
+import { efectivoEsperado, saldoMovimientos, descuadreDe, movimientosDesde, revisarMovimiento, cobrosPorPersona, COBRO_ONLINE } from './caja'
 
 // ────────────────────────────────────────────────────────────────────────────
 // El arqueo de caja. Antes esperaba «ventas en efectivo + propinas en metálico»
@@ -114,5 +114,50 @@ describe('apuntar un movimiento', () => {
 
   it('recorta el motivo', () => {
     expect(revisarMovimiento({ tipo: 'entrada', importe: 20, motivo: '  cambio  ' }).motivo).toBe('cambio')
+  })
+})
+
+// ────────────────────────────────────────────────────────────────────────────
+// Quién cobró qué. En el arqueo salía «Pago online 34,20 €» junto a «QA
+// 7,00 €», como si el pago online fuera un empleado. Es el número que se mira
+// para cuadrar caja y para saber quién maneja el dinero.
+// ────────────────────────────────────────────────────────────────────────────
+describe('cobrado por cada persona', () => {
+  const T = (total, cobradoPor, camarero) => ({ total, cobradoPor, camarero })
+
+  it('el pago online no es un empleado: va aparte', () => {
+    const r = cobrosPorPersona([T(7, 'QA'), T(34.20, COBRO_ONLINE), T(3, 'QA')])
+    expect(r.personas).toEqual([{ nombre: 'QA', total: 10 }])
+    expect(r.online).toBe(34.20)
+  })
+
+  // Separarlo no puede ser esconderlo: si el online desapareciera, la lista
+  // dejaría de sumar la caja y el descuadre no significaría nada.
+  it('lo separado sigue sumando el total de la caja', () => {
+    const tickets = [T(7, 'QA'), T(34.20, COBRO_ONLINE), T(5, null, null)]
+    const r = cobrosPorPersona(tickets)
+    const suma = r.personas.reduce((s, p) => s + p.total, 0) + r.online + r.sinAsignar
+    expect(suma).toBe(46.20)
+  })
+
+  it('un ticket sin nadie detrás va a «sin asignar», no a un nombre vacío', () => {
+    const r = cobrosPorPersona([T(5, '', '   ')])
+    expect(r.personas).toEqual([])
+    expect(r.sinAsignar).toBe(5)
+  })
+
+  // Cobra quien tiene el dinero delante; si no consta, el que atendió la mesa.
+  it('si no consta quién cobró, cuenta el camarero que atendió', () => {
+    const r = cobrosPorPersona([T(12, null, 'Lucía')])
+    expect(r.personas).toEqual([{ nombre: 'Lucía', total: 12 }])
+  })
+
+  it('las personas salen de más a menos', () => {
+    const r = cobrosPorPersona([T(5, 'Ana'), T(20, 'Luis'), T(9, 'Eva')])
+    expect(r.personas.map(p => p.nombre)).toEqual(['Luis', 'Eva', 'Ana'])
+  })
+
+  it('sin tickets no inventa filas', () => {
+    expect(cobrosPorPersona([])).toEqual({ personas: [], online: 0, sinAsignar: 0 })
   })
 })

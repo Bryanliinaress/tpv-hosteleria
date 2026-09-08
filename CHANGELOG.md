@@ -5,6 +5,16 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.113.0] - 2026-09-08
+
+### Arreglado
+- **El arqueo mezclaba personas con formas de pago.** En «Por camarero» salía **«Pago online 34,20 €» junto a «QA 7,00 €»**, como si el pago online fuera un empleado: cuando el cliente paga desde su móvil no hay nadie detrás, y el servidor lo apunta con ese nombre porque ese hueco se queda vacío. Es un número que se mira para **cuadrar caja** y para saber quién maneja el dinero, y mezclado no sirve para ninguna de las dos cosas.
+
+  Ahora la lista se llama **«Cobrado por cada persona»** y solo lleva personas; lo que pagó el cliente por el móvil va **separado, debajo de una línea**, con su explicación («no lo cobró nadie: no pasó por el cajón»), y lo que no lleva nombre sale como «Sin asignar». Separado, **no escondido**: si no saliera, la lista dejaría de sumar el total de la caja y el descuadre volvería a no significar nada. Hay un test que lo comprueba.
+
+  La regla vive en `src/lib/caja.js` (`cobrosPorPersona`), con las demás cuentas del cajón, y no en la pantalla.
+- **El mismo nombre asomaba en Informes → «Cobrado por»**, bajo la columna «Persona», y en el CSV que se lleva el gestor. Ahora dice «Pagó el cliente por el móvil» en los dos.
+
 ## [0.112.0] - 2026-09-08
 
 ### Añadido
