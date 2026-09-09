@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { contarSala, resumenSala, estaOcupada, estaReservada, estaLibre, zonasDe, revisarNumeroMesa, revisarNombreZona } from './sala'
+import { contarSala, resumenSala, estaOcupada, estaReservada, estaLibre, zonasDe, revisarNumeroMesa, revisarNombreZona, agruparPorZona, revisarAltaMesas, SIN_ZONA } from './sala'
 
 // ────────────────────────────────────────────────────────────────────────────
 // Contar la sala. Una mesa RESERVADA no está ocupada: no hay nadie sentado.
@@ -146,5 +146,78 @@ describe('zonas de la sala', () => {
 
   it('una zona sin nombre no se guarda', () => {
     expect(revisarNombreZona(PLANO, 'Terraza', '   ').ok).toBe(false)
+  })
+})
+
+// ────────────────────────────────────────────────────────────────────────────
+// Montar la sala. «+ Añadir mesa» creaba UNA, de cuatro plazas, en «la zona de
+// la última mesa de la lista» — que es la que sea. Un bar de doce mesas eran
+// doce clics y luego doce ediciones.
+// ────────────────────────────────────────────────────────────────────────────
+const SALON = [
+  { id: 'm1', numero: 1, zona: 'Terraza', capacidad: 4 },
+  { id: 'm2', numero: 2, zona: 'Terraza', capacidad: 2 },
+  { id: 'm3', numero: 5, zona: 'Interior', capacidad: 6 },
+  { id: 'm4', numero: 6, zona: '', capacidad: 2 },
+]
+
+describe('la sala agrupada por zonas', () => {
+  // Alfabéticamente «Terraza» iría detrás de «Interior» aunque la terraza sean
+  // las mesas 1 y 2, y eso no es la sala que ve el encargado.
+  it('las zonas salen por su mesa más baja, no por orden alfabético', () => {
+    expect(agruparPorZona(SALON).map(g => g.zona)).toEqual(['Terraza', 'Interior', SIN_ZONA])
+  })
+
+  it('cada zona sabe sus mesas y sus plazas, que es su aforo', () => {
+    const terraza = agruparPorZona(SALON)[0]
+    expect(terraza.mesas.map(m => m.numero)).toEqual([1, 2])
+    expect(terraza.plazas).toBe(6)
+  })
+
+  // Si se escondieran, una mesa sin zona no aparecería en ninguna sección y no
+  // habría forma de ponérsela.
+  it('las mesas sin zona van juntas al final, no se pierden', () => {
+    const ultimo = agruparPorZona(SALON).at(-1)
+    expect(ultimo.sinZona).toBe(true)
+    expect(ultimo.mesas.map(m => m.numero)).toEqual([6])
+  })
+
+  it('una sala vacía no inventa zonas', () => {
+    expect(agruparPorZona([])).toEqual([])
+  })
+})
+
+describe('alta de mesas', () => {
+  it('sin número, siguen a la última', () => {
+    expect(revisarAltaMesas(SALON, { cuantas: 3, capacidad: 4 }).numeros).toEqual([7, 8, 9])
+  })
+
+  it('con número de inicio, van seguidas desde ahí', () => {
+    expect(revisarAltaMesas(SALON, { numero: 20, cuantas: 2, capacidad: 4 }).numeros).toEqual([20, 21])
+  })
+
+  // Crear cuatro y fallar en la quinta deja la sala a medias y al encargado sin
+  // saber cuáles entraron: se comprueban todas antes de crear ninguna.
+  it('si alguna del tramo ya existe, no se crea NINGUNA', () => {
+    const r = revisarAltaMesas(SALON, { numero: 4, cuantas: 3, capacidad: 4 })
+    expect(r.ok).toBe(false)
+    expect(r.error).toMatch(/La mesa 5 ya existe/)
+  })
+
+  it('ni cero mesas, ni cincuenta y una', () => {
+    expect(revisarAltaMesas(SALON, { cuantas: 0 }).ok).toBe(false)
+    expect(revisarAltaMesas(SALON, { cuantas: 51 }).ok).toBe(false)
+    expect(revisarAltaMesas(SALON, { cuantas: 50 }).ok).toBe(true)
+  })
+
+  it('la capacidad tiene que ser un entero mayor que cero', () => {
+    for (const cap of [0, -2, 2.5, 'dos', '']) {
+      expect(revisarAltaMesas(SALON, { cuantas: 1, capacidad: cap }).ok).toBe(false)
+    }
+  })
+
+  it('los números llegan como texto desde el formulario y valen igual', () => {
+    const r = revisarAltaMesas(SALON, { numero: ' 30 ', cuantas: '2', capacidad: ' 4 ' })
+    expect(r).toEqual({ ok: true, numeros: [30, 31], capacidad: 4 })
   })
 })

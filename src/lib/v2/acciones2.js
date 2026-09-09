@@ -8,7 +8,7 @@ import { cabezaDe, miembrosDe } from './grupos'
 import { revisarCorreccionFichaje, revisarNuevoFichaje } from '../fichajes'
 import { revisarNuevoEmpleado, revisarCambioEmpleado, revisarBajaEmpleado } from '../personal'
 import { rolDe } from '../roles'
-import { revisarNumeroMesa, revisarNombreZona } from '../sala'
+import { revisarNumeroMesa, revisarNombreZona, revisarAltaMesas } from '../sala'
 import { revisarNombreApartado, moverEnLista, emojiPorTipo } from '../carta'
 import { efectivoEsperado, descuadreDe, saldoMovimientos, revisarMovimiento } from '../caja'
 import { registrarTicket } from '../fiscal'
@@ -196,10 +196,32 @@ export function accionesV2b() {
     },
 
     // ── Sala (admin) ────────────────────────────────────────────
-    addMesa: async () => {
+    // Alta de mesas. Síncrona al comprobar y escritura por detrás, como el
+    // alta de empleado: la pantalla lee `r.ok` en el acto.
+    addMesa: ({ zona, capacidad = 4, cuantas = 1, numero } = {}) => {
       const ms = st().mesas
-      const numero = Math.max(0, ...ms.map(m => m.numero)) + 1
-      try { await t('mesas').insert({ local_id: getLocalId(), numero, zona: ms[ms.length - 1]?.zona || 'Sala', capacidad: 4 }); cargarSala() } catch (e) { err(e) }
+      const r = revisarAltaMesas(ms, { numero, cuantas, capacidad })
+      if (!r.ok) return r
+      const z = (zona || '').trim() || ms[ms.length - 1]?.zona || 'Sala'
+      const filas = r.numeros.map(n => ({ local_id: getLocalId(), numero: n, zona: z, capacidad: r.capacidad }))
+      ;(async () => {
+        // Un solo insert con las doce filas: doce inserts sueltos pueden dejar
+        // la sala a medias si la red se cae por el camino.
+        try { await t('mesas').insert(filas); cargarSala() } catch (e) { err(e) }
+      })()
+      return { ok: true, creadas: r.numeros.length }
+    },
+    moverZona: (origen, destino) => {
+      const desde = String(origen || '').trim()
+      const hasta = String(destino || '').trim()
+      if (!desde || !hasta) return { ok: false, error: 'Faltan la zona de origen o la de destino' }
+      if (desde === hasta) return { ok: false, error: 'Es la misma zona' }
+      const cuantas = st().mesas.filter(m => (m.zona || '').trim() === desde).length
+      if (!cuantas) return { ok: false, error: `No hay mesas en «${desde}»` }
+      ;(async () => {
+        try { await t('mesas').update({ zona: hasta }).eq('local_id', getLocalId()).eq('zona', desde); cargarSala() } catch (e) { err(e) }
+      })()
+      return { ok: true, movidas: cuantas }
     },
     removeMesa: async (mesaId) => {
       try { await t('mesas').delete().eq('id', mesaId).eq('estado', 'libre'); cargarSala() } catch (e) { err(e) }
