@@ -5,6 +5,23 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.123.0] - 2026-09-09
+
+### Arreglado
+- **🔴 El IVA del local se podía guardar mal, y los tickets salían con «IVA (0%)».** La regla que sanea lo que se escribe en Admin → Local **existía solo en la demo**: en la app real, `updateLocal` era `actualizarConfig(cambios)` a pelo. Dos de esos campos son dinero:
+  - **El IVA**. El campo era `type="number"`, que en un teclado español **se come la coma**: escribir «10,5» dejaba el hueco vacío, y vacío se guardaba como **0**. Todo el que lee ese dato hace `Number(ivaPct) || 0`, así que el ticket de pantalla, el recibo del cliente y **el papel de la impresora** salían con «IVA (0%)» y la base igual al total. No fallaba nada: salía mal y con buena cara, en una factura simplificada.
+  - **La moneda**. Borrar el campo dejaba `""` y los importes salían sin símbolo.
+
+  Ahora la regla vive en **`src/lib/local.js`** y la comparten la demo y la app real, el campo del IVA acepta la coma (como el efectivo contado del arqueo) y **vacío ya no es 0**: se rechaza diciendo que dejarlo así pondría «IVA 0%» en todos los tickets, y el campo vuelve a lo que había.
+
+### Cambiado
+- **Local pasa a ser «cómo está montado este bar»**: absorbe las dos pestañas que quedaban sueltas y que son de lo mismo — se tocan al montar el sitio y casi nunca más.
+  - **🔗 Aparatos con acceso** (era la pestaña «Dispositivos»).
+  - **🖨 Impresión** (era la pestaña «Impresión»), que es cómo imprime **este** dispositivo.
+
+  Las dos, plegadas. Con esto el panel baja de **9 pestañas a 7**.
+- **El aviso de lo que falta, arriba del todo y diciendo dónde se nota cada hueco**: «la dirección · sale en el ticket y el recibo del cliente», «el teléfono · sale en “Llámanos” de la página de reservas». Antes miraba tres campos, estaba enterrado dentro de la tarjeta y no decía para qué sirve ninguno. Ahora también vigila el **IVA**, y marca como **fiscal** los dos que exige una factura simplificada: el CIF y el IVA.
+
 ## [0.122.0] - 2026-09-09
 
 ### Añadido
