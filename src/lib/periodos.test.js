@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { rangoDe, nombreDe, PERIODOS, mayusculaInicial } from './periodos'
+import { rangoDe, nombreDe, PERIODOS, mayusculaInicial, rangoEntre, periodoAnterior, variacion, nombreDeRango } from './periodos'
 
 // ────────────────────────────────────────────────────────────────────────────
 // Los periodos de Informes.
@@ -112,5 +112,84 @@ describe('mayusculaInicial', () => {
 
   it('deja en paz lo que ya venía en mayúscula', () => {
     expect(mayusculaInicial('Tickets de agosto')).toBe('Tickets de agosto')
+  })
+})
+
+// ────────────────────────────────────────────────────────────────────────────
+// Un rango a medida y con qué compararlo. Solo había cinco botones: el gestor
+// pide «del 1 al 15» y no había forma de dárselo.
+// ────────────────────────────────────────────────────────────────────────────
+describe('rango entre dos fechas', () => {
+  // Quien escribe «al 15» quiere el 15 ENTERO. El servidor consulta con el fin
+  // exclusivo, así que hay que mandarle el 16 a las 00:00 — sin eso, el último
+  // día del informe sale siempre a cero y nadie entiende por qué.
+  it('el último día cuenta entero', () => {
+    const { desde, hasta } = rangoEntre('2026-09-01', '2026-09-15')
+    expect(new Date(desde)).toEqual(new Date(2026, 8, 1, 0, 0, 0))
+    expect(new Date(hasta)).toEqual(new Date(2026, 8, 16, 0, 0, 0))
+  })
+
+  it('un solo día es ese día entero', () => {
+    const { desde, hasta } = rangoEntre('2026-09-05', '2026-09-05')
+    expect(new Date(hasta) - new Date(desde)).toBe(24 * 3600 * 1000)
+  })
+
+  it('al revés se entiende igual', () => {
+    expect(rangoEntre('2026-09-15', '2026-09-01')).toEqual(rangoEntre('2026-09-01', '2026-09-15'))
+  })
+
+  it('sin fechas no hay rango que inventar', () => {
+    expect(rangoEntre('', '2026-09-15')).toBeNull()
+    expect(rangoEntre('2026-09-01', null)).toBeNull()
+    expect(rangoEntre('no es una fecha', 'tampoco')).toBeNull()
+  })
+})
+
+describe('el periodo anterior, para comparar', () => {
+  it('de los 7 días que acaban hoy salen los 7 de antes', () => {
+    const actual = rangoEntre('2026-09-08', '2026-09-14')
+    const antes = periodoAnterior(actual)
+    expect(new Date(antes.desde)).toEqual(new Date(2026, 8, 1, 0, 0, 0))
+    expect(antes.hasta).toBe(actual.desde)   // pegado, sin hueco ni solape
+  })
+
+  // Agosto tiene 31 días y septiembre 30: comparar contra «30 días atrás» se
+  // dejaría fuera un día de agosto.
+  it('un mes se compara con el mes anterior completo', () => {
+    const septiembre = rangoEntre('2026-09-01', '2026-09-30')
+    const antes = periodoAnterior(septiembre)
+    expect(new Date(antes.desde)).toEqual(new Date(2026, 7, 2, 0, 0, 0))
+    expect(new Date(antes.hasta) - new Date(antes.desde)).toBe(new Date(septiembre.hasta) - new Date(septiembre.desde))
+  })
+
+  it('sin rango no hay anterior', () => {
+    expect(periodoAnterior({})).toBeNull()
+    expect(periodoAnterior({ desde: '2026-09-02T00:00:00Z', hasta: '2026-09-01T00:00:00Z' })).toBeNull()
+  })
+})
+
+describe('cuánto ha subido o bajado', () => {
+  it('sube y baja en tanto por ciento', () => {
+    expect(variacion(120, 100)).toBeCloseTo(20)
+    expect(variacion(80, 100)).toBeCloseTo(-20)
+    expect(variacion(100, 100)).toBe(0)
+  })
+
+  // «+∞ %» no informa de nada: lo que hay que decir es que antes no hubo nada.
+  it('sin nada antes, no hay porcentaje que enseñar', () => {
+    expect(variacion(500, 0)).toBeNull()
+    expect(variacion(0, 0)).toBeNull()
+  })
+})
+
+describe('cómo se escribe un rango', () => {
+  it('un día suelto, con su año', () => {
+    expect(nombreDeRango('2026-09-05', '2026-09-05')).toMatch(/5 de septiembre de 2026/)
+  })
+  it('dos fechas del mismo año, sin repetirlo', () => {
+    expect(nombreDeRango('2026-09-01', '2026-09-15')).toBe('del 1 de septiembre al 15 de septiembre de 2026')
+  })
+  it('a caballo entre dos años, con los dos', () => {
+    expect(nombreDeRango('2025-12-28', '2026-01-04')).toMatch(/2025.*2026/)
   })
 })

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useStore, METODO_LABEL, METODO_EMOJI } from '../../store/useStore'
-import { PERIODOS, rangoDe, nombreDe, mayusculaInicial } from '../../lib/periodos'
+import { PERIODOS, rangoDe, nombreDe, mayusculaInicial, rangoEntre, periodoAnterior, variacion, nombreDeRango } from '../../lib/periodos'
 import { COBRO_ONLINE } from '../../lib/caja'
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -22,19 +22,35 @@ import { COBRO_ONLINE } from '../../lib/caja'
 export default function Informes({ moneda = '€' }) {
   const informeVentas = useStore(s => s.informeVentas)
   const [periodo, setPeriodo] = useState('hoy')
+  const [aMedida, setAMedida] = useState(null)   // { desde, hasta } en 'YYYY-MM-DD'
   const [datos, setDatos] = useState(null)
+  const [antes, setAntes] = useState(null)       // el mismo informe, del periodo anterior
   const [cargando, setCargando] = useState(true)
 
+  // El rango que se está mirando: el del botón elegido, o el escrito a mano.
+  const rango = aMedida ? rangoEntre(aMedida.desde, aMedida.hasta) : rangoDe(periodo)
+  const comoSeLlama = aMedida ? nombreDeRango(aMedida.desde, aMedida.hasta) : nombreDe(periodo)
+
   useEffect(() => {
+    if (!rango) return
     let vigente = true
     setCargando(true)
-    const { desde, hasta } = rangoDe(periodo)
-    informeVentas({ desde, hasta }).then(r => {
+    // Dos consultas: la del periodo y la del anterior de la misma duración. Un
+    // número solo no dice nada —«1.240 €» solo significa algo al lado de lo
+    // que se hizo la semana anterior, que es la pregunta que se hace quien
+    // abre esta pantalla.
+    const previo = periodoAnterior(rango)
+    Promise.all([
+      informeVentas({ desde: rango.desde, hasta: rango.hasta }),
+      previo ? informeVentas({ desde: previo.desde, hasta: previo.hasta }).catch(() => null) : null,
+    ]).then(([r, r0]) => {
       if (!vigente) return          // el usuario ya cambió de periodo
-      setDatos(r); setCargando(false)
+      setDatos(r); setAntes(r0); setCargando(false)
     })
     return () => { vigente = false }
-  }, [periodo, informeVentas])
+    // el rango se recalcula en cada render: lo que manda son sus extremos
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rango?.desde, rango?.hasta, informeVentas])
 
   const f = (n) => `${Number(n || 0).toFixed(2)} ${moneda}`
   const r = datos?.resumen
@@ -44,22 +60,34 @@ export default function Informes({ moneda = '€' }) {
       {/* Periodo: lo primero, porque cambia todo lo de debajo */}
       <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
         {PERIODOS.map(p => (
-          <button key={p.id} onClick={() => setPeriodo(p.id)} style={{
-            background: periodo === p.id ? 'var(--color-accent)' : 'var(--color-surface-2)',
-            color: periodo === p.id ? '#fff' : 'var(--color-text)',
-            border: `1px solid ${periodo === p.id ? 'var(--color-accent)' : 'var(--color-border)'}`,
-            borderRadius: '9999px', padding: '0.4rem 0.9rem', minHeight: '40px',
-            cursor: 'pointer', fontSize: '0.82rem', fontWeight: periodo === p.id ? 700 : 500,
-          }}>{p.etiqueta}</button>
+          <button key={p.id} onClick={() => { setPeriodo(p.id); setAMedida(null) }} style={pastilla(!aMedida && periodo === p.id)}>{p.etiqueta}</button>
         ))}
+        {/* Cinco botones no cubren «del 1 al 15», que es lo que pide el gestor,
+            ni «el sábado pasado». Había que mirar el mes entero y restar. */}
+        <button onClick={() => setAMedida(a => a ? null : { desde: hoyYMD(), hasta: hoyYMD() })} style={pastilla(!!aMedida)}>
+          📅 Otras fechas
+        </button>
         {datos && (
-          <button onClick={() => descargarCSV(datos, periodo, moneda)} style={{
+          <button onClick={() => descargarCSV(datos, comoSeLlama, moneda)} style={{
             marginLeft: 'auto', background: 'var(--color-surface-2)', color: 'var(--color-muted)',
             border: '1px solid var(--color-border)', borderRadius: '0.5rem',
             padding: '0.4rem 0.8rem', minHeight: '40px', cursor: 'pointer', fontSize: '0.8rem',
           }}>⭳ CSV</button>
         )}
       </div>
+
+      {aMedida && (
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: '1rem' }}>
+          <label style={{ flex: '1 1 9rem' }}>
+            <span style={etiquetaCampo}>Desde</span>
+            <input type="date" value={aMedida.desde} max={hoyYMD()} onChange={e => setAMedida(a => ({ ...a, desde: e.target.value }))} style={campoFecha} />
+          </label>
+          <label style={{ flex: '1 1 9rem' }}>
+            <span style={etiquetaCampo}>Hasta <span style={{ opacity: 0.7 }}>· incluido</span></span>
+            <input type="date" value={aMedida.hasta} max={hoyYMD()} onChange={e => setAMedida(a => ({ ...a, hasta: e.target.value }))} style={campoFecha} />
+          </label>
+        </div>
+      )}
 
       {cargando && <p style={{ color: 'var(--color-muted)', fontSize: '0.9rem' }}>Calculando…</p>}
 
@@ -73,7 +101,7 @@ export default function Informes({ moneda = '€' }) {
       {!cargando && datos && r && r.tickets === 0 && r.devoluciones === 0 && (
         <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--color-muted)' }}>
           <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>📊</div>
-          Sin ventas en {nombreDe(periodo)}.
+          Sin ventas en {comoSeLlama}.
         </div>
       )}
 
@@ -81,12 +109,13 @@ export default function Informes({ moneda = '€' }) {
         {/* La cifra grande: lo que se queda el bar */}
         <div style={{ ...card, marginBottom: '1rem', borderColor: 'var(--color-accent)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.5rem' }}>
-            <h3 style={{ ...titulo, marginBottom: 0 }}>{mayusculaInicial(nombreDe(periodo))}</h3>
+            <h3 style={{ ...titulo, marginBottom: 0 }}>{mayusculaInicial(comoSeLlama)}</h3>
             <span style={{ fontSize: '0.72rem', color: 'var(--color-faint)' }}>{datos.zona}</span>
           </div>
           <div style={{ fontWeight: 900, fontSize: 'clamp(1.9rem, 9vw, 2.6rem)', color: 'var(--color-accent)', lineHeight: 1 }}>
             {f(r.neto)}
           </div>
+          <Comparacion neto={r.neto} antes={antes?.resumen?.neto} f={f} />
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem 1.1rem', marginTop: '0.6rem', fontSize: '0.85rem', color: 'var(--color-muted)' }}>
             <span><strong style={{ color: 'var(--color-text)' }}>{r.tickets}</strong> tickets</span>
             <span>medio <strong style={{ color: 'var(--color-text)' }}>{f(r.medio)}</strong></span>
@@ -129,6 +158,33 @@ export default function Informes({ moneda = '€' }) {
             etiqueta={m => `${METODO_EMOJI[m.metodo] || '💰'} ${METODO_LABEL[m.metodo] || m.metodo}`} />
         </div>
       </>)}
+    </div>
+  )
+}
+
+// Con qué se compara la cifra grande. Sin esto, «1.240 €» no dice si la
+// semana ha ido bien o mal — que es justo lo que se viene a mirar.
+function Comparacion({ neto, antes, f }) {
+  if (antes == null) return null
+  const v = variacion(neto, antes)
+  if (v == null) {
+    // Dividir entre cero daría «+∞ %». Lo que hay que decir es que antes no
+    // hubo nada con qué comparar.
+    return (
+      <div style={{ marginTop: '0.35rem', fontSize: '0.82rem', color: 'var(--color-muted)' }}>
+        En el periodo anterior no hubo ventas con las que comparar.
+      </div>
+    )
+  }
+  const sube = v >= 0
+  return (
+    <div style={{ marginTop: '0.35rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+      <span style={{ fontWeight: 700, color: sube ? '#10b981' : '#f43f5e' }}>
+        {sube ? '↑' : '↓'} {Math.abs(v).toFixed(0)}%
+      </span>
+      <span style={{ color: 'var(--color-muted)' }}>
+        respecto al periodo anterior, que hizo {f(antes)}
+      </span>
     </div>
   )
 }
@@ -187,8 +243,8 @@ function Lista({ titulo: t, filas, etiqueta, color, moneda, pie }) {
 
 // El CSV es para llevárselo al gestor, así que va con `;` y BOM: Excel en
 // español abre bien así y con comas mete todo en una columna.
-function descargarCSV(datos, periodo, moneda) {
-  const filas = [['Informe', nombreDe(periodo)], ['Moneda', moneda], []]
+function descargarCSV(datos, comoSeLlama, moneda) {
+  const filas = [['Informe', comoSeLlama], ['Moneda', moneda], []]
   const bloque = (titulo, cabecera, xs, fila) => {
     filas.push([titulo], cabecera)
     for (const x of xs || []) filas.push(fila(x))
@@ -210,9 +266,25 @@ function descargarCSV(datos, periodo, moneda) {
   const csv = filas.map(f => f.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(';')).join('\n')
   const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }))
   const a = document.createElement('a')
-  a.href = url; a.download = `informe-${periodo}.csv`; a.click()
+  // El nombre del fichero es lo único que distingue dos informes en la carpeta
+  // de descargas: con `informe-mes.csv` para todo, el de agosto pisaba al de
+  // septiembre y el gestor abría el que no era.
+  a.href = url; a.download = `informe-${comoSeLlama.replace(/[^\wa-záéíóúñ]+/gi, '-')}.csv`; a.click()
   URL.revokeObjectURL(url)
 }
 
+const hoyYMD = () => {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+const pastilla = (activa) => ({
+  background: activa ? 'var(--color-accent)' : 'var(--color-surface-2)',
+  color: activa ? '#fff' : 'var(--color-text)',
+  border: `1px solid ${activa ? 'var(--color-accent)' : 'var(--color-border)'}`,
+  borderRadius: '9999px', padding: '0.4rem 0.9rem', minHeight: '40px',
+  cursor: 'pointer', fontSize: '0.82rem', fontWeight: activa ? 700 : 500,
+})
+const etiquetaCampo = { display: 'block', fontSize: '0.72rem', color: 'var(--color-muted)', marginBottom: '0.25rem' }
+const campoFecha = { background: 'var(--color-inset)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.6rem', color: 'var(--color-text)', fontSize: '0.85rem', width: '100%', boxSizing: 'border-box' }
 const card = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '1rem', boxShadow: 'var(--shadow-sm)' }
 const titulo = { fontWeight: 700, fontSize: '0.95rem', marginBottom: '0.75rem' }

@@ -68,3 +68,80 @@ export function nombreDe(id, ahora = new Date()) {
     default: return mes(ahora)
   }
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// Un rango a medida, y con qué compararlo.
+//
+// Solo había cinco botones (hoy, ayer, 7 días, este mes, mes pasado). El
+// gestor pide «del 1 al 15» y el dueño quiere ver «el sábado pasado», y no
+// había forma: tocaba mirar el mes entero y hacer la resta a mano.
+//
+// Y un número solo no dice nada. «1.240 €» esta semana solo significa algo al
+// lado de lo que se hizo la semana anterior — que es la pregunta que se hace
+// quien abre esta pantalla.
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Rango entre dos fechas del calendario ('YYYY-MM-DD'), en hora local.
+ *
+ * El `hasta` que se elige es INCLUSIVO —quien escribe «al 15» quiere el 15
+ * entero— pero el servidor consulta con el fin exclusivo, así que se manda el
+ * día siguiente a las 00:00. Sin esto, el último día del informe siempre sale
+ * a cero y nadie entiende por qué.
+ */
+export function rangoEntre(desdeYMD, hastaYMD) {
+  const dia = (s) => {
+    const [y, m, d] = String(s || '').split('-').map(Number)
+    if (!y || !m || !d) return null
+    return new Date(y, m - 1, d)
+  }
+  const a = dia(desdeYMD)
+  const b = dia(hastaYMD)
+  if (!a || !b) return null
+  // al revés se entiende igual: se cambian
+  const [ini, fin] = a <= b ? [a, b] : [b, a]
+  const finExclusivo = new Date(fin)
+  finExclusivo.setDate(finExclusivo.getDate() + 1)
+  return { desde: ini.toISOString(), hasta: finExclusivo.toISOString() }
+}
+
+/**
+ * El periodo de la MISMA duración pegado justo antes, para comparar. De «los
+ * 7 días que acaban hoy» salen «los 7 anteriores», y de «septiembre» sale
+ * agosto (con sus días, no con 30 fijos).
+ */
+export function periodoAnterior({ desde, hasta } = {}) {
+  if (!desde || !hasta) return null
+  const a = new Date(desde)
+  const b = new Date(hasta)
+  const dura = b - a
+  if (!(dura > 0)) return null
+  return { desde: new Date(a - dura).toISOString(), hasta: desde }
+}
+
+/**
+ * Cuánto ha subido o bajado, en tanto por ciento. `null` cuando no hay con qué
+ * comparar: si antes no se vendió nada, «+∞ %» no informa de nada — lo que hay
+ * que decir es que no había nada antes.
+ */
+export function variacion(actual, anterior) {
+  const hoy = Number(actual) || 0
+  const antes = Number(anterior) || 0
+  if (antes === 0) return null
+  return ((hoy - antes) / Math.abs(antes)) * 100
+}
+
+/** Cómo se escribe un rango a medida: «del 1 al 15 de septiembre». */
+export function nombreDeRango(desdeYMD, hastaYMD) {
+  const r = rangoEntre(desdeYMD, hastaYMD)
+  if (!r) return ''
+  const a = new Date(r.desde)
+  const b = new Date(r.hasta)
+  b.setDate(b.getDate() - 1)              // vuelve al último día incluido
+  const dia = (d) => d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })
+  const conAno = (d) => d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
+  if (a.getTime() === b.getTime()) return conAno(a)
+  return a.getFullYear() === b.getFullYear()
+    ? `del ${dia(a)} al ${conAno(b)}`
+    : `del ${conAno(a)} al ${conAno(b)}`
+}

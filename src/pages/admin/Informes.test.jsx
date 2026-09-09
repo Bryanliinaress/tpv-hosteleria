@@ -88,12 +88,22 @@ describe('periodos', () => {
     expect(new Date(hasta) - new Date(desde)).toBe(24 * 3600 * 1000)
   })
 
-  it('cambiar de periodo vuelve a pedir el informe', async () => {
+  // Cada periodo son DOS consultas: la suya y la del periodo anterior de la
+  // misma duración, que es contra lo que se compara la cifra grande.
+  it('cambiar de periodo vuelve a pedir el informe, y el de antes', async () => {
     const u = userEvent.setup()
     render(<Informes moneda="€" />)
-    await waitFor(() => expect(informe).toHaveBeenCalledTimes(1))
-    await u.click(screen.getByRole('button', { name: 'Mes pasado' }))
     await waitFor(() => expect(informe).toHaveBeenCalledTimes(2))
+    await u.click(screen.getByRole('button', { name: 'Mes pasado' }))
+    await waitFor(() => expect(informe).toHaveBeenCalledTimes(4))
+  })
+
+  it('el periodo anterior que se pide está pegado al que se mira, y dura lo mismo', async () => {
+    render(<Informes moneda="€" />)
+    await waitFor(() => expect(informe).toHaveBeenCalledTimes(2))
+    const [actual, previo] = informe.mock.calls.map(c => c[0])
+    expect(previo.hasta).toBe(actual.desde)
+    expect(new Date(previo.hasta) - new Date(previo.desde)).toBe(new Date(actual.hasta) - new Date(actual.desde))
   })
 
   it('un periodo sin ventas lo dice, y no enseña gráficas vacías', async () => {
