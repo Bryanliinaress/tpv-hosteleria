@@ -92,3 +92,73 @@ export function revisarNombreZona(mesas = [], anterior, nueva) {
   if (existe) return { ok: false, error: `Ya hay una zona «${n}»` }
   return { ok: true, nombre: n }
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// Montar la sala: dar de alta mesas y agrupar la sala por zonas.
+//
+// «+ Añadir mesa» creaba UNA mesa, de cuatro plazas, en «la zona de la última
+// mesa de la lista» — que es la que sea. Montar un bar de doce mesas eran doce
+// clics y luego doce ediciones para ponerles zona y capacidad. Y la sala se
+// pintaba como una rejilla plana: con tres zonas y doce mesas no se veía
+// dónde empieza la terraza.
+// ────────────────────────────────────────────────────────────────────────────
+
+/** Etiqueta de las mesas que no tienen zona puesta. */
+export const SIN_ZONA = 'Sin zona'
+
+/**
+ * La sala repartida por zonas, para pintarla por secciones.
+ *
+ * El orden de las zonas es el del número de mesa más bajo de cada una: la zona
+ * donde está la mesa 1 va primero. Alfabéticamente, «Terraza» iría detrás de
+ * «Interior» aunque la terraza sean las mesas 1 a 4, y eso no es la sala. Las
+ * mesas sin zona van al final, juntas, para que se vean y se les ponga una.
+ */
+export function agruparPorZona(mesas = []) {
+  const grupos = new Map()
+  for (const m of (mesas || [])) {
+    const zona = (m?.zona || '').trim() || SIN_ZONA
+    if (!grupos.has(zona)) grupos.set(zona, [])
+    grupos.get(zona).push(m)
+  }
+  return [...grupos.entries()]
+    .map(([zona, ms]) => ({
+      zona,
+      sinZona: zona === SIN_ZONA,
+      mesas: [...ms].sort((a, b) => (Number(a.numero) || 0) - (Number(b.numero) || 0)),
+      plazas: ms.reduce((s, m) => s + (Number(m.capacidad) || 0), 0),
+      primera: Math.min(...ms.map(m => Number(m.numero) || Infinity)),
+    }))
+    .sort((a, b) => (a.sinZona ? 1 : 0) - (b.sinZona ? 1 : 0) || a.primera - b.primera)
+}
+
+/**
+ * Comprueba un alta de mesas y devuelve los números que se van a usar.
+ *
+ * Se comprueban TODOS antes de crear ninguna: dar de alta cuatro y fallar en
+ * la quinta deja la sala a medias y al encargado sin saber cuáles entraron.
+ */
+export function revisarAltaMesas(mesas = [], { numero, cuantas = 1, capacidad = 4 } = {}) {
+  const n = Number(String(cuantas ?? '').trim() || 1)
+  if (!Number.isInteger(n) || n < 1 || n > 50) return { ok: false, error: 'Se pueden añadir entre 1 y 50 mesas de una vez' }
+
+  const cap = Number(String(capacidad ?? '').trim())
+  if (!Number.isInteger(cap) || cap < 1) return { ok: false, error: 'La capacidad es un entero mayor que cero' }
+
+  const usados = new Set((mesas || []).map(m => Number(m.numero)))
+  let desde
+  if (numero === undefined || numero === null || String(numero).trim() === '') {
+    desde = Math.max(0, ...usados) + 1
+  } else {
+    desde = Number(String(numero).trim())
+    if (!Number.isInteger(desde) || desde < 1) return { ok: false, error: 'El número de mesa es un entero mayor que cero' }
+  }
+
+  const numeros = []
+  for (let i = 0; i < n; i++) {
+    const x = desde + i
+    if (usados.has(x)) return { ok: false, error: `La mesa ${x} ya existe: elige otro número de inicio` }
+    numeros.push(x)
+  }
+  return { ok: true, numeros, capacidad: cap }
+}

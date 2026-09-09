@@ -5,6 +5,18 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.119.0] - 2026-09-09
+
+### Añadido
+- **La sala se ve por zonas, no como una rejilla plana.** Con tres zonas y doce mesas no se veía dónde empieza la terraza: la zona solo existía como un texto dentro de cada mesa. Ahora cada zona es una sección con **cuántas mesas y cuántas plazas tiene** —que es su aforo para la reserva online, el número que decide hasta cuántos comensales puede reservar un cliente que elige «Terraza»—, y las zonas salen ordenadas por su **mesa más baja**: la zona donde está la mesa 1 va primero. Alfabéticamente, «Terraza» iría detrás de «Interior» aunque la terraza sean las mesas 1 a 4, y eso no es la sala.
+- **Añadir mesas de verdad: cuántas, de cuántas plazas, en qué zona y desde qué número.** «+ Añadir mesa» creaba UNA, de cuatro plazas, en «la zona de la última mesa de la lista» — que es la que sea. Montar un bar de doce mesas eran doce clics y luego doce ediciones. Se comprueban **todos** los números antes de crear ninguna: dar de alta cuatro y fallar en la quinta deja la sala a medias y al encargado sin saber cuáles entraron. Y **la zona se puede crear ahí mismo**, sin tener que crear la mesa en otra y luego moverla.
+- **`+ Mesa aquí` en cada zona**, que abre el alta con esa zona ya puesta.
+- **Quitar una zona sin perder sus mesas.** Una zona no es una tabla: es lo que hay escrito en sus mesas. Ahora se puede decir «estas N mesas se mudan a X» y la zona desaparece — antes había que cambiarlas de una en una, doce ocasiones de dejarse una por el camino, y una zona con una sola mesa suelta es justo la que la reserva online le ofrece al cliente como si fuera un sitio de verdad.
+- **Las mesas sin zona salen juntas al final**, en su propia sección, para que se vean y se les ponga una. Antes se perdían entre las demás.
+
+### Cambiado
+- **La pestaña «📱 QR Codes» desaparece: los QR son de las mesas.** Cada mesa enseña **su propio QR** con un toque (con el enlace y el botón de copiarlo), que es lo que hace falta cuando cambias una mesa de sitio o la renumeras — su pegatina es lo siguiente que hay que reimprimir. Y la **hoja A4 para imprimirlas todas** vive plegada al final de Mesas, con el aviso de la dirección y el botón de imprimir. Sale igual que antes: las mismas doce pegatinas recortables, ni una de más.
+
 ## [0.118.0] - 2026-09-09
 
 ### Añadido

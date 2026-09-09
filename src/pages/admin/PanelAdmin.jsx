@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { useStore, METODO_LABEL, METODO_EMOJI, metodosDe, propinasPorMetodoDe, ALERGENOS, normalizarExtra, etiquetasDe, ETIQUETAS_DEFECTO } from '../../store/useStore'
 import { confirmar, toast, pedirTexto } from '../../store/useUI'
-import { zonasDe } from '../../lib/sala'
+import { zonasDe, agruparPorZona } from '../../lib/sala'
 import { copiar } from '../../lib/portapapeles'
 import { urlStripe, refCorta } from '../../lib/stripe'
 import { ROLES, ROLES_ORDENADOS, rolDe } from '../../lib/roles'
@@ -28,7 +28,7 @@ import { efectivoEsperado, descuadreDe, saldoMovimientos, movimientosDesde, cobr
 const emptyForm = { nombre: '', nombreEn: '', categoria: '', descripcion: '', descripcionEn: '', alergenos: [], imagen: '', conFormatos: false, precios: {}, precio: '', menu: null, ivaPct: '' }
 
 export default function PanelAdmin() {
-  const { carta, mesas, historial, cierres, anulaciones, pagosSinCuenta, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, renumerarMesa, renombrarZona, addCategoria, removeCategoria, updateCategoria, moverCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, crearFichaje, editarFichaje, borrarFichaje, pedirFichajesDe, reintentarReembolso, movimientosCaja, registrarMovimiento } = useStore()
+  const { carta, mesas, historial, cierres, anulaciones, pagosSinCuenta, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, renumerarMesa, renombrarZona, moverZona, addCategoria, removeCategoria, updateCategoria, moverCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, crearFichaje, editarFichaje, borrarFichaje, pedirFichajesDe, reintentarReembolso, movimientosCaja, registrarMovimiento } = useStore()
   const hoyStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
   const reservasHoy = reservas.filter(r => r.fecha === hoyStr && r.estado === 'confirmada').length
   const [tab, setTab] = useState('carta')
@@ -41,10 +41,13 @@ export default function PanelAdmin() {
   // la banda de demostración. Los tres altos se miden porque los tres cambian.
   const refCabecera = useAltoCSS('--alto-cabecera-admin')
   const etiquetas = etiquetasDe(carta)
+  const zonasNombres = zonasDe(mesas).map(z => z.nombre)
   // el admin sí ve lo agotado: es lo que viene a reactivar
   const coincidencias = productosVisibles(carta, { busqueda: busquedaCarta, incluirNoDisponibles: true })
   const [contado, setContado] = useState('')
   const [movim, setMovim] = useState({ tipo: 'salida', importe: '', motivo: '' })
+  // { zona } cuando se está dando de alta mesas; `zona: null` = la primera
+  const [altaMesas, setAltaMesas] = useState(null)
 
   // Lo facturado HOY. Es lo primero que mira un dueño al abrir el panel, y
   // hasta ahora arriba ponía «Categorías 3», que es un dato de programador.
@@ -218,7 +221,6 @@ export default function PanelAdmin() {
           { id: 'ajustes', label: '🖨 Impresión' },
           { id: 'tickets', label: '🧾 Tickets' },
           { id: 'informes', label: '📊 Informes' },
-          { id: 'qr', label: '📱 QR Codes' },
           { id: 'dispositivos', label: '🔗 Dispositivos' },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
@@ -338,46 +340,41 @@ export default function PanelAdmin() {
         {/* Tab Mesas (configuración de sala) */}
         {tab === 'mesas' && (
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-              <p style={{ color: 'var(--color-muted)', fontSize: '0.85rem', flex: '1 1 240px' }}>Configura las mesas: número, capacidad y zona. (Solo se pueden borrar mesas libres.)</p>
-              <button onClick={addMesa} style={{ background: 'var(--color-accent)', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 0.9rem', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap' }}>+ Añadir mesa</button>
-            </div>
+            <p style={{ color: 'var(--color-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+              La sala, por zonas. Cada zona enseña sus plazas —que es su aforo para la reserva online— y cada mesa lleva su pegatina QR. (Solo se pueden borrar mesas libres.)
+            </p>
 
-            <Zonas mesas={mesas} renombrarZona={renombrarZona} />
+            {!altaMesas && (
+              <button onClick={() => setAltaMesas({ zona: null })} style={{ width: '100%', background: 'var(--color-surface-2)', color: 'var(--color-text)', border: '1px dashed var(--color-border)', borderRadius: '0.75rem', padding: '0.9rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem', marginBottom: '1.25rem' }}>
+                ➕ Añadir mesas
+              </button>
+            )}
+            {altaMesas && (
+              <NuevasMesas mesas={mesas} zonas={zonasNombres} addMesa={addMesa}
+                zonaPorDefecto={altaMesas.zona} onHecho={() => setAltaMesas(null)} />
+            )}
 
-            {/* Ordenadas por zona y número: el número ES el orden de la sala, y
-                así se ve el efecto de renumerar sin recargar nada. */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.875rem' }}>
-              {[...mesas].sort((a, b) => (a.zona || '').localeCompare(b.zona || '', 'es') || a.numero - b.numero).map(m => {
-                const libre = m.estado === 'libre'
-                return (
-                  <div key={m.id} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.875rem', padding: '1rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.625rem' }}>
-                      <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>Mesa {m.numero}</span>
-                      <span style={{ fontSize: '0.7rem', fontWeight: 700, color: libre ? '#10b981' : '#f59e0b' }}>{libre ? 'Libre' : 'Ocupada'}</span>
-                    </div>
-                    {/* El número sale en el ticket, en la comanda de cocina y en
-                        el QR de la pegatina: cambiarlo se comprueba, no se
-                        guarda a lo que salga. */}
-                    <label style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Número</label>
-                    <CampoGuardado valor={m.numero} onGuardar={v => { const r = renumerarMesa(m.id, v); if (!r.ok) toast(r.error, 'error'); else toast(`Ahora es la mesa ${v}`, 'success'); return r }} type="number" min="1" style={{ ...inputStyle, marginBottom: '0.5rem' }} />
-                    <label style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Zona</label>
-                    <select value={m.zona || ''} onChange={async e => {
-                      if (e.target.value !== '__nueva') return updateMesa(m.id, { zona: e.target.value })
-                      const z = await pedirTexto({ titulo: 'Nueva zona', mensaje: '¿Cómo se llama?', placeholder: 'Terraza', confirmar: 'Crear' })
-                      if (z?.trim()) updateMesa(m.id, { zona: z.trim() })
-                    }} style={{ ...inputStyle, marginBottom: '0.5rem' }}>
-                      {zonasDe(mesas).map(z => <option key={z.nombre} value={z.nombre}>{z.nombre}</option>)}
-                      {!m.zona && <option value="">Sin zona</option>}
-                      <option value="__nueva">➕ Nueva zona…</option>
-                    </select>
-                    <label style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Capacidad</label>
-                    <CampoGuardado valor={m.capacidad} onGuardar={v => updateMesa(m.id, { capacidad: v })} type="number" min="1" style={{ ...inputStyle, marginBottom: '0.625rem' }} />
-                    <button onClick={async () => { if (libre && await confirmar({ titulo: 'Borrar mesa', mensaje: `¿Borrar la mesa ${m.numero}?`, peligro: true, confirmar: 'Borrar' })) { removeMesa(m.id); toast('Mesa borrada', 'success') } }} disabled={!libre} style={{ width: '100%', background: 'none', color: libre ? '#f43f5e' : '#64748b', border: 'none', borderRadius: '0.5rem', padding: '0.4rem', cursor: libre ? 'pointer' : 'not-allowed', fontSize: '0.78rem' }}>{libre ? '🗑️ Borrar mesa' : 'Ocupada'}</button>
-                  </div>
-                )
-              })}
-            </div>
+            {agruparPorZona(mesas).map(grupo => (
+              <SeccionZona key={grupo.zona} grupo={grupo} zonas={zonasNombres}
+                renombrarZona={renombrarZona} moverZona={moverZona}
+                onAñadir={() => setAltaMesas({ zona: grupo.sinZona ? null : grupo.zona })}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '0.875rem' }}>
+                  {grupo.mesas.map(m => (
+                    <TarjetaMesa key={m.id} m={m} zonas={zonasNombres}
+                      updateMesa={updateMesa} renumerarMesa={renumerarMesa} removeMesa={removeMesa}
+                      copiarTexto={copiarTexto} />
+                  ))}
+                </div>
+              </SeccionZona>
+            ))}
+
+            {mesas.length === 0 && (
+              <p style={{ color: 'var(--color-muted)', fontSize: '0.85rem', textAlign: 'center', padding: '2rem 1rem' }}>
+                Todavía no hay mesas. La sala empieza arriba, en «Añadir mesas».
+              </p>
+            )}
+
+            <PegatinasQR mesas={mesas} local={local} />
           </div>
         )}
 
@@ -844,50 +841,6 @@ export default function PanelAdmin() {
             onCerrar={() => setDevolviendo(null)} />
         )}
 
-        {tab === 'qr' && (
-          <div>
-            <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
-              <p style={{ color: 'var(--color-muted)', fontSize: '0.9rem', margin: 0, flex: '1 1 320px' }}>
-                Cada mesa tiene su QR único. Imprímelo y colócalo en la mesa: al escanearlo, el cliente abre directamente su carta.
-                {' '}Apuntan a <code style={{ fontSize: '0.8rem', color: 'var(--color-accent)' }}>{urlPublica()}</code>
-              </p>
-              <button onClick={() => window.print()} style={{ background: 'var(--color-accent)', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.6rem 1rem', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                🖨 Imprimir todos ({mesas.length})
-              </button>
-            </div>
-            {/* Sin `url` en el perfil (build genérica) los QR salen con la
-                dirección desde la que se abrió Admin, que puede no ser la del
-                bar. Mejor decirlo que imprimir doce pegatinas muertas. */}
-            {!perfil.url && (
-              <div className="no-print" style={{ background: 'var(--tint-warning-bg)', color: 'var(--tint-warning-fg)', border: '1px solid var(--tint-warning-bd)', borderRadius: 'var(--radius)', padding: '0.75rem 0.9rem', marginBottom: '1.25rem', fontSize: '0.83rem' }}>
-                ⚠️ Esta instalación no tiene dirección propia configurada, así que los QR usan <strong>la dirección desde la que has abierto este panel</strong>. Compruébala arriba antes de imprimir.
-              </div>
-            )}
-            <div className="qr-print" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.875rem' }}>
-              {mesas.map(m => {
-                const url = urlDeMesa(m.id)
-                return (
-                  <div key={m.id} className="qr-tarjeta" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.75rem', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.625rem' }}>
-                    <div className="solo-print" style={{ fontWeight: 700, fontSize: '0.9rem' }}>{local.nombre || ''}</div>
-                    <div style={{ fontWeight: 700 }}>Mesa {m.numero}</div>
-                    <div style={{ background: 'white', padding: '0.625rem', borderRadius: '0.5rem' }}>
-                      <QRCodeSVG value={url} size={128} level="M" />
-                    </div>
-                    <div className="solo-print" style={{ fontSize: '0.75rem', textAlign: 'center' }}>Escanea para ver la carta y pedir</div>
-                    <code className="no-print" style={{ fontSize: '0.65rem', color: '#a78bfa', wordBreak: 'break-all', textAlign: 'center' }}>{url}</code>
-                    <button
-                      className="no-print"
-                      onClick={() => copiarTexto(url, 'Dirección')}
-                      style={{ background: 'var(--color-surface-2)', color: 'var(--color-muted)', border: '1px solid var(--color-border)', borderRadius: '0.375rem', padding: '0.375rem 0.75rem', cursor: 'pointer', fontSize: '0.75rem', width: '100%' }}
-                    >
-                      Copiar URL
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
       </div>
 
       {ticket && <Ticket tipo="cuenta" mesa={ticket} rectifica={ticket.rectifica} onClose={() => setTicket(null)} />}
@@ -908,35 +861,262 @@ const fmtH = (h) => `${Math.floor(h)}h ${Math.round((h % 1) * 60)}m`
 // Se guarda al SALIR del campo, no en cada tecla. En la app real cada pulsación
 // era una escritura en la BBDD; y en los datos del local, además, un
 // leer-modificar-escribir por letra: dos campos seguidos se pisaban entre sí.
-// Las zonas de la sala. No son una tabla: son el conjunto de nombres que hay
-// escritos en las mesas. Por eso renombrar una es cambiarlas todas de una vez
-// — a mano, en un bar de doce mesas, son doce ocasiones de escribirlo distinto,
-// y cada errata crea una zona fantasma que la reserva online le ofrece al
-// cliente como si existiera.
-function Zonas({ mesas, renombrarZona }) {
-  const zonas = zonasDe(mesas)
-  if (!zonas.length) return null
-  const renombrar = async (z) => {
-    const nombre = await pedirTexto({ titulo: `Renombrar «${z.nombre}»`, mensaje: `Se cambia en sus ${z.mesas} mesa(s).`, valor: z.nombre, confirmar: 'Renombrar' })
-    if (nombre == null || nombre.trim() === z.nombre) return
-    const r = renombrarZona(z.nombre, nombre)
-    if (!r.ok) toast(r.error, 'error')
-    else toast(`Zona renombrada en ${z.mesas} mesa(s)`, 'success')
-  }
+// ────────────────────────────────────────────────────────────────────────────
+// La sala, por zonas.
+//
+// Era una rejilla plana de doce tarjetas ordenadas por zona y número: con tres
+// zonas no se veía dónde empieza la terraza, y la zona solo existía como un
+// texto dentro de cada mesa. Ahora cada zona es una sección con lo suyo a
+// mano — cuántas mesas y cuántas plazas tiene (que es su aforo para la reserva
+// online), renombrarla, absorberla en otra y añadir mesas ahí dentro.
+// ────────────────────────────────────────────────────────────────────────────
+function SeccionZona({ grupo, zonas, renombrarZona, moverZona, onAñadir, children }) {
+  const [abierto, setAbierto] = useState(false)
   return (
-    <div style={{ ...ajusteCard, marginBottom: '1rem' }}>
-      <h3 style={{ ...ajusteTitulo, marginBottom: '0.5rem' }}>Zonas</h3>
-      <p style={{ fontSize: '0.75rem', color: 'var(--color-muted)', marginBottom: '0.7rem' }}>
-        Salen en la reserva online, para que el cliente elija dónde sentarse.
-      </p>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-        {zonas.map(z => (
-          <button key={z.nombre} onClick={() => renombrar(z)} title="Renombrar en todas sus mesas"
-            style={{ background: 'var(--color-surface-2)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '9999px', padding: '0.35rem 0.75rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
-            📍 {z.nombre} <span style={{ opacity: 0.6, fontWeight: 400 }}>· {z.mesas} mesa{z.mesas === 1 ? '' : 's'} · ✏️</span>
+    <div style={{ marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+        <span style={{ fontSize: '1.1rem' }}>{grupo.sinZona ? '❓' : '📍'}</span>
+        <h3 style={{ fontWeight: 700, fontSize: '1rem' }}>{grupo.zona}</h3>
+        {/* Las plazas de la zona son su aforo en la reserva online: el cliente
+            que elige «Terraza» solo puede reservar hasta ese número. */}
+        <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>
+          {grupo.mesas.length} mesa{grupo.mesas.length === 1 ? '' : 's'} · {grupo.plazas} plazas
+        </span>
+        <div style={{ display: 'flex', gap: '0.2rem', marginLeft: 'auto', alignItems: 'center' }}>
+          {!grupo.sinZona && (
+            <button onClick={() => setAbierto(v => !v)} title="Editar zona" aria-label={`Editar zona ${grupo.zona}`} style={{ ...iconBtn, color: abierto ? 'var(--color-accent)' : 'inherit' }}>⚙️</button>
+          )}
+          <button onClick={onAñadir} style={{ background: 'var(--color-accent)', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 0.9rem', minHeight: '40px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
+            + Mesa aquí
           </button>
-        ))}
+        </div>
       </div>
+      {abierto && <EditorZona grupo={grupo} zonas={zonas} onCerrar={() => setAbierto(false)} renombrarZona={renombrarZona} moverZona={moverZona} />}
+      {children}
+    </div>
+  )
+}
+
+function EditorZona({ grupo, zonas, onCerrar, renombrarZona, moverZona }) {
+  const [nombre, setNombre] = useState(grupo.zona)
+  const [absorbiendo, setAbsorbiendo] = useState(false)
+  const [destino, setDestino] = useState('')
+  const otras = zonas.filter(z => z !== grupo.zona)
+
+  const guardar = () => {
+    if (nombre.trim() === grupo.zona) return onCerrar()
+    const r = renombrarZona(grupo.zona, nombre)
+    if (!r.ok) return toast(r.error, 'error')
+    toast(`Zona renombrada en ${grupo.mesas.length} mesa(s)`, 'success')
+    onCerrar()
+  }
+  const absorber = () => {
+    const r = moverZona(grupo.zona, destino)
+    if (!r.ok) return toast(r.error, 'error')
+    toast(`${r.movidas} mesa(s) movidas a «${destino}»`, 'success')
+  }
+
+  return (
+    <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.75rem', padding: '0.9rem', marginBottom: '0.9rem' }}>
+      <label style={lblCampo}>Nombre de la zona <span style={{ opacity: 0.7 }}>· se cambia en sus {grupo.mesas.length} mesa(s)</span></label>
+      <input value={nombre} onChange={e => setNombre(e.target.value)} style={{ ...inputStyle, marginBottom: '0.7rem' }} />
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <button onClick={guardar} style={{ ...addBtn, flex: '1 1 8rem' }}>Guardar ✓</button>
+        <button onClick={onCerrar} style={{ background: 'var(--color-surface-2)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.85rem', cursor: 'pointer', fontSize: '0.82rem' }}>Cancelar</button>
+        {otras.length > 0 && (
+          <button onClick={() => setAbsorbiendo(v => !v)} style={{ background: 'none', color: 'var(--tint-warning-fg)', border: 'none', padding: '0.5rem 0.6rem', cursor: 'pointer', fontSize: '0.82rem', marginLeft: 'auto' }}>📦 Quitar esta zona</button>
+        )}
+      </div>
+
+      {/* Una zona no es una tabla: es lo que hay escrito en sus mesas. Para
+          quitarla hay que decir a dónde van las mesas — borrarlas sería borrar
+          la sala. */}
+      {absorbiendo && (
+        <div style={{ background: 'var(--tint-warning-bg)', border: '1px solid var(--tint-warning-bd)', borderRadius: '0.6rem', padding: '0.75rem', marginTop: '0.7rem' }}>
+          <p style={{ fontSize: '0.82rem', color: 'var(--tint-warning-fg)', marginBottom: '0.6rem', lineHeight: 1.5 }}>
+            «{grupo.zona}» tiene <strong>{grupo.mesas.length} mesa(s)</strong>. Las mesas no se borran: se mudan a otra zona, y esta desaparece.
+          </p>
+          <label style={lblCampo}>Se mudan a</label>
+          <select value={destino} onChange={e => setDestino(e.target.value)} style={{ ...inputStyle, marginBottom: '0.6rem' }}>
+            <option value="">Elige la zona…</option>
+            {otras.map(z => <option key={z} value={z}>{z}</option>)}
+          </select>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button onClick={absorber} disabled={!destino} style={{ background: destino ? 'var(--color-accent)' : 'var(--color-surface-3)', color: destino ? '#fff' : 'var(--color-muted)', border: 'none', borderRadius: '0.5rem', padding: '0.55rem 0.9rem', cursor: destino ? 'pointer' : 'not-allowed', fontWeight: 700, fontSize: '0.82rem' }}>
+              Mover las mesas y quitar la zona
+            </button>
+            <button onClick={() => setAbsorbiendo(false)} style={{ background: 'var(--color-surface-2)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.55rem 0.85rem', cursor: 'pointer', fontSize: '0.82rem' }}>Dejarlo</button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Una mesa. El QR vive aquí, en la mesa a la que pertenece, y no en otra
+// pestaña: cuando cambias una mesa de sitio o la renumeras, su pegatina es lo
+// siguiente que hay que reimprimir.
+function TarjetaMesa({ m, zonas, updateMesa, renumerarMesa, removeMesa, copiarTexto }) {
+  const [verQR, setVerQR] = useState(false)
+  const libre = m.estado === 'libre'
+  const url = urlDeMesa(m.id)
+  return (
+    <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.875rem', padding: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.625rem' }}>
+        <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>Mesa {m.numero}</span>
+        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: libre ? '#10b981' : '#f59e0b' }}>{libre ? 'Libre' : 'Ocupada'}</span>
+      </div>
+      {/* El número sale en el ticket, en la comanda de cocina y en el QR de la
+          pegatina: cambiarlo se comprueba, no se guarda a lo que salga. */}
+      <label style={lblCampo}>Número</label>
+      <CampoGuardado valor={m.numero} onGuardar={v => { const r = renumerarMesa(m.id, v); if (!r.ok) toast(r.error, 'error'); else toast(`Ahora es la mesa ${v}`, 'success'); return r }} type="number" min="1" style={{ ...inputStyle, marginBottom: '0.5rem' }} />
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.625rem' }}>
+        <div style={{ flex: '1 1 60%' }}>
+          <label style={lblCampo}>Zona</label>
+          <select value={m.zona || ''} onChange={async e => {
+            if (e.target.value !== '__nueva') return updateMesa(m.id, { zona: e.target.value })
+            const z = await pedirTexto({ titulo: 'Nueva zona', mensaje: '¿Cómo se llama?', placeholder: 'Terraza', confirmar: 'Crear' })
+            if (z?.trim()) updateMesa(m.id, { zona: z.trim() })
+          }} style={inputStyle}>
+            {zonas.map(z => <option key={z} value={z}>{z}</option>)}
+            {!m.zona && <option value="">Sin zona</option>}
+            <option value="__nueva">➕ Nueva zona…</option>
+          </select>
+        </div>
+        <div style={{ flex: '1 1 40%' }}>
+          <label style={lblCampo}>Plazas</label>
+          <CampoGuardado valor={m.capacidad} onGuardar={v => updateMesa(m.id, { capacidad: v })} type="number" min="1" style={inputStyle} />
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: '0.4rem' }}>
+        <button onClick={() => setVerQR(v => !v)} style={{ flex: 1, background: 'var(--color-surface-2)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.45rem', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>
+          {verQR ? '▲ Ocultar QR' : '📱 Ver su QR'}
+        </button>
+        <button onClick={async () => { if (libre && await confirmar({ titulo: 'Borrar mesa', mensaje: `¿Borrar la mesa ${m.numero}?`, peligro: true, confirmar: 'Borrar' })) { removeMesa(m.id); toast('Mesa borrada', 'success') } }} disabled={!libre} title={libre ? 'Borrar mesa' : 'Está ocupada'} style={{ background: 'none', color: libre ? '#f43f5e' : '#64748b', border: 'none', borderRadius: '0.5rem', padding: '0.45rem 0.7rem', cursor: libre ? 'pointer' : 'not-allowed', fontSize: '0.85rem' }}>🗑️</button>
+      </div>
+
+      {verQR && (
+        <div style={{ marginTop: '0.7rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ background: 'white', padding: '0.6rem', borderRadius: '0.5rem' }}>
+            <QRCodeSVG value={url} size={128} level="M" />
+          </div>
+          <code style={{ fontSize: '0.62rem', color: '#a78bfa', wordBreak: 'break-all', textAlign: 'center' }}>{url}</code>
+          <button onClick={() => copiarTexto(url, 'Dirección')} style={{ width: '100%', background: 'var(--color-surface-2)', color: 'var(--color-muted)', border: '1px solid var(--color-border)', borderRadius: '0.375rem', padding: '0.35rem 0.75rem', cursor: 'pointer', fontSize: '0.75rem' }}>
+            Copiar enlace
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Alta de mesas: cuántas, de cuántas plazas y en qué zona, de una vez. Montar
+// un bar de doce mesas eran doce clics y luego doce ediciones.
+function NuevasMesas({ mesas, zonas, addMesa, zonaPorDefecto, onHecho }) {
+  const [cuantas, setCuantas] = useState('1')
+  const [capacidad, setCapacidad] = useState('4')
+  const [zona, setZona] = useState(zonaPorDefecto || zonas[0] || 'Sala')
+  const [numero, setNumero] = useState('')
+  const siguiente = Math.max(0, ...mesas.map(m => Number(m.numero) || 0)) + 1
+
+  const crear = () => {
+    const r = addMesa({ zona, capacidad, cuantas, numero })
+    if (!r.ok) return toast(r.error, 'error')
+    toast(`${r.creadas} mesa(s) añadidas a «${zona}»`, 'success')
+    setCuantas('1'); setNumero('')
+    onHecho?.()
+  }
+
+  return (
+    <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-accent)', borderRadius: '0.75rem', padding: '0.9rem', marginBottom: '1.25rem' }}>
+      <h3 style={{ ...ajusteTitulo, marginBottom: '0.7rem' }}>➕ Añadir mesas</h3>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.7rem' }}>
+        <label style={{ flex: '1 1 5rem' }}>
+          <span style={lblCampo}>Cuántas</span>
+          <input type="number" min="1" max="50" value={cuantas} onChange={e => setCuantas(e.target.value)} style={inputStyle} />
+        </label>
+        <label style={{ flex: '1 1 5rem' }}>
+          <span style={lblCampo}>Plazas</span>
+          <input type="number" min="1" value={capacidad} onChange={e => setCapacidad(e.target.value)} style={inputStyle} />
+        </label>
+        <label style={{ flex: '1 1 8rem' }}>
+          <span style={lblCampo}>Zona</span>
+          {/* Una zona no se crea sola en ninguna parte: es lo que hay escrito
+              en sus mesas. Sin esto habría que crear la mesa en otra zona y
+              luego moverla, que es como se hacía y no se le ocurre a nadie. */}
+          <select value={zona} onChange={async e => {
+            if (e.target.value !== '__nueva') return setZona(e.target.value)
+            const z = await pedirTexto({ titulo: 'Nueva zona', mensaje: '¿Cómo se llama? Se crea con estas mesas.', placeholder: 'Terraza', confirmar: 'Usarla' })
+            if (z?.trim()) setZona(z.trim())
+          }} style={inputStyle}>
+            {[...new Set([...zonas, zona].filter(Boolean))].map(z => <option key={z} value={z}>{z}</option>)}
+            <option value="__nueva">➕ Nueva zona…</option>
+          </select>
+        </label>
+        <label style={{ flex: '1 1 7rem' }}>
+          <span style={lblCampo}>Empezar en el nº</span>
+          <input type="number" min="1" value={numero} onChange={e => setNumero(e.target.value)} placeholder={String(siguiente)} style={inputStyle} />
+        </label>
+      </div>
+      <p style={{ fontSize: '0.72rem', color: 'var(--color-muted)', marginBottom: '0.8rem' }}>
+        Se numeran seguidas desde el {numero.trim() || siguiente}. Si alguna de esas ya existe, no se crea ninguna: te lo dice antes.
+      </p>
+      <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <button onClick={crear} style={{ ...addBtn, flex: 1 }}>Añadir a la sala ✓</button>
+        {onHecho && <button onClick={onHecho} style={{ background: 'var(--color-surface-2)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.85rem', cursor: 'pointer', fontSize: '0.82rem' }}>Cancelar</button>}
+      </div>
+    </div>
+  )
+}
+
+// La hoja de pegatinas. Estaba en su propia pestaña, «QR Codes», y es de las
+// mesas: cuando renumeras una, su pegatina es lo siguiente que hay que
+// reimprimir. Va plegada porque son doce QR y estorban al configurar la sala.
+function PegatinasQR({ mesas, local }) {
+  const [abierto, setAbierto] = useState(false)
+  return (
+    <div className="no-print" style={{ marginTop: '1.5rem', borderTop: '1px solid var(--color-border)', paddingTop: '1.25rem' }}>
+      <button onClick={() => setAbierto(v => !v)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.75rem', padding: '0.85rem 1rem', cursor: 'pointer', color: 'var(--color-text)', textAlign: 'left' }}>
+        <span style={{ fontSize: '1.1rem' }}>📱</span>
+        <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>Pegatinas QR de las mesas</span>
+        <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>{mesas.length} para imprimir y recortar</span>
+        <span style={{ marginLeft: 'auto', color: 'var(--color-muted)' }}>{abierto ? '▲' : '▼'}</span>
+      </button>
+
+      {abierto && (
+        <div style={{ marginTop: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+            <p style={{ color: 'var(--color-muted)', fontSize: '0.85rem', margin: 0, flex: '1 1 320px' }}>
+              Cada mesa tiene su QR único. Al escanearlo, el cliente abre directamente la carta de esa mesa.
+              {' '}Apuntan a <code style={{ fontSize: '0.8rem', color: 'var(--color-accent)' }}>{urlPublica()}</code>
+            </p>
+            <button onClick={() => window.print()} style={{ background: 'var(--color-accent)', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.6rem 1rem', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
+              🖨 Imprimir las {mesas.length}
+            </button>
+          </div>
+          {/* Sin `url` en el perfil (build genérica) los QR salen con la
+              dirección desde la que se abrió Admin, que puede no ser la del
+              bar. Mejor decirlo que imprimir doce pegatinas muertas. */}
+          {!perfil.url && (
+            <div style={{ background: 'var(--tint-warning-bg)', color: 'var(--tint-warning-fg)', border: '1px solid var(--tint-warning-bd)', borderRadius: 'var(--radius)', padding: '0.75rem 0.9rem', marginBottom: '1rem', fontSize: '0.83rem' }}>
+              ⚠️ Esta instalación no tiene dirección propia configurada, así que los QR usan <strong>la dirección desde la que has abierto este panel</strong>. Compruébala arriba antes de imprimir.
+            </div>
+          )}
+          <div className="qr-print" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.875rem' }}>
+            {[...mesas].sort((a, b) => a.numero - b.numero).map(m => (
+              <div key={m.id} className="qr-tarjeta" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.75rem', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.625rem' }}>
+                <div className="solo-print" style={{ fontWeight: 700, fontSize: '0.9rem' }}>{local.nombre || ''}</div>
+                <div style={{ fontWeight: 700 }}>Mesa {m.numero}</div>
+                <div style={{ background: 'white', padding: '0.625rem', borderRadius: '0.5rem' }}>
+                  <QRCodeSVG value={urlDeMesa(m.id)} size={128} level="M" />
+                </div>
+                <div className="solo-print" style={{ fontSize: '0.75rem', textAlign: 'center' }}>Escanea para ver la carta y pedir</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
