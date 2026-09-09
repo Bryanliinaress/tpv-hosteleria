@@ -1,12 +1,12 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.121.0 · 971 tests JS + 37 pruebas de SQL en verde · CI y deploy en
+**Estado: v0.122.0 · 984 tests JS + 37 pruebas de SQL en verde · CI y deploy en
 verde · repo limpio · 0 vulnerabilidades.** Última sesión: 2026-09-08.
 
 Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a uno:
 [docs/AUDITORIA.md](docs/AUDITORIA.md) (es historia, no estado).
 
-### Lo último — veintidós releases, del 26 de agosto al 9 de septiembre
+### Lo último — veintitrés releases, del 26 de agosto al 9 de septiembre
 
 | | | |
 |---|---|---|
@@ -35,6 +35,7 @@ Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a un
 | **v0.119.0** | 09/09 | **La sala, por zonas**: cada zona con sus mesas y sus plazas (su aforo), alta de varias mesas de una vez y quitar una zona mudando sus mesas. La pestaña «QR Codes» se va: cada mesa enseña su QR y la hoja A4 vive en Mesas. |
 | **v0.120.0** | 09/09 | **El personal dice quién está en turno y cuántas horas lleva**, con el registro de jornada dentro (la pestaña «Fichajes» se va). Y el nombre de un empleado se guardaba **en cada tecla**. |
 | **v0.121.0** | 09/09 | **La caja, ordenada por lo que hay que hacer**: primero lo que reclama algo hoy, luego cuadrar y cerrar, y plegado lo que se consulta. Los tickets se mudan dentro (con buscador) y una caja sin ventas pero con movimientos **no se podía cerrar**. |
+| **v0.122.0** | 09/09 | **Informes de cualquier rango de fechas** («del 1 al 15», con el último día entero) y **cada cifra comparada con el periodo anterior**. Y el CSV se llamaba siempre igual: el de agosto pisaba al de septiembre. |
 
 **Lo que hay que llevarse de la sesión**, que se repitió tres veces con distinta
 cara: *«éxito» que solo significa «se lo he dado a otro»*. El spooler aceptaba
@@ -290,7 +291,7 @@ cada bar, `sk_live_` suya + rehacer el webhook con
 ## Comandos
 
 ```bash
-npm test                           # 971 tests, 10 pantallas cubiertas
+npm test                           # 984 tests, 10 pantallas cubiertas
 npm run test:sql                   # 37 pruebas del dinero, contra la base real
 npm run lint
 npm run permisos                   # ¿se ha abierto algo sin querer?
@@ -619,11 +620,12 @@ saliendo, pero conviene fijar el precio sabiéndolo.
 - **Devoluciones (rectificativas R5)** por diferencias, enteras o parciales,
   probadas contra la AEAT de pruebas — y el dinero **vuelve de verdad a la
   tarjeta** por Stripe, con reintento si falla.
-- **Informes** calculados en el servidor por rango de fechas (Hoy / Ayer /
-  7 días / Este mes / Mes pasado), con CSV y las devoluciones restando.
+- **Informes** calculados en el servidor por rango de fechas (los cinco de
+  siempre **o el que se escriba**), comparados con el periodo anterior, con CSV
+  y las devoluciones restando.
 - **Monitorización**: el bar deja constancia de lo que se rompe en su propia
   base y `npm run salud` lo lee. Encontró sola dos fallos de producción.
-- **971 tests JS** (las **diez** pantallas cubiertas) **+ 37 pruebas de SQL**
+- **984 tests JS** (las **diez** pantallas cubiertas) **+ 37 pruebas de SQL**
   contra la base real, lint limpio, CI y deploy en verde, **0 vulnerabilidades**
   en todo el árbol de dependencias.
 - **Arqueo de caja completo** (v0.106.0): fondo de cambio y entradas/salidas del
