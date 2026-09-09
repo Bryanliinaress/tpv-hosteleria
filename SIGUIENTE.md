@@ -1,12 +1,12 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.118.0 · 951 tests JS + 37 pruebas de SQL en verde · CI y deploy en
+**Estado: v0.119.0 · 966 tests JS + 37 pruebas de SQL en verde · CI y deploy en
 verde · repo limpio · 0 vulnerabilidades.** Última sesión: 2026-09-08.
 
 Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a uno:
 [docs/AUDITORIA.md](docs/AUDITORIA.md) (es historia, no estado).
 
-### Lo último — diecinueve releases, del 26 de agosto al 9 de septiembre
+### Lo último — veinte releases, del 26 de agosto al 9 de septiembre
 
 | | | |
 |---|---|---|
@@ -32,6 +32,7 @@ Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a un
 | **v0.116.0** | 08/09 | **Renombrar dispositivos y ver para qué se usan** (cada aparato apunta en qué pantalla está). Y «último uso» llevaba desde siempre diciendo casi cualquier cosa. |
 | **v0.117.0** | 08/09 | Las tarjetas de arriba de Admin dejan de medir «Categorías 3»: **Facturado hoy · Tickets hoy · Mesas ocupadas · Sin cobrar en sala**. |
 | **v0.118.0** | 09/09 | **La carta se gestiona desde la carta**: crear apartados, renombrarlos, su icono, su orden (el que ve el cliente) y a qué impresora van. Lo de «Ajustes» se muda a Carta y esa pestaña pasa a ser **🖨 Impresión**. |
+| **v0.119.0** | 09/09 | **La sala, por zonas**: cada zona con sus mesas y sus plazas (su aforo), alta de varias mesas de una vez y quitar una zona mudando sus mesas. La pestaña «QR Codes» se va: cada mesa enseña su QR y la hoja A4 vive en Mesas. |
 
 **Lo que hay que llevarse de la sesión**, que se repitió tres veces con distinta
 cara: *«éxito» que solo significa «se lo he dado a otro»*. El spooler aceptaba
@@ -77,7 +78,7 @@ arregla entrando al panel y pulsando *Resume project*.
 Onboarding, Mostrador con y sin panel lateral, la PDA, **los KDS de Cocina y
 Barra con comandas dentro** —con el recorrido en cola → Preparando → Listo—, el
 ticket con su desglose de IVA y QR, el **recibo del cliente**, las **dos**
-pantallas de error, **las doce pestañas de Admin** una por una, y la **carta del
+pantallas de error, **las pestañas de Admin** una por una, y la **carta del
 cliente por QR** entera: carta, personalización, carrito y cuenta.
 
 De ahí salieron **seis fallos** que ninguna lectura de código habría dado: el
@@ -287,7 +288,7 @@ cada bar, `sk_live_` suya + rehacer el webhook con
 ## Comandos
 
 ```bash
-npm test                           # 951 tests, 10 pantallas cubiertas
+npm test                           # 966 tests, 10 pantallas cubiertas
 npm run test:sql                   # 37 pruebas del dinero, contra la base real
 npm run lint
 npm run permisos                   # ¿se ha abierto algo sin querer?
@@ -620,7 +621,7 @@ saliendo, pero conviene fijar el precio sabiéndolo.
   7 días / Este mes / Mes pasado), con CSV y las devoluciones restando.
 - **Monitorización**: el bar deja constancia de lo que se rompe en su propia
   base y `npm run salud` lo lee. Encontró sola dos fallos de producción.
-- **951 tests JS** (las **diez** pantallas cubiertas) **+ 37 pruebas de SQL**
+- **966 tests JS** (las **diez** pantallas cubiertas) **+ 37 pruebas de SQL**
   contra la base real, lint limpio, CI y deploy en verde, **0 vulnerabilidades**
   en todo el árbol de dependencias.
 - **Arqueo de caja completo** (v0.106.0): fondo de cambio y entradas/salidas del
