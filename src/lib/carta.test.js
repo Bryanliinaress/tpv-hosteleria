@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buscarProductos, productosVisibles, descripcionUtil, lineaSimplePendiente, unidades, normalizar, configDeItem, ultimaRonda, hayLineasSinEnviar } from './carta'
+import { buscarProductos, productosVisibles, descripcionUtil, lineaSimplePendiente, unidades, normalizar, configDeItem, ultimaRonda, hayLineasSinEnviar, revisarNombreApartado, moverEnLista, emojiPorTipo, TIPOS_APARTADO } from './carta'
 
 const P = [
   { id: 'a', nombre: 'Café con leche', descripcion: 'Café con leche', categoria: 'cafes', disponible: true },
@@ -173,5 +173,68 @@ describe('¿queda algo que la cocina no haya visto?', () => {
     expect(hayLineasSinEnviar(null)).toBe(false)
     expect(hayLineasSinEnviar({})).toBe(false)
     expect(hayLineasSinEnviar({ personas: [{ id: 'p1' }] })).toBe(false)
+  })
+})
+
+// ────────────────────────────────────────────────────────────────────────────
+// Los apartados de la carta. Antes solo se podían crear y borrar — y borrar se
+// lleva sus productos por delante, así que una errata al escribir «Bocadilos»
+// costaba volver a teclear doce bocadillos.
+// ────────────────────────────────────────────────────────────────────────────
+const APARTADOS = [
+  { id: 'a', nombre: 'Desayunos', tipo: 'comida' },
+  { id: 'b', nombre: 'Cafés', tipo: 'bebida' },
+  { id: 'c', nombre: 'Postres', tipo: 'comida' },
+]
+
+describe('nombre de un apartado', () => {
+  it('uno nuevo vale, y se recorta', () => {
+    expect(revisarNombreApartado(APARTADOS, null, '  Bocadillos ')).toEqual({ ok: true, nombre: 'Bocadillos' })
+  })
+
+  it('sin nombre no se guarda', () => {
+    expect(revisarNombreApartado(APARTADOS, null, '   ').ok).toBe(false)
+  })
+
+  // Dos apartados iguales en la carta del cliente son dos secciones con el
+  // mismo título y productos distintos: no hay forma de saber cuál es cuál.
+  it('no deja repetir uno que ya existe, ni cambiando mayúsculas', () => {
+    expect(revisarNombreApartado(APARTADOS, null, 'postres').ok).toBe(false)
+    expect(revisarNombreApartado(APARTADOS, null, 'Postres').ok).toBe(false)
+  })
+
+  it('un apartado puede quedarse con su propio nombre', () => {
+    expect(revisarNombreApartado(APARTADOS, 'c', 'Postres').ok).toBe(true)
+  })
+})
+
+describe('mover un apartado', () => {
+  it('sube y baja intercambiando con el vecino', () => {
+    expect(moverEnLista(APARTADOS, 'c', -1).map(x => x.id)).toEqual(['a', 'c', 'b'])
+    expect(moverEnLista(APARTADOS, 'a', 1).map(x => x.id)).toEqual(['b', 'a', 'c'])
+  })
+
+  // Subir el primero no es un error: es que no hay a dónde. La lista tiene que
+  // volver entera, o la carta se quedaría a medias.
+  it('en el extremo devuelve la lista tal cual', () => {
+    expect(moverEnLista(APARTADOS, 'a', -1).map(x => x.id)).toEqual(['a', 'b', 'c'])
+    expect(moverEnLista(APARTADOS, 'c', 1).map(x => x.id)).toEqual(['a', 'b', 'c'])
+  })
+
+  it('un id que no está no descoloca nada', () => {
+    expect(moverEnLista(APARTADOS, 'zzz', -1).map(x => x.id)).toEqual(['a', 'b', 'c'])
+  })
+})
+
+describe('a dónde van las comandas', () => {
+  // No es cosmético: decide por qué impresora sale la comanda.
+  it('cada tipo dice su destino con nombre de bar', () => {
+    expect(TIPOS_APARTADO.comida.label).toBe('Cocina')
+    expect(TIPOS_APARTADO.bebida.label).toBe('Barra')
+  })
+
+  it('el icono por defecto distingue comida de bebida', () => {
+    expect(emojiPorTipo('bebida')).not.toBe(emojiPorTipo('comida'))
+    expect(emojiPorTipo(undefined)).toBe(emojiPorTipo('comida'))
   })
 })

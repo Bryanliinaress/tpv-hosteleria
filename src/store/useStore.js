@@ -7,6 +7,7 @@ import { efectivoEsperado, descuadreDe, saldoMovimientos, movimientosDesde, revi
 import { revisarNuevoEmpleado, revisarCambioEmpleado, revisarBajaEmpleado } from '../lib/personal'
 import { rolDe } from '../lib/roles'
 import { revisarNumeroMesa, revisarNombreZona } from '../lib/sala'
+import { revisarNombreApartado, moverEnLista, emojiPorTipo } from '../lib/carta'
 import { totalDeMesa } from '../lib/dinero'
 
 // Aviso al usuario desde el store. Import perezoso para no acoplar el estado a
@@ -1270,12 +1271,79 @@ export const useStore = create(persist((set, get) => ({
   })),
 
   // ── CONFIG DE CARTA (categorías, panes, extras) ────────
-  addCategoria: (nombre, tipo) => set(state => ({
-    carta: { ...state.carta, categorias: [...state.carta.categorias, { id: crearId('cat'), nombre: (nombre || '').trim() || 'Nueva', tipo: tipo || 'comida', emoji: tipo === 'bebida' ? '🥤' : '🍽' }] },
-  })),
-  removeCategoria: (id) => set(state => ({
-    carta: { ...state.carta, categorias: state.carta.categorias.filter(c => c.id !== id), productos: state.carta.productos.filter(p => p.categoria !== id) },
-  })),
+  addCategoria: (nombre, tipo, emoji) => {
+    const r = revisarNombreApartado(get().carta.categorias, null, nombre)
+    if (!r.ok) return r
+    set(state => ({
+      carta: {
+        ...state.carta,
+        categorias: [...state.carta.categorias, {
+          id: crearId('cat'), nombre: r.nombre,
+          tipo: tipo === 'bebida' ? 'bebida' : 'comida',
+          emoji: emoji || emojiPorTipo(tipo),
+        }],
+      },
+    }))
+    return { ok: true }
+  },
+
+  // Cambia un apartado: nombre, emoji o a dónde van sus comandas.
+  //
+  // Ojo con `tipo`: no es cosmético. Decide si la comanda sale por la
+  // impresora de COCINA o por la de BARRA, y en la demo cada producto lleva su
+  // propia copia del tipo, así que hay que retocarlos todos. Cambiar solo el
+  // apartado dejaba los platos saliendo por donde salían antes — la regla
+  // escrita en dos sitios, otra vez.
+  updateCategoria: (id, cambios = {}) => {
+    const st = get()
+    const cat = st.carta.categorias.find(c => c.id === id)
+    if (!cat) return { ok: false, error: 'Ese apartado ya no existe' }
+    if (cambios.nombre !== undefined) {
+      const r = revisarNombreApartado(st.carta.categorias, id, cambios.nombre)
+      if (!r.ok) return r
+      cambios = { ...cambios, nombre: r.nombre }
+    }
+    const tipo = cambios.tipo === undefined ? cat.tipo : (cambios.tipo === 'bebida' ? 'bebida' : 'comida')
+    set(state => ({
+      carta: {
+        ...state.carta,
+        categorias: state.carta.categorias.map(c => c.id !== id ? c : {
+          ...c,
+          nombre: cambios.nombre ?? c.nombre,
+          emoji: cambios.emoji ?? c.emoji,
+          tipo,
+        }),
+        productos: state.carta.productos.map(p => p.categoria === id ? { ...p, tipo } : p),
+      },
+    }))
+    return { ok: true }
+  },
+
+  // El orden de los apartados es el orden en el que el cliente ve la carta al
+  // escanear el QR. Hasta ahora era el de creación y no había forma de
+  // cambiarlo sin borrarlo todo y volver a empezar.
+  moverCategoria: (id, direccion) => {
+    set(state => ({ carta: { ...state.carta, categorias: moverEnLista(state.carta.categorias, id, direccion) } }))
+    return { ok: true }
+  },
+
+  // Borrar se lleva por delante los productos del apartado. Con `moverA` se
+  // pueden salvar pasándolos a otro: doce bocadillos no se vuelven a teclear.
+  removeCategoria: (id, { moverA } = {}) => {
+    set(state => {
+      const destino = moverA && state.carta.categorias.find(c => c.id === moverA)
+      return {
+        carta: {
+          ...state.carta,
+          categorias: state.carta.categorias.filter(c => c.id !== id),
+          productos: destino
+            ? state.carta.productos.map(p => p.categoria === id ? { ...p, categoria: destino.id, tipo: destino.tipo } : p)
+            : state.carta.productos.filter(p => p.categoria !== id),
+        },
+      }
+    })
+    return { ok: true }
+  },
   addExtra: (nombre, precio = 0.20) => set(state => {
     const n = (nombre || '').trim()
     if (!n || state.carta.extras.some(e => normalizarExtra(e).nombre === n)) return {}

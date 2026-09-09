@@ -9,6 +9,7 @@ import { revisarCorreccionFichaje, revisarNuevoFichaje } from '../fichajes'
 import { revisarNuevoEmpleado, revisarCambioEmpleado, revisarBajaEmpleado } from '../personal'
 import { rolDe } from '../roles'
 import { revisarNumeroMesa, revisarNombreZona } from '../sala'
+import { revisarNombreApartado, moverEnLista, emojiPorTipo } from '../carta'
 import { efectivoEsperado, descuadreDe, saldoMovimientos, revisarMovimiento } from '../caja'
 import { registrarTicket } from '../fiscal'
 import { getLocalId, cargarTodo, cargarSala, cargarComandas, cargarReservas, cargarCarta, cargarLocal, cargarHistorial, cargarFichajes, cargarCierres, cargarMovimientosCaja } from './estado'
@@ -356,10 +357,69 @@ export function accionesV2b() {
       } catch (e) { err(e) }
     },
     deleteProducto: async (id) => { try { await t('productos').delete().eq('id', id); cargarCarta() } catch (e) { err(e) } },
-    addCategoria: async (nombre, tipo) => {
-      try { await t('categorias').insert({ local_id: getLocalId(), nombre, tipo: tipo || 'comida', orden: st().carta.categorias.length }); cargarCarta() } catch (e) { err(e) }
+    // Los apartados de la carta. Como el alta de empleado: la pantalla lee
+    // `r.ok` EN EL ACTO, así que se comprueba aquí y se escribe por detrás. Si
+    // fueran `async`, `r.ok` sería `undefined` y cantarían un error falso.
+    addCategoria: (nombre, tipo, emoji) => {
+      const r = revisarNombreApartado(st().carta.categorias, null, nombre)
+      if (!r.ok) return r
+      const fila = {
+        local_id: getLocalId(), nombre: r.nombre,
+        tipo: tipo === 'bebida' ? 'bebida' : 'comida',
+        // El emoji NO se guardaba: un apartado creado desde la app real salía
+        // sin icono en la carta del cliente, mientras que en la demo sí lo
+        // tenía. El mismo dato con otra forma a cada lado.
+        emoji: emoji || emojiPorTipo(tipo),
+        orden: st().carta.categorias.length,
+      }
+      ;(async () => {
+        try { await t('categorias').insert(fila); cargarCarta() } catch (e) { err(e) }
+      })()
+      return { ok: true }
     },
-    removeCategoria: async (id) => { try { await t('categorias').delete().eq('id', id); cargarCarta() } catch (e) { err(e) } },
+    updateCategoria: (id, cambios = {}) => {
+      const cat = st().carta.categorias.find(c => c.id === id)
+      if (!cat) return { ok: false, error: 'Ese apartado ya no existe' }
+      const parche = {}
+      if (cambios.nombre !== undefined) {
+        const r = revisarNombreApartado(st().carta.categorias, id, cambios.nombre)
+        if (!r.ok) return r
+        parche.nombre = r.nombre
+      }
+      if (cambios.emoji !== undefined) parche.emoji = cambios.emoji
+      if (cambios.tipo !== undefined) parche.tipo = cambios.tipo === 'bebida' ? 'bebida' : 'comida'
+      if (!Object.keys(parche).length) return { ok: true }
+      ;(async () => {
+        try { await t('categorias').update(parche).eq('id', id); cargarCarta() } catch (e) { err(e) }
+      })()
+      return { ok: true }
+    },
+    // El orden vive en la columna `orden`, y es el que ve el cliente en el QR.
+    // Se reescriben TODAS: renumerar solo las dos que se cruzan deja huecos
+    // cuando el orden de partida trae repetidos (los hay: el alta usaba la
+    // longitud de la lista, y borrar un apartado no renumeraba el resto).
+    moverCategoria: (id, direccion) => {
+      const nuevas = moverEnLista(st().carta.categorias, id, direccion)
+      ;(async () => {
+        try {
+          await Promise.all(nuevas.map((c, i) => t('categorias').update({ orden: i }).eq('id', c.id)))
+          cargarCarta()
+        } catch (e) { err(e) }
+      })()
+      return { ok: true }
+    },
+    removeCategoria: (id, { moverA } = {}) => {
+      ;(async () => {
+        try {
+          // Primero se salvan los productos, si se ha pedido: la clave ajena es
+          // `on delete cascade`, así que borrar el apartado antes se los lleva.
+          if (moverA) await t('productos').update({ categoria_id: moverA }).eq('categoria_id', id)
+          await t('categorias').delete().eq('id', id)
+          cargarCarta()
+        } catch (e) { err(e) }
+      })()
+      return { ok: true }
+    },
 
     // Un local recién registrado nace sin carta: puede arrancar con la de
     // ejemplo (para editarla) o vaciarla y hacer la suya.
