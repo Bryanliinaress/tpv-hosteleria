@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buscarProductos, productosVisibles, descripcionUtil, lineaSimplePendiente, unidades, normalizar, configDeItem, ultimaRonda, hayLineasSinEnviar, revisarNombreApartado, moverEnLista, emojiPorTipo, TIPOS_APARTADO } from './carta'
+import { buscarProductos, productosVisibles, descripcionUtil, lineaSimplePendiente, unidades, normalizar, configDeItem, ultimaRonda, hayLineasSinEnviar, revisarNombreApartado, moverEnLista, emojiPorTipo, TIPOS_APARTADO, moverProductoEnCarta, esExtremoDeApartado, copiaDeProducto, agotadosDe } from './carta'
 
 const P = [
   { id: 'a', nombre: 'Café con leche', descripcion: 'Café con leche', categoria: 'cafes', disponible: true },
@@ -236,5 +236,87 @@ describe('a dónde van las comandas', () => {
   it('el icono por defecto distingue comida de bebida', () => {
     expect(emojiPorTipo('bebida')).not.toBe(emojiPorTipo('comida'))
     expect(emojiPorTipo(undefined)).toBe(emojiPorTipo('comida'))
+  })
+})
+
+// ────────────────────────────────────────────────────────────────────────────
+// Ordenar y copiar productos. Los apartados ya se ordenaban; los productos de
+// dentro salían en el orden en que se crearon — y ese es el orden en el que el
+// cliente los lee al escanear el QR.
+// ────────────────────────────────────────────────────────────────────────────
+const CARTA = [
+  { id: 'a', categoria: 'des', nombre: 'Mixto', precio: 3, disponible: true },
+  { id: 'b', categoria: 'des', nombre: 'Tostada', precio: 2, disponible: false },
+  { id: 'c', categoria: 'beb', nombre: 'Café', precio: 1.3, disponible: true },
+  { id: 'd', categoria: 'des', nombre: 'Croissant', precio: 2.5, disponible: true },
+]
+
+describe('ordenar productos dentro de su apartado', () => {
+  it('sube y baja entre los de su apartado, no entre vecinos de la lista', () => {
+    // «Croissant» es el último de Desayunos aunque en la lista global tenga
+    // detrás un café: subirlo lo pone antes de «Tostada», no del café.
+    const xs = moverProductoEnCarta(CARTA, 'd', -1)
+    expect(xs.filter(p => p.categoria === 'des').map(p => p.nombre)).toEqual(['Mixto', 'Croissant', 'Tostada'])
+    expect(xs.filter(p => p.categoria === 'beb').map(p => p.nombre)).toEqual(['Café'])
+  })
+
+  // Si se intercambiara con el vecino de la lista global, al llegar al borde un
+  // producto se cambiaría de apartado — que no es lo que pide nadie al pulsar
+  // una flecha.
+  it('ninguno se cambia de apartado al llegar al borde', () => {
+    const arriba = moverProductoEnCarta(CARTA, 'a', -1)
+    const abajo = moverProductoEnCarta(CARTA, 'c', 1)
+    for (const xs of [arriba, abajo]) {
+      expect(xs.map(p => `${p.id}:${p.categoria}`).sort()).toEqual(['a:des', 'b:des', 'c:beb', 'd:des'])
+    }
+  })
+
+  it('en el extremo devuelve la lista tal cual', () => {
+    expect(moverProductoEnCarta(CARTA, 'a', -1).map(p => p.id)).toEqual(['a', 'b', 'c', 'd'])
+    expect(moverProductoEnCarta(CARTA, 'd', 1).map(p => p.id)).toEqual(['a', 'b', 'c', 'd'])
+  })
+
+  it('un id que no está no descoloca nada', () => {
+    expect(moverProductoEnCarta(CARTA, 'zzz', -1).map(p => p.id)).toEqual(['a', 'b', 'c', 'd'])
+  })
+
+  it('sabe cuál es el primero y el último de su apartado', () => {
+    expect(esExtremoDeApartado(CARTA, 'a')).toEqual({ primero: true, ultimo: false })
+    expect(esExtremoDeApartado(CARTA, 'd')).toEqual({ primero: false, ultimo: true })
+    // hijo único: no hay a dónde ir en ninguna dirección
+    expect(esExtremoDeApartado(CARTA, 'c')).toEqual({ primero: true, ultimo: true })
+  })
+})
+
+describe('copiar un producto', () => {
+  it('se lleva precio y apartado, pero no el id', () => {
+    const copia = copiaDeProducto(CARTA[0])
+    expect(copia.precio).toBe(3)
+    expect(copia.categoria).toBe('des')
+    expect(copia.id).toBeUndefined()
+  })
+
+  // Dos productos con el mismo nombre son dos líneas idénticas en la carta del
+  // cliente y una comanda en la que no se sabe cuál pidió.
+  it('el nombre avisa de que hay que renombrarlo', () => {
+    expect(copiaDeProducto(CARTA[0]).nombre).toBe('Mixto (copia)')
+  })
+
+  // La copia nace disponible: copiar el agotado de ayer para crear el plato de
+  // hoy no puede traerse el «agotado» puesto.
+  it('la copia no hereda el «agotado»', () => {
+    expect(copiaDeProducto(CARTA[1]).disponible).toBeUndefined()
+  })
+
+  it('sin producto no hay copia', () => {
+    expect(copiaDeProducto(null)).toBeNull()
+  })
+})
+
+describe('lo agotado', () => {
+  it('se puede saber de un vistazo cuántos hay', () => {
+    expect(agotadosDe({ productos: CARTA }).map(p => p.nombre)).toEqual(['Tostada'])
+    expect(agotadosDe({ productos: [] })).toEqual([])
+    expect(agotadosDe(null)).toEqual([])
   })
 })

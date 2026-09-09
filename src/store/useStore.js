@@ -7,7 +7,7 @@ import { efectivoEsperado, descuadreDe, saldoMovimientos, movimientosDesde, revi
 import { revisarNuevoEmpleado, revisarCambioEmpleado, revisarBajaEmpleado } from '../lib/personal'
 import { rolDe } from '../lib/roles'
 import { revisarNumeroMesa, revisarNombreZona, revisarAltaMesas } from '../lib/sala'
-import { revisarNombreApartado, moverEnLista, emojiPorTipo } from '../lib/carta'
+import { revisarNombreApartado, moverEnLista, emojiPorTipo, moverProductoEnCarta, copiaDeProducto } from '../lib/carta'
 import { revisarCambiosLocal } from '../lib/local'
 import { totalDeMesa } from '../lib/dinero'
 
@@ -1310,6 +1310,39 @@ export const useStore = create(persist((set, get) => ({
   })),
 
   // ── CONFIG DE CARTA (categorías, panes, extras) ────────
+  // Sube o baja un producto dentro de su apartado. Ese orden es el que ve el
+  // cliente al escanear el QR; hasta ahora era el de creación y no había forma
+  // de cambiarlo.
+  moverProducto: (id, direccion) => {
+    set(state => ({ carta: { ...state.carta, productos: moverProductoEnCarta(state.carta.productos, id, direccion) } }))
+    return { ok: true }
+  },
+
+  // Copia un producto para no teclear otra vez precio, formatos, alérgenos e
+  // IVA: montar una carta son ocho bocadillos que solo cambian el relleno.
+  duplicarProducto: (id) => {
+    const copia = copiaDeProducto(get().carta.productos.find(p => p.id === id))
+    if (!copia) return { ok: false, error: 'Ese producto ya no está' }
+    const nuevo = { ...copia, id: crearId('p'), disponible: true }
+    // justo detrás del original, que es donde se espera encontrarlo
+    set(state => {
+      const i = state.carta.productos.findIndex(p => p.id === id)
+      const xs = [...state.carta.productos]
+      xs.splice(i + 1, 0, nuevo)
+      return { carta: { ...state.carta, productos: xs } }
+    })
+    return { ok: true, id: nuevo.id }
+  },
+
+  // Devuelve TODO lo agotado a disponible. Al día siguiente se repone la
+  // nevera entera y hoy había que ir producto por producto.
+  reponerTodo: () => {
+    const cuantos = get().carta.productos.filter(p => !p.disponible).length
+    if (!cuantos) return { ok: false, error: 'No hay nada agotado' }
+    set(state => ({ carta: { ...state.carta, productos: state.carta.productos.map(p => p.disponible ? p : { ...p, disponible: true }) } }))
+    return { ok: true, repuestos: cuantos }
+  },
+
   addCategoria: (nombre, tipo, emoji) => {
     const r = revisarNombreApartado(get().carta.categorias, null, nombre)
     if (!r.ok) return r

@@ -13,7 +13,7 @@ import BotonSalir from '../../components/BotonSalir'
 import TemaToggle from '../../components/TemaToggle'
 import { useAltoCSS } from '../../components/useAltoCSS'
 import EstadoFiscal from '../../components/EstadoFiscal'
-import { productosVisibles, TIPOS_APARTADO, EMOJIS_APARTADO, emojiPorTipo } from '../../lib/carta'
+import { productosVisibles, TIPOS_APARTADO, EMOJIS_APARTADO, emojiPorTipo, esExtremoDeApartado, agotadosDe } from '../../lib/carta'
 import { perfil, urlPublica, urlDeMesa } from '../../lib/perfil'
 import { esDelMes, esDelDia, horasEntre } from '../../lib/fechas'
 import { loQueFaltaDelLocal } from '../../lib/local'
@@ -29,7 +29,7 @@ import { efectivoEsperado, descuadreDe, saldoMovimientos, movimientosDesde, cobr
 const emptyForm = { nombre: '', nombreEn: '', categoria: '', descripcion: '', descripcionEn: '', alergenos: [], imagen: '', conFormatos: false, precios: {}, precio: '', menu: null, ivaPct: '' }
 
 export default function PanelAdmin() {
-  const { carta, mesas, historial, cierres, anulaciones, pagosSinCuenta, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, renumerarMesa, renombrarZona, moverZona, addCategoria, removeCategoria, updateCategoria, moverCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, crearFichaje, editarFichaje, borrarFichaje, pedirFichajesDe, reintentarReembolso, movimientosCaja, registrarMovimiento } = useStore()
+  const { carta, mesas, historial, cierres, anulaciones, pagosSinCuenta, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, moverProducto, duplicarProducto, reponerTodo, resetDatos, addMesa, removeMesa, updateMesa, renumerarMesa, renombrarZona, moverZona, addCategoria, removeCategoria, updateCategoria, moverCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, crearFichaje, editarFichaje, borrarFichaje, pedirFichajesDe, reintentarReembolso, movimientosCaja, registrarMovimiento } = useStore()
   const hoyStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
   const reservasHoy = reservas.filter(r => r.fecha === hoyStr && r.estado === 'confirmada').length
   const [tab, setTab] = useState('carta')
@@ -248,6 +248,10 @@ export default function PanelAdmin() {
                 {coincidencias.length} de {carta.productos.length} productos coinciden con «{busquedaCarta}»
               </p>
             )}
+
+            {/* Lo agotado, arriba: al día siguiente se repone la nevera entera y
+                había que ir producto por producto para devolverlos. */}
+            <Agotados carta={carta} reponerTodo={reponerTodo} />
             {carta.categorias.map((cat, i) => {
               const productosCat = busquedaCarta.trim()
                 ? coincidencias.filter(p => p.categoria === cat.id)
@@ -273,9 +277,12 @@ export default function PanelAdmin() {
                     editando === prod.id ? (
                       <FormProducto key={prod.id} carta={carta} form={form} setForm={setForm} onGuardar={guardar} onCancelar={cancelar} titulo="Editar producto" />
                     ) : (
-                      <div key={prod.id} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.625rem', padding: '0.875rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.6rem', opacity: prod.disponible ? 1 : 0.5 }}>
+                      <div key={prod.id} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.625rem', padding: '0.875rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', opacity: prod.disponible ? 1 : 0.5 }}>
                         {prod.imagen && <img src={prod.imagen} alt="" onError={e => { e.currentTarget.style.display = 'none' }} style={{ width: '2.4rem', height: '2.4rem', objectFit: 'cover', borderRadius: '0.4rem', flexShrink: 0 }} />}
-                        <div style={{ flex: 1, minWidth: 0 }}>
+                        {/* Con seis botones al lado, `flex: 1` a secas dejaba
+                            el nombre en una letra por línea. Con una base, en
+                            un móvil los botones se bajan solos. */}
+                        <div style={{ flex: '1 1 11rem', minWidth: 0 }}>
                           <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>
                             {prod.nombre}
                             {!prod.disponible && <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', color: '#f43f5e' }}>(agotado)</span>}
@@ -308,8 +315,22 @@ export default function PanelAdmin() {
                             )}
                           </div>
                         </div>
-                        <div style={{ display: 'flex', gap: '0.2rem', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: '0.2rem', alignItems: 'center', marginLeft: 'auto' }}>
+                          {/* El orden de los productos es el que ve el cliente
+                              al escanear el QR. Buscando no se enseñan: la
+                              lista filtrada no es el orden de la carta. */}
+                          {!busquedaCarta.trim() && (() => {
+                            const { primero, ultimo } = esExtremoDeApartado(carta.productos, prod.id)
+                            return <>
+                              <button onClick={() => moverProducto(prod.id, -1)} disabled={primero} title="Subir en la carta" aria-label={`Subir ${prod.nombre}`} style={{ ...iconBtn, width: '1.9rem', opacity: primero ? 0.25 : 1 }}>▲</button>
+                              <button onClick={() => moverProducto(prod.id, 1)} disabled={ultimo} title="Bajar en la carta" aria-label={`Bajar ${prod.nombre}`} style={{ ...iconBtn, width: '1.9rem', opacity: ultimo ? 0.25 : 1 }}>▼</button>
+                            </>
+                          })()}
                           <button onClick={() => toggleDisponible(prod.id)} title={prod.disponible ? 'Marcar agotado' : 'Marcar disponible'} aria-label={prod.disponible ? `Marcar ${prod.nombre} agotado` : `Marcar ${prod.nombre} disponible`} style={iconBtn}>{prod.disponible ? '🟢' : '⚪'}</button>
+                          {/* Ocho bocadillos que solo cambian el relleno: sin
+                              esto, cada uno es teclear otra vez precio,
+                              formatos, alérgenos e IVA. */}
+                          <button onClick={() => { const r = duplicarProducto(prod.id); toast(r.ok ? `Copiado como «${prod.nombre} (copia)» · renómbralo` : r.error, r.ok ? 'success' : 'error') }} title="Duplicar" aria-label={`Duplicar ${prod.nombre}`} style={iconBtn}>⧉</button>
                           <button onClick={() => empezarEdicion(prod)} title="Editar" aria-label={`Editar ${prod.nombre}`} style={iconBtn}>✏️</button>
                           {/* separado del resto: es el único que no tiene vuelta atrás */}
                           <button onClick={async () => { if (await confirmar({ titulo: 'Borrar producto', mensaje: `¿Borrar "${prod.nombre}" de la carta?`, peligro: true, confirmar: 'Borrar' })) { deleteProducto(prod.id); toast('Producto borrado', 'success') } }} title="Borrar" aria-label={`Borrar ${prod.nombre}`} style={{ ...iconBtn, marginLeft: '0.5rem' }}>🗑️</button>
@@ -1024,6 +1045,27 @@ function PegatinasQR({ mesas, local }) {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// Lo que está agotado. Se marca durante el servicio —se acabó la tortilla— y
+// se repone al día siguiente, todo de golpe: devolverlo producto por producto
+// es la clase de tarea que se olvida, y un plato que sigue «agotado» tres días
+// después es dinero que no se vende.
+function Agotados({ carta, reponerTodo }) {
+  const agotados = agotadosDe(carta)
+  if (!agotados.length) return null
+  return (
+    <div style={{ background: 'var(--tint-warning-bg)', color: 'var(--tint-warning-fg)', border: '1px solid var(--tint-warning-bd)', borderRadius: 'var(--radius)', padding: '0.8rem 1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+      <div style={{ flex: '1 1 14rem', fontSize: '0.85rem' }}>
+        <strong>{agotados.length} producto(s) agotado(s)</strong>
+        <span style={{ opacity: 0.85 }}> · el cliente no los ve en la carta: {agotados.slice(0, 4).map(p => p.nombre).join(', ')}{agotados.length > 4 ? ` y ${agotados.length - 4} más` : ''}</span>
+      </div>
+      <button onClick={() => { const r = reponerTodo(); toast(r.ok ? `${r.repuestos} producto(s) de vuelta en la carta` : r.error, r.ok ? 'success' : 'error') }}
+        style={{ background: 'var(--color-accent)', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 0.9rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
+        🔄 Reponer todo
+      </button>
     </div>
   )
 }
