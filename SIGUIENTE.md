@@ -1,12 +1,12 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.120.0 · 971 tests JS + 37 pruebas de SQL en verde · CI y deploy en
+**Estado: v0.121.0 · 971 tests JS + 37 pruebas de SQL en verde · CI y deploy en
 verde · repo limpio · 0 vulnerabilidades.** Última sesión: 2026-09-08.
 
 Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a uno:
 [docs/AUDITORIA.md](docs/AUDITORIA.md) (es historia, no estado).
 
-### Lo último — veintiuna releases, del 26 de agosto al 9 de septiembre
+### Lo último — veintidós releases, del 26 de agosto al 9 de septiembre
 
 | | | |
 |---|---|---|
@@ -34,6 +34,7 @@ Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a un
 | **v0.118.0** | 09/09 | **La carta se gestiona desde la carta**: crear apartados, renombrarlos, su icono, su orden (el que ve el cliente) y a qué impresora van. Lo de «Ajustes» se muda a Carta y esa pestaña pasa a ser **🖨 Impresión**. |
 | **v0.119.0** | 09/09 | **La sala, por zonas**: cada zona con sus mesas y sus plazas (su aforo), alta de varias mesas de una vez y quitar una zona mudando sus mesas. La pestaña «QR Codes» se va: cada mesa enseña su QR y la hoja A4 vive en Mesas. |
 | **v0.120.0** | 09/09 | **El personal dice quién está en turno y cuántas horas lleva**, con el registro de jornada dentro (la pestaña «Fichajes» se va). Y el nombre de un empleado se guardaba **en cada tecla**. |
+| **v0.121.0** | 09/09 | **La caja, ordenada por lo que hay que hacer**: primero lo que reclama algo hoy, luego cuadrar y cerrar, y plegado lo que se consulta. Los tickets se mudan dentro (con buscador) y una caja sin ventas pero con movimientos **no se podía cerrar**. |
 
 **Lo que hay que llevarse de la sesión**, que se repitió tres veces con distinta
 cara: *«éxito» que solo significa «se lo he dado a otro»*. El spooler aceptaba
