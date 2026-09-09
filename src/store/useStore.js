@@ -8,6 +8,7 @@ import { revisarNuevoEmpleado, revisarCambioEmpleado, revisarBajaEmpleado } from
 import { rolDe } from '../lib/roles'
 import { revisarNumeroMesa, revisarNombreZona, revisarAltaMesas } from '../lib/sala'
 import { revisarNombreApartado, moverEnLista, emojiPorTipo } from '../lib/carta'
+import { revisarCambiosLocal } from '../lib/local'
 import { totalDeMesa } from '../lib/dinero'
 
 // Aviso al usuario desde el store. Import perezoso para no acoplar el estado a
@@ -1057,12 +1058,16 @@ export const useStore = create(persist((set, get) => ({
 
   // ── IDENTIDAD DEL LOCAL ────────────────────────────────
   // Actualiza los datos del negocio (nombre, IVA, moneda, pie de ticket…).
-  updateLocal: (cambios) => set(state => {
-    const next = { ...cambios }
-    if (next.ivaPct !== undefined) next.ivaPct = Math.max(0, Number(next.ivaPct) || 0)
-    if (next.moneda !== undefined) next.moneda = (next.moneda || '').trim() || '€'
-    return { local: { ...state.local, ...next } }
-  }),
+  // La regla de qué se puede guardar aquí vive en `src/lib/local.js`, que la
+  // comparten la demo y la app real. Estaba escrita solo aquí, y en el bar de
+  // verdad el IVA se guardaba tal cual: «10,5» → `Number(…) || 0` → **0 %** en
+  // el ticket, en el recibo y en el papel de la impresora.
+  updateLocal: (cambios) => {
+    const r = revisarCambiosLocal(cambios)
+    if (!r.ok) { avisar(r.error, 'error'); return r }
+    set(state => ({ local: { ...state.local, ...r.cambios } }))
+    return { ok: true }
+  },
 
   // ── MOVIMIENTOS DE CAJA ────────────────────────────────
   // Apunta dinero que entra o sale del cajón y no es una venta.

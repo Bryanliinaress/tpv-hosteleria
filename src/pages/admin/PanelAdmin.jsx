@@ -16,6 +16,7 @@ import EstadoFiscal from '../../components/EstadoFiscal'
 import { productosVisibles, TIPOS_APARTADO, EMOJIS_APARTADO, emojiPorTipo } from '../../lib/carta'
 import { perfil, urlPublica, urlDeMesa } from '../../lib/perfil'
 import { esDelMes, esDelDia, horasEntre } from '../../lib/fechas'
+import { loQueFaltaDelLocal } from '../../lib/local'
 import { conNombre, jornadaDe } from '../../lib/fichajes'
 import ConfigImpresora from '../../components/ConfigImpresora'
 import EditorMenu from '../../components/EditorMenu'
@@ -219,9 +220,7 @@ export default function PanelAdmin() {
           { id: 'mesas', label: '🍽 Mesas' },
           { id: 'reservas', label: `📅 Reservas${reservasHoy ? ` (${reservasHoy})` : ''}` },
           { id: 'caja', label: '💰 Caja' },
-          { id: 'ajustes', label: '🖨 Impresión' },
           { id: 'informes', label: '📊 Informes' },
-          { id: 'dispositivos', label: '🔗 Dispositivos' },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
             background: 'none', border: 'none', padding: '0.875rem 1.1rem', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, minHeight: '48px',
@@ -648,39 +647,17 @@ export default function PanelAdmin() {
           </>
         )}
 
-        {/* Tab Impresión. Lo de la carta que vivía aquí (formatos, variedades,
-            añadidos y sus nombres) se ha ido a la pestaña Carta, que es donde
-            se usa: para añadir un formato había que salir de la carta, cambiar
-            de pestaña, volver y buscar el producto otra vez. */}
-        {tab === 'ajustes' && (
-          <div style={{ maxWidth: '640px' }}>
-            <ConfigImpresora />
-          </div>
-        )}
-
         {/* Tab Local (identidad del negocio) */}
-        {tab === 'local' && (
+        {tab === 'local' && (<>
+          {/* Un hueco vacío aquí no se nota hasta que sale un ticket sin
+              dirección o un «Llámanos» que no lleva a ningún sitio. Arriba del
+              todo, y diciendo DÓNDE se nota cada uno. */}
+          <LoQueFalta local={local} />
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', alignItems: 'start' }}>
             <div style={ajusteCard}>
               <h3 style={ajusteTitulo}>Datos del local</h3>
               <p style={{ fontSize: '0.8rem', color: 'var(--color-muted)', marginBottom: '0.9rem' }}>Aparecen en los tickets, las cabeceras y la página de reservas.</p>
-              {/* Un hueco vacio aqui no se nota hasta que sale un ticket sin
-                  direccion o un «Llamanos» sin telefono al que llamar. */}
-              {(() => {
-                const faltan = [
-                  !local.direccion && 'la dirección',
-                  !local.telefono && 'el teléfono',
-                  !local.cif && 'el CIF',
-                ].filter(Boolean)
-                if (!faltan.length) return null
-                return (
-                  <div style={{ background: 'var(--tint-warning-bg)', color: 'var(--tint-warning-fg)', border: '1px solid var(--tint-warning-bd)', borderRadius: '0.625rem', padding: '0.7rem 0.8rem', marginBottom: '0.9rem', fontSize: '0.8rem' }}>
-                    ⚠️ Falta {faltan.length === 1 ? faltan[0] : `${faltan.slice(0, -1).join(', ')} y ${faltan.at(-1)}`}.
-                    Sale en el ticket, en el recibo del cliente y en la pantalla de reservas
-                    {!local.telefono && ' —sin teléfono, «Llámanos» no lleva a ningún sitio—'}.
-                  </div>
-                )
-              })()}
               <label style={lblCampo}>Nombre del local</label>
               <CampoGuardado valor={local.nombre || ''} onGuardar={v => updateLocal({ nombre: v })} placeholder="Mi Bar" style={{ ...inputStyle, marginBottom: '0.7rem' }} />
               <label style={lblCampo}>Subtítulo</label>
@@ -704,7 +681,11 @@ export default function PanelAdmin() {
               <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '0.7rem' }}>
                 <div style={{ flex: 1 }}>
                   <label style={lblCampo}>IVA incluido (%)</label>
-                  <CampoGuardado valor={local.ivaPct || ''} onGuardar={v => updateLocal({ ivaPct: v })} type="number" min="0" step="1" style={inputStyle} />
+                  {/* `type="number"` se COME la coma: en un teclado español,
+                      escribir «10,5» dejaba el campo vacío, y vacío se guardaba
+                      como 0 → todos los tickets con «IVA (0%)». Igual que el
+                      efectivo contado del arqueo, va como texto decimal. */}
+                  <CampoGuardado valor={local.ivaPct ?? ''} onGuardar={v => updateLocal({ ivaPct: v })} inputMode="decimal" placeholder="10" style={inputStyle} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <label style={lblCampo}>Moneda</label>
@@ -734,7 +715,18 @@ export default function PanelAdmin() {
               </div>
             </div>
           </div>
-        )}
+
+          {/* Los aparatos y cómo imprimen tenían pestaña propia cada uno. Son
+              lo mismo que esto: cómo está montado este bar — se tocan al
+              montarlo y casi nunca más. */}
+          <Plegable icono="🔗" titulo="Aparatos con acceso" resumen="quién puede entrar al TPV de este bar">
+            <Dispositivos />
+          </Plegable>
+
+          <Plegable icono="🖨" titulo="Impresión" resumen="cómo imprime ESTE dispositivo">
+            <div style={{ maxWidth: '640px' }}><ConfigImpresora /></div>
+          </Plegable>
+        </>)}
 
         {/* Tab Informes */}
         {/* Los informes ya no reciben el historial: los calcula el servidor por
@@ -751,9 +743,6 @@ export default function PanelAdmin() {
         )}
 
         {/* Tab Tickets del mes */}
-        {/* Tab QR */}
-        {tab === 'dispositivos' && <Dispositivos />}
-
         {devolviendo && (
           <Devolver ticket={devolviendo.ticket} pendiente={devolviendo.pendiente}
             onCerrar={() => setDevolviendo(null)} />
@@ -1338,6 +1327,29 @@ function OpcionesCarta({ carta, etiquetas, addExtra, removeExtra, addTipoPan, re
 
 const pieAjuste = { fontSize: '0.75rem', color: 'var(--color-muted)', marginBottom: '0.6rem', lineHeight: 1.45 }
 const sufijoAjuste = { fontWeight: 400, fontSize: '0.75rem', color: 'var(--color-muted)' }
+
+// Lo que falta por rellenar del local, y dónde se nota. Antes miraba tres
+// campos y no decía para qué sirve cada uno; el **CIF y el IVA** son los dos
+// que exige una factura simplificada, así que van marcados.
+function LoQueFalta({ local }) {
+  const faltan = loQueFaltaDelLocal(local)
+  if (!faltan.length) return null
+  return (
+    <div style={{ background: 'var(--tint-warning-bg)', color: 'var(--tint-warning-fg)', border: '1px solid var(--tint-warning-bd)', borderRadius: 'var(--radius)', padding: '0.9rem 1rem', marginBottom: '1.25rem' }}>
+      <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.4rem' }}>
+        ⚠️ Falta{faltan.length > 1 ? 'n' : ''} {faltan.length} dato{faltan.length > 1 ? 's' : ''} del local
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.82rem' }}>
+        {faltan.map(f => (
+          <div key={f.campo}>
+            <strong>{f.campo}</strong> · sale en {f.donde}
+            {f.fiscal && <span style={{ marginLeft: '0.4rem', fontSize: '0.68rem', fontWeight: 700, background: 'var(--color-surface)', borderRadius: '9999px', padding: '0.05rem 0.45rem' }}>fiscal</span>}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 // Un bloque que se abre. La caja tiene cuatro cosas que se consultan —los
 // tickets, el cajón, los cierres y las anulaciones— y una sola que se hace a
