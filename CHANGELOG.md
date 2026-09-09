@@ -5,6 +5,21 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.124.0] - 2026-09-09
+
+### Añadido
+- **La agenda dice qué reclama atención AHORA MISMO.** Listaba las reservas del día ordenadas por hora, todas pintadas igual: la de las 22:00 exactamente como la que entra por la puerta en diez minutos y no tiene mesa asignada. A las 14:10 de un sábado, lo que el encargado necesita saber son dos cosas:
+  - **Quién llega enseguida** —y si tiene mesa, porque asignarla con el cliente delante es la diferencia entre sentarlo y tenerlo de pie—. Si alguna de las que están al caer no tiene mesa, sale destacado y con su nombre.
+  - **Quién se ha retrasado**, para decidir si esperar o soltar la mesa.
+
+  Va en una franja encima de la agenda, y **cada tarjeta de la lista lleva la misma marca** («🔔 en 11 min», «⌛ 26 min tarde») para saber cuál de las doce es.
+
+- La falta de mesa **solo se avisa en las que están al caer**: que la reserva de las 22:00 no tenga mesa a las 14:10 no es un problema, es que aún no toca. Un aviso que salta con lo que no urge se aprende a ignorar, y entonces no sirve para lo que sí.
+
+- **Los minutos se recalculan solos** (`useReloj`, cada 10 s). Se calculan al pintar, así que sin esto se quedarían congelados en la hora en que alguien tocó la pantalla por última vez — es exactamente lo que le pasaba al reloj del KDS (v0.108.0), y una agenda que dice «en 11 min» de algo que fue hace media hora es peor que no decir nada.
+
+La regla de qué está «al caer» y qué «se retrasa» vive en **`src/lib/agenda.js`**, con test: las sentadas y las canceladas no reclaman nada, y el orden es por hora, que es el orden en que entran por la puerta.
+
 ## [0.123.0] - 2026-09-09
 
 ### Arreglado
