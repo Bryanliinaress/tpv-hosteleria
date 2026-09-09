@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { useStore, METODO_LABEL, METODO_EMOJI, metodosDe, propinasPorMetodoDe, ALERGENOS, normalizarExtra, etiquetasDe, ETIQUETAS_DEFECTO } from '../../store/useStore'
 import { confirmar, toast, pedirTexto } from '../../store/useUI'
@@ -16,7 +16,7 @@ import EstadoFiscal from '../../components/EstadoFiscal'
 import { productosVisibles, TIPOS_APARTADO, EMOJIS_APARTADO, emojiPorTipo } from '../../lib/carta'
 import { perfil, urlPublica, urlDeMesa } from '../../lib/perfil'
 import { esDelMes, esDelDia, horasEntre } from '../../lib/fechas'
-import { conNombre } from '../../lib/fichajes'
+import { conNombre, jornadaDe } from '../../lib/fichajes'
 import ConfigImpresora from '../../components/ConfigImpresora'
 import EditorMenu from '../../components/EditorMenu'
 import Informes from './Informes'
@@ -214,7 +214,6 @@ export default function PanelAdmin() {
           { id: 'carta', label: '📋 Carta' },
           { id: 'local', label: '🏪 Local' },
           { id: 'personal', label: '👥 Personal' },
-          { id: 'fichajes', label: '⏱ Fichajes' },
           { id: 'mesas', label: '🍽 Mesas' },
           { id: 'reservas', label: `📅 Reservas${reservasHoy ? ` (${reservasHoy})` : ''}` },
           { id: 'caja', label: '💰 Caja' },
@@ -723,13 +722,11 @@ export default function PanelAdmin() {
         {tab === 'informes' && <Informes moneda={local.moneda || '€'} />}
 
         {/* Tab Fichajes (registro de jornada) */}
-        {tab === 'fichajes' && (
-          <FichajesTab fichajes={fichajes} empleados={empleados} crearFichaje={crearFichaje} editarFichaje={editarFichaje} borrarFichaje={borrarFichaje} local={local} pedirFichajesDe={pedirFichajesDe} />
-        )}
-
         {/* Tab Personal (empleados y accesos) */}
         {tab === 'personal' && (
-          <PersonalTab empleados={empleados} addEmpleado={addEmpleado} updateEmpleado={updateEmpleado} removeEmpleado={removeEmpleado} />
+          <PersonalTab empleados={empleados} addEmpleado={addEmpleado} updateEmpleado={updateEmpleado} removeEmpleado={removeEmpleado}
+            fichajes={fichajes} crearFichaje={crearFichaje} editarFichaje={editarFichaje} borrarFichaje={borrarFichaje}
+            local={local} pedirFichajesDe={pedirFichajesDe} />
         )}
 
         {/* Tab Tickets del mes */}
@@ -1440,14 +1437,18 @@ function CampoGuardado({ valor, onGuardar, ...props }) {
   )
 }
 
-function FichajesTab({ fichajes, empleados = [], crearFichaje, editarFichaje, borrarFichaje, local, pedirFichajesDe }) {
-  const [mes, setMes] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` })
+// El registro de jornada, dentro de Personal y plegado: es de las personas
+// que hay arriba. Tenía su propia pestaña, así que para saber si a alguien se
+// le había quedado el turno abierto había que salir del panel de personal,
+// elegir el mes y buscar su nombre entre los fichajes de todos.
+//
+// El mes lo manda la pestaña entera (`mes`), no este bloque: si el resumen de
+// cada persona dijera un mes y esta lista otro, los dos números no cuadrarían
+// y no habría forma de saber cuál estás mirando.
+function RegistroJornada({ mes, setMes, delMes: crudos, empleados = [], crearFichaje, editarFichaje, borrarFichaje, local }) {
+  const [visible, setVisible] = useState(false)
   const [edit, setEdit] = useState(null) // { id, entrada, salida } en formato datetime-local
   const [alta, setAlta] = useState(null) // { empleadoId, entrada, salida } al añadir una jornada
-
-  // El mes que se mira se pide al servidor: la jornada se conserva cuatro años
-  // y bajarla entera para enseñar un mes es lo que hacía antes.
-  useEffect(() => { pedirFichajesDe?.(mes) }, [mes, pedirFichajesDe])
 
   // ojo: comparar en LOCAL. Un turno que entra a la 01:00 del día 1 se guarda
   // como las 23:00 del último día del mes anterior en UTC, y caía en la nómina
@@ -1455,7 +1456,7 @@ function FichajesTab({ fichajes, empleados = [], crearFichaje, editarFichaje, bo
   // En v2 el fichaje solo trae `empleadoId`: sin resolverlo contra la plantilla
   // la lista decía «👤 undefined» y el resumen sumaba las horas de TODOS bajo
   // esa misma clave, que es justo el número que se usa para la nómina.
-  const delMes = conNombre(fichajes.filter(f => esDelMes(f.entrada, mes)), empleados)
+  const delMes = conNombre(crudos, empleados)
     .slice().sort((a, b) => new Date(b.entrada) - new Date(a.entrada))
 
   // Horas por empleado
@@ -1504,12 +1505,30 @@ function FichajesTab({ fichajes, empleados = [], crearFichaje, editarFichaje, bo
     URL.revokeObjectURL(url)
   }
 
+  if (!visible) {
+    return (
+      <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--color-border)', paddingTop: '1.25rem' }}>
+        <button onClick={() => setVisible(true)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.75rem', padding: '0.85rem 1rem', cursor: 'pointer', color: 'var(--color-text)', textAlign: 'left' }}>
+          <span style={{ fontSize: '1.1rem' }}>⏱</span>
+          <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>Registro de jornada</span>
+          <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>{delMes.length} fichaje(s) · {fmtH(totalHoras)} este mes</span>
+          <span style={{ marginLeft: 'auto', color: 'var(--color-muted)' }}>▼</span>
+        </button>
+      </div>
+    )
+  }
+
   return (
-    <div style={{ maxWidth: '760px' }}>
+    <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--color-border)', paddingTop: '1.25rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+        <span style={{ fontSize: '1.1rem' }}>⏱</span>
+        <h3 style={{ fontWeight: 700, fontSize: '0.95rem' }}>Registro de jornada</h3>
         <input type="month" value={mes} onChange={e => setMes(e.target.value)} style={{ ...inputStyle, width: 'auto' }} />
         <span style={{ fontSize: '0.85rem', color: 'var(--color-muted)' }}>{delMes.length} fichaje(s) · <strong style={{ color: 'var(--color-accent)' }}>{fmtH(totalHoras)}</strong> en total</span>
-        <button onClick={exportarCSV} disabled={delMes.length === 0} style={{ ...addBtn, marginLeft: 'auto', opacity: delMes.length ? 1 : 0.5 }}>⬇ Exportar CSV</button>
+        <button onClick={() => setVisible(false)} style={{ ...iconBtn, marginLeft: 'auto' }} title="Plegar">▲</button>
+      </div>
+      <div style={{ marginBottom: '1rem' }}>
+        <button onClick={exportarCSV} disabled={delMes.length === 0} style={{ ...addBtn, opacity: delMes.length ? 1 : 0.5 }}>⬇ Exportar CSV</button>
       </div>
 
       <p style={{ fontSize: '0.75rem', color: 'var(--color-faint)', marginBottom: '1rem' }}>Registro de jornada obligatorio (RD-ley 8/2019): conservar 4 años. El personal ficha desde su PDA (pestaña Turno). Aquí puedes corregir errores y añadir una jornada que nadie llegó a fichar.</p>
@@ -1547,16 +1566,6 @@ function FichajesTab({ fichajes, empleados = [], crearFichaje, editarFichaje, bo
           </div>
         )}
       </div>
-
-      {/* Horas por empleado */}
-      {Object.keys(porEmpleado).length > 0 && (
-        <div style={{ ...ajusteCard, marginBottom: '1.25rem' }}>
-          <h3 style={ajusteTitulo}>Horas por empleado</h3>
-          {Object.entries(porEmpleado).sort((a, b) => b[1] - a[1]).map(([n, h]) => (
-            <div key={n} style={ajusteFila}><span>👤 {n}</span><strong>{fmtH(h)}</strong></div>
-          ))}
-        </div>
-      )}
 
       {/* Detalle */}
       {delMes.length === 0
@@ -1610,83 +1619,211 @@ function FichajesTab({ fichajes, empleados = [], crearFichaje, editarFichaje, bo
   )
 }
 
-function PersonalTab({ empleados, addEmpleado, updateEmpleado, removeEmpleado }) {
-  const [nuevo, setNuevo] = useState({ nombre: '', rol: 'camarero', pin: '' })
-  const [err, setErr] = useState('')
-  const [pinDraft, setPinDraft] = useState({}) // id -> PIN a medio escribir
+// ────────────────────────────────────────────────────────────────────────────
+// El personal del bar.
+//
+// Era una fila apretada por empleado —nombre, rol, PIN, activo y la papelera,
+// todo junto— y el registro de jornada vivía en OTRA pestaña. Para saber si
+// María se había dejado el turno abierto había que salir de aquí, elegir el
+// mes y buscar su nombre entre los fichajes de todos.
+//
+// Ahora cada persona es una ficha que dice lo que hace falta saber de un
+// vistazo: si está en turno ahora mismo y cuántas horas lleva en el mes que se
+// está mirando. Lo demás —cambiarle el rol, el PIN o darle de baja— vive
+// detrás de su ⚙️, que son cosas que se hacen una vez.
+// ────────────────────────────────────────────────────────────────────────────
+function PersonalTab({ empleados, addEmpleado, updateEmpleado, removeEmpleado, fichajes, crearFichaje, editarFichaje, borrarFichaje, local, pedirFichajesDe }) {
+  const [alta, setAlta] = useState(false)
+  const [verBajas, setVerBajas] = useState(false)
+  const [mes, setMes] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` })
 
-  const crear = () => {
-    const r = addEmpleado(nuevo)
-    if (!r.ok) { setErr(r.error); toast(r.error, 'error'); return }
-    toast(`${nuevo.nombre.trim()} dado de alta`, 'success')
-    setNuevo({ nombre: '', rol: 'camarero', pin: '' }); setErr('')
+  // El mes lo manda esta pestaña entera, no cada bloque: si el resumen de una
+  // persona dijera «este mes» y el registro de abajo estuviera enseñando otro,
+  // los dos números no cuadrarían y no habría forma de saber cuál miras.
+  useEffect(() => { pedirFichajesDe?.(mes) }, [mes, pedirFichajesDe])
+  const delMes = useMemo(() => fichajes.filter(f => esDelMes(f.entrada, mes)), [fichajes, mes])
+
+  const activos = empleados.filter(e => e.activo)
+  const bajas = empleados.filter(e => !e.activo)
+  const enTurno = activos.filter(e => jornadaDe(delMes, e.id).abierto).length
+
+  return (
+    <div style={{ maxWidth: '760px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+        <p style={{ color: 'var(--color-muted)', fontSize: '0.85rem', margin: 0, flex: '1 1 240px' }}>
+          Quién trabaja aquí y qué abre su PIN. {enTurno > 0 && <strong style={{ color: '#10b981' }}>{enTurno} en turno ahora.</strong>}
+        </p>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem', color: 'var(--color-muted)' }}>
+          Jornada de
+          <input type="month" value={mes} onChange={e => setMes(e.target.value)} style={{ ...inputStyle, width: 'auto' }} />
+        </label>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginBottom: '1.25rem' }}>
+        {activos.map(e => (
+          <FichaEmpleado key={e.id} e={e} jornada={jornadaDe(delMes, e.id)}
+            updateEmpleado={updateEmpleado} removeEmpleado={removeEmpleado} />
+        ))}
+        {activos.length === 0 && (
+          <p style={{ color: 'var(--color-muted)', fontSize: '0.85rem' }}>No hay nadie activo. Sin personal activo, nadie puede entrar con su PIN.</p>
+        )}
+      </div>
+
+      {!alta ? (
+        <button onClick={() => setAlta(true)} style={{ width: '100%', background: 'var(--color-surface-2)', color: 'var(--color-text)', border: '1px dashed var(--color-border)', borderRadius: '0.75rem', padding: '0.9rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem' }}>
+          ➕ Dar de alta a alguien
+        </button>
+      ) : (
+        <NuevoEmpleado addEmpleado={addEmpleado} onHecho={() => setAlta(false)} />
+      )}
+
+      {/* Quien ya no trabaja aquí no se borra: su ficha sigue haciendo falta
+          para el registro de jornada, que hay que conservar cuatro años. Pero
+          tampoco tiene que estorbar entre los que sí están. */}
+      {bajas.length > 0 && (
+        <div style={{ marginTop: '1.25rem' }}>
+          <button onClick={() => setVerBajas(v => !v)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.75rem', padding: '0.7rem 1rem', cursor: 'pointer', color: 'var(--color-muted)', textAlign: 'left', fontSize: '0.85rem' }}>
+            <span>⏸</span>
+            <span style={{ fontWeight: 700 }}>Sin turno: {bajas.length}</span>
+            <span style={{ fontSize: '0.75rem' }}>no entran con su PIN, pero conservan su ficha</span>
+            <span style={{ marginLeft: 'auto' }}>{verBajas ? '▲' : '▼'}</span>
+          </button>
+          {verBajas && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginTop: '0.6rem' }}>
+              {bajas.map(e => (
+                <FichaEmpleado key={e.id} e={e} jornada={jornadaDe(delMes, e.id)}
+                  updateEmpleado={updateEmpleado} removeEmpleado={removeEmpleado} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <RegistroJornada mes={mes} setMes={setMes} delMes={delMes} empleados={empleados}
+        crearFichaje={crearFichaje} editarFichaje={editarFichaje} borrarFichaje={borrarFichaje} local={local} />
+    </div>
+  )
+}
+
+function FichaEmpleado({ e, jornada, updateEmpleado, removeEmpleado }) {
+  const [abierto, setAbierto] = useState(false)
+  const [pinDraft, setPinDraft] = useState('')
+  const rol = ROLES[rolDe(e.rol)]
+
+  const guardar = (cambios, hecho) => {
+    const r = updateEmpleado(e.id, cambios)
+    if (!r.ok) { toast(r.error, 'error'); return r }
+    if (hecho) toast(hecho, 'success')
+    return r
   }
-  const onPin = (e, val) => {
+  const onPin = (val) => {
     if (!/^\d{0,4}$/.test(val)) return
-    setPinDraft(d => ({ ...d, [e.id]: val }))
+    setPinDraft(val)
     if (val.length === 4) {
-      const r = updateEmpleado(e.id, { pin: val })
-      if (!r.ok) setErr(r.error)
-      else { setErr(''); setPinDraft(d => { const n = { ...d }; delete n[e.id]; return n }) }
+      const r = guardar({ pin: val }, `PIN de ${e.nombre} cambiado`)
+      if (r.ok) setPinDraft('')
     }
   }
-  const borrar = async (e) => {
-    if (!(await confirmar({ titulo: 'Eliminar empleado', mensaje: `¿Eliminar a ${e.nombre}? Perderá el acceso.`, peligro: true, confirmar: 'Eliminar' }))) return
+  const borrar = async () => {
+    if (!(await confirmar({ titulo: 'Eliminar empleado', mensaje: `¿Eliminar a ${e.nombre}? Perderá el acceso. Si solo se va de turno, es mejor dejarlo «sin turno»: su ficha hace falta para el registro de jornada.`, peligro: true, confirmar: 'Eliminar' }))) return
     const r = removeEmpleado(e.id)
-    if (!r.ok) { setErr(r.error); toast(r.error, 'error') }
+    if (!r.ok) toast(r.error, 'error')
     else toast(`${e.nombre} eliminado`, 'success')
   }
 
   return (
-    <div style={{ maxWidth: '760px' }}>
-      <p style={{ color: 'var(--color-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>
-        Da de alta al personal y asígnale un PIN. Cada empleado entra en las pantallas (PDA, cocina, barra, impresión y este panel) con su PIN. Los <strong>administradores</strong> además pueden entrar aquí. Desactiva a quien no esté de turno sin perder su ficha. El <strong>PIN no se muestra</strong> —se guarda cifrado—: el hueco sale vacío aunque lo tenga. Para cambiarlo, escribe 4 dígitos nuevos.
-      </p>
-      {err && <div style={{ background: 'var(--tint-danger-bg)', border: '1px solid #f43f5e', color: 'var(--tint-danger-fg)', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.82rem', marginBottom: '0.75rem' }}>⚠️ {err}</div>}
+    <div style={{ ...ajusteCard, padding: '0.85rem', opacity: e.activo ? 1 : 0.7 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: '1.05rem' }}>{rol.emoji}</span>
+        <strong style={{ fontSize: '0.95rem' }}>{e.nombre}</strong>
+        <span title={rol.desc} style={{ fontSize: '0.7rem', color: 'var(--color-muted)', background: 'var(--color-surface-2)', border: '1px solid var(--color-border)', borderRadius: '9999px', padding: '0.1rem 0.5rem' }}>{rol.label}</span>
+        {/* Lo primero que se quiere saber de una plantilla: quién está dentro
+            ahora mismo, y quién se dejó el turno abierto anteayer. */}
+        {jornada.abierto && (
+          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#10b981', background: 'var(--tint-success-bg)', borderRadius: '9999px', padding: '0.1rem 0.5rem', whiteSpace: 'nowrap' }}>
+            🟢 En turno desde {new Date(jornada.abierto.entrada).toLocaleString('es-ES', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}
+          </span>
+        )}
+        <div style={{ display: 'flex', gap: '0.2rem', marginLeft: 'auto', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.78rem', color: 'var(--color-muted)', whiteSpace: 'nowrap' }}>
+            {jornada.jornadas > 0 ? <>⏱ <strong style={{ color: 'var(--color-accent)' }}>{fmtH(jornada.horas)}</strong></> : '⏱ —'}
+          </span>
+          <button onClick={() => setAbierto(v => !v)} title="Editar ficha" aria-label={`Editar ficha de ${e.nombre}`} style={{ ...iconBtn, color: abierto ? 'var(--color-accent)' : 'inherit' }}>⚙️</button>
+        </div>
+      </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
-        {empleados.map(e => (
-          <div key={e.id} style={{ ...ajusteCard, display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', opacity: e.activo ? 1 : 0.55 }}>
-            <input value={e.nombre} onChange={ev => updateEmpleado(e.id, { nombre: ev.target.value })} style={{ ...inputStyle, flex: '2 1 140px' }} />
-            <select value={rolDe(e.rol)} onChange={ev => updateEmpleado(e.id, { rol: ev.target.value })} title={ROLES[rolDe(e.rol)].desc} style={{ ...inputStyle, flex: '0 1 130px' }}>
-              {ROLES_ORDENADOS.map(r => <option key={r} value={r}>{ROLES[r].label}</option>)}
-            </select>
+      {abierto && (
+        <div style={{ marginTop: '0.8rem', borderTop: '1px solid var(--color-border)', paddingTop: '0.8rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.7rem' }}>
+            <div style={{ flex: '2 1 150px' }}>
+              <label style={lblCampo}>Nombre</label>
+              {/* Se guardaba en CADA TECLA: escribir «María» eran cinco
+                  peticiones al servidor, y la que llegara la última mandaba
+                  —podía quedarse en «Marí». Ahora al salir del campo. */}
+              <CampoGuardado valor={e.nombre} onGuardar={v => guardar({ nombre: v }, 'Nombre guardado')} style={inputStyle} />
+            </div>
+            <div style={{ flex: '1 1 130px' }}>
+              <label style={lblCampo}>Rol</label>
+              <select value={rolDe(e.rol)} onChange={ev => guardar({ rol: ev.target.value }, 'Rol cambiado')} style={inputStyle}>
+                {ROLES_ORDENADOS.map(r => <option key={r} value={r}>{ROLES[r].label}</option>)}
+              </select>
+            </div>
             <div style={{ flex: '0 1 110px' }}>
               <label style={lblCampo}>PIN</label>
               {/* El PIN se guarda cifrado en el servidor y NO vuelve al
-                  navegador: el hueco sale vacio aunque el empleado tenga el
+                  navegador: el hueco sale vacío aunque el empleado tenga el
                   suyo. Sin decirlo, parece que se ha perdido. */}
-              <input value={pinDraft[e.id] ?? e.pin ?? ''} onChange={ev => onPin(e, ev.target.value)} inputMode="numeric" maxLength={4} placeholder="••••" title="El PIN no se muestra. Escribe 4 dígitos para cambiarlo." style={{ ...inputStyle, letterSpacing: '0.2em', fontWeight: 700 }} />
+              <input value={pinDraft} onChange={ev => onPin(ev.target.value)} inputMode="numeric" maxLength={4} placeholder="••••" style={{ ...inputStyle, letterSpacing: '0.2em', fontWeight: 700 }} />
             </div>
-            <button onClick={() => updateEmpleado(e.id, { activo: !e.activo })} style={{ background: e.activo ? 'var(--tint-success-bg)' : 'var(--color-surface-3)', color: e.activo ? 'var(--tint-success-fg)' : 'var(--tint-warning-fg)', border: `1px solid ${e.activo ? '#10b981' : '#f59e0b'}66`, borderRadius: '9999px', padding: '0.3rem 0.7rem', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>
-              {e.activo ? '🟢 Activo' : '⏸ Inactivo'}
+          </div>
+          <p style={{ fontSize: '0.72rem', color: 'var(--color-muted)', marginBottom: '0.8rem', lineHeight: 1.45 }}>
+            {rol.desc}. El PIN no se muestra: escribe 4 dígitos nuevos para cambiarlo.
+          </p>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button onClick={() => guardar({ activo: !e.activo }, e.activo ? `${e.nombre} queda sin turno` : `${e.nombre} vuelve al turno`)}
+              style={{ background: e.activo ? 'var(--color-surface-3)' : 'var(--tint-success-bg)', color: e.activo ? 'var(--tint-warning-fg)' : 'var(--tint-success-fg)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.85rem', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700 }}>
+              {e.activo ? '⏸ Dejar sin turno' : '🟢 Devolverle el turno'}
             </button>
-            <button onClick={() => borrar(e)} title="Eliminar" style={iconBtn}>🗑️</button>
+            <button onClick={borrar} style={{ background: 'none', color: '#f43f5e', border: 'none', padding: '0.5rem 0.6rem', cursor: 'pointer', fontSize: '0.82rem', marginLeft: 'auto' }}>🗑️ Eliminar</button>
           </div>
-        ))}
-      </div>
-
-      {/* Alta de empleado */}
-      <div style={{ ...ajusteCard, borderColor: 'var(--color-accent)' }}>
-        <h3 style={{ ...ajusteTitulo, marginBottom: '0.6rem' }}>Nuevo empleado</h3>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <div style={{ flex: '2 1 160px' }}>
-            <label style={lblCampo}>Nombre</label>
-            <input value={nuevo.nombre} onChange={e => setNuevo(s => ({ ...s, nombre: e.target.value }))} placeholder="Nombre" style={inputStyle} />
-          </div>
-          <div style={{ flex: '1 1 120px' }}>
-            <label style={lblCampo}>Rol</label>
-            <select value={nuevo.rol} onChange={e => setNuevo(s => ({ ...s, rol: e.target.value }))} style={inputStyle}>
-              {ROLES_ORDENADOS.map(r => <option key={r} value={r}>{ROLES[r].label}</option>)}
-            </select>
-            <p style={{ fontSize: '0.7rem', color: 'var(--color-muted)', marginTop: '0.25rem', maxWidth: '15rem' }}>{ROLES[rolDe(nuevo.rol)].desc}</p>
-          </div>
-          <div style={{ flex: '0 1 100px' }}>
-            <label style={lblCampo}>PIN (4 díg.)</label>
-            <input value={nuevo.pin} onChange={e => { if (/^\d{0,4}$/.test(e.target.value)) setNuevo(s => ({ ...s, pin: e.target.value })) }} inputMode="numeric" maxLength={4} placeholder="0000" style={{ ...inputStyle, letterSpacing: '0.2em', fontWeight: 700 }} />
-          </div>
-          <button onClick={crear} style={addBtn}>+ Añadir</button>
         </div>
+      )}
+    </div>
+  )
+}
+
+function NuevoEmpleado({ addEmpleado, onHecho }) {
+  const [nuevo, setNuevo] = useState({ nombre: '', rol: 'camarero', pin: '' })
+  const crear = () => {
+    const r = addEmpleado(nuevo)
+    if (!r.ok) return toast(r.error, 'error')
+    toast(`${nuevo.nombre.trim()} dado de alta`, 'success')
+    setNuevo({ nombre: '', rol: 'camarero', pin: '' })
+    onHecho()
+  }
+  return (
+    <div style={{ ...ajusteCard, borderColor: 'var(--color-accent)' }}>
+      <h3 style={{ ...ajusteTitulo, marginBottom: '0.7rem' }}>➕ Nuevo empleado</h3>
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.7rem' }}>
+        <div style={{ flex: '2 1 160px' }}>
+          <label style={lblCampo}>Nombre</label>
+          <input value={nuevo.nombre} onChange={e => setNuevo(s => ({ ...s, nombre: e.target.value }))} autoFocus placeholder="María" style={inputStyle} />
+        </div>
+        <div style={{ flex: '1 1 130px' }}>
+          <label style={lblCampo}>Rol</label>
+          <select value={nuevo.rol} onChange={e => setNuevo(s => ({ ...s, rol: e.target.value }))} style={inputStyle}>
+            {ROLES_ORDENADOS.map(r => <option key={r} value={r}>{ROLES[r].label}</option>)}
+          </select>
+        </div>
+        <div style={{ flex: '0 1 110px' }}>
+          <label style={lblCampo}>PIN (4 díg.)</label>
+          <input value={nuevo.pin} onChange={e => { if (/^\d{0,4}$/.test(e.target.value)) setNuevo(s => ({ ...s, pin: e.target.value })) }} inputMode="numeric" maxLength={4} placeholder="0000" style={{ ...inputStyle, letterSpacing: '0.2em', fontWeight: 700 }} />
+        </div>
+      </div>
+      <p style={{ fontSize: '0.72rem', color: 'var(--color-muted)', marginBottom: '0.8rem' }}>{ROLES[rolDe(nuevo.rol)].desc}. Con ese PIN entrará en sus pantallas.</p>
+      <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <button onClick={crear} disabled={!nuevo.nombre.trim()} style={{ ...addBtn, flex: 1, opacity: nuevo.nombre.trim() ? 1 : 0.5, cursor: nuevo.nombre.trim() ? 'pointer' : 'not-allowed' }}>Dar de alta ✓</button>
+        <button onClick={onHecho} style={{ background: 'var(--color-surface-2)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.85rem', cursor: 'pointer', fontSize: '0.82rem' }}>Cancelar</button>
       </div>
     </div>
   )

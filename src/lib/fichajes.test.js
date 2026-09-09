@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { revisarCorreccionFichaje, revisarNuevoFichaje, nombreDeFichaje, conNombre } from './fichajes'
+import { revisarCorreccionFichaje, revisarNuevoFichaje, nombreDeFichaje, conNombre, jornadaDe } from './fichajes'
 
 // Las correcciones de fichaje van directas a la nómina. La validación estaba
 // solo en la demo: en la app real se podía guardar una salida anterior a la
@@ -123,5 +123,48 @@ describe('añadir una jornada a mano', () => {
 
   it('ni una fecha inventada', () => {
     expect(revisarNuevoFichaje({ ...ok, entrada: 'el martes' }, PLANTILLA).ok).toBe(false)
+  })
+})
+
+// ────────────────────────────────────────────────────────────────────────────
+// Lo que lleva trabajado cada persona. Es el número que va a la nómina — ya
+// salieron una vez las de todos juntas bajo un mismo «undefined» (v0.105.0) —
+// y también lo que dice quién está en turno ahora mismo.
+// ────────────────────────────────────────────────────────────────────────────
+describe('jornada de un empleado', () => {
+  const F = (empleadoId, entrada, salida) => ({ id: entrada, empleadoId, entrada, salida })
+  const FICHAJES = [
+    F('e1', '2026-09-01T08:00:00', '2026-09-01T12:00:00'),   // 4 h
+    F('e1', '2026-09-02T08:00:00', '2026-09-02T10:30:00'),   // 2,5 h
+    F('e2', '2026-09-01T16:00:00', '2026-09-01T20:00:00'),   // 4 h, de otro
+  ]
+
+  it('suma solo las suyas', () => {
+    expect(jornadaDe(FICHAJES, 'e1').horas).toBeCloseTo(6.5)
+    expect(jornadaDe(FICHAJES, 'e1').jornadas).toBe(2)
+    expect(jornadaDe(FICHAJES, 'e2').horas).toBeCloseTo(4)
+  })
+
+  it('quien no ha fichado sale a cero, no a «undefined»', () => {
+    expect(jornadaDe(FICHAJES, 'e9')).toEqual({ horas: 0, jornadas: 0, abierto: null })
+    expect(jornadaDe([], 'e1').horas).toBe(0)
+  })
+
+  it('un turno abierto se señala, con su hora de entrada', () => {
+    const abierto = F('e1', '2026-09-03T09:15:00', null)
+    const r = jornadaDe([...FICHAJES, abierto], 'e1')
+    expect(r.abierto).toBe(abierto)
+    expect(r.jornadas).toBe(3)
+  })
+
+  // Contar «hasta ahora» pondría en la nómina un número que cambia solo cada
+  // vez que se mira la pantalla.
+  it('el turno abierto NO suma horas todavía', () => {
+    const r = jornadaDe([...FICHAJES, F('e1', '2026-09-03T09:15:00', null)], 'e1')
+    expect(r.horas).toBeCloseTo(6.5)
+  })
+
+  it('sin turnos abiertos, no se inventa ninguno', () => {
+    expect(jornadaDe(FICHAJES, 'e1').abierto).toBeNull()
   })
 })
