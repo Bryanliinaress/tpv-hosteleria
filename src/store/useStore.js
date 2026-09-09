@@ -6,7 +6,7 @@ import { revisarCorreccionFichaje, revisarNuevoFichaje } from '../lib/fichajes'
 import { efectivoEsperado, descuadreDe, saldoMovimientos, movimientosDesde, revisarMovimiento } from '../lib/caja'
 import { revisarNuevoEmpleado, revisarCambioEmpleado, revisarBajaEmpleado } from '../lib/personal'
 import { rolDe } from '../lib/roles'
-import { revisarNumeroMesa, revisarNombreZona } from '../lib/sala'
+import { revisarNumeroMesa, revisarNombreZona, revisarAltaMesas } from '../lib/sala'
 import { revisarNombreApartado, moverEnLista, emojiPorTipo } from '../lib/carta'
 import { totalDeMesa } from '../lib/dinero'
 
@@ -1153,11 +1153,45 @@ export const useStore = create(persist((set, get) => ({
     return { ok: true, productos: CARTA_EJEMPLO.productos.length }
   },
 
-  addMesa: () => set(state => {
-    const maxNum = state.mesas.reduce((mx, x) => Math.max(mx, x.numero), 0)
-    const ultZona = state.mesas[state.mesas.length - 1]?.zona || 'Sala'
-    return { mesas: [...state.mesas, { id: crearId('mesa-'), numero: maxNum + 1, capacidad: 4, zona: ultZona, estado: 'libre', personas: [], abiertaDesde: null }] }
-  }),
+  // Da de alta mesas. Antes creaba UNA, de cuatro plazas, en «la zona de la
+  // última mesa de la lista» — que es la que sea. Montar un bar de doce mesas
+  // eran doce clics y luego doce ediciones para ponerles zona y capacidad.
+  addMesa: ({ zona, capacidad = 4, cuantas = 1, numero } = {}) => {
+    const r = revisarAltaMesas(get().mesas, { numero, cuantas, capacidad })
+    if (!r.ok) return r
+    const z = (zona || '').trim()
+    set(state => ({
+      mesas: [
+        ...state.mesas,
+        ...r.numeros.map(n => ({
+          id: crearId('mesa-'), numero: n, capacidad: r.capacidad,
+          zona: z || state.mesas[state.mesas.length - 1]?.zona || 'Sala',
+          estado: 'libre', personas: [], abiertaDesde: null,
+        })),
+      ].sort((a, b) => a.numero - b.numero),
+    }))
+    return { ok: true, creadas: r.numeros.length }
+  },
+
+  // Manda todas las mesas de una zona a otra: la de origen se queda sin mesas
+  // y desaparece (una zona no es una tabla, es lo que hay escrito en sus
+  // mesas). Es la única forma de quitar una zona sin borrar la sala: cambiar
+  // las mesas de una en una son doce ocasiones de dejarse una por el camino,
+  // y una zona con una sola mesa suelta es justo la que la reserva online le
+  // ofrece al cliente como si fuera un sitio de verdad.
+  moverZona: (origen, destino) => {
+    const st = get()
+    const desde = String(origen || '').trim()
+    const hasta = String(destino || '').trim()
+    if (!desde || !hasta) return { ok: false, error: 'Faltan la zona de origen o la de destino' }
+    if (desde === hasta) return { ok: false, error: 'Es la misma zona' }
+    const cuantas = st.mesas.filter(m => (m.zona || '').trim() === desde).length
+    if (!cuantas) return { ok: false, error: `No hay mesas en «${desde}»` }
+    set(state => ({
+      mesas: state.mesas.map(m => (m.zona || '').trim() === desde ? { ...m, zona: hasta } : m),
+    }))
+    return { ok: true, movidas: cuantas }
+  },
 
   removeMesa: (mesaId) => set(state => ({
     mesas: state.mesas.filter(m => !(m.id === mesaId && m.estado === 'libre')),

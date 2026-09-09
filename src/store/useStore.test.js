@@ -512,3 +512,49 @@ describe('apartados de la carta', () => {
     expect(prods().filter(p => p.categoria === 'b').every(p => p.tipo === 'bebida')).toBe(true)
   })
 })
+
+// ────────────────────────────────────────────────────────────────────────────
+// Montar la sala desde el store: dar de alta varias mesas de una vez y quitar
+// una zona sin perder sus mesas.
+// ────────────────────────────────────────────────────────────────────────────
+describe('alta de mesas y zonas', () => {
+  beforeEach(() => {
+    useStore.setState({ mesas: [
+      { id: 'a', numero: 1, capacidad: 4, zona: 'Terraza', estado: 'libre', personas: [] },
+      { id: 'b', numero: 2, capacidad: 2, zona: 'Interior', estado: 'libre', personas: [] },
+    ] })
+  })
+
+  it('añade varias de golpe, numeradas seguidas y en su zona', () => {
+    const r = S().addMesa({ zona: 'Terraza', capacidad: 6, cuantas: 3 })
+    expect(r).toEqual({ ok: true, creadas: 3 })
+    const nuevas = S().mesas.filter(m => m.numero > 2)
+    expect(nuevas.map(m => m.numero)).toEqual([3, 4, 5])
+    expect(nuevas.every(m => m.zona === 'Terraza' && m.capacidad === 6)).toBe(true)
+  })
+
+  it('la sala queda ordenada por número', () => {
+    S().addMesa({ zona: 'Interior', numero: 10, cuantas: 2 })
+    expect(S().mesas.map(m => m.numero)).toEqual([1, 2, 10, 11])
+  })
+
+  // A medias es peor que no hacerlo: el encargado no sabe cuáles entraron.
+  it('si un número del tramo choca, no entra ninguna', () => {
+    const r = S().addMesa({ zona: 'Interior', numero: 2, cuantas: 3 })
+    expect(r.ok).toBe(false)
+    expect(S().mesas).toHaveLength(2)
+  })
+
+  it('quitar una zona muda sus mesas, no las borra', () => {
+    const r = S().moverZona('Terraza', 'Interior')
+    expect(r).toEqual({ ok: true, movidas: 1 })
+    expect(S().mesas).toHaveLength(2)
+    expect(S().mesas.every(m => m.zona === 'Interior')).toBe(true)
+  })
+
+  it('no se muda una zona a sí misma ni una que no existe', () => {
+    expect(S().moverZona('Terraza', 'Terraza').ok).toBe(false)
+    expect(S().moverZona('Sótano', 'Interior').ok).toBe(false)
+    expect(S().moverZona('Terraza', '').ok).toBe(false)
+  })
+})
