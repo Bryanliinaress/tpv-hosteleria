@@ -442,3 +442,73 @@ describe('renumerar y renombrar zonas', () => {
     expect(S().mesas.filter(m => m.zona === 'Interior')).toHaveLength(1)
   })
 })
+
+// ────────────────────────────────────────────────────────────────────────────
+// Los apartados de la carta, desde el store. La regla está probada aparte
+// (lib/carta); aquí importa que la CARTA quede bien: el tipo de un apartado
+// decide por qué impresora sale la comanda, y en la demo cada producto lleva
+// su propia copia de ese tipo.
+// ────────────────────────────────────────────────────────────────────────────
+describe('apartados de la carta', () => {
+  beforeEach(() => {
+    useStore.setState(s => ({ carta: { ...s.carta,
+      categorias: [
+        { id: 'a', nombre: 'Desayunos', tipo: 'comida', emoji: '🥪' },
+        { id: 'b', nombre: 'Cafés', tipo: 'bebida', emoji: '☕' },
+      ],
+      productos: [
+        { id: 'p1', categoria: 'a', nombre: 'Mixto', tipo: 'comida', precio: 3 },
+        { id: 'p2', categoria: 'a', nombre: 'Tostada', tipo: 'comida', precio: 2 },
+        { id: 'p3', categoria: 'b', nombre: 'Café', tipo: 'bebida', precio: 1.3 },
+      ],
+    } }))
+  })
+  const cats = () => S().carta.categorias
+  const prods = () => S().carta.productos
+
+  it('crear un apartado le pone su icono y su destino', () => {
+    expect(S().addCategoria('Postres', 'comida').ok).toBe(true)
+    const nueva = cats().at(-1)
+    expect(nueva.nombre).toBe('Postres')
+    expect(nueva.emoji).toBeTruthy()   // sin icono, la carta del cliente sale coja
+    expect(nueva.tipo).toBe('comida')
+  })
+
+  it('no deja crear dos apartados con el mismo nombre', () => {
+    expect(S().addCategoria('Cafés', 'bebida').ok).toBe(false)
+    expect(cats()).toHaveLength(2)
+  })
+
+  it('renombrar ya no obliga a borrarlo y perder sus productos', () => {
+    expect(S().updateCategoria('a', { nombre: 'Bocadillos' }).ok).toBe(true)
+    expect(cats().find(c => c.id === 'a').nombre).toBe('Bocadillos')
+    expect(prods().filter(p => p.categoria === 'a')).toHaveLength(2)
+  })
+
+  // Cambiar el apartado y dejar los productos como estaban significa que los
+  // bocadillos siguen saliendo por la impresora de la barra.
+  it('cambiar el destino arrastra a sus productos', () => {
+    expect(S().updateCategoria('a', { tipo: 'bebida' }).ok).toBe(true)
+    expect(prods().filter(p => p.categoria === 'a').every(p => p.tipo === 'bebida')).toBe(true)
+    expect(prods().find(p => p.id === 'p3').tipo).toBe('bebida')  // el otro, intacto
+  })
+
+  it('el orden de los apartados es el que ve el cliente, y se puede cambiar', () => {
+    S().moverCategoria('b', -1)
+    expect(cats().map(c => c.id)).toEqual(['b', 'a'])
+  })
+
+  it('borrar sin más se lleva sus productos', () => {
+    S().removeCategoria('a')
+    expect(cats().map(c => c.id)).toEqual(['b'])
+    expect(prods()).toHaveLength(1)
+  })
+
+  it('…pero se pueden salvar moviéndolos a otro apartado', () => {
+    S().removeCategoria('a', { moverA: 'b' })
+    expect(cats().map(c => c.id)).toEqual(['b'])
+    expect(prods()).toHaveLength(3)
+    // y al mudarse cambian de destino, como el apartado que los acoge
+    expect(prods().filter(p => p.categoria === 'b').every(p => p.tipo === 'bebida')).toBe(true)
+  })
+})

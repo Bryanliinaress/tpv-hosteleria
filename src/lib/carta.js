@@ -102,3 +102,56 @@ export function ultimaRonda(items) {
  */
 export const hayLineasSinEnviar = (mesa) =>
   (mesa?.personas || []).some(p => (p?.items || []).some(i => i?.estado === 'pendiente'))
+
+// ────────────────────────────────────────────────────────────────────────────
+// Los apartados de la carta (lo que en el código se llama «categorías»).
+//
+// Solo se podían crear y borrar, y borrar se lleva por delante TODOS sus
+// productos: una errata al escribir «Bocadilos» obligaba a borrar el apartado
+// entero y volver a meter los doce bocadillos a mano. Tampoco se podía tocar
+// el emoji —lo elegía el código, 🍽 o 🥤— ni el orden, que es justo el orden
+// en el que el cliente ve la carta al escanear el QR.
+//
+// Y el tipo (comida/bebida) no era cosmético: es lo que decide si la comanda
+// sale por la impresora de COCINA o por la de BARRA. Elegirlo mal al crear el
+// apartado no tenía arreglo.
+// ────────────────────────────────────────────────────────────────────────────
+
+/** A dónde van las comandas de cada tipo de apartado. */
+export const TIPOS_APARTADO = {
+  comida: { label: 'Cocina', emoji: '🍳', desc: 'Sus comandas salen por la impresora de cocina y aparecen en el KDS de cocina' },
+  bebida: { label: 'Barra', emoji: '🍺', desc: 'Sus comandas salen por la impresora de barra y aparecen en el KDS de barra' },
+}
+
+/** Emoji por defecto de un apartado nuevo, según a dónde vaya. */
+export const emojiPorTipo = (tipo) => (tipo === 'bebida' ? '🥤' : '🍽')
+
+/** Los de siempre en un bar, para no tener que buscarlos en el teclado. */
+export const EMOJIS_APARTADO = [
+  '🍽', '🥪', '🍳', '🥐', '🧀', '🍖', '🍗', '🥩', '🐟', '🥗', '🍟', '🍕',
+  '🍝', '🍚', '🥘', '🍲', '🌮', '🍔', '🌭', '🍰', '🍮', '🍦', '🍫',
+  '🥤', '☕', '🍺', '🍷', '🍸', '🍹', '🧃', '🧊', '🥂', '🫖',
+]
+
+/** Comprueba el nombre de un apartado. Devuelve { ok, nombre } o { ok, error }. */
+export function revisarNombreApartado(categorias = [], id, nombre) {
+  const n = String(nombre ?? '').trim()
+  if (!n) return { ok: false, error: 'El apartado necesita un nombre' }
+  const repetido = (categorias || []).some(c => c.id !== id && (c.nombre || '').trim().toLowerCase() === n.toLowerCase())
+  if (repetido) return { ok: false, error: `Ya hay un apartado «${n}»` }
+  return { ok: true, nombre: n }
+}
+
+/**
+ * Mueve un elemento una posición arriba (-1) o abajo (+1). Devuelve una lista
+ * nueva; si ya está en el extremo, devuelve la misma (no es un error: es que
+ * no hay a dónde ir).
+ */
+export function moverEnLista(lista = [], id, direccion) {
+  const xs = [...(lista || [])]
+  const i = xs.findIndex(x => x.id === id)
+  const j = i + (direccion < 0 ? -1 : 1)
+  if (i < 0 || j < 0 || j >= xs.length) return xs
+  ;[xs[i], xs[j]] = [xs[j], xs[i]]
+  return xs
+}

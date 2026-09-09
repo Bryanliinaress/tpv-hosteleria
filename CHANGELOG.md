@@ -5,6 +5,25 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.118.0] - 2026-09-09
+
+### Añadido
+- **La carta se gestiona desde la carta.** Los apartados (categorías) solo se podían crear y borrar, y encima desde otra pestaña, «Ajustes» — al lado de la configuración de la impresora, que no tiene nada que ver. Para añadir un formato había que salir de la carta, cambiar de pestaña, volver y buscar el producto otra vez. Ahora todo lo de la carta está **en la pestaña Carta**:
+  - **➕ Nuevo apartado** al final de la lista, que es donde estás mirando cuando te das cuenta de que te falta uno.
+  - **⚙️ en la cabecera de cada apartado**: renombrar, cambiar su icono (paleta de 34 emojis de bar, o escribe el que quieras) y elegir a dónde van sus comandas.
+  - **▲ ▼ para ordenarlos.** Ese orden es el que ve el cliente al escanear el QR, y hasta ahora era el de creación y no había forma de cambiarlo.
+  - **Opciones de los productos**, plegable al final: formatos, variedades, añadidos y cómo se llaman esos tres grupos en la carta. Es lo que vivía en «Ajustes», con una línea que explica dónde aparece cada cosa.
+- **«comida / bebida» pasa a decir lo que de verdad significa: 🍳 Cocina / 🍺 Barra.** No es una etiqueta: es lo que decide por qué impresora sale la comanda y en qué KDS aparece. Elegirlo mal al crear el apartado **no tenía arreglo** —no se podía cambiar después— y mandaba los platos a la impresora de la barra. Ahora se cambia, y la pantalla dice la consecuencia antes de tocarlo.
+- **Renombrar ya no cuesta la carta entera.** Antes, para corregir «Bocadilos» había que borrar el apartado — y borrar se lleva **todos sus productos**. Se corregía volviendo a teclear doce bocadillos.
+- **Borrar un apartado dice cuántos productos se lleva por delante**, y ofrece **moverlos a otro** en vez de perderlos.
+
+### Arreglado
+- **Un apartado creado desde la app real se quedaba sin icono.** `addCategoria` de v2 no guardaba el emoji (la demo sí), así que en la carta del cliente esa sección salía sin nada delante. El mismo dato con otra forma a cada lado, otra vez.
+- **Cambiar el destino de un apartado dejaba sus productos donde estaban.** En la demo cada producto guarda su propia copia del tipo: tocar solo el apartado habría dejado los bocadillos saliendo por la barra. Ahora arrastra a sus productos, y hay un test que lo vigila.
+
+### Cambiado
+- La pestaña **«⚙️ Ajustes» pasa a llamarse «🖨 Impresión»**: es lo único que le queda, y es lo que era en realidad.
+
 ## [0.117.0] - 2026-09-08
 
 ### Cambiado

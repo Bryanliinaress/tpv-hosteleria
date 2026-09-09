@@ -13,7 +13,7 @@ import BotonSalir from '../../components/BotonSalir'
 import TemaToggle from '../../components/TemaToggle'
 import { useAltoCSS } from '../../components/useAltoCSS'
 import EstadoFiscal from '../../components/EstadoFiscal'
-import { productosVisibles } from '../../lib/carta'
+import { productosVisibles, TIPOS_APARTADO, EMOJIS_APARTADO, emojiPorTipo } from '../../lib/carta'
 import { perfil, urlPublica, urlDeMesa } from '../../lib/perfil'
 import { esDelMes, esDelDia, horasEntre } from '../../lib/fechas'
 import { conNombre } from '../../lib/fichajes'
@@ -28,7 +28,7 @@ import { efectivoEsperado, descuadreDe, saldoMovimientos, movimientosDesde, cobr
 const emptyForm = { nombre: '', nombreEn: '', categoria: '', descripcion: '', descripcionEn: '', alergenos: [], imagen: '', conFormatos: false, precios: {}, precio: '', menu: null, ivaPct: '' }
 
 export default function PanelAdmin() {
-  const { carta, mesas, historial, cierres, anulaciones, pagosSinCuenta, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, renumerarMesa, renombrarZona, addCategoria, removeCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, crearFichaje, editarFichaje, borrarFichaje, pedirFichajesDe, reintentarReembolso, movimientosCaja, registrarMovimiento } = useStore()
+  const { carta, mesas, historial, cierres, anulaciones, pagosSinCuenta, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, resetDatos, addMesa, removeMesa, updateMesa, renumerarMesa, renombrarZona, addCategoria, removeCategoria, updateCategoria, moverCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, crearFichaje, editarFichaje, borrarFichaje, pedirFichajesDe, reintentarReembolso, movimientosCaja, registrarMovimiento } = useStore()
   const hoyStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
   const reservasHoy = reservas.filter(r => r.fecha === hoyStr && r.estado === 'confirmada').length
   const [tab, setTab] = useState('carta')
@@ -40,10 +40,6 @@ export default function PanelAdmin() {
   // La tira de pestañas se pega DEBAJO de la cabecera, y la cabecera debajo de
   // la banda de demostración. Los tres altos se miden porque los tres cambian.
   const refCabecera = useAltoCSS('--alto-cabecera-admin')
-  const [nuevaCat, setNuevaCat] = useState({ nombre: '', tipo: 'comida' })
-  const [nuevoExtra, setNuevoExtra] = useState({ nombre: '', precio: '0.20' })
-  const [nuevoPan, setNuevoPan] = useState({ nombre: '', sup: '' })
-  const [nuevoFormato, setNuevoFormato] = useState('')
   const etiquetas = etiquetasDe(carta)
   // el admin sí ve lo agotado: es lo que viene a reactivar
   const coincidencias = productosVisibles(carta, { busqueda: busquedaCarta, incluirNoDisponibles: true })
@@ -219,7 +215,7 @@ export default function PanelAdmin() {
           { id: 'mesas', label: '🍽 Mesas' },
           { id: 'reservas', label: `📅 Reservas${reservasHoy ? ` (${reservasHoy})` : ''}` },
           { id: 'caja', label: '💰 Caja' },
-          { id: 'ajustes', label: '⚙️ Ajustes' },
+          { id: 'ajustes', label: '🖨 Impresión' },
           { id: 'tickets', label: '🧾 Tickets' },
           { id: 'informes', label: '📊 Informes' },
           { id: 'qr', label: '📱 QR Codes' },
@@ -251,7 +247,7 @@ export default function PanelAdmin() {
                 {coincidencias.length} de {carta.productos.length} productos coinciden con «{busquedaCarta}»
               </p>
             )}
-            {carta.categorias.map(cat => {
+            {carta.categorias.map((cat, i) => {
               const productosCat = busquedaCarta.trim()
                 ? coincidencias.filter(p => p.categoria === cat.id)
                 : carta.productos.filter(p => p.categoria === cat.id)
@@ -259,14 +255,12 @@ export default function PanelAdmin() {
               if (busquedaCarta.trim() && productosCat.length === 0) return null
               return (
               <div key={cat.id} style={{ marginBottom: '1.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                  <span style={{ fontSize: '1.1rem' }}>{cat.emoji}</span>
-                  <h3 style={{ fontWeight: 700, fontSize: '1rem' }}>{cat.nombre}</h3>
-                  <span style={{ fontSize: '0.75rem', background: cat.tipo === 'comida' ? 'var(--tint-success-bg)' : 'var(--tint-danger-bg)', color: cat.tipo === 'comida' ? 'var(--tint-success-fg)' : 'var(--tint-danger-fg)', borderRadius: '9999px', padding: '0.15rem 0.5rem' }}>{cat.tipo}</span>
-                  <button onClick={() => empezarNuevo(cat.id)} style={{ marginLeft: 'auto', background: 'var(--color-accent)', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 0.9rem', minHeight: '40px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                    + Añadir
-                  </button>
-                </div>
+                <CabeceraApartado
+                  cat={cat} carta={carta}
+                  primero={i === 0} ultimo={i === carta.categorias.length - 1}
+                  editable={!busquedaCarta.trim()}
+                  onAñadir={() => empezarNuevo(cat.id)}
+                  updateCategoria={updateCategoria} moverCategoria={moverCategoria} removeCategoria={removeCategoria} />
 
                 {/* Formulario nuevo producto dentro de esta categoría */}
                 {editando === 'nuevo' && form.categoria === cat.id && (
@@ -326,6 +320,18 @@ export default function PanelAdmin() {
               </div>
               )
             })}
+
+            {/* Crear apartados y personalizar productos, aquí y no en otra
+                pestaña: es donde estás mirando cuando te falta uno. */}
+            {!busquedaCarta.trim() && <>
+              <NuevoApartado carta={carta} addCategoria={addCategoria} />
+              <OpcionesCarta
+                carta={carta} etiquetas={etiquetas}
+                addExtra={addExtra} removeExtra={removeExtra}
+                addTipoPan={addTipoPan} removeTipoPan={removeTipoPan}
+                addFormato={addFormato} removeFormato={removeFormato} renombrarFormato={renombrarFormato}
+                updateEtiquetas={updateEtiquetas} />
+            </>}
           </div>
         )}
 
@@ -625,95 +631,13 @@ export default function PanelAdmin() {
           </>
         )}
 
-        {/* Tab Ajustes de carta */}
+        {/* Tab Impresión. Lo de la carta que vivía aquí (formatos, variedades,
+            añadidos y sus nombres) se ha ido a la pestaña Carta, que es donde
+            se usa: para añadir un formato había que salir de la carta, cambiar
+            de pestaña, volver y buscar el producto otra vez. */}
         {tab === 'ajustes' && (
-          <div>
+          <div style={{ maxWidth: '640px' }}>
             <ConfigImpresora />
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', alignItems: 'start' }}>
-            {/* Categorías */}
-            <div style={ajusteCard}>
-              <h3 style={ajusteTitulo}>Categorías</h3>
-              {carta.categorias.map(c => (
-                <div key={c.id} style={ajusteFila}>
-                  <span>{c.emoji} {c.nombre} <span style={{ fontSize: '0.7rem', color: 'var(--color-muted)' }}>({c.tipo})</span></span>
-                  <button onClick={async () => { if (await confirmar({ titulo: 'Borrar categoría', mensaje: `¿Borrar "${c.nombre}" y todos sus productos?`, peligro: true, confirmar: 'Borrar' })) { removeCategoria(c.id); toast('Categoría borrada', 'success') } }} style={iconBtn}>🗑️</button>
-                </div>
-              ))}
-              <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
-                <input value={nuevaCat.nombre} onChange={e => setNuevaCat(s => ({ ...s, nombre: e.target.value }))} placeholder="Nueva categoría" style={{ ...inputStyle, flex: '1 1 120px' }} />
-                <select value={nuevaCat.tipo} onChange={e => setNuevaCat(s => ({ ...s, tipo: e.target.value }))} style={{ ...inputStyle, flex: '0 1 110px' }}>
-                  <option value="comida">comida</option>
-                  <option value="bebida">bebida</option>
-                </select>
-                <button onClick={() => { if (nuevaCat.nombre.trim()) { addCategoria(nuevaCat.nombre, nuevaCat.tipo); setNuevaCat({ nombre: '', tipo: 'comida' }) } }} style={addBtn}>Añadir</button>
-              </div>
-            </div>
-
-            {/* Tipos de pan */}
-            <div style={ajusteCard}>
-              <h3 style={ajusteTitulo}>{etiquetas.tiposPan} (variedades)</h3>
-              {carta.tiposPan.map(t => (
-                <div key={t.id} style={ajusteFila}>
-                  <span>{t.nombre} {t.sup > 0 && <span style={{ fontSize: '0.72rem', color: 'var(--color-accent)' }}>+{t.sup.toFixed(2)}€</span>}</span>
-                  <button onClick={() => removeTipoPan(t.id)} style={iconBtn}>🗑️</button>
-                </div>
-              ))}
-              <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
-                <input value={nuevoPan.nombre} onChange={e => setNuevoPan(s => ({ ...s, nombre: e.target.value }))} placeholder="Nombre" style={{ ...inputStyle, flex: '1 1 110px' }} />
-                <input value={nuevoPan.sup} onChange={e => setNuevoPan(s => ({ ...s, sup: e.target.value }))} type="text" inputMode="decimal" placeholder="+€" style={{ ...inputStyle, flex: '0 1 70px' }} />
-                <button onClick={() => { if (nuevoPan.nombre.trim()) { addTipoPan(nuevoPan.nombre, nuevoPan.sup); setNuevoPan({ nombre: '', sup: '' }) } }} style={addBtn}>Añadir</button>
-              </div>
-            </div>
-
-            {/* Extras (cada uno con su precio) */}
-            <div style={ajusteCard}>
-              <h3 style={ajusteTitulo}>{etiquetas.extras} (añadibles)</h3>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                {carta.extras.map(raw => {
-                  const ex = normalizarExtra(raw)
-                  return (
-                    <span key={ex.nombre} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: 'var(--color-inset)', border: '1px solid var(--color-border)', borderRadius: '9999px', padding: '0.2rem 0.5rem 0.2rem 0.7rem', fontSize: '0.8rem' }}>
-                      {ex.nombre}{ex.precio > 0 && <span style={{ color: 'var(--color-accent)', fontSize: '0.72rem' }}>+{ex.precio.toFixed(2)}€</span>}
-                      <button onClick={() => removeExtra(ex.nombre)} style={{ background: 'none', border: 'none', color: '#f43f5e', cursor: 'pointer', fontSize: '0.85rem' }}>✕</button>
-                    </span>
-                  )
-                })}
-              </div>
-              <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
-                <input value={nuevoExtra.nombre} onChange={e => setNuevoExtra(s => ({ ...s, nombre: e.target.value }))} placeholder="Nuevo extra" style={{ ...inputStyle, flex: '1 1 110px' }} />
-                <input value={nuevoExtra.precio} onChange={e => setNuevoExtra(s => ({ ...s, precio: e.target.value }))} type="text" inputMode="decimal" placeholder="+€" style={{ ...inputStyle, flex: '0 1 70px' }} />
-                <button onClick={() => { if (nuevoExtra.nombre.trim()) { addExtra(nuevoExtra.nombre, nuevoExtra.precio); setNuevoExtra({ nombre: '', precio: '0.20' }) } }} style={addBtn}>Añadir</button>
-              </div>
-            </div>
-
-            {/* Formatos (tamaños con precio por producto) */}
-            <div style={ajusteCard}>
-              <h3 style={ajusteTitulo}>{etiquetas.formatos} (formatos)</h3>
-              <p style={{ fontSize: '0.75rem', color: 'var(--color-muted)', marginBottom: '0.5rem' }}>Los productos «por formatos» tienen un precio para cada uno (p. ej. tamaños o raciones).</p>
-              {carta.formatos.map(f => (
-                <div key={f.id} style={ajusteFila}>
-                  <input value={f.nombre} onChange={e => renombrarFormato(f.id, e.target.value)} style={{ ...inputStyle, width: 'auto', flex: 1, marginRight: '0.5rem' }} />
-                  <button onClick={() => removeFormato(f.id)} disabled={carta.formatos.length <= 1} style={{ ...iconBtn, opacity: carta.formatos.length <= 1 ? 0.4 : 1 }}>🗑️</button>
-                </div>
-              ))}
-              <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.6rem' }}>
-                <input value={nuevoFormato} onChange={e => setNuevoFormato(e.target.value)} placeholder="Nuevo formato" style={{ ...inputStyle, flex: 1 }} />
-                <button onClick={() => { if (nuevoFormato.trim()) { addFormato(nuevoFormato); setNuevoFormato('') } }} style={addBtn}>Añadir</button>
-              </div>
-            </div>
-
-            {/* Etiquetas de la personalización */}
-            <div style={ajusteCard}>
-              <h3 style={ajusteTitulo}>Textos de personalización</h3>
-              <p style={{ fontSize: '0.75rem', color: 'var(--color-muted)', marginBottom: '0.5rem' }}>Adapta los nombres a tu negocio (una pizzería usaría Tamaño / Masa / Ingredientes).</p>
-              {Object.keys(ETIQUETAS_DEFECTO).map(k => (
-                <div key={k} style={{ marginBottom: '0.5rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.72rem', color: 'var(--color-muted)', marginBottom: '0.2rem' }}>{{ formatos: 'Grupo de formatos', tiposPan: 'Grupo de variedades', extras: 'Grupo de añadidos' }[k]}</label>
-                  <input value={etiquetas[k]} onChange={e => updateEtiquetas({ [k]: e.target.value })} style={inputStyle} />
-                </div>
-              ))}
-            </div>
-            </div>
           </div>
         )}
 
@@ -1016,6 +940,306 @@ function Zonas({ mesas, renombrarZona }) {
     </div>
   )
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// Un apartado de la carta, con todo lo suyo a mano.
+//
+// Antes: crear y borrar, y solo desde la pestaña Ajustes. Renombrar no se
+// podía —una errata obligaba a borrar el apartado y con él sus doce
+// bocadillos—, el emoji lo elegía el código y el orden era el de creación,
+// que es justo el orden en el que el cliente ve la carta al escanear el QR.
+// ────────────────────────────────────────────────────────────────────────────
+function CabeceraApartado({ cat, carta, primero, ultimo, editable, onAñadir, updateCategoria, moverCategoria, removeCategoria }) {
+  const [abierto, setAbierto] = useState(false)
+  const t = TIPOS_APARTADO[cat.tipo] || TIPOS_APARTADO.comida
+  return (
+    <div style={{ marginBottom: '0.75rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: '1.1rem' }}>{cat.emoji}</span>
+        <h3 style={{ fontWeight: 700, fontSize: '1rem' }}>{cat.nombre}</h3>
+        {/* Antes ponía «comida» / «bebida», que no dice nada. Lo que importa
+            de ese dato es por qué impresora sale la comanda. */}
+        <span title={t.desc} style={{ fontSize: '0.72rem', background: cat.tipo === 'comida' ? 'var(--tint-success-bg)' : 'var(--tint-danger-bg)', color: cat.tipo === 'comida' ? 'var(--tint-success-fg)' : 'var(--tint-danger-fg)', borderRadius: '9999px', padding: '0.15rem 0.55rem', whiteSpace: 'nowrap' }}>
+          {t.emoji} {t.label}
+        </span>
+        <div style={{ display: 'flex', gap: '0.2rem', marginLeft: 'auto', alignItems: 'center' }}>
+          {editable && <>
+            <button onClick={() => moverCategoria(cat.id, -1)} disabled={primero} title="Subir en la carta" aria-label={`Subir ${cat.nombre}`} style={{ ...iconBtn, opacity: primero ? 0.3 : 1 }}>▲</button>
+            <button onClick={() => moverCategoria(cat.id, 1)} disabled={ultimo} title="Bajar en la carta" aria-label={`Bajar ${cat.nombre}`} style={{ ...iconBtn, opacity: ultimo ? 0.3 : 1 }}>▼</button>
+            <button onClick={() => setAbierto(v => !v)} title="Editar apartado" aria-label={`Editar apartado ${cat.nombre}`} style={{ ...iconBtn, color: abierto ? 'var(--color-accent)' : 'inherit' }}>⚙️</button>
+          </>}
+          <button onClick={onAñadir} style={{ background: 'var(--color-accent)', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 0.9rem', minHeight: '40px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
+            + Añadir
+          </button>
+        </div>
+      </div>
+      {abierto && (
+        <EditorApartado cat={cat} carta={carta} onCerrar={() => setAbierto(false)}
+          updateCategoria={updateCategoria} removeCategoria={removeCategoria} />
+      )}
+    </div>
+  )
+}
+
+function EditorApartado({ cat, carta, onCerrar, updateCategoria, removeCategoria }) {
+  const [nombre, setNombre] = useState(cat.nombre)
+  const [emoji, setEmoji] = useState(cat.emoji || '')
+  const [tipo, setTipo] = useState(cat.tipo)
+  const [borrando, setBorrando] = useState(false)
+  const [destino, setDestino] = useState('')
+  const cuantos = carta.productos.filter(p => p.categoria === cat.id).length
+  const otros = carta.categorias.filter(c => c.id !== cat.id)
+
+  const guardar = () => {
+    const r = updateCategoria(cat.id, { nombre, emoji, tipo })
+    if (!r.ok) return toast(r.error, 'error')
+    toast('Apartado guardado', 'success')
+    onCerrar()
+  }
+  const borrar = () => {
+    removeCategoria(cat.id, { moverA: destino || undefined })
+    toast(destino ? `Apartado borrado · ${cuantos} producto(s) movidos` : 'Apartado borrado', 'success')
+  }
+
+  return (
+    <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.75rem', padding: '0.9rem', marginTop: '0.6rem' }}>
+      <label style={lblCampo}>Nombre del apartado</label>
+      <input value={nombre} onChange={e => setNombre(e.target.value)} style={{ ...inputStyle, marginBottom: '0.7rem' }} />
+
+      <label style={lblCampo}>Icono <span style={{ opacity: 0.7 }}>· lo ve el cliente en la carta</span></label>
+      <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginBottom: '0.4rem' }}>
+        <input value={emoji} onChange={e => setEmoji(e.target.value)} maxLength={4} style={{ ...inputStyle, width: '4rem', textAlign: 'center', fontSize: '1.1rem' }} />
+        <span style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>o elige uno:</span>
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginBottom: '0.75rem' }}>
+        {EMOJIS_APARTADO.map(e => (
+          <button key={e} onClick={() => setEmoji(e)} aria-label={`Icono ${e}`} style={{
+            background: emoji === e ? 'var(--color-accent)' : 'var(--color-surface-2)',
+            border: '1px solid var(--color-border)', borderRadius: '0.45rem',
+            width: '2.2rem', height: '2.2rem', cursor: 'pointer', fontSize: '1.05rem', lineHeight: 1,
+          }}>{e}</button>
+        ))}
+      </div>
+
+      <label style={lblCampo}>¿A dónde van sus comandas?</label>
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.35rem', flexWrap: 'wrap' }}>
+        {Object.entries(TIPOS_APARTADO).map(([k, v]) => (
+          <button key={k} onClick={() => setTipo(k)} style={{
+            flex: '1 1 8rem', background: tipo === k ? 'var(--color-accent)' : 'var(--color-surface-2)',
+            color: tipo === k ? '#fff' : 'var(--color-text)', border: `1px solid ${tipo === k ? 'var(--color-accent)' : 'var(--color-border)'}`,
+            borderRadius: '0.55rem', padding: '0.6rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem',
+          }}>{v.emoji} {v.label}</button>
+        ))}
+      </div>
+      {/* Elegirlo mal manda los platos a la impresora de la barra. Decirlo
+          aquí cuesta una línea; descubrirlo, un servicio. */}
+      <p style={{ fontSize: '0.72rem', color: 'var(--color-muted)', marginBottom: '0.9rem', lineHeight: 1.45 }}>
+        {(TIPOS_APARTADO[tipo] || TIPOS_APARTADO.comida).desc}.
+        {tipo !== cat.tipo && <strong style={{ color: 'var(--tint-warning-fg)' }}> Cambia también los {cuantos} producto(s) que ya tiene.</strong>}
+      </p>
+
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <button onClick={guardar} style={{ ...addBtn, flex: '1 1 8rem' }}>Guardar cambios ✓</button>
+        <button onClick={onCerrar} style={{ background: 'var(--color-surface-2)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.85rem', cursor: 'pointer', fontSize: '0.82rem' }}>Cancelar</button>
+        <button onClick={() => setBorrando(v => !v)} style={{ background: 'none', color: '#f43f5e', border: 'none', padding: '0.5rem 0.6rem', cursor: 'pointer', fontSize: '0.82rem', marginLeft: 'auto' }}>🗑️ Borrar apartado</button>
+      </div>
+
+      {/* Borrar un apartado se llevaba sus productos por delante sin decir
+          cuántos. Aquí se dice, y se pueden salvar pasándolos a otro. */}
+      {borrando && (
+        <div style={{ background: 'var(--tint-danger-bg)', border: '1px solid var(--tint-danger-bd)', borderRadius: '0.6rem', padding: '0.75rem', marginTop: '0.7rem' }}>
+          <p style={{ fontSize: '0.82rem', color: 'var(--tint-danger-fg)', marginBottom: '0.6rem', lineHeight: 1.5 }}>
+            {cuantos === 0
+              ? <>«{cat.nombre}» está vacío: no se pierde nada.</>
+              : <>«{cat.nombre}» tiene <strong>{cuantos} producto(s)</strong>. Si lo borras sin más, se van con él.</>}
+          </p>
+          {cuantos > 0 && otros.length > 0 && (
+            <>
+              <label style={lblCampo}>Qué hago con ellos</label>
+              <select value={destino} onChange={e => setDestino(e.target.value)} style={{ ...inputStyle, marginBottom: '0.6rem' }}>
+                <option value="">Borrarlos también</option>
+                {otros.map(c => <option key={c.id} value={c.id}>Moverlos a {c.emoji} {c.nombre}</option>)}
+              </select>
+            </>
+          )}
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button onClick={borrar} style={{ background: '#7f1d1d', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.55rem 0.9rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem' }}>
+              {destino ? 'Mover y borrar el apartado' : 'Borrar apartado y sus productos'}
+            </button>
+            <button onClick={() => setBorrando(false)} style={{ background: 'var(--color-surface-2)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.55rem 0.85rem', cursor: 'pointer', fontSize: '0.82rem' }}>Dejarlo</button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Crear un apartado, al final de la carta y no escondido en otra pestaña: es
+// donde estás mirando cuando te das cuenta de que te falta uno.
+function NuevoApartado({ carta, addCategoria }) {
+  const [abierto, setAbierto] = useState(false)
+  const [nombre, setNombre] = useState('')
+  const [tipo, setTipo] = useState('comida')
+  const [emoji, setEmoji] = useState('')
+
+  const crear = () => {
+    const r = addCategoria(nombre, tipo, emoji || emojiPorTipo(tipo))
+    if (!r.ok) return toast(r.error, 'error')
+    toast(`Apartado «${nombre.trim()}» creado`, 'success')
+    setNombre(''); setEmoji(''); setTipo('comida'); setAbierto(false)
+  }
+
+  if (!abierto) {
+    return (
+      <button onClick={() => setAbierto(true)} style={{ width: '100%', background: 'var(--color-surface-2)', color: 'var(--color-text)', border: '1px dashed var(--color-border)', borderRadius: '0.75rem', padding: '0.9rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem' }}>
+        ➕ Nuevo apartado
+      </button>
+    )
+  }
+  return (
+    <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-accent)', borderRadius: '0.75rem', padding: '0.9rem' }}>
+      <h3 style={{ ...ajusteTitulo, marginBottom: '0.7rem' }}>➕ Nuevo apartado</h3>
+      <label style={lblCampo}>Nombre <span style={{ opacity: 0.7 }}>· Bocadillos, Postres, Vinos…</span></label>
+      <input value={nombre} onChange={e => setNombre(e.target.value)} autoFocus placeholder="Bocadillos" style={{ ...inputStyle, marginBottom: '0.7rem' }} />
+
+      <label style={lblCampo}>¿A dónde van sus comandas?</label>
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.35rem', flexWrap: 'wrap' }}>
+        {Object.entries(TIPOS_APARTADO).map(([k, v]) => (
+          <button key={k} onClick={() => setTipo(k)} style={{
+            flex: '1 1 8rem', background: tipo === k ? 'var(--color-accent)' : 'var(--color-surface-2)',
+            color: tipo === k ? '#fff' : 'var(--color-text)', border: `1px solid ${tipo === k ? 'var(--color-accent)' : 'var(--color-border)'}`,
+            borderRadius: '0.55rem', padding: '0.6rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem',
+          }}>{v.emoji} {v.label}</button>
+        ))}
+      </div>
+      <p style={{ fontSize: '0.72rem', color: 'var(--color-muted)', marginBottom: '0.9rem' }}>{TIPOS_APARTADO[tipo].desc}.</p>
+
+      <label style={lblCampo}>Icono</label>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginBottom: '0.9rem' }}>
+        {EMOJIS_APARTADO.map(e => (
+          <button key={e} onClick={() => setEmoji(e)} aria-label={`Icono ${e}`} style={{
+            background: (emoji || emojiPorTipo(tipo)) === e ? 'var(--color-accent)' : 'var(--color-surface-2)',
+            border: '1px solid var(--color-border)', borderRadius: '0.45rem',
+            width: '2.2rem', height: '2.2rem', cursor: 'pointer', fontSize: '1.05rem', lineHeight: 1,
+          }}>{e}</button>
+        ))}
+      </div>
+
+      <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <button onClick={crear} disabled={!nombre.trim()} style={{ ...addBtn, flex: 1, opacity: nombre.trim() ? 1 : 0.5, cursor: nombre.trim() ? 'pointer' : 'not-allowed' }}>Crear apartado ✓</button>
+        <button onClick={() => setAbierto(false)} style={{ background: 'var(--color-surface-2)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.85rem', cursor: 'pointer', fontSize: '0.82rem' }}>Cancelar</button>
+      </div>
+      {carta.categorias.length === 0 && (
+        <p style={{ fontSize: '0.75rem', color: 'var(--color-muted)', marginTop: '0.7rem' }}>
+          Sin apartados no se pueden dar de alta productos: la carta empieza aquí.
+        </p>
+      )}
+    </div>
+  )
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Cómo se personaliza un producto: formatos, variedades, añadidos y cómo se
+// llaman esos tres grupos en la carta del cliente.
+//
+// Vivía en la pestaña «Ajustes», al lado de la configuración de la impresora,
+// que no tiene nada que ver. Para añadir un formato había que salir de la
+// carta, ir a otra pestaña, volver y buscar el producto otra vez. Ahora está
+// aquí, plegado, debajo de la carta que estás editando.
+// ────────────────────────────────────────────────────────────────────────────
+function OpcionesCarta({ carta, etiquetas, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas }) {
+  const [abierto, setAbierto] = useState(false)
+  const [nuevoExtra, setNuevoExtra] = useState({ nombre: '', precio: '0.20' })
+  const [nuevoPan, setNuevoPan] = useState({ nombre: '', sup: '' })
+  const [nuevoFormato, setNuevoFormato] = useState('')
+
+  return (
+    <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--color-border)', paddingTop: '1.25rem' }}>
+      <button onClick={() => setAbierto(v => !v)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.75rem', padding: '0.85rem 1rem', cursor: 'pointer', color: 'var(--color-text)', textAlign: 'left' }}>
+        <span style={{ fontSize: '1.1rem' }}>⚙️</span>
+        <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>Opciones de los productos</span>
+        <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>
+          {etiquetas.formatos} · {etiquetas.tiposPan} · {etiquetas.extras}
+        </span>
+        <span style={{ marginLeft: 'auto', color: 'var(--color-muted)' }}>{abierto ? '▲' : '▼'}</span>
+      </button>
+
+      {abierto && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', alignItems: 'start', marginTop: '1rem' }}>
+          {/* Formatos (tamaños con precio por producto) */}
+          <div style={ajusteCard}>
+            <h3 style={ajusteTitulo}>{etiquetas.formatos} <span style={sufijoAjuste}>· formatos</span></h3>
+            <p style={pieAjuste}>Las columnas de precio de un producto: tamaños, raciones… Un producto «por formatos» tiene un precio para cada uno.</p>
+            {carta.formatos.map(f => (
+              <div key={f.id} style={ajusteFila}>
+                <CampoGuardado valor={f.nombre} onGuardar={v => renombrarFormato(f.id, v)} style={{ ...inputStyle, width: 'auto', flex: 1, marginRight: '0.5rem' }} />
+                <button onClick={() => removeFormato(f.id)} disabled={carta.formatos.length <= 1} title={carta.formatos.length <= 1 ? 'Tiene que quedar al menos uno' : 'Borrar'} style={{ ...iconBtn, opacity: carta.formatos.length <= 1 ? 0.4 : 1 }}>🗑️</button>
+              </div>
+            ))}
+            <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.6rem' }}>
+              <input value={nuevoFormato} onChange={e => setNuevoFormato(e.target.value)} placeholder="Ración, Media, Tapa…" style={{ ...inputStyle, flex: 1 }} />
+              <button onClick={() => { if (nuevoFormato.trim()) { addFormato(nuevoFormato); setNuevoFormato('') } }} style={addBtn}>Añadir</button>
+            </div>
+          </div>
+
+          {/* Variedades con suplemento */}
+          <div style={ajusteCard}>
+            <h3 style={ajusteTitulo}>{etiquetas.tiposPan} <span style={sufijoAjuste}>· variedades</span></h3>
+            <p style={pieAjuste}>Una sola elección por producto, con suplemento si lo lleva. El cliente la ve al personalizar.</p>
+            {carta.tiposPan.map(t => (
+              <div key={t.id} style={ajusteFila}>
+                <span>{t.nombre} {t.sup > 0 && <span style={{ fontSize: '0.72rem', color: 'var(--color-accent)' }}>+{t.sup.toFixed(2)}€</span>}</span>
+                <button onClick={() => removeTipoPan(t.id)} style={iconBtn}>🗑️</button>
+              </div>
+            ))}
+            <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
+              <input value={nuevoPan.nombre} onChange={e => setNuevoPan(s => ({ ...s, nombre: e.target.value }))} placeholder="Integral, Sin gluten…" style={{ ...inputStyle, flex: '1 1 110px' }} />
+              <input value={nuevoPan.sup} onChange={e => setNuevoPan(s => ({ ...s, sup: e.target.value }))} type="text" inputMode="decimal" placeholder="+€" style={{ ...inputStyle, flex: '0 1 70px' }} />
+              <button onClick={() => { if (nuevoPan.nombre.trim()) { addTipoPan(nuevoPan.nombre, nuevoPan.sup); setNuevoPan({ nombre: '', sup: '' }) } }} style={addBtn}>Añadir</button>
+            </div>
+          </div>
+
+          {/* Añadidos, cada uno con su precio */}
+          <div style={ajusteCard}>
+            <h3 style={ajusteTitulo}>{etiquetas.extras} <span style={sufijoAjuste}>· añadidos</span></h3>
+            <p style={pieAjuste}>Se pueden marcar varios en un mismo producto y cada uno suma su precio.</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+              {carta.extras.map(raw => {
+                const ex = normalizarExtra(raw)
+                return (
+                  <span key={ex.nombre} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: 'var(--color-inset)', border: '1px solid var(--color-border)', borderRadius: '9999px', padding: '0.2rem 0.5rem 0.2rem 0.7rem', fontSize: '0.8rem' }}>
+                    {ex.nombre}{ex.precio > 0 && <span style={{ color: 'var(--color-accent)', fontSize: '0.72rem' }}>+{ex.precio.toFixed(2)}€</span>}
+                    <button onClick={() => removeExtra(ex.nombre)} aria-label={`Quitar ${ex.nombre}`} style={{ background: 'none', border: 'none', color: '#f43f5e', cursor: 'pointer', fontSize: '0.85rem' }}>✕</button>
+                  </span>
+                )
+              })}
+            </div>
+            <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
+              <input value={nuevoExtra.nombre} onChange={e => setNuevoExtra(s => ({ ...s, nombre: e.target.value }))} placeholder="Queso, Huevo…" style={{ ...inputStyle, flex: '1 1 110px' }} />
+              <input value={nuevoExtra.precio} onChange={e => setNuevoExtra(s => ({ ...s, precio: e.target.value }))} type="text" inputMode="decimal" placeholder="+€" style={{ ...inputStyle, flex: '0 1 70px' }} />
+              <button onClick={() => { if (nuevoExtra.nombre.trim()) { addExtra(nuevoExtra.nombre, nuevoExtra.precio); setNuevoExtra({ nombre: '', precio: '0.20' }) } }} style={addBtn}>Añadir</button>
+            </div>
+          </div>
+
+          {/* Cómo se llaman esos tres grupos en la carta del cliente */}
+          <div style={ajusteCard}>
+            <h3 style={ajusteTitulo}>Cómo se llaman en la carta</h3>
+            <p style={pieAjuste}>Adapta los nombres a tu negocio: una pizzería diría Tamaño · Masa · Ingredientes.</p>
+            {Object.keys(ETIQUETAS_DEFECTO).map(k => (
+              <div key={k} style={{ marginBottom: '0.6rem' }}>
+                <label style={lblCampo}>{{ formatos: 'Grupo de formatos', tiposPan: 'Grupo de variedades', extras: 'Grupo de añadidos' }[k]}</label>
+                <CampoGuardado valor={etiquetas[k]} onGuardar={v => updateEtiquetas({ [k]: v })} placeholder={ETIQUETAS_DEFECTO[k]} style={inputStyle} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+const pieAjuste = { fontSize: '0.75rem', color: 'var(--color-muted)', marginBottom: '0.6rem', lineHeight: 1.45 }
+const sufijoAjuste = { fontWeight: 400, fontSize: '0.75rem', color: 'var(--color-muted)' }
 
 function CampoGuardado({ valor, onGuardar, ...props }) {
   const [txt, setTxt] = useState(String(valor ?? ''))
