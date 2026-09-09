@@ -5,6 +5,24 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.125.0] - 2026-09-09
+
+Segunda vuelta a la carta. La v0.118.0 arregló los **apartados**; esto es lo mismo un nivel más abajo, en los **productos**.
+
+### Añadido
+- **▲▼ para ordenar los productos dentro de su apartado.** Los apartados ya se ordenaban, pero los productos salían en el orden en que se dieron de alta — y ese es el orden en el que el cliente los lee al escanear el QR. Un bar quiere el bocadillo estrella arriba, no el último que metió.
+
+  Se mueven **entre los de su apartado**, no entre vecinos de la lista: intercambiar con el de al lado a secas cambiaría un producto de apartado al llegar al borde, que no es lo que pide nadie al pulsar una flecha. Y buscando no se enseñan: una lista filtrada no es el orden de la carta.
+
+- **Duplicar un producto (⧉).** Montar una carta son ocho bocadillos que solo cambian el relleno: sin esto, cada uno es teclear otra vez precio, formatos, alérgenos e IVA. La copia se coloca **detrás del original** —que es donde se busca—, se lleva todo salvo el id, y **nace disponible**: copiar el agotado de ayer para crear el plato de hoy no puede traerse el «agotado» puesto.
+
+  El nombre lleva «(copia)» a propósito: dos productos con el mismo nombre son dos líneas idénticas en la carta del cliente y una comanda en la que no se sabe cuál pidió. Así se ve que falta renombrarlo.
+
+- **Aviso de agotados con «🔄 Reponer todo».** Lo agotado se marca durante el servicio —se acabó la tortilla— y se repone al día siguiente, todo de golpe. Devolverlo producto por producto es la clase de tarea que se olvida, y un plato que sigue «agotado» tres días después es dinero que no se vende. El aviso dice cuántos son y cuáles, porque **el cliente no los ve en la carta**.
+
+### Arreglado
+- **Con seis botones en la fila, el nombre del producto se quedaba en una letra por línea** a 375 px: «Aceite y tomate» ocupaba tres líneas. Es el mismo fallo que tenía la lista de dispositivos (v0.116.0): con una base de ancho, en un móvil los botones se bajan solos a su propia línea.
+
 ## [0.124.0] - 2026-09-09
 
 ### Añadido

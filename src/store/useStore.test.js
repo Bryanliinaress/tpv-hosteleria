@@ -558,3 +558,54 @@ describe('alta de mesas y zonas', () => {
     expect(S().moverZona('Terraza', '').ok).toBe(false)
   })
 })
+
+// ────────────────────────────────────────────────────────────────────────────
+// Ordenar y copiar productos desde el store. La regla está probada aparte
+// (lib/carta); aquí importa que la CARTA quede como se espera.
+// ────────────────────────────────────────────────────────────────────────────
+describe('productos de la carta: orden, copia y reposición', () => {
+  beforeEach(() => {
+    useStore.setState(s => ({ carta: { ...s.carta,
+      categorias: [{ id: 'des', nombre: 'Desayunos', tipo: 'comida', emoji: '🥪' }],
+      productos: [
+        { id: 'p1', categoria: 'des', nombre: 'Mixto', tipo: 'comida', precio: 3, disponible: true, alergenos: ['gluten'] },
+        { id: 'p2', categoria: 'des', nombre: 'Tostada', tipo: 'comida', precio: 2, disponible: false },
+        { id: 'p3', categoria: 'des', nombre: 'Croissant', tipo: 'comida', precio: 2.5, disponible: false },
+      ],
+    } }))
+  })
+  const prods = () => S().carta.productos
+
+  it('subir un producto cambia el orden que ve el cliente', () => {
+    expect(S().moverProducto('p3', -1).ok).toBe(true)
+    expect(prods().map(p => p.nombre)).toEqual(['Mixto', 'Croissant', 'Tostada'])
+  })
+
+  it('la copia se coloca detrás del original, que es donde se busca', () => {
+    const r = S().duplicarProducto('p1')
+    expect(r.ok).toBe(true)
+    expect(prods().map(p => p.nombre)).toEqual(['Mixto', 'Mixto (copia)', 'Tostada', 'Croissant'])
+  })
+
+  it('la copia se trae los alérgenos y el precio, pero nace disponible', () => {
+    S().duplicarProducto('p2')                       // «Tostada» está agotada
+    const copia = prods().find(p => p.nombre === 'Tostada (copia)')
+    expect(copia.precio).toBe(2)
+    expect(copia.disponible).toBe(true)
+    expect(prods().find(p => p.id === 'p1').alergenos).toEqual(['gluten'])
+  })
+
+  // Al día siguiente se repone la nevera entera: hacerlo producto por producto
+  // es la clase de tarea que se olvida, y un plato «agotado» tres días es
+  // dinero que no se vende.
+  it('reponer devuelve TODO lo agotado de una vez', () => {
+    const r = S().reponerTodo()
+    expect(r).toEqual({ ok: true, repuestos: 2 })
+    expect(prods().every(p => p.disponible)).toBe(true)
+  })
+
+  it('sin nada agotado, reponer no dice que ha hecho algo', () => {
+    S().reponerTodo()
+    expect(S().reponerTodo().ok).toBe(false)
+  })
+})

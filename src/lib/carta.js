@@ -155,3 +155,63 @@ export function moverEnLista(lista = [], id, direccion) {
   ;[xs[i], xs[j]] = [xs[j], xs[i]]
   return xs
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// Ordenar y copiar productos dentro de la carta.
+//
+// Los apartados ya se ordenan (v0.118.0), pero los productos de dentro salían
+// en el orden en que se crearon — y ese es el orden en el que el cliente los
+// lee al escanear el QR. Un bar quiere el bocadillo estrella arriba, no el
+// último que dio de alta.
+//
+// Y montar una carta son ocho bocadillos que solo cambian el relleno: sin
+// copiar, cada uno es teclear otra vez precio, formatos, alérgenos e IVA.
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Sube o baja un producto DENTRO de su apartado, devolviendo la lista entera.
+ *
+ * Se mueve entre hermanos —los de su misma categoría—, no entre vecinos de la
+ * lista global: si se intercambiara con el de al lado a secas, un producto se
+ * cambiaría de apartado al llegar al borde, que no es lo que pide nadie al
+ * pulsar una flecha.
+ */
+export function moverProductoEnCarta(productos = [], id, direccion) {
+  const xs = [...(productos || [])]
+  const p = xs.find(x => x.id === id)
+  if (!p) return xs
+  const hermanos = xs.filter(x => x.categoria === p.categoria)
+  const i = hermanos.findIndex(x => x.id === id)
+  const j = i + (direccion < 0 ? -1 : 1)
+  if (j < 0 || j >= hermanos.length) return xs        // ya está en el extremo
+  const a = xs.findIndex(x => x.id === p.id)
+  const b = xs.findIndex(x => x.id === hermanos[j].id)
+  ;[xs[a], xs[b]] = [xs[b], xs[a]]
+  return xs
+}
+
+/** ¿Es el primero (o el último) de su apartado? Para apagar las flechas. */
+export function esExtremoDeApartado(productos = [], id) {
+  const p = (productos || []).find(x => x.id === id)
+  if (!p) return { primero: true, ultimo: true }
+  const hermanos = (productos || []).filter(x => x.categoria === p.categoria)
+  const i = hermanos.findIndex(x => x.id === id)
+  return { primero: i <= 0, ultimo: i === hermanos.length - 1 }
+}
+
+/**
+ * Los datos de un producto nuevo copiado de otro.
+ *
+ * El nombre lleva «(copia)» a propósito: dos productos con el mismo nombre en
+ * la carta del cliente son dos líneas idénticas con precios que pueden diferir,
+ * y en la comanda de cocina no hay forma de saber cuál pidió. Así se ve que
+ * falta renombrarlo.
+ */
+export function copiaDeProducto(producto) {
+  if (!producto) return null
+  const { id, disponible, ...resto } = producto      // eslint-disable-line no-unused-vars
+  return { ...structuredClone(resto), nombre: `${producto.nombre} (copia)` }
+}
+
+/** Lo que está marcado agotado. Al día siguiente se repone, y son varios. */
+export const agotadosDe = (carta) => (carta?.productos || []).filter(p => !p.disponible)

@@ -9,7 +9,7 @@ import { revisarCorreccionFichaje, revisarNuevoFichaje } from '../fichajes'
 import { revisarNuevoEmpleado, revisarCambioEmpleado, revisarBajaEmpleado } from '../personal'
 import { rolDe } from '../roles'
 import { revisarNumeroMesa, revisarNombreZona, revisarAltaMesas } from '../sala'
-import { revisarNombreApartado, moverEnLista, emojiPorTipo } from '../carta'
+import { revisarNombreApartado, moverEnLista, emojiPorTipo, moverProductoEnCarta, copiaDeProducto } from '../carta'
 import { revisarCambiosLocal } from '../local'
 import { efectivoEsperado, descuadreDe, saldoMovimientos, revisarMovimiento } from '../caja'
 import { registrarTicket } from '../fiscal'
@@ -380,6 +380,52 @@ export function accionesV2b() {
       } catch (e) { err(e) }
     },
     deleteProducto: async (id) => { try { await t('productos').delete().eq('id', id); cargarCarta() } catch (e) { err(e) } },
+    // Como el alta de empleado: la pantalla lee `r.ok` EN EL ACTO, así que se
+    // comprueba aquí y se escribe por detrás.
+    moverProducto: (id, direccion) => {
+      const nuevos = moverProductoEnCarta(st().carta.productos, id, direccion)
+      ;(async () => {
+        try {
+          // Se reescribe el orden de TODOS: el de partida trae repetidos —el
+          // alta usa la longitud de la lista— y renumerar solo los dos que se
+          // cruzan dejaría la carta en un orden que no es el que se ve.
+          await Promise.all(nuevos.map((p, i) => t('productos').update({ orden: i }).eq('id', p.id)))
+          cargarCarta()
+        } catch (e) { err(e) }
+      })()
+      return { ok: true }
+    },
+    duplicarProducto: (id) => {
+      const copia = copiaDeProducto(st().carta.productos.find(p => p.id === id))
+      if (!copia) return { ok: false, error: 'Ese producto ya no está' }
+      ;(async () => {
+        try {
+          await t('productos').insert({
+            local_id: getLocalId(), categoria_id: copia.categoria, nombre: copia.nombre,
+            descripcion: copia.descripcion || '',
+            precios: conPrecio(preciosNumericos(copia.precios), copia.precio),
+            modificadores: { ingredientes: copia.ingredientes || [], imagen: copia.imagen || '', menu: copia.menu || null, nombreEn: (copia.nombreEn || '').trim(), descripcionEn: (copia.descripcionEn || '').trim() },
+            alergenos: copia.alergenos || [], disponible: true,
+            iva_pct: copia.ivaPct == null ? null : Number(copia.ivaPct),
+            orden: st().carta.productos.length,
+          })
+          cargarCarta()
+        } catch (e) { err(e) }
+      })()
+      return { ok: true }
+    },
+    reponerTodo: () => {
+      const agotados = st().carta.productos.filter(p => !p.disponible)
+      if (!agotados.length) return { ok: false, error: 'No hay nada agotado' }
+      ;(async () => {
+        try {
+          await t('productos').update({ disponible: true }).in('id', agotados.map(p => p.id))
+          cargarCarta()
+        } catch (e) { err(e) }
+      })()
+      return { ok: true, repuestos: agotados.length }
+    },
+
     // Los apartados de la carta. Como el alta de empleado: la pantalla lee
     // `r.ok` EN EL ACTO, así que se comprueba aquí y se escribe por detrás. Si
     // fueran `async`, `r.ok` sería `undefined` y cantarían un error falso.
