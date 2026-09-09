@@ -5,6 +5,20 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.122.0] - 2026-09-09
+
+### Añadido
+- **Informes de cualquier rango de fechas: «📅 Otras fechas».** Solo había cinco botones (hoy, ayer, 7 días, este mes, mes pasado). El gestor pide «del 1 al 15» y el dueño quiere ver «el sábado pasado», y no había forma: tocaba mirar el mes entero y hacer la resta a mano.
+
+  El **«hasta» es inclusivo**, que es como lo entiende quien lo escribe: pedir «al 15» trae el 15 entero. Por dentro se le manda al servidor el día siguiente a las 00:00, porque consulta con el fin exclusivo — sin eso, el último día del informe sale siempre a cero y nadie entiende por qué.
+
+- **Cada cifra se compara con el periodo anterior**: «↓ 11% respecto al periodo anterior, que hizo 177,00 €». Un número solo no dice nada — «1.240 €» solo significa algo al lado de lo que se hizo la semana anterior, que es la pregunta que se hace quien abre esta pantalla. El periodo de comparación es el de la **misma duración pegado justo antes**: de «los 7 días que acaban hoy» salen «los 7 anteriores», y de septiembre sale agosto con **sus** días, no con 30 fijos.
+
+  Si en el periodo anterior no hubo ventas **no se enseña un porcentaje**: dividir entre cero daría «+∞ %», que no informa de nada. Se dice que no había nada con qué comparar.
+
+### Arreglado
+- **El CSV se llamaba siempre igual.** `informe-mes.csv` para todos los meses: al bajar el de agosto y luego el de septiembre, el segundo pisaba al primero en la carpeta de descargas y el gestor abría el que no era. Ahora el nombre lleva el periodo («informe-del-1-de-septiembre-al-15-de-septiembre-de-2026.csv»), y la cabecera de dentro también.
+
 ## [0.121.0] - 2026-09-09
 
 ### Cambiado
