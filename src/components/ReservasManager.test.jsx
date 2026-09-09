@@ -131,3 +131,46 @@ describe('nueva reserva desde la agenda', () => {
     await waitFor(() => expect(useStore.getState().reservas).toHaveLength(1))
   })
 })
+
+// ────────────────────────────────────────────────────────────────────────────
+// La franja de «ahora mismo». La agenda pintaba igual la reserva de las 22:00
+// y la que entra por la puerta en diez minutos sin mesa asignada.
+// ────────────────────────────────────────────────────────────────────────────
+describe('lo que reclama atención ahora', () => {
+  const hoyYMD = () => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }
+  const aLasDeAqui = (min) => {
+    const d = new Date(Date.now() + min * 60000)
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  }
+  const enAgenda = (reservas) => {
+    useStore.setState({ reservas })
+    render(<ReservasManager />)
+  }
+
+  it('avisa de la que llega enseguida sin mesa asignada', () => {
+    enAgenda([{ id: 'r1', fecha: hoyYMD(), hora: aLasDeAqui(10), personas: 4, nombre: 'Ana', estado: 'confirmada', mesaId: null }])
+    expect(document.body.textContent).toMatch(/Ahora mismo/)
+    expect(document.body.textContent).toMatch(/sin mesa asignada/)
+    expect(document.body.textContent).toMatch(/Ana/)
+  })
+
+  it('y de la que se ha retrasado', () => {
+    enAgenda([{ id: 'r2', fecha: hoyYMD(), hora: aLasDeAqui(-25), personas: 2, nombre: 'Luis', estado: 'confirmada', mesaId: 'm1' }])
+    expect(document.body.textContent).toMatch(/min tarde/)
+  })
+
+  // Un aviso que salta con la reserva de dentro de ocho horas se aprende a
+  // ignorar, y entonces no sirve para la que sí importa.
+  it('la reserva de dentro de tres horas no monta ningún aviso', () => {
+    enAgenda([{ id: 'r3', fecha: hoyYMD(), hora: aLasDeAqui(180), personas: 2, nombre: 'Tarde', estado: 'confirmada', mesaId: null }])
+    expect(document.body.textContent).not.toMatch(/Ahora mismo/)
+  })
+
+  it('una ya sentada no reclama nada', () => {
+    enAgenda([{ id: 'r4', fecha: hoyYMD(), hora: aLasDeAqui(-40), personas: 2, nombre: 'Sentada', estado: 'sentada', mesaId: 'm1' }])
+    expect(document.body.textContent).not.toMatch(/Ahora mismo/)
+  })
+})

@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useStore, generarSlots, aforoTotal, aforoZona, ocupacionEn, mesasCandidatas, diaCerrado } from '../store/useStore'
 import { enviarEmailReserva } from '../lib/email'
 import { confirmar, toast } from '../store/useUI'
+import { avisosDeAgenda, comoVa, comoSeDice } from '../lib/agenda'
+import { useReloj } from './useReloj'
 
 const hoyLocal = () => {
   const d = new Date()
@@ -31,6 +33,10 @@ const EST = {
 // con el mesaId tras sentar (para que el contenedor pueda navegar si quiere).
 export default function ReservasManager({ onSentada }) {
   const { reservas, mesas, reservasConfig: cfg, asignarReservaMesa, sentarReservaAgenda, cambiarEstadoReserva, crearReservaPersonal } = useStore()
+  // «En 15 min» y «20 min tarde» se calculan al pintar: sin repintar solos se
+  // quedan congelados en la hora en que alguien tocó la pantalla por última
+  // vez — el mismo fallo que tenía el reloj del KDS (v0.108.0).
+  useReloj()
   const hoy = hoyLocal()
   const [filtro, setFiltro] = useState('hoy') // hoy | proximas | todas
   const [vista, setVista] = useState('agenda') // agenda | servicio
@@ -75,6 +81,9 @@ export default function ReservasManager({ onSentada }) {
       {vista === 'servicio' && <Servicio cfg={cfg} mesas={mesas} reservas={reservas} fecha={fechaSrv} setFecha={setFechaSrv} />}
 
       {vista === 'agenda' && (<>
+      {/* Lo que reclama algo AHORA, encima de todo lo demás. */}
+      <AhoraMismo reservas={reservas.filter(r => r.fecha === hoy)} mesas={mesas} />
+
       <NuevaReserva cfg={cfg} mesas={mesas} reservas={reservas} crear={crearReservaPersonal} />
 
       <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1rem' }}>
@@ -103,9 +112,13 @@ export default function ReservasManager({ onSentada }) {
               return (
                 <div key={r.id} style={{ background: 'var(--color-surface)', border: `1px solid ${est.color}55`, borderRadius: 'var(--radius)', padding: '0.875rem', boxShadow: 'var(--shadow-sm)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', flexWrap: 'wrap' }}>
                       <span style={{ fontWeight: 800, fontSize: '1.1rem' }}>🕐 {r.hora}</span>
                       <span style={{ fontWeight: 700 }}>{r.nombre}</span>
+                      {/* La que está al caer o la que se retrasa, marcadas en la
+                          propia lista: en la franja de arriba se ven juntas, y
+                          aquí se sabe cuál de las doce es. */}
+                      <Cuando reserva={r} />
                     </div>
                     <span style={{ fontSize: '0.68rem', color: est.color, fontWeight: 700, background: est.color + '22', borderRadius: '9999px', padding: '0.15rem 0.6rem' }}>{est.label}</span>
                   </div>
@@ -136,6 +149,66 @@ export default function ReservasManager({ onSentada }) {
         </div>
       ))}
       </>)}
+    </div>
+  )
+}
+
+// Cuándo entra (o cuánto lleva esperando) esta reserva.
+function Cuando({ reserva }) {
+  const c = comoVa(reserva)
+  if (!c) return null
+  const tarde = c === 'tarde'
+  return (
+    <span style={{
+      fontSize: '0.68rem', fontWeight: 700, whiteSpace: 'nowrap',
+      color: tarde ? 'var(--tint-warning-fg)' : 'var(--tint-info-fg)',
+      background: tarde ? 'var(--tint-warning-bg)' : 'var(--tint-info-bg)',
+      borderRadius: '9999px', padding: '0.1rem 0.5rem',
+    }}>{tarde ? '⌛' : '🔔'} {comoSeDice(reserva)}</span>
+  )
+}
+
+// ── Lo que reclama atención ahora mismo ────────────────────────────
+//
+// La agenda pintaba igual la reserva de las 22:00 y la que entra por la puerta
+// en diez minutos sin mesa asignada. A las 14:10 de un sábado, lo que hace
+// falta saber es quién llega enseguida —y si tiene mesa, porque asignarla con
+// el cliente delante es la diferencia entre sentarlo y tenerlo de pie— y quién
+// se ha retrasado, para decidir si esperar o soltar la mesa.
+function AhoraMismo({ reservas, mesas }) {
+  const { pronto, tarde, sinMesa } = avisosDeAgenda(reservas)
+  if (!pronto.length && !tarde.length) return null
+  const nombreMesa = (r) => mesas.find(m => m.id === r.mesaId)?.numero
+
+  return (
+    <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.85rem 1rem', marginBottom: '1rem', boxShadow: 'var(--shadow-sm)' }}>
+      <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.5rem' }}>⏰ Ahora mismo</div>
+
+      {sinMesa.length > 0 && (
+        <div style={{ background: 'var(--tint-warning-bg)', color: 'var(--tint-warning-fg)', border: '1px solid var(--tint-warning-bd)', borderRadius: '0.5rem', padding: '0.5rem 0.6rem', marginBottom: '0.5rem', fontSize: '0.8rem' }}>
+          ⚠️ {sinMesa.length === 1 ? 'Llega una reserva sin mesa asignada' : `Llegan ${sinMesa.length} reservas sin mesa asignada`}: {sinMesa.map(r => `${r.hora} ${r.nombre}`).join(' · ')}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', fontSize: '0.82rem' }}>
+        {pronto.map(r => (
+          <div key={r.id} style={{ display: 'flex', gap: '0.5rem', alignItems: 'baseline', flexWrap: 'wrap' }}>
+            <span style={{ color: 'var(--tint-info-fg)', fontWeight: 700, whiteSpace: 'nowrap' }}>🔔 {comoSeDice(r)}</span>
+            <span><strong>{r.hora}</strong> · {r.nombre} · {r.personas} pers.</span>
+            <span style={{ color: 'var(--color-muted)' }}>{nombreMesa(r) ? `🍽 Mesa ${nombreMesa(r)}` : 'sin mesa'}</span>
+          </div>
+        ))}
+        {tarde.map(r => (
+          <div key={r.id} style={{ display: 'flex', gap: '0.5rem', alignItems: 'baseline', flexWrap: 'wrap' }}>
+            <span style={{ color: 'var(--tint-warning-fg)', fontWeight: 700, whiteSpace: 'nowrap' }}>⌛ {comoSeDice(r)}</span>
+            <span><strong>{r.hora}</strong> · {r.nombre} · {r.personas} pers.</span>
+            <span style={{ color: 'var(--color-muted)' }}>{nombreMesa(r) ? `🍽 Mesa ${nombreMesa(r)}` : 'sin mesa'}</span>
+          </div>
+        ))}
+      </div>
+      <p style={{ fontSize: '0.72rem', color: 'var(--color-faint)', marginTop: '0.5rem' }}>
+        Las de abajo llevan la misma marca: así se sabe cuál de la lista es.
+      </p>
     </div>
   )
 }
