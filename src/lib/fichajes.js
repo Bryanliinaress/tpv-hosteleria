@@ -1,3 +1,5 @@
+import { horasEntre } from './fechas.js'
+
 // ────────────────────────────────────────────────────────────────────────────
 // Correcciones de fichajes (las hace el admin y salen en la nómina).
 //
@@ -60,4 +62,30 @@ export function revisarNuevoFichaje({ empleadoId, entrada, salida } = {}, emplea
   // Las mismas reglas que una corrección: la entrada manda y la salida no puede
   // ir antes.
   return revisarCorreccionFichaje({ entrada: null, salida: null }, { entrada, salida })
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Lo que lleva trabajado cada persona, y quién está en turno AHORA.
+//
+// El panel de personal no decía ninguna de las dos cosas: para saber si María
+// se había dejado el turno abierto había que irse a otra pestaña, elegir el
+// mes y buscar su nombre entre los fichajes de todos. Y las horas son el
+// número que va a la nómina — ya salieron una vez todas juntas bajo un mismo
+// «undefined» (v0.105.0), así que se calculan en un solo sitio y con test.
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Jornada de un empleado dentro de los fichajes que se le pasen (ya filtrados
+ * por el periodo que se esté mirando).
+ * → { horas, jornadas, abierto } — `abierto` es el fichaje sin salida, si lo hay.
+ */
+export function jornadaDe(fichajes = [], empleadoId) {
+  const suyos = (fichajes || []).filter(f => f?.empleadoId === empleadoId)
+  return {
+    // Un turno abierto no suma horas: todavía no se sabe cuántas son, y
+    // contarlas «hasta ahora» pondría en la nómina un número que cambia solo.
+    horas: suyos.reduce((s, f) => s + (f.salida ? horasEntre(f.entrada, f.salida) : 0), 0),
+    jornadas: suyos.length,
+    abierto: suyos.find(f => !f.salida) || null,
+  }
 }

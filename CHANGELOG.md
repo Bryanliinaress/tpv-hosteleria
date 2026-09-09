@@ -5,6 +5,20 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.120.0] - 2026-09-09
+
+### Añadido
+- **El panel de personal dice lo que hace falta saber de un vistazo: quién está en turno AHORA y cuántas horas lleva cada uno.** Ninguna de las dos cosas se veía: para saber si a María se le había quedado el turno abierto había que salir de Personal, irse a la pestaña de fichajes, elegir el mes y buscar su nombre entre los fichajes de todos. Ahora cada persona es una ficha con su rol, su **🟢 En turno desde…** si lo tiene, y sus **horas del mes**. Arriba, cuántos hay dentro ahora mismo.
+- **Un turno abierto no suma horas.** Contarlas «hasta ahora» pondría en la nómina un número que cambia solo cada vez que se mira la pantalla. La cuenta vive en `src/lib/fichajes.js` (`jornadaDe`), con test — es el mismo número que una vez salió de todos juntos bajo un mismo «undefined» (v0.105.0).
+- **Quien ya no trabaja aquí no estorba entre los que sí.** Los inactivos se agrupan en «Sin turno», plegado. No se borran: su ficha hace falta para el registro de jornada, que hay que **conservar cuatro años**, y ahora el diálogo de eliminar lo dice.
+- **Cambiar el rol, el PIN o dar de baja vive detrás del ⚙️ de cada ficha**, que son cosas que se hacen una vez. Antes estaban los cinco controles apretados en una fila.
+
+### Cambiado
+- **La pestaña «⏱ Fichajes» desaparece: el registro de jornada es de las personas que hay en Personal.** Vive plegado al final de la pestaña, con lo mismo de antes (corregir, añadir una jornada que nadie fichó, exportar el CSV). **El mes lo manda la pestaña entera**: si el resumen de cada persona dijera un mes y la lista de abajo otro, los dos números no cuadrarían y no habría forma de saber cuál estás mirando. El resumen «Horas por empleado» que había ahí sobra: ahora está en la ficha de cada uno.
+
+### Arreglado
+- **El nombre de un empleado se guardaba en CADA TECLA.** Escribir «María» eran **cinco peticiones** al servidor, y la que llegara la última mandaba: con la red lenta podía quedarse en «Marí». Ahora se guarda al salir del campo, como el resto del panel, y lo dice.
+
 ## [0.119.0] - 2026-09-09
 
 ### Añadido
