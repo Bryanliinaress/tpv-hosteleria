@@ -130,8 +130,10 @@ export default function PanelAdmin() {
     toast('Movimiento apuntado', 'success')
   }
   const hacerCierre = async () => {
-    if (ticketsCaja.length === 0) return
-    if (!(await confirmar({ titulo: 'Cerrar caja', mensaje: `¿Cerrar caja con ${ticketsCaja.length} ticket(s) y ${cajaTotal.toFixed(2)} €?`, confirmar: 'Cerrar caja' }))) return
+    if (ticketsCaja.length === 0 && movsCaja.length === 0) return
+    if (!(await confirmar({ titulo: 'Cerrar caja', mensaje: ticketsCaja.length
+      ? `¿Cerrar caja con ${ticketsCaja.length} ticket(s) y ${cajaTotal.toFixed(2)} €?`
+      : `Hoy no se ha vendido nada, pero hay ${movsCaja.length} movimiento(s) del cajón. ¿Cerrar la caja igual?`, confirmar: 'Cerrar caja' }))) return
     cerrarCaja(contado)
     setContado('')
     toast('Caja cerrada correctamente', 'success')
@@ -218,7 +220,6 @@ export default function PanelAdmin() {
           { id: 'reservas', label: `📅 Reservas${reservasHoy ? ` (${reservasHoy})` : ''}` },
           { id: 'caja', label: '💰 Caja' },
           { id: 'ajustes', label: '🖨 Impresión' },
-          { id: 'tickets', label: '🧾 Tickets' },
           { id: 'informes', label: '📊 Informes' },
           { id: 'dispositivos', label: '🔗 Dispositivos' },
         ].map(t => (
@@ -391,6 +392,11 @@ export default function PanelAdmin() {
         {/* Tab Caja (arqueo / cierre) */}
         {tab === 'caja' && (
           <>
+          {/* Arriba, lo que reclama algo HOY: dinero cobrado que hay que
+              devolver y tickets que no han llegado a Hacienda —ese hay que
+              atenderlo el mismo día o ya no entra—. Debajo, cuadrar y cerrar,
+              que es lo único que se hace a diario. Y plegado, lo que se
+              consulta: los tickets, el cajón, los cierres y las anulaciones. */}
           {/* Dinero cobrado que no cuadró con ninguna cuenta. Pasa cuando dos
               comensales pagan a la vez desde sus móviles y el segundo llega con
               la cuenta ya saldada: el cobro se guarda, pero no salía en NINGUNA
@@ -428,6 +434,7 @@ export default function PanelAdmin() {
               </div>
             </div>
           )}
+          <EstadoFiscal />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem', alignItems: 'start' }}>
             {/* Arqueo de la caja abierta */}
             <div style={ajusteCard}>
@@ -525,105 +532,119 @@ export default function PanelAdmin() {
                   <span>Descuadre</span><strong>{descuadre >= 0 ? '+' : ''}{descuadre.toFixed(2)} €</strong>
                 </div>
               )}
-              <button onClick={hacerCierre} disabled={ticketsCaja.length === 0} style={{ width: '100%', marginTop: '0.875rem', background: ticketsCaja.length ? 'var(--color-accent)' : 'var(--color-surface-3)', color: ticketsCaja.length ? '#fff' : 'var(--color-text)', border: 'none', borderRadius: '0.5rem', padding: '0.8rem', cursor: ticketsCaja.length ? 'pointer' : 'not-allowed', fontWeight: 700 }}>
+              {(() => { const sePuede = ticketsCaja.length > 0 || movsCaja.length > 0; return (
+              <button onClick={hacerCierre} disabled={!sePuede} title={sePuede ? '' : 'No hay ni ventas ni movimientos que cerrar'} style={{ width: '100%', marginTop: '0.875rem', background: sePuede ? 'var(--color-accent)' : 'var(--color-surface-3)', color: sePuede ? '#fff' : 'var(--color-text)', border: 'none', borderRadius: '0.5rem', padding: '0.8rem', cursor: sePuede ? 'pointer' : 'not-allowed', fontWeight: 700 }}>
                 🔒 Cerrar caja
               </button>
-
-              {cierres.length > 0 && (
-                <>
-                  <h4 style={{ fontSize: '0.85rem', fontWeight: 700, margin: '1.25rem 0 0.5rem', color: 'var(--color-muted)' }}>Cierres anteriores</h4>
-                  {cierres.slice().reverse().map(z => (
-                    <div key={z.id} style={{ background: 'var(--color-inset)', borderRadius: '0.5rem', padding: '0.6rem 0.75rem', marginBottom: '0.4rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '0.85rem' }}>
-                        <span>{new Date(z.hasta).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}</span>
-                        <span style={{ color: 'var(--color-accent)' }}>{z.total.toFixed(2)} €</span>
-                      </div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>
-                        {z.nTickets} ticket(s)
-                        {metodosDe(z.pagos).map(k => ` · ${METODO_EMOJI[k] || '💰'} ${z.pagos[k].toFixed(2)}`).join('')}
-                        {z.descuadre != null && Math.abs(z.descuadre) >= 0.005 && <span style={{ color: '#f43f5e' }}> · descuadre {z.descuadre >= 0 ? '+' : ''}{z.descuadre.toFixed(2)} €</span>}
-                      </div>
-                    </div>
-                  ))}
-                </>
-              )}
+              ) })()}
             </div>
 
-            {/* ── Entradas y salidas del cajón ────────────────────────────
-                Por un cajón pasa mucho más que ventas: el fondo de cambio con
-                el que se abre, lo que se saca para pagar al del pan, el cambio
-                que se mete a media tarde. Sin apuntarlo, el arqueo no cuadra
-                nunca y se deja de mirar. */}
-            <div style={ajusteCard}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.75rem' }}>
-                <h3 style={ajusteTitulo}>Entradas y salidas de caja</h3>
-                <span style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{movsCaja.length} en esta caja</span>
-              </div>
+          </div>
 
-              <label style={lblCampo}>Fondo de cambio (queda siempre en el cajón)</label>
-              <CampoGuardado valor={local.fondoCaja != null ? String(local.fondoCaja) : ''} onGuardar={v => updateLocal({ fondoCaja: importeDesdeTexto(v) ?? 0 })} placeholder="0.00" style={{ ...inputStyle, marginBottom: '0.9rem' }} />
+          <Plegable icono="🧾" titulo="Tickets del mes" resumen={`${delMes.length} · ${totalMes.toFixed(2)} € facturados`}>
+            <TicketsDelMes
+              delMes={delMes} dias={dias} porDia={porDia} diaBonito={diaBonito}
+              mesNombre={ahora.toLocaleDateString('es-ES', { month: 'long' })}
+              totalMes={totalMes} propinasMes={propinasMes} historial={historial}
+              devueltoDe={devueltoDe} setDevolviendo={setDevolviendo} setTicket={setTicket}
+              reintentarReembolso={reintentarReembolso} />
+          </Plegable>
 
-              <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.5rem' }}>
-                {[['salida', '− Sacar'], ['entrada', '+ Meter']].map(([t2, etiqueta]) => (
-                  <button key={t2} onClick={() => setMovim(s2 => ({ ...s2, tipo: t2 }))}
-                    style={{ flex: 1, background: movim.tipo === t2 ? 'var(--color-accent)' : 'var(--color-surface-2)', color: movim.tipo === t2 ? '#fff' : 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700 }}>
-                    {etiqueta}
-                  </button>
+          <Plegable icono="↔" titulo="Entradas y salidas del cajón" resumen={`${movsCaja.length} en esta caja${saldoMovs !== 0 ? ` · ${saldoMovs > 0 ? '+' : ''}${saldoMovs.toFixed(2)} €` : ''}`}>
+          {/* ── Entradas y salidas del cajón ────────────────────────────
+              Por un cajón pasa mucho más que ventas: el fondo de cambio con
+              el que se abre, lo que se saca para pagar al del pan, el cambio
+              que se mete a media tarde. Sin apuntarlo, el arqueo no cuadra
+              nunca y se deja de mirar. */}
+          <div style={ajusteCard}>
+            <label style={lblCampo}>Fondo de cambio (queda siempre en el cajón)</label>
+            <CampoGuardado valor={local.fondoCaja != null ? String(local.fondoCaja) : ''} onGuardar={v => updateLocal({ fondoCaja: importeDesdeTexto(v) ?? 0 })} placeholder="0.00" style={{ ...inputStyle, marginBottom: '0.9rem' }} />
+
+            <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.5rem' }}>
+              {[['salida', '− Sacar'], ['entrada', '+ Meter']].map(([t2, etiqueta]) => (
+                <button key={t2} onClick={() => setMovim(s2 => ({ ...s2, tipo: t2 }))}
+                  style={{ flex: 1, background: movim.tipo === t2 ? 'var(--color-accent)' : 'var(--color-surface-2)', color: movim.tipo === t2 ? '#fff' : 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700 }}>
+                  {etiqueta}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.5rem' }}>
+              <input value={movim.importe} onChange={e => setMovim(s2 => ({ ...s2, importe: e.target.value }))} inputMode="decimal" placeholder="€" style={{ ...inputStyle, flex: '0 1 90px', marginBottom: 0 }} />
+              <input value={movim.motivo} onChange={e => setMovim(s2 => ({ ...s2, motivo: e.target.value }))} placeholder="Para qué (proveedor, banco, cambio…)" style={{ ...inputStyle, flex: 1, marginBottom: 0 }} />
+            </div>
+            <button onClick={apuntarMovimiento} style={{ ...addBtn, width: '100%' }}>Apuntar</button>
+
+            {movsCaja.length > 0 && (
+              <div style={{ marginTop: '0.9rem' }}>
+                {movsCaja.slice().reverse().map(m => (
+                  <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '0.6rem', background: 'var(--color-inset)', borderRadius: '0.5rem', padding: '0.5rem 0.7rem', marginBottom: '0.35rem', fontSize: '0.82rem' }}>
+                    <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {new Date(m.creadoEn).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} · {m.motivo}
+                    </span>
+                    <strong style={{ color: m.tipo === 'salida' ? '#f43f5e' : '#10b981', whiteSpace: 'nowrap' }}>
+                      {m.tipo === 'salida' ? '−' : '+'}{Number(m.importe).toFixed(2)} €
+                    </strong>
+                  </div>
                 ))}
               </div>
-              <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.5rem' }}>
-                <input value={movim.importe} onChange={e => setMovim(s2 => ({ ...s2, importe: e.target.value }))} inputMode="decimal" placeholder="€" style={{ ...inputStyle, flex: '0 1 90px', marginBottom: 0 }} />
-                <input value={movim.motivo} onChange={e => setMovim(s2 => ({ ...s2, motivo: e.target.value }))} placeholder="Para qué (proveedor, banco, cambio…)" style={{ ...inputStyle, flex: 1, marginBottom: 0 }} />
-              </div>
-              <button onClick={apuntarMovimiento} style={{ ...addBtn, width: '100%' }}>Apuntar</button>
+            )}
+          </div>
 
-              {movsCaja.length > 0 && (
-                <div style={{ marginTop: '0.9rem' }}>
-                  {movsCaja.slice().reverse().map(m => (
-                    <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '0.6rem', background: 'var(--color-inset)', borderRadius: '0.5rem', padding: '0.5rem 0.7rem', marginBottom: '0.35rem', fontSize: '0.82rem' }}>
-                      <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {new Date(m.creadoEn).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} · {m.motivo}
-                      </span>
-                      <strong style={{ color: m.tipo === 'salida' ? '#f43f5e' : '#10b981', whiteSpace: 'nowrap' }}>
-                        {m.tipo === 'salida' ? '−' : '+'}{Number(m.importe).toFixed(2)} €
-                      </strong>
+          </Plegable>
+
+          {/* Sin ningún cierre todavía no hay nada que consultar: un plegable
+              que se abre y está vacío es una promesa incumplida. */}
+          {cierres.length > 0 && (
+          <Plegable icono="🔒" titulo="Cierres anteriores" resumen={`${cierres.length} cierre(s)`}>
+            <div style={ajusteCard}>
+            {cierres.length > 0 && (
+              <>
+                  {cierres.slice().reverse().map(z => (
+                  <div key={z.id} style={{ background: 'var(--color-inset)', borderRadius: '0.5rem', padding: '0.6rem 0.75rem', marginBottom: '0.4rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '0.85rem' }}>
+                      <span>{new Date(z.hasta).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                      <span style={{ color: 'var(--color-accent)' }}>{z.total.toFixed(2)} €</span>
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>
+                      {z.nTickets} ticket(s)
+                      {metodosDe(z.pagos).map(k => ` · ${METODO_EMOJI[k] || '💰'} ${z.pagos[k].toFixed(2)}`).join('')}
+                      {z.descuadre != null && Math.abs(z.descuadre) >= 0.005 && <span style={{ color: '#f43f5e' }}> · descuadre {z.descuadre >= 0 ? '+' : ''}{z.descuadre.toFixed(2)} €</span>}
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}            </div>
+          </Plegable>
+          )}
+
+          <Plegable icono="⊘" titulo="Anulaciones" resumen={`${(anulaciones || []).length} en total`}>
+          {/* Auditoría de anulaciones */}
+          <div style={ajusteCard}>
+            {(anulaciones || []).length === 0
+              ? <p style={{ fontSize: '0.82rem', color: 'var(--color-muted)' }}>Sin anulaciones registradas.</p>
+              : (
+                <>
+                  <div style={{ ...ajusteFila, fontWeight: 700 }}>
+                    <span>Importe anulado (total)</span>
+                    <span style={{ color: '#f43f5e' }}>{(anulaciones || []).reduce((s, a) => s + (a.importe || 0), 0).toFixed(2)} €</span>
+                  </div>
+                  {(anulaciones || []).slice(-15).reverse().map(a => (
+                    <div key={a.id} style={{ background: 'var(--color-inset)', borderRadius: '0.5rem', padding: '0.55rem 0.75rem', marginBottom: '0.4rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 700 }}>
+                        <span>M{a.mesaNumero} · {a.cantidad}× {a.nombre}{a.enviado ? ' 🔥' : ''}</span>
+                        <span style={{ color: '#f43f5e' }}>−{(a.importe || 0).toFixed(2)} €</span>
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>
+                        {new Date(a.fecha).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}
+                        {a.por ? ` · 👤 ${a.por}` : ''} · «{a.motivo}»
+                      </div>
                     </div>
                   ))}
-                </div>
+                  <p style={{ fontSize: '0.68rem', color: 'var(--color-faint)', marginTop: '0.25rem' }}>🔥 = ya estaba enviada a cocina/barra. Se muestran las últimas 15.</p>
+                </>
               )}
-            </div>
-
-            {/* Auditoría de anulaciones */}
-            <div style={ajusteCard}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.75rem' }}>
-                <h3 style={ajusteTitulo}>Anulaciones</h3>
-                <span style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{(anulaciones || []).length} en total</span>
-              </div>
-              {(anulaciones || []).length === 0
-                ? <p style={{ fontSize: '0.82rem', color: 'var(--color-muted)' }}>Sin anulaciones registradas.</p>
-                : (
-                  <>
-                    <div style={{ ...ajusteFila, fontWeight: 700 }}>
-                      <span>Importe anulado (total)</span>
-                      <span style={{ color: '#f43f5e' }}>{(anulaciones || []).reduce((s, a) => s + (a.importe || 0), 0).toFixed(2)} €</span>
-                    </div>
-                    {(anulaciones || []).slice(-15).reverse().map(a => (
-                      <div key={a.id} style={{ background: 'var(--color-inset)', borderRadius: '0.5rem', padding: '0.55rem 0.75rem', marginBottom: '0.4rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 700 }}>
-                          <span>M{a.mesaNumero} · {a.cantidad}× {a.nombre}{a.enviado ? ' 🔥' : ''}</span>
-                          <span style={{ color: '#f43f5e' }}>−{(a.importe || 0).toFixed(2)} €</span>
-                        </div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>
-                          {new Date(a.fecha).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}
-                          {a.por ? ` · 👤 ${a.por}` : ''} · «{a.motivo}»
-                        </div>
-                      </div>
-                    ))}
-                    <p style={{ fontSize: '0.68rem', color: 'var(--color-faint)', marginTop: '0.25rem' }}>🔥 = ya estaba enviada a cocina/barra. Se muestran las últimas 15.</p>
-                  </>
-                )}
-            </div>
           </div>
+          </Plegable>
           </>
         )}
 
@@ -730,106 +751,6 @@ export default function PanelAdmin() {
         )}
 
         {/* Tab Tickets del mes */}
-        {tab === 'tickets' && (
-          <div>
-            <EstadoFiscal />
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-              {[
-                { label: `Tickets de ${ahora.toLocaleDateString('es-ES', { month: 'long' })}`, value: delMes.length, color: '#3b82f6' },
-                { label: 'Facturado (mes)', value: `${totalMes.toFixed(2)} €`, color: 'var(--color-accent)' },
-                { label: 'Propinas (mes)', value: `${propinasMes.toFixed(2)} €`, color: '#10b981' },
-              ].map(s => (
-                <div key={s.label} style={{ background: 'var(--color-surface)', borderRadius: '0.75rem', padding: '1rem', border: '1px solid var(--color-border)' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)', marginBottom: '0.25rem' }}>{s.label}</div>
-                  <div style={{ fontWeight: 800, fontSize: '1.4rem', color: s.color }}>{s.value}</div>
-                </div>
-              ))}
-            </div>
-            {dias.length === 0 && <p style={{ color: 'var(--color-muted)', fontSize: '0.9rem' }}>Aún no hay tickets este mes. Se guardan automáticamente al cerrar una mesa.</p>}
-            {dias.map(dia => (
-              <div key={dia} style={{ marginBottom: '1.5rem' }}>
-                <div style={{ fontWeight: 700, marginBottom: '0.625rem', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>{diaBonito(dia)}</span>
-                  <span style={{ color: 'var(--color-accent)' }}>{porDia[dia].reduce((s, r) => s + r.total, 0).toFixed(2)} €</span>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.5rem' }}>
-                  {porDia[dia].map(r => {
-                    // Una devolución es un ticket más, con importe negativo y
-                    // apuntando al que corrige. Se distingue a simple vista, y
-                    // no se le ofrece «Devolver» a una devolución.
-                    const esDevolucion = !!r.rectificaA
-                    const devuelto = devueltoDe(r.id)
-                    const pendiente = pendienteDeDevolver(r, historial.filter(t => t.rectificaA === r.id))
-                    return (
-                    <div key={r.id} style={{ background: 'var(--color-surface)', border: `1px solid ${esDevolucion ? 'var(--tint-warning-bd)' : 'var(--color-border)'}`, borderRadius: '0.625rem', padding: '0.75rem 0.875rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>
-                          {esDevolucion ? '↩ Devolución' : `Mesa ${r.mesaNumero}`}
-                          <span style={{ fontWeight: 400, color: 'var(--color-muted)', fontSize: '0.75rem' }}> · nº {r.numero}</span>
-                        </div>
-                        <div style={{ fontSize: '0.72rem', color: esDevolucion ? 'var(--tint-warning-fg)' : 'var(--color-muted)' }}>
-                          {new Date(r.cerradaEn).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} · {r.total.toFixed(2)} €
-                        </div>
-                        {esDevolucion && r.motivoRectificacion && (
-                          <div style={{ fontSize: '0.7rem', color: 'var(--color-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.motivoRectificacion}</div>
-                        )}
-                        {/* Una devolución a tarjeta emitida pero sin que el
-                            dinero haya vuelto es lo peor de los dos mundos: hay
-                            constancia fiscal y el cliente sigue sin su dinero.
-                            Tiene que verse, y poder reintentarse. */}
-                        {esDevolucion && r.reembolsoEstado === 'pendiente' && (
-                          <div style={{ fontSize: '0.7rem', color: 'var(--tint-warning-fg)', fontWeight: 700 }}>
-                            ⏳ el dinero aún no ha vuelto a la tarjeta
-                          </div>
-                        )}
-                        {esDevolucion && r.reembolsoEstado === 'error' && (
-                          <div style={{ fontSize: '0.7rem', color: '#f43f5e', fontWeight: 700 }}>
-                            ✖ no se pudo devolver a la tarjeta{r.reembolsoError ? `: ${r.reembolsoError}` : ''}
-                          </div>
-                        )}
-                        {esDevolucion && r.reembolsoEstado === 'hecho' && (
-                          <div style={{ fontSize: '0.7rem', color: 'var(--tint-success-fg)' }}>
-                            ✓ devuelto a la tarjeta
-                          </div>
-                        )}
-                        {!esDevolucion && devuelto < 0 && (
-                          <div style={{ fontSize: '0.7rem', color: 'var(--tint-warning-fg)' }}>
-                            devuelto {(-devuelto).toFixed(2)} €{pendiente > 0 ? ` · quedan ${pendiente.toFixed(2)} €` : ' · entero'}
-                          </div>
-                        )}
-                      </div>
-                      <div style={{ display: 'flex', gap: '0.3rem', flexShrink: 0 }}>
-                        {esDevolucion && (r.reembolsoEstado === 'pendiente' || r.reembolsoEstado === 'error') && (
-                          <button onClick={async () => {
-                            const res = await reintentarReembolso(r.id)
-                            toast(res?.ok ? 'Devuelto a la tarjeta' : (res?.error || 'Sigue sin poder devolverse'), res?.ok ? 'success' : 'error')
-                          }} title="Volver a intentar la devolución a la tarjeta"
-                            style={{ background: 'none', color: 'var(--tint-warning-fg)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.4rem 0.6rem', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>↻ Reintentar</button>
-                        )}
-                        {!esDevolucion && pendiente > 0 && (
-                          <button onClick={() => setDevolviendo({ ticket: r, pendiente })} title="Emitir una factura rectificativa"
-                            style={{ background: 'none', color: '#f43f5e', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.4rem 0.6rem', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>↩ Devolver</button>
-                        )}
-                        <button onClick={() => setTicket({
-                          numero: r.mesaNumero, personas: r.personas,
-                          // el desglose de cobro: es lo que dice si el ticket
-                          // está pagado (ver Ticket.jsx)
-                          pagos: r.pagos,
-                          // si es una devolución, el papel tiene que decirlo
-                          rectifica: r.rectificaA
-                            ? { numero: historial.find(t => t.id === r.rectificaA)?.numero ?? '—', motivo: r.motivoRectificacion }
-                            : null,
-                        })} style={{ background: 'var(--color-accent)', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.4rem 0.7rem', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>Ver</button>
-                      </div>
-                    </div>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
         {/* Tab QR */}
         {tab === 'dispositivos' && <Dispositivos />}
 
@@ -1417,6 +1338,163 @@ function OpcionesCarta({ carta, etiquetas, addExtra, removeExtra, addTipoPan, re
 
 const pieAjuste = { fontSize: '0.75rem', color: 'var(--color-muted)', marginBottom: '0.6rem', lineHeight: 1.45 }
 const sufijoAjuste = { fontWeight: 400, fontSize: '0.75rem', color: 'var(--color-muted)' }
+
+// Un bloque que se abre. La caja tiene cuatro cosas que se consultan —los
+// tickets, el cajón, los cierres y las anulaciones— y una sola que se hace a
+// diario: cuadrar y cerrar. Con todo desplegado a la vez, lo de cerrar quedaba
+// enterrado entre listas que se miran una vez al mes.
+function Plegable({ icono, titulo, resumen, children, abiertoAlPrincipio = false }) {
+  const [abierto, setAbierto] = useState(abiertoAlPrincipio)
+  return (
+    <div style={{ marginTop: '1rem' }}>
+      <button onClick={() => setAbierto(v => !v)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.6rem', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.75rem', padding: '0.85rem 1rem', cursor: 'pointer', color: 'var(--color-text)', textAlign: 'left' }}>
+        <span style={{ fontSize: '1.1rem' }}>{icono}</span>
+        <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{titulo}</span>
+        {resumen && <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>{resumen}</span>}
+        <span style={{ marginLeft: 'auto', color: 'var(--color-muted)' }}>{abierto ? '▲' : '▼'}</span>
+      </button>
+      {abierto && <div style={{ marginTop: '1rem' }}>{children}</div>}
+    </div>
+  )
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Los tickets del mes, dentro de Caja.
+//
+// Tenían su propia pestaña, y un ticket es el justificante de un cobro: se
+// viene aquí a reimprimir uno o a DEVOLVER dinero, que es una operación de
+// caja — sale del cajón o vuelve a la tarjeta. Tenerlo en otro sitio obligaba
+// a saltar de pestaña en mitad de cuadrar.
+//
+// Y el buscador: con 60 tickets en un mes, encontrar «el nº 47» o «el de la
+// mesa 3» era bajar scrolleando. Solo busca en lo que ya está cargado —el
+// historial viene por ventana desde el último cierre— así que no promete
+// encontrar uno de hace tres meses.
+// ────────────────────────────────────────────────────────────────────────────
+function TicketsDelMes({ delMes, dias, porDia, diaBonito, mesNombre, totalMes, propinasMes, historial, devueltoDe, setDevolviendo, setTicket, reintentarReembolso }) {
+  const [busca, setBusca] = useState('')
+  const q = busca.trim().toLowerCase()
+  const coincide = (r) => !q || String(r.numero).includes(q) || String(r.mesaNumero ?? '').includes(q)
+  const diasVisibles = dias.filter(d => porDia[d].some(coincide))
+
+  return (
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
+        {[
+          { label: `Tickets de ${mesNombre}`, value: delMes.length, color: '#3b82f6' },
+          { label: 'Facturado (mes)', value: `${totalMes.toFixed(2)} €`, color: 'var(--color-accent)' },
+          { label: 'Propinas (mes)', value: `${propinasMes.toFixed(2)} €`, color: '#10b981' },
+        ].map(s => (
+          <div key={s.label} style={{ background: 'var(--color-surface)', borderRadius: '0.75rem', padding: '0.85rem', border: '1px solid var(--color-border)' }}>
+            <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)', marginBottom: '0.2rem' }}>{s.label}</div>
+            <div style={{ fontWeight: 800, fontSize: '1.25rem', color: s.color }}>{s.value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ position: 'relative', marginBottom: '1rem' }}>
+        <input value={busca} onChange={e => setBusca(e.target.value)} inputMode="numeric" placeholder="🔍 Buscar por nº de ticket o de mesa…" style={{ ...inputStyle, marginBottom: 0 }} />
+        {busca && <button onClick={() => setBusca('')} aria-label="Limpiar búsqueda" style={{ ...iconBtn, position: 'absolute', right: '0.2rem', top: '50%', transform: 'translateY(-50%)' }}>✕</button>}
+      </div>
+      {q && (
+        <p style={{ fontSize: '0.8rem', color: 'var(--color-muted)', marginBottom: '0.75rem' }}>
+          {dias.reduce((s, d) => s + porDia[d].filter(coincide).length, 0)} de {delMes.length} tickets coinciden con «{busca}»
+        </p>
+      )}
+
+      {dias.length === 0 && <p style={{ color: 'var(--color-muted)', fontSize: '0.9rem' }}>Aún no hay tickets este mes. Se guardan automáticamente al cerrar una mesa.</p>}
+      {diasVisibles.map(dia => {
+        const delDia = porDia[dia].filter(coincide)
+        return (
+        <div key={dia} style={{ marginBottom: '1.5rem' }}>
+          <div style={{ fontWeight: 700, marginBottom: '0.625rem', display: 'flex', justifyContent: 'space-between' }}>
+            <span>{diaBonito(dia)}</span>
+            <span style={{ color: 'var(--color-accent)' }}>{delDia.reduce((s, r) => s + r.total, 0).toFixed(2)} €</span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.5rem' }}>
+            {delDia.map(r => {
+              // Una devolución es un ticket más, con importe negativo y
+              // apuntando al que corrige. Se distingue a simple vista, y no se
+              // le ofrece «Devolver» a una devolución.
+              const esDevolucion = !!r.rectificaA
+              const devuelto = devueltoDe(r.id)
+              const pendiente = pendienteDeDevolver(r, historial.filter(t => t.rectificaA === r.id))
+              return (
+              <div key={r.id} style={{ background: 'var(--color-surface)', border: `1px solid ${esDevolucion ? 'var(--tint-warning-bd)' : 'var(--color-border)'}`, borderRadius: '0.625rem', padding: '0.75rem 0.875rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>
+                    {esDevolucion ? '↩ Devolución' : `Mesa ${r.mesaNumero}`}
+                    <span style={{ fontWeight: 400, color: 'var(--color-muted)', fontSize: '0.75rem' }}> · nº {r.numero}</span>
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: esDevolucion ? 'var(--tint-warning-fg)' : 'var(--color-muted)' }}>
+                    {new Date(r.cerradaEn).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} · {r.total.toFixed(2)} €
+                  </div>
+                  {esDevolucion && r.motivoRectificacion && (
+                    <div style={{ fontSize: '0.7rem', color: 'var(--color-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.motivoRectificacion}</div>
+                  )}
+                  {/* Una devolución a tarjeta emitida pero sin que el dinero
+                      haya vuelto es lo peor de los dos mundos: hay constancia
+                      fiscal y el cliente sigue sin su dinero. Tiene que verse,
+                      y poder reintentarse. */}
+                  {esDevolucion && r.reembolsoEstado === 'pendiente' && (
+                    <div style={{ fontSize: '0.7rem', color: 'var(--tint-warning-fg)', fontWeight: 700 }}>
+                      ⏳ el dinero aún no ha vuelto a la tarjeta
+                    </div>
+                  )}
+                  {esDevolucion && r.reembolsoEstado === 'error' && (
+                    <div style={{ fontSize: '0.7rem', color: '#f43f5e', fontWeight: 700 }}>
+                      ✖ no se pudo devolver a la tarjeta{r.reembolsoError ? `: ${r.reembolsoError}` : ''}
+                    </div>
+                  )}
+                  {esDevolucion && r.reembolsoEstado === 'hecho' && (
+                    <div style={{ fontSize: '0.7rem', color: 'var(--tint-success-fg)' }}>
+                      ✓ devuelto a la tarjeta
+                    </div>
+                  )}
+                  {!esDevolucion && devuelto < 0 && (
+                    <div style={{ fontSize: '0.7rem', color: 'var(--tint-warning-fg)' }}>
+                      devuelto {(-devuelto).toFixed(2)} €{pendiente > 0 ? ` · quedan ${pendiente.toFixed(2)} €` : ' · entero'}
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: '0.3rem', flexShrink: 0 }}>
+                  {esDevolucion && (r.reembolsoEstado === 'pendiente' || r.reembolsoEstado === 'error') && (
+                    <button onClick={async () => {
+                      const res = await reintentarReembolso(r.id)
+                      toast(res?.ok ? 'Devuelto a la tarjeta' : (res?.error || 'Sigue sin poder devolverse'), res?.ok ? 'success' : 'error')
+                    }} title="Volver a intentar la devolución a la tarjeta"
+                      style={{ background: 'none', color: 'var(--tint-warning-fg)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.4rem 0.6rem', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>↻ Reintentar</button>
+                  )}
+                  {!esDevolucion && pendiente > 0 && (
+                    <button onClick={() => setDevolviendo({ ticket: r, pendiente })} title="Emitir una factura rectificativa"
+                      style={{ background: 'none', color: '#f43f5e', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.4rem 0.6rem', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>↩ Devolver</button>
+                  )}
+                  <button onClick={() => setTicket({
+                    numero: r.mesaNumero, personas: r.personas,
+                    // el desglose de cobro: es lo que dice si el ticket está
+                    // pagado (ver Ticket.jsx)
+                    pagos: r.pagos,
+                    // si es una devolución, el papel tiene que decirlo
+                    rectifica: r.rectificaA
+                      ? { numero: historial.find(t => t.id === r.rectificaA)?.numero ?? '—', motivo: r.motivoRectificacion }
+                      : null,
+                  })} style={{ background: 'var(--color-accent)', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.4rem 0.7rem', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>Ver</button>
+                </div>
+              </div>
+              )
+            })}
+          </div>
+        </div>
+        )
+      })}
+      {q && diasVisibles.length === 0 && delMes.length > 0 && (
+        <p style={{ color: 'var(--color-muted)', fontSize: '0.9rem' }}>
+          Ningún ticket de este mes lleva ese número. Ojo: aquí solo están los del mes en curso.
+        </p>
+      )}
+    </div>
+  )
+}
 
 function CampoGuardado({ valor, onGuardar, ...props }) {
   const [txt, setTxt] = useState(String(valor ?? ''))

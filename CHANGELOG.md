@@ -5,6 +5,22 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.121.0] - 2026-09-09
+
+### Cambiado
+- **La caja se ordena por lo que hay que hacer, no por lo que hay que consultar.** Era una rejilla con cuatro tarjetas grandes desplegadas a la vez —arqueo, cierre, movimientos del cajón y anulaciones—, y lo único que se hace a diario, **cuadrar y cerrar**, quedaba enterrado entre listas que se miran una vez al mes. Ahora:
+  - **Arriba, lo que reclama algo HOY**: los cobros sin cuenta que hay que devolver y el **estado fiscal** — «tickets sin registrar en Hacienda» hay que atenderlo **el mismo día** o ya no entran (aviso que estaba escondido en la pestaña de Tickets).
+  - **En medio, la caja abierta y el cierre Z.**
+  - **Plegado, lo que se consulta**: los tickets del mes, el cajón, los cierres anteriores y las anulaciones.
+- **La pestaña «🧾 Tickets» desaparece: un ticket es el justificante de un cobro.** Se viene aquí a reimprimir uno o a **devolver dinero**, que es una operación de caja — sale del cajón o vuelve a la tarjeta. Tenerlo en otra pestaña obligaba a saltar en mitad de cuadrar. Va plegado dentro de Caja, con todo lo de antes (devolver, reintentar un reembolso que no llegó, ver el ticket).
+
+### Añadido
+- **Buscador de tickets por número o por mesa.** Con sesenta tickets en un mes, encontrar «el nº 47» o «el de la mesa 3» era bajar scrolleando. Busca en los del mes en curso —el historial se baja por ventana, no entero— y lo dice cuando no encuentra nada, para no hacer creer que ese ticket no existe.
+
+### Arreglado
+- **Una caja sin ventas pero con movimientos no se podía cerrar.** El botón exigía al menos un ticket, así que un lunes en el que no se vende nada pero se sacan 50 € para pagar al del pan dejaba ese movimiento **colgando en la caja abierta para siempre**, ensuciando el arqueo de los días siguientes. Ahora se puede cerrar con ventas **o** con movimientos, y el aviso de confirmación lo dice con esas palabras.
+- Los bloques que se mudaron a plegables **repetían su título**: «Entradas y salidas del cajón · 1 en esta caja» y justo debajo, otra vez, «Entradas y salidas de caja · 1 en esta caja». Ahora el título lo pone solo el plegable.
+
 ## [0.120.0] - 2026-09-09
 
 ### Añadido
