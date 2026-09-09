@@ -1,12 +1,12 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.117.0 · 935 tests JS + 37 pruebas de SQL en verde · CI y deploy en
+**Estado: v0.118.0 · 951 tests JS + 37 pruebas de SQL en verde · CI y deploy en
 verde · repo limpio · 0 vulnerabilidades.** Última sesión: 2026-09-08.
 
 Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a uno:
 [docs/AUDITORIA.md](docs/AUDITORIA.md) (es historia, no estado).
 
-### Lo último — dieciocho releases, del 26 de agosto al 8 de septiembre
+### Lo último — diecinueve releases, del 26 de agosto al 9 de septiembre
 
 | | | |
 |---|---|---|
@@ -31,6 +31,7 @@ Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a un
 | **v0.115.0** | 08/09 | **Renumerar mesas** (comprobando que no se repitan) y **zonas que se eligen**, con renombrado en todas sus mesas de una vez. |
 | **v0.116.0** | 08/09 | **Renombrar dispositivos y ver para qué se usan** (cada aparato apunta en qué pantalla está). Y «último uso» llevaba desde siempre diciendo casi cualquier cosa. |
 | **v0.117.0** | 08/09 | Las tarjetas de arriba de Admin dejan de medir «Categorías 3»: **Facturado hoy · Tickets hoy · Mesas ocupadas · Sin cobrar en sala**. |
+| **v0.118.0** | 09/09 | **La carta se gestiona desde la carta**: crear apartados, renombrarlos, su icono, su orden (el que ve el cliente) y a qué impresora van. Lo de «Ajustes» se muda a Carta y esa pestaña pasa a ser **🖨 Impresión**. |
 
 **Lo que hay que llevarse de la sesión**, que se repitió tres veces con distinta
 cara: *«éxito» que solo significa «se lo he dado a otro»*. El spooler aceptaba
@@ -286,7 +287,7 @@ cada bar, `sk_live_` suya + rehacer el webhook con
 ## Comandos
 
 ```bash
-npm test                           # 935 tests, 10 pantallas cubiertas
+npm test                           # 951 tests, 10 pantallas cubiertas
 npm run test:sql                   # 37 pruebas del dinero, contra la base real
 npm run lint
 npm run permisos                   # ¿se ha abierto algo sin querer?
@@ -619,7 +620,7 @@ saliendo, pero conviene fijar el precio sabiéndolo.
   7 días / Este mes / Mes pasado), con CSV y las devoluciones restando.
 - **Monitorización**: el bar deja constancia de lo que se rompe en su propia
   base y `npm run salud` lo lee. Encontró sola dos fallos de producción.
-- **935 tests JS** (las **diez** pantallas cubiertas) **+ 37 pruebas de SQL**
+- **951 tests JS** (las **diez** pantallas cubiertas) **+ 37 pruebas de SQL**
   contra la base real, lint limpio, CI y deploy en verde, **0 vulnerabilidades**
   en todo el árbol de dependencias.
 - **Arqueo de caja completo** (v0.106.0): fondo de cambio y entradas/salidas del
