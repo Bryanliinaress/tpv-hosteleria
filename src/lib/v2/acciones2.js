@@ -10,6 +10,7 @@ import { revisarNuevoEmpleado, revisarCambioEmpleado, revisarBajaEmpleado } from
 import { rolDe } from '../roles'
 import { revisarNumeroMesa, revisarNombreZona, revisarAltaMesas } from '../sala'
 import { revisarNombreApartado, moverEnLista, emojiPorTipo } from '../carta'
+import { revisarCambiosLocal } from '../local'
 import { efectivoEsperado, descuadreDe, saldoMovimientos, revisarMovimiento } from '../caja'
 import { registrarTicket } from '../fiscal'
 import { getLocalId, cargarTodo, cargarSala, cargarComandas, cargarReservas, cargarCarta, cargarLocal, cargarHistorial, cargarFichajes, cargarCierres, cargarMovimientosCaja } from './estado'
@@ -559,7 +560,14 @@ export function accionesV2b() {
 
     pedirFichajesDe: (mes) => { cargarFichajes(mes) },
 
-    updateLocal: (cambios) => actualizarConfig(cambios).catch(err),
+    // Síncrona al comprobar y escritura por detrás: la pantalla lee `r.ok` en
+    // el acto para devolver el campo a lo que había si no cuela.
+    updateLocal: (cambios) => {
+      const r = revisarCambiosLocal(cambios)
+      if (!r.ok) { toast(r.error, 'error'); return r }
+      actualizarConfig(r.cambios).catch(err)
+      return { ok: true }
+    },
     updateEtiquetas: (cambios) => actualizarConfig({ carta: { etiquetas: { ...(cartaCfg().etiquetas || {}), ...cambios } } }).catch(err),
     updateReservasConfig: (cambios) => actualizarConfig({ reservas: cambios }).catch(err),
 
