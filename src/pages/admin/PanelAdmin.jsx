@@ -221,6 +221,7 @@ export default function PanelAdmin() {
           { id: 'reservas', label: `📅 Reservas${reservasHoy ? ` (${reservasHoy})` : ''}` },
           { id: 'caja', label: '💰 Caja' },
           { id: 'informes', label: '📊 Informes' },
+          { id: 'dispositivos', label: '🔗 Dispositivos' },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
             background: 'none', border: 'none', padding: '0.875rem 1.1rem', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, minHeight: '48px',
@@ -668,6 +669,11 @@ export default function PanelAdmin() {
           </>
         )}
 
+        {/* Tab Dispositivos: quién puede entrar al TPV de este bar. Tiene
+            pestaña propia a propósito — es lo que hay que encontrar rápido
+            cuando un aparato se queda fuera. */}
+        {tab === 'dispositivos' && <Dispositivos />}
+
         {/* Tab Local (identidad del negocio) */}
         {tab === 'local' && (<>
           {/* Un hueco vacío aquí no se nota hasta que sale un ticket sin
@@ -737,13 +743,10 @@ export default function PanelAdmin() {
             </div>
           </div>
 
-          {/* Los aparatos y cómo imprimen tenían pestaña propia cada uno. Son
-              lo mismo que esto: cómo está montado este bar — se tocan al
-              montarlo y casi nunca más. */}
-          <Plegable icono="🔗" titulo="Aparatos con acceso" resumen="quién puede entrar al TPV de este bar">
-            <Dispositivos />
-          </Plegable>
-
+          {/* La impresión sí vive aquí: es cómo está montado este bar y se toca
+              al montarlo. Los DISPOSITIVOS volvieron a su pestaña — son la
+              salida de emergencia cuando alguien se queda fuera, y ahí dentro
+              costaba encontrarlos justo en el peor momento. */}
           <Plegable icono="🖨" titulo="Impresión" resumen="cómo imprime ESTE dispositivo">
             <div style={{ maxWidth: '640px' }}><ConfigImpresora /></div>
           </Plegable>

@@ -5,6 +5,20 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.126.0] - 2026-09-10
+
+### Cambiado
+- **«🔗 Dispositivos» vuelve a tener su propia pestaña.** En la v0.123.0 la metí dentro de Local, plegada, con el argumento de que es «cómo está montado el bar» y se toca al montarlo. Es verdad a medias: también es **la salida de emergencia** cuando un aparato se queda fuera, y ahí dentro costaba encontrarla justo en el peor momento. La configuración de impresión sí se queda en Local, que esa sí se toca una vez.
+
+### Añadido
+- **De quién es cada aparato.** Un dispositivo ya decía cómo se llama y para qué se usa; ahora se le puede poner dueño: «la PDA de María». Con cuatro tablets iguales, eso es lo que dice **a quién dejas sin aparato** al quitarle el acceso — o qué aparatos eran de quien ya no trabaja aquí.
+
+  «Sin asignar» es una respuesta válida, no un hueco por rellenar: el aparato fijo de la barra no es de nadie en particular. Se cambia con **PIN de encargado**, como renombrar o revocar, y comprobado en el servidor.
+
+  ⚠️ **Es información, no permisos.** Asignarle un aparato a María **no** hace que ese aparato entre como María ni le dé sus permisos: quien identifica a la persona sigue siendo **el PIN**. La pantalla lo dice con esas palabras, para que nadie lo dé por hecho.
+
+- **Dar de baja a un empleado no deja sin acceso a su aparato**: la columna es `on delete set null`, no `cascade`. Comprobado contra la base creando un empleado, asignándole un aparato y borrándolo: el aparato siguió `aprobado`, solo se quedó sin dueño. Nueva columna `dispositivos.empleado_id` y RPC `asignar_dispositivo` (migración `20260910T42`).
+
 ## [0.125.0] - 2026-09-09
 
 Segunda vuelta a la carta. La v0.118.0 arregló los **apartados**; esto es lo mismo un nivel más abajo, en los **productos**.

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { backendV2 } from '../lib/repo'
 import { toast, pedirTexto, confirmar } from '../store/useUI'
+import { useStore } from '../store/useStore'
 import { PANTALLAS } from '../lib/roles'
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -15,6 +16,9 @@ import { PANTALLAS } from '../lib/roles'
 export default function Dispositivos() {
   const [lista, setLista] = useState(null)
   const [ocupado, setOcupado] = useState(null)
+  // La plantilla, para poder decir de quién es cada aparato. Los que ya no
+  // están de turno también salen: un aparato puede seguir siendo suyo.
+  const empleados = useStore(s => s.empleados)
 
   const cargar = useCallback(async () => {
     const { data, error } = await supabase.rpc('dispositivos_del_local')
@@ -83,6 +87,22 @@ export default function Dispositivos() {
     if (ok) { toast('Nombre cambiado', 'success'); cargar() }
   }
 
+  // De quién es el aparato. Es INFORMACIÓN, no permisos: quien identifica a la
+  // persona sigue siendo el PIN. Con cuatro tablets iguales, saber a quién le
+  // quitas el acceso al revocar una es la diferencia entre hacerlo tranquilo y
+  // dejar a alguien tirado en mitad de un servicio.
+  const asignar = async (d, empleadoId) => {
+    setOcupado(d.id)
+    const ok = await conPin(empleadoId ? 'Para asignarle el aparato:' : 'Para dejarlo sin asignar:', (pin) =>
+      supabase.rpc('asignar_dispositivo', { p_id: d.id, p_empleado: empleadoId || null, p_pin: pin }))
+    setOcupado(null)
+    if (ok) {
+      const quien = empleados.find(e => e.id === empleadoId)?.nombre
+      toast(quien ? `«${d.nombre}» es de ${quien}` : `«${d.nombre}» queda sin asignar`, 'success')
+      cargar()
+    }
+  }
+
   if (lista === null) return <p style={{ color: 'var(--color-muted)' }}>Cargando…</p>
 
   const pendientes = lista.filter(d => d.estado === 'pendiente')
@@ -136,6 +156,19 @@ export default function Dispositivos() {
                   : <>Sin usar todavía · </>}
                 última vez {fecha(d.ultimo_uso)}
               </div>
+              {/* De quién es. Con cuatro tablets iguales, el nombre no basta:
+                  esto es lo que dice a quién dejas sin aparato al revocar. */}
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.4rem', fontSize: '0.76rem', color: 'var(--color-muted)' }}>
+                👤 De
+                <select value={d.empleado_id || ''} disabled={ocupado === d.id}
+                  onChange={e => asignar(d, e.target.value)}
+                  style={{ background: 'var(--color-inset)', border: '1px solid var(--color-border)', borderRadius: '0.4rem', padding: '0.25rem 0.4rem', color: 'var(--color-text)', fontSize: '0.76rem', maxWidth: '11rem' }}>
+                  <option value="">nadie en concreto</option>
+                  {empleados.map(e => (
+                    <option key={e.id} value={e.id}>{e.nombre}{e.activo ? '' : ' (sin turno)'}</option>
+                  ))}
+                </select>
+              </label>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem', marginLeft: 'auto' }}>
               <button disabled={ocupado === d.id} onClick={() => renombrar(d)} title="Cambiar el nombre" style={btnSuave}>
@@ -154,6 +187,10 @@ export default function Dispositivos() {
         use entra con <b>su PIN</b>: eso es lo que distingue a un camarero de un
         encargado. Si un aparato se pierde, quítale el acceso aquí y dejará de
         entrar en el momento.
+        <br /><br />
+        Decir <b>de quién</b> es un aparato sirve para saber a quién dejas sin
+        él al quitarle el acceso: <b>no le da los permisos de esa persona</b>.
+        Quien entra sigue siendo quien teclea el PIN.
       </p>
     </div>
   )
