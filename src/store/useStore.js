@@ -9,7 +9,7 @@ import { rolDe } from '../lib/roles'
 import { revisarNumeroMesa, revisarNombreZona, revisarAltaMesas } from '../lib/sala'
 import { revisarNombreApartado, moverEnLista, emojiPorTipo, moverProductoEnCarta, copiaDeProducto } from '../lib/carta'
 import { revisarCambiosLocal } from '../lib/local'
-import { revisarPlatoLibre } from '../lib/fueraDeCarta'
+import { revisarPlatoLibre, revisarCambioDePrecio } from '../lib/fueraDeCarta'
 import { totalDeMesa } from '../lib/dinero'
 
 // Aviso al usuario desde el store. Import perezoso para no acoplar el estado a
@@ -363,6 +363,7 @@ export const useStore = create(persist((set, get) => ({
 
   // ── AUDITORÍA DE ANULACIONES ───────────────────────────
   anulaciones: [], // { id, fecha, mesaNumero, nombre, cantidad, importe, enviado, motivo, por }
+  cambiosPrecio: [], // { id, fecha, mesaNumero, nombre, cantidad, antes, despues, diferencia, motivo, por }
 
   // ── FICHAJES (registro de jornada, RD-ley 8/2019) ──────
   fichajes: [], // { id, empleadoId, nombre, entrada, salida } (ISO); salida null = turno abierto
@@ -583,6 +584,42 @@ export const useStore = create(persist((set, get) => ({
       }),
     }))
     return { ok: true }
+  },
+
+  // Le cambia el precio a una línea que ya lo tenía: el menú del día a precio
+  // de menú, el precio hecho a la mesa grande, el plato que salió tarde.
+  //
+  // La otra salida —anular y volver a meterlo— deja una anulación falsa en la
+  // auditoría y una comanda repetida en cocina. Y como cambiar un precio es
+  // literalmente cómo se va el dinero de un bar sin que nadie robe nada, queda
+  // registro de cuánto valía, cuánto vale, quién y por qué.
+  cambiarPrecio: (mesaId, personaId, uid, precio, opts = {}) => {
+    const state = get()
+    const mesa = state.mesas.find(m => m.id === mesaId)
+    const persona = mesa?.personas.find(p => p.id === personaId)
+    const item = persona?.items.find(i => i.uid === uid)
+    const r = revisarCambioDePrecio(item, precio)
+    if (!r.ok) return r
+    // Una línea de quien ya pagó está dentro de un ticket fiscal ya emitido:
+    // cambiarla dejaría la cuenta y el ticket diciendo cosas distintas.
+    if (persona.pagado) return { ok: false, error: 'Esa cuenta ya está pagada: para eso está la devolución' }
+    const { antes, despues, diferencia } = r.valor
+    set(s => ({
+      mesas: s.mesas.map(m => m.id !== mesaId ? m : {
+        ...m,
+        personas: m.personas.map(p => p.id !== personaId ? p : {
+          ...p,
+          items: p.items.map(i => i.uid === uid ? { ...i, precio: despues } : i),
+        }),
+      }),
+      cambiosPrecio: [...(s.cambiosPrecio || []), {
+        id: crearId('cp'), _ts: Date.now(), fecha: new Date().toISOString(),
+        mesaNumero: mesa.numero, nombre: item.nombre, cantidad: item.cantidad,
+        antes, despues, diferencia,
+        motivo: (opts.motivo || '').trim() || '—', por: opts.por || null,
+      }],
+    }))
+    return { ok: true, valor: r.valor }
   },
 
   // Anula una línea (pendiente o ya enviada), retira su comanda de cocina/barra
@@ -1520,6 +1557,7 @@ export const useStore = create(persist((set, get) => ({
       .map(t => (Date.now() - new Date(t.cerradaEn).getTime() > DIAS_DETALLE * 86400000 ? compactarTicket(t) : t)),
     cierres: recientes(state.cierres, 'hasta', DIAS_LARGOS, 500),
     anulaciones: recientes(state.anulaciones, 'fecha', DIAS_TICKETS, 1000),
+    cambiosPrecio: recientes(state.cambiosPrecio, 'fecha', DIAS_TICKETS, 1000),
     // los fichajes son NÓMINA: se conservan mucho más y ocupan poquísimo
     fichajes: recientes(state.fichajes, 'entrada', DIAS_LARGOS, 5000),
     reservas: state.reservas,

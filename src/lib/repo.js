@@ -151,6 +151,11 @@ export const personal = {
   // Un plato que no está en la carta, con el precio puesto a mano. Vive en
   // `personal` y no en `qr` a propósito: su RPC NO está concedida a `anon`,
   // porque poder ponerle precio a lo que pides es poder invitarte.
+  // Cambia el precio de una línea NO cobrada dejando registro de quién y por
+  // qué: cambiar un precio es cómo se va el dinero de un bar sin que nadie robe.
+  cambiarPrecioLinea: (lineaId, precio, motivo, por) =>
+    rpc('cambiar_precio_linea', { p_linea: lineaId, p_precio: precio, p_motivo: motivo ?? null, p_por: por ?? null }),
+
   agregarLibre: (comensalId, { nombre, precio, cantidad = 1, tipo = 'comida' }) =>
     rpc('personal_agregar_libre', {
       p_comensal: comensalId, p_nombre: nombre, p_precio: precio,

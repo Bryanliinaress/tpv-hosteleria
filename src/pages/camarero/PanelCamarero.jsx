@@ -8,6 +8,7 @@ import ReservasManager from '../../components/ReservasManager'
 import BotonSalir from '../../components/BotonSalir'
 import PedirPda from '../pda/PedirPda'
 import FueraDeCarta from '../../components/FueraDeCarta'
+import CambiarPrecio from '../../components/CambiarPrecio'
 import CobroMesa from '../pda/CobroMesa'
 import { totalDe, totalDeMesa, pendienteDeMesa } from '../../lib/dinero'
 import { resumenSala } from '../../lib/sala'
@@ -44,6 +45,7 @@ export default function PanelCamarero() {
   const [mover, setMover] = useState(null)                // { tipo:'mesa'|'comensal', personaId? }
   const [moverLinea, setMoverLinea] = useState(null)      // { personaId, uid, nombre }
   const [libre, setLibre] = useState(null)                // { personaId } → plato fuera de carta
+  const [precioDe, setPrecioDe] = useState(null)          // { personaId, item } → cambiar el precio
   const [reservando, setReservando] = useState(false)
   const [reservaForm, setReservaForm] = useState({ nombre: '', hora: '', personas: 2 })
 
@@ -329,18 +331,30 @@ export default function PanelCamarero() {
                       {p.items.length === 0
                         ? <p style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>Sin pedidos aún</p>
                         : p.items.map(item => (
-                          <div key={item.uid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', padding: '0.2rem 0', borderBottom: '1px solid var(--color-border)', gap: '0.4rem' }}>
-                            <span style={{ flex: 1, color: item.estado === 'pendiente' ? '#f59e0b' : 'var(--color-muted)' }}>
+                          // Con un botón más en la fila, a 375 px el nombre se
+                          // quedaba en una letra por línea (mismo fallo que la
+                          // lista de dispositivos en la v0.116.0). Con una base
+                          // de ancho, los botones se bajan solos a su línea.
+                          <div key={item.uid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', fontSize: '0.8rem', padding: '0.2rem 0', borderBottom: '1px solid var(--color-border)', gap: '0.4rem' }}>
+                            <span style={{ flex: '1 1 9rem', color: item.estado === 'pendiente' ? '#f59e0b' : 'var(--color-muted)' }}>
                               {item.cantidad}× {item.nombre}
                               {item.estado === 'pendiente' && <span style={{ marginLeft: '4px', fontSize: '0.7rem' }}>●</span>}
                             </span>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                            {/* Botones y precio en el MISMO bloque: al bajarse
+                                a su línea en un móvil, el importe se baja con
+                                ellos en vez de quedarse solo en una tercera. */}
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', marginLeft: 'auto' }}>
                               <button onClick={() => cambiarCantidad(mesa.id, p.id, item.uid, -1)} disabled={item.cantidad <= 1} title="Una menos" style={miniBtn(item.cantidad <= 1)}>−</button>
                               <button onClick={() => cambiarCantidad(mesa.id, p.id, item.uid, 1)} title="Una más" style={miniBtn(false)}>+</button>
                               {mesa.personas.length > 1 && <button onClick={() => setMoverLinea({ personaId: p.id, uid: item.uid, nombre: item.nombre })} title="Mover a otro comensal" style={miniBtn(false)}>⇄</button>}
+                              {/* El menú del día a precio de menú, el precio
+                                  hecho a la mesa grande, el plato que salió
+                                  tarde. Antes esto se hacía anulando y volviendo
+                                  a meterlo: anulación falsa y comanda repetida. */}
+                              {!p.pagado && <button onClick={() => setPrecioDe({ personaId: p.id, item })} title="Cambiar el precio" style={miniBtn(false)}>€</button>}
                               <button onClick={async () => { const motivo = await pedirTexto({ titulo: `Anular ${item.cantidad}× ${item.nombre}`, mensaje: 'Indica el motivo — queda registrado en la auditoría.', placeholder: 'Motivo (error, cliente cambió…)', confirmar: 'Anular' }); if (motivo === null) return; anularItem(mesa.id, p.id, item.uid, { motivo, por: yo }); toast('Línea anulada', 'success') }} title="Anular" style={{ background: 'none', border: 'none', color: '#f43f5e', cursor: 'pointer', fontSize: '0.85rem', padding: '0 0.15rem' }}>✕</button>
+                              <span style={{ fontWeight: 600, whiteSpace: 'nowrap', marginLeft: '0.35rem' }}>{(item.precio * item.cantidad).toFixed(2)} €</span>
                             </span>
-                            <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{(item.precio * item.cantidad).toFixed(2)} €</span>
                           </div>
                         ))
                       }
@@ -468,6 +482,11 @@ export default function PanelCamarero() {
             setCobro(null)
           }}
         />
+      )}
+
+      {/* Cambiar el precio de una línea, con motivo y auditoría */}
+      {precioDe && mesa && (
+        <CambiarPrecio mesa={mesa} personaId={precioDe.personaId} item={precioDe.item} por={yo} onCerrar={() => setPrecioDe(null)} />
       )}
 
       {/* Un plato sin ficha, con el precio a mano (solo personal) */}

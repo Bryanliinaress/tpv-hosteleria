@@ -29,7 +29,7 @@ import { efectivoEsperado, descuadreDe, saldoMovimientos, movimientosDesde, cobr
 const emptyForm = { nombre: '', nombreEn: '', categoria: '', descripcion: '', descripcionEn: '', alergenos: [], imagen: '', conFormatos: false, precios: {}, precio: '', menu: null, ivaPct: '' }
 
 export default function PanelAdmin() {
-  const { carta, mesas, historial, cierres, anulaciones, pagosSinCuenta, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, moverProducto, duplicarProducto, reponerTodo, resetDatos, addMesa, removeMesa, updateMesa, renumerarMesa, renombrarZona, moverZona, addCategoria, removeCategoria, updateCategoria, moverCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, crearFichaje, editarFichaje, borrarFichaje, pedirFichajesDe, reintentarReembolso, movimientosCaja, registrarMovimiento } = useStore()
+  const { carta, mesas, historial, cierres, anulaciones, cambiosPrecio, pagosSinCuenta, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, moverProducto, duplicarProducto, reponerTodo, resetDatos, addMesa, removeMesa, updateMesa, renumerarMesa, renombrarZona, moverZona, addCategoria, removeCategoria, updateCategoria, moverCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, crearFichaje, editarFichaje, borrarFichaje, pedirFichajesDe, reintentarReembolso, movimientosCaja, registrarMovimiento } = useStore()
   const hoyStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
   const reservasHoy = reservas.filter(r => r.fecha === hoyStr && r.estado === 'confirmada').length
   const [tab, setTab] = useState('carta')
@@ -637,6 +637,42 @@ export default function PanelAdmin() {
             )}            </div>
           </Plegable>
           )}
+
+          {/* Cambiar un precio es la forma en que el dinero se va de un bar
+              sin que nadie robe nada. Se mira aquí, al lado de las
+              anulaciones, porque se miran por lo mismo y a la vez. */}
+          <Plegable icono="💶" titulo="Cambios de precio" resumen={`${(cambiosPrecio || []).length} en total`}>
+          <div style={ajusteCard}>
+            {(cambiosPrecio || []).length === 0
+              ? <p style={{ fontSize: '0.82rem', color: 'var(--color-muted)' }}>Sin cambios de precio registrados.</p>
+              : (
+                <>
+                  <div style={{ ...ajusteFila, fontWeight: 700 }}>
+                    <span>Diferencia acumulada</span>
+                    {(() => {
+                      const d = (cambiosPrecio || []).reduce((s2, x) => s2 + (x.diferencia || 0), 0)
+                      return <span style={{ color: d < 0 ? '#f43f5e' : '#10b981' }}>{d > 0 ? '+' : ''}{d.toFixed(2)} €</span>
+                    })()}
+                  </div>
+                  {(cambiosPrecio || []).slice(-15).reverse().map(x => (
+                    <div key={x.id} style={{ background: 'var(--color-inset)', borderRadius: '0.5rem', padding: '0.55rem 0.75rem', marginBottom: '0.4rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 700, gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <span>M{x.mesaNumero} · {x.cantidad}× {x.nombre}</span>
+                        <span style={{ color: (x.diferencia || 0) < 0 ? '#f43f5e' : '#10b981' }}>
+                          {(x.antes || 0).toFixed(2)} → {(x.despues || 0).toFixed(2)} €
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>
+                        {new Date(x.fecha).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}
+                        {x.por ? ` · 👤 ${x.por}` : ''} · «{x.motivo}»
+                      </div>
+                    </div>
+                  ))}
+                  <p style={{ fontSize: '0.68rem', color: 'var(--color-faint)', marginTop: '0.25rem' }}>Se muestran los últimos 15.</p>
+                </>
+              )}
+          </div>
+          </Plegable>
 
           <Plegable icono="⊘" titulo="Anulaciones" resumen={`${(anulaciones || []).length} en total`}>
           {/* Auditoría de anulaciones */}
