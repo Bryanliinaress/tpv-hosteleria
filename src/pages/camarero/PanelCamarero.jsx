@@ -7,6 +7,7 @@ import MetodoPago from '../../components/MetodoPago'
 import ReservasManager from '../../components/ReservasManager'
 import BotonSalir from '../../components/BotonSalir'
 import PedirPda from '../pda/PedirPda'
+import FueraDeCarta from '../../components/FueraDeCarta'
 import CobroMesa from '../pda/CobroMesa'
 import { totalDe, totalDeMesa, pendienteDeMesa } from '../../lib/dinero'
 import { resumenSala } from '../../lib/sala'
@@ -29,7 +30,7 @@ function haceCuanto(iso) {
 }
 
 export default function PanelCamarero() {
-  const { mesas, pedidosCocina, pedidosBarra, avisos, historial, reservas, liberarMesa, atenderAviso, pagarParte, cobrarMesa, reservarMesa, cancelarReserva, sentarReserva, unirseAMesa, asignarCamarero, agruparMesas, separarMesas, marcharSiguiente, cambiarCantidad, moverItem, anularItem } = useStore()
+  const { mesas, pedidosCocina, pedidosBarra, avisos, historial, reservas, liberarMesa, atenderAviso, pagarParte, cobrarMesa, reservarMesa, cancelarReserva, sentarReserva, unirseAMesa, asignarCamarero, agruparMesas, separarMesas, marcharSiguiente, cambiarCantidad, moverItem, anularItem, confirmarPedido } = useStore()
   const empleado = useEmpleadoActual()
   useReloj()   // «hace 20 min» de una mesa no puede quedarse parado
   const yo = empleado?.nombre || 'Mostrador'
@@ -42,6 +43,7 @@ export default function PanelCamarero() {
   const [pidiendo, setPidiendo] = useState(false)         // toma de pedido (PedirPda)
   const [mover, setMover] = useState(null)                // { tipo:'mesa'|'comensal', personaId? }
   const [moverLinea, setMoverLinea] = useState(null)      // { personaId, uid, nombre }
+  const [libre, setLibre] = useState(null)                // { personaId } → plato fuera de carta
   const [reservando, setReservando] = useState(false)
   const [reservaForm, setReservaForm] = useState({ nombre: '', hora: '', personas: 2 })
 
@@ -386,6 +388,25 @@ export default function PanelCamarero() {
                   )
                 })()}
                 <button onClick={() => { asignarCamarero(mesa.id, yo); setPidiendo(true) }} style={btn('var(--color-accent)', { width: '100%', padding: '0.8rem', fontSize: '0.95rem' })}>➕ Tomar pedido</button>
+                {/* Lo que no tiene ficha en la carta: la sugerencia de la
+                    pizarra, el descorche, la tarta que trajo el cliente. Lo
+                    que se cobra por fuera del TPV no sale en ningún ticket. */}
+                <button onClick={() => { asignarCamarero(mesa.id, yo); setLibre({ personaId: mesa.personas[0]?.id }) }} style={btn('var(--color-surface-2)', { width: '100%', fontSize: '0.85rem' })}>✍️ Fuera de carta</button>
+
+                {/* Lo pendiente (el punto naranja) NO ha salido a cocina: se
+                    enviaba solo desde la pantalla de tomar pedido, así que una
+                    línea añadida por otro camino —o el carrito a medias de un
+                    cliente del QR— se quedaba ahí sin que nadie lo viera. */}
+                {(() => {
+                  const pend = mesa.personas.flatMap(p => p.items.filter(i => i.estado === 'pendiente'))
+                  if (pend.length === 0) return null
+                  const n = pend.reduce((s, i) => s + i.cantidad, 0)
+                  return (
+                    <button onClick={() => { confirmarPedido(mesa.id); toast(`${n} a cocina/barra`, 'success') }} style={btn('#f59e0b', { width: '100%', padding: '0.8rem', fontSize: '0.95rem' })}>
+                      📤 Enviar {n} a cocina/barra
+                    </button>
+                  )
+                })()}
                 {mesa.personas.some(p => !p.pagado) && (
                   <button onClick={() => { asignarCamarero(mesa.id, yo); setCobrandoMesa(true) }} style={btn('#10b981', { width: '100%', padding: '0.8rem', fontSize: '0.95rem' })}>💶 Cobrar mesa</button>
                 )}
@@ -447,6 +468,11 @@ export default function PanelCamarero() {
             setCobro(null)
           }}
         />
+      )}
+
+      {/* Un plato sin ficha, con el precio a mano (solo personal) */}
+      {libre && mesa && mesa.personas.length > 0 && (
+        <FueraDeCarta mesa={mesa} personaId={libre.personaId} onCerrar={() => setLibre(null)} />
       )}
 
       {/* Toma de pedido (escritorio, reutiliza la carta de la PDA) */}

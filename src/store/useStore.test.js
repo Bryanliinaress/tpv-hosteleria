@@ -40,6 +40,39 @@ describe('agregarItem', () => {
   })
 })
 
+describe('agregarLibre (fuera de carta)', () => {
+  it('añade la línea con el precio tecleado y sin producto de carta', () => {
+    useStore.setState({ mesas: [mesa({ personas: [persona('p1', 'Ana')] })] })
+    const r = S().agregarLibre('mesa-t1', 'p1', { nombre: '  Tarta de la abuela ', precio: '4,50', cantidad: 2, tipo: 'comida' })
+    expect(r).toEqual({ ok: true })
+    const [it0] = S().mesas[0].personas[0].items
+    expect(it0).toMatchObject({ productoId: null, nombre: 'Tarta de la abuela', precio: 4.5, cantidad: 2, tipo: 'comida', estado: 'pendiente' })
+  })
+
+  it('NO fusiona dos líneas iguales: el precio lo pone una persona y puede diferir', () => {
+    useStore.setState({ mesas: [mesa({ personas: [persona('p1', 'Ana')] })] })
+    S().agregarLibre('mesa-t1', 'p1', { nombre: 'Descorche', precio: '5' })
+    S().agregarLibre('mesa-t1', 'p1', { nombre: 'Descorche', precio: '8' })
+    const its = S().mesas[0].personas[0].items
+    expect(its).toHaveLength(2)
+    expect(its.map(i => i.precio)).toEqual([5, 8])
+  })
+
+  it('devuelve el fallo en el momento y no toca la mesa', () => {
+    useStore.setState({ mesas: [mesa({ personas: [persona('p1', 'Ana')] })] })
+    const r = S().agregarLibre('mesa-t1', 'p1', { nombre: 'Sin precio', precio: '' })
+    expect(r.ok).toBe(false)
+    expect(r.error).toMatch(/precio/i)
+    expect(S().mesas[0].personas[0].items).toHaveLength(0)
+  })
+
+  it('reabre la cuenta de quien ya había pagado: lo nuevo también se cobra', () => {
+    useStore.setState({ mesas: [mesa({ personas: [{ ...persona('p1', 'Ana'), pagado: true }] })] })
+    S().agregarLibre('mesa-t1', 'p1', { nombre: 'Chupito', precio: '1,50', tipo: 'bebida' })
+    expect(S().mesas[0].personas[0].pagado).toBe(false)
+  })
+})
+
 describe('owedPorPersona', () => {
   it('reparte a partes iguales los platos compartidos', () => {
     const m = mesa({
