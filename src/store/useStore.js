@@ -9,6 +9,7 @@ import { rolDe } from '../lib/roles'
 import { revisarNumeroMesa, revisarNombreZona, revisarAltaMesas } from '../lib/sala'
 import { revisarNombreApartado, moverEnLista, emojiPorTipo, moverProductoEnCarta, copiaDeProducto } from '../lib/carta'
 import { revisarCambiosLocal } from '../lib/local'
+import { revisarPlatoLibre } from '../lib/fueraDeCarta'
 import { totalDeMesa } from '../lib/dinero'
 
 // Aviso al usuario desde el store. Import perezoso para no acoplar el estado a
@@ -552,6 +553,37 @@ export const useStore = create(persist((set, get) => ({
       }),
     }),
   })),
+
+  // Añade un plato QUE NO ESTÁ EN LA CARTA, con el precio puesto a mano: la
+  // sugerencia de la pizarra, el descorche, la tarta que trajo el cliente.
+  // Devuelve { ok, error } en el momento porque la pantalla tiene que poder
+  // decir «falta el precio» sin cerrar el diálogo ni perder lo tecleado.
+  agregarLibre: (mesaId, personaId, datos) => {
+    const r = revisarPlatoLibre(datos)
+    if (!r.ok) return r
+    const { nombre, precio, cantidad, tipo } = r.valor
+    set(state => ({
+      mesas: state.mesas.map(m => m.id !== mesaId ? m : {
+        ...m,
+        personas: m.personas.map(p => p.id !== personaId ? p : {
+          ...p,
+          pagado: false,
+          // No se fusiona con una línea igual, al revés que en la carta: dos
+          // «Tarta de la abuela» pueden llevar precios distintos porque los
+          // teclea una persona, y juntarlas se comería uno de los dos.
+          items: [...p.items, {
+            uid: crearId('it'),
+            productoId: null,   // no miente diciendo ser un producto de la carta
+            nombre, precio, tipo, cantidad,
+            estado: 'pendiente',
+            pan: null, quitados: [], anadidos: [], nota: '',
+            tiempo: 1, compartidoCon: [],
+          }],
+        }),
+      }),
+    }))
+    return { ok: true }
+  },
 
   // Anula una línea (pendiente o ya enviada), retira su comanda de cocina/barra
   // y deja registro de auditoría (quién, qué, cuánto y por qué).

@@ -147,6 +147,15 @@ export const personal = {
 
   anularLinea: (lineaId, motivo, por) =>
     rpc('anular_linea', { p_linea: lineaId, p_motivo: motivo, p_por: por }),
+
+  // Un plato que no está en la carta, con el precio puesto a mano. Vive en
+  // `personal` y no en `qr` a propósito: su RPC NO está concedida a `anon`,
+  // porque poder ponerle precio a lo que pides es poder invitarte.
+  agregarLibre: (comensalId, { nombre, precio, cantidad = 1, tipo = 'comida' }) =>
+    rpc('personal_agregar_libre', {
+      p_comensal: comensalId, p_nombre: nombre, p_precio: precio,
+      p_cantidad: cantidad, p_tipo: tipo,
+    }),
 }
 
 // ── Alta de locales (multi-tenant: cada negocio registra el suyo) ───────────

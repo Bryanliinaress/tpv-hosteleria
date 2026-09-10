@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.126.0 · 1031 tests JS + 37 pruebas de SQL en verde · CI y deploy en
+**Estado: v0.127.0 · 1046 tests JS + 37 pruebas de SQL en verde · CI y deploy en
 verde · repo limpio · 0 vulnerabilidades.** Última sesión: 2026-09-08.
 
 Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a uno:
@@ -40,6 +40,7 @@ Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a un
 | **v0.124.0** | 09/09 | **La agenda dice qué reclama atención ahora**: quién llega enseguida (y si le falta mesa) y quién se ha retrasado, con la misma marca en cada tarjeta. Los minutos se recalculan solos, como el reloj del KDS. |
 | **v0.125.0** | 09/09 | **Los productos de la carta se ordenan (▲▼), se duplican y se reponen de golpe.** El orden es el que ve el cliente en el QR; duplicar ahorra teclear ocho bocadillos casi iguales. |
 | **v0.126.0** | 10/09 | **Dispositivos vuelve a tener pestaña propia** —es la salida de emergencia, no puede estar escondida— y cada aparato puede llevar **dueño** («la PDA de María»). Migración 42. |
+| **v0.127.0** | 10/09 | **Fuera de carta**: desde el Mostrador se cobra algo sin ficha (nombre, precio y cantidad a mano) en vez de cobrarlo por fuera del TPV. RPC solo para personal — el cliente del QR nunca pone precios. Migración 43. |
 
 **Lo que hay que llevarse de la sesión**, que se repitió tres veces con distinta
 cara: *«éxito» que solo significa «se lo he dado a otro»*. El spooler aceptaba

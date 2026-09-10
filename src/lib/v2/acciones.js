@@ -4,6 +4,7 @@ import { qr, personal, reservas as rpcReservas } from '../repo'
 import { toast } from '../../store/useUI'
 import { registrarTicket } from '../fiscal'
 import { grupoDe } from './grupos'
+import { revisarPlatoLibre } from '../fueraDeCarta'
 import { getLocalId, cargarSala, cargarComandas, cargarAvisos, cargarReservas, cargarHistorial, cargarCarta, cargarFichajes, refrescarServicio } from './estado'
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -21,7 +22,10 @@ const traducir = (c) => ({
   mesa_cerrada: 'La mesa se ha cerrado', mesa_no_existe: 'Mesa no encontrada',
   producto_no_disponible: 'Producto no disponible', sin_aforo: 'No queda aforo para esa hora',
   dia_cerrado: 'Ese día está cerrado', grupo_grande: 'Para grupos grandes, llama al local',
-  linea_no_editable: 'Esa línea ya no puede editarse', secundaria_invalida: 'Esa mesa no puede unirse',
+  linea_no_editable: 'Esa línea ya no puede editarse',
+  nombre_vacio: 'Ponle nombre al plato', precio_invalido: 'Ese precio no vale',
+  cantidad_invalida: 'Esa cantidad no vale', tipo_invalido: 'Di si lo hace la cocina o la barra',
+  comensal_no_existe: 'Ese cliente ya no está en la mesa', secundaria_invalida: 'Esa mesa no puede unirse',
 }[c] || 'No se pudo completar la operación')
 
 async function tabla(nombre) { return supabase.from(nombre) }
@@ -84,6 +88,20 @@ export function accionesV2() {
     toggleCompartir: (mesaId, ownerId, uid, sharerId) => {
       qr.compartirLinea(uid, ownerId, sharerId).then(refrescarServicio).catch(err)
     },
+    // Valida AQUÍ y escribe en segundo plano: la pantalla necesita el
+    // { ok, error } en el momento para poder decir «falta el precio» sin
+    // cerrar el diálogo. El servidor vuelve a comprobarlo todo — que la
+    // pantalla avise no sirve de nada si la RPC se llama por su cuenta.
+    agregarLibre: (mesaId, personaId, datos) => {
+      const r = revisarPlatoLibre(datos)
+      if (!r.ok) return r
+      ;(async () => {
+        try { await personal.agregarLibre(personaId, r.valor); refrescarServicio() }
+        catch (e) { err(e) }
+      })()
+      return { ok: true }
+    },
+
     anularItem: (mesaId, personaId, uid, opts = {}) => {
       personal.anularLinea(uid, opts.motivo, opts.por).then(() => { cargarSala(); cargarComandas() }).catch(err)
     },

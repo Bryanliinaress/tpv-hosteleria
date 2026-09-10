@@ -5,6 +5,21 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.127.0] - 2026-09-10
+
+### Añadido
+- **✍️ Fuera de carta: cobrar algo que no tiene ficha.** Desde el Mostrador se añade una línea con **nombre, precio y cantidad** a mano: la sugerencia que se escribió esta mañana en la pizarra, el descorche de la botella que trajo el cliente, la tarta de cumpleaños, el suplemento de terraza.
+
+  Hasta ahora había dos salidas y las dos malas: cobrarlo **por fuera del TPV** —y lo que se cobra por fuera no sale en el ticket, ni en el arqueo, ni en Hacienda— o dar de alta un producto de la carta que el cliente del QR ve esa misma noche.
+
+  La línea va a la comanda y al ticket como cualquier otra. Hay que decir **si lo hace la cocina o la barra**, que no es un detalle de color: es lo que decide por qué impresora sale y en qué KDS aparece. Y a **0 €** también se puede: la invitación de la casa es una línea que alguien prepara, no un olvido de cobro.
+
+  ⚠️ **Aquí el precio lo pone una persona**, y eso es justo lo contrario de lo que hace el cliente del QR, donde el precio lo resuelve siempre el servidor desde la carta. Por eso vive en una RPC nueva (`personal_agregar_libre`, migración `20260910T43`) **concedida solo a `authenticated`**: comprobado contra la base real, llamándola con la clave anónima responde `permission denied`. El servidor vuelve a validar nombre, precio (0 – 999,99 €), cantidad y tipo — que la pantalla avise no sirve de nada si la RPC se puede llamar por su cuenta.
+
+  El precio se teclea **con coma** («4,50»), como en España: en un campo numérico la coma se pierde y «4,50» llega como «450». Es el mismo fallo que tuvo el IVA en la v0.122.0, arreglado de raíz aquí.
+
+- **📤 «Enviar a cocina/barra» en la propia mesa.** Lo pendiente (el punto naranja) solo se enviaba desde la pantalla de tomar pedido. Una línea añadida por cualquier otro camino —o el carrito a medias de un cliente del QR— se quedaba ahí sin que nadie en el mostrador lo viera. Ahora el botón aparece en la mesa en cuanto hay algo sin enviar, y dice cuántas unidades son.
+
 ## [0.126.0] - 2026-09-10
 
 ### Cambiado
