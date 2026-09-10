@@ -1,12 +1,12 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.125.0 · 1026 tests JS + 37 pruebas de SQL en verde · CI y deploy en
+**Estado: v0.126.0 · 1031 tests JS + 37 pruebas de SQL en verde · CI y deploy en
 verde · repo limpio · 0 vulnerabilidades.** Última sesión: 2026-09-08.
 
 Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a uno:
 [docs/AUDITORIA.md](docs/AUDITORIA.md) (es historia, no estado).
 
-### Lo último — veintiséis releases, del 26 de agosto al 9 de septiembre
+### Lo último — veintisiete releases, del 26 de agosto al 10 de septiembre
 
 | | | |
 |---|---|---|
@@ -39,6 +39,7 @@ Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a un
 | **v0.123.0** | 09/09 | 🔴 **El IVA del local se guardaba mal y los tickets salían con «IVA (0%)»**: la regla estaba solo en la demo y el campo se comía la coma. Y **Local** absorbe las dos pestañas sueltas (aparatos e impresión): el panel baja de 9 pestañas a 7. |
 | **v0.124.0** | 09/09 | **La agenda dice qué reclama atención ahora**: quién llega enseguida (y si le falta mesa) y quién se ha retrasado, con la misma marca en cada tarjeta. Los minutos se recalculan solos, como el reloj del KDS. |
 | **v0.125.0** | 09/09 | **Los productos de la carta se ordenan (▲▼), se duplican y se reponen de golpe.** El orden es el que ve el cliente en el QR; duplicar ahorra teclear ocho bocadillos casi iguales. |
+| **v0.126.0** | 10/09 | **Dispositivos vuelve a tener pestaña propia** —es la salida de emergencia, no puede estar escondida— y cada aparato puede llevar **dueño** («la PDA de María»). Migración 42. |
 
 **Lo que hay que llevarse de la sesión**, que se repitió tres veces con distinta
 cara: *«éxito» que solo significa «se lo he dado a otro»*. El spooler aceptaba
@@ -50,6 +51,15 @@ pidió?**
 Y la segunda: **los tres fallos gordos salieron de mirar la pantalla**, no de
 leer código. Los 78 tests de pantalla escritos después no encontraron ninguno:
 sirven para que no vuelvan, no para hallarlos.
+
+**Del 10/09, y es un error mío que conviene no repetir**: al limpiar tras cada
+revisión visual ejecuté `delete from dispositivos` —la tabla **entera**— en vez
+de revocar por id los aparatos de prueba que yo había autorizado. Eso echó del
+TPV al móvil de Bryan. La regla: **borrar por id lo que uno crea, nunca vaciar
+una tabla de la demo**, que tiene datos de verdad dentro (hay reservas y tickets
+de visitantes reales). Y una consecuencia de diseño que conviene tener presente:
+si no queda **ningún** aparato autorizado, nadie puede entrar al panel ni para
+autorizar a otro — la única salida es `node scripts/autorizar-dispositivo.mjs`.
 
 **De la sesión del 08/09** (siete releases seguidas, los siete huecos del
 repaso de Admin): el patrón que más apareció fue **una regla escrita cuando
@@ -294,7 +304,7 @@ cada bar, `sk_live_` suya + rehacer el webhook con
 ## Comandos
 
 ```bash
-npm test                           # 1026 tests, 10 pantallas cubiertas
+npm test                           # 1031 tests, 10 pantallas cubiertas
 npm run test:sql                   # 37 pruebas del dinero, contra la base real
 npm run lint
 npm run permisos                   # ¿se ha abierto algo sin querer?
@@ -574,7 +584,7 @@ saliendo, pero conviene fijar el precio sabiéndolo.
 
 ## Qué está hecho y verificado de verdad
 
-- **Backend multi-tenant**: 41 migraciones aplicadas (con registro: `npm run
+- **Backend multi-tenant**: 42 migraciones aplicadas (con registro: `npm run
   migraciones -- --estado` dice en cuál va cada bar), RLS en las 17 tablas, RPC
   transaccionales.
 - **⚠️ Los `grant` no bastan: hay que MIRAR los permisos en la BBDD.** Supabase
@@ -628,7 +638,7 @@ saliendo, pero conviene fijar el precio sabiéndolo.
   y las devoluciones restando.
 - **Monitorización**: el bar deja constancia de lo que se rompe en su propia
   base y `npm run salud` lo lee. Encontró sola dos fallos de producción.
-- **1026 tests JS** (las **diez** pantallas cubiertas) **+ 37 pruebas de SQL**
+- **1031 tests JS** (las **diez** pantallas cubiertas) **+ 37 pruebas de SQL**
   contra la base real, lint limpio, CI y deploy en verde, **0 vulnerabilidades**
   en todo el árbol de dependencias.
 - **Arqueo de caja completo** (v0.106.0): fondo de cambio y entradas/salidas del
