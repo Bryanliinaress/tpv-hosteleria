@@ -4,7 +4,7 @@ import { qr, personal, reservas as rpcReservas } from '../repo'
 import { toast } from '../../store/useUI'
 import { registrarTicket } from '../fiscal'
 import { grupoDe } from './grupos'
-import { revisarPlatoLibre } from '../fueraDeCarta'
+import { revisarPlatoLibre, revisarCambioDePrecio } from '../fueraDeCarta'
 import { getLocalId, cargarSala, cargarComandas, cargarAvisos, cargarReservas, cargarHistorial, cargarCarta, cargarFichajes, refrescarServicio } from './estado'
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -23,6 +23,8 @@ const traducir = (c) => ({
   producto_no_disponible: 'Producto no disponible', sin_aforo: 'No queda aforo para esa hora',
   dia_cerrado: 'Ese día está cerrado', grupo_grande: 'Para grupos grandes, llama al local',
   linea_no_editable: 'Esa línea ya no puede editarse',
+  linea_no_existe: 'Esa línea ya no está en la mesa',
+  linea_ya_cobrada: 'Esa cuenta ya está pagada: para eso está la devolución',
   nombre_vacio: 'Ponle nombre al plato', precio_invalido: 'Ese precio no vale',
   cantidad_invalida: 'Esa cantidad no vale', tipo_invalido: 'Di si lo hace la cocina o la barra',
   comensal_no_existe: 'Ese cliente ya no está en la mesa', secundaria_invalida: 'Esa mesa no puede unirse',
@@ -100,6 +102,20 @@ export function accionesV2() {
         catch (e) { err(e) }
       })()
       return { ok: true }
+    },
+
+    cambiarPrecio: (mesaId, personaId, uid, precio, opts = {}) => {
+      const mesa = st().mesas.find(m => m.id === mesaId)
+      const persona = mesa?.personas.find(p => p.id === personaId)
+      const item = persona?.items.find(i => i.uid === uid)
+      const r = revisarCambioDePrecio(item, precio)
+      if (!r.ok) return r
+      if (persona?.pagado) return { ok: false, error: 'Esa cuenta ya está pagada: para eso está la devolución' }
+      ;(async () => {
+        try { await personal.cambiarPrecioLinea(uid, r.valor.despues, opts.motivo, opts.por); refrescarServicio() }
+        catch (e) { err(e) }
+      })()
+      return { ok: true, valor: r.valor }
     },
 
     anularItem: (mesaId, personaId, uid, opts = {}) => {

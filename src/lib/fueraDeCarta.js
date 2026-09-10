@@ -17,7 +17,7 @@
 // comprobar el servidor, que es quien manda.
 // ────────────────────────────────────────────────────────────────────────────
 
-import { importeDesdeTexto } from './dinero.js'
+import { importeDesdeTexto, cent } from './dinero.js'
 
 /** Un nombre más largo no cabe en el papel de 58 mm ni en el KDS. */
 export const MAX_NOMBRE = 60
@@ -72,4 +72,32 @@ export function revisarPlatoLibre({ nombre, precio, cantidad = 1, tipo = 'comida
   if (!TIPOS.includes(tipo)) return mal('Di si lo hace la cocina o la barra')
 
   return { ok: true, valor: { nombre: n, precio: p, cantidad: c, tipo } }
+}
+
+/**
+ * Revisa un precio nuevo para una línea que ya tenía uno.
+ *
+ * Pasa todos los días: el menú del día se cobra a precio de menú aunque los
+ * platos vengan de la carta, se le hace precio a la mesa grande, se rebaja un
+ * plato que salió tarde. La otra salida —anular y volver a meterlo— deja una
+ * anulación falsa en la auditoría y una comanda repetida en cocina.
+ *
+ * Cambiar un precio es la forma en que el dinero se va de un bar sin que nadie
+ * robe nada, así que esto NO deja pasar un cambio sin dejar rastro: quien lo
+ * llama guarda `antes`, `despues`, quién y por qué.
+ */
+export function revisarCambioDePrecio(item, precio) {
+  if (!item) return mal('Esa línea ya no está en la mesa')
+
+  const p = importeDesdeTexto(precio)
+  if (p === null) return mal('Falta el precio')
+  if (p < 0) return mal('El precio no puede ser negativo')
+  if (p > MAX_PRECIO) return mal(`¿Seguro que son ${euros(p)}? El máximo es ${euros(MAX_PRECIO)}`)
+
+  // El mismo precio no es un cambio: no se ensucia la auditoría con un
+  // apunte que no dice nada.
+  const antes = Number(item.precio) || 0
+  if (Math.abs(antes - p) < 0.005) return mal(`Ya cuesta ${euros(antes)}`)
+
+  return { ok: true, valor: { antes, despues: p, diferencia: cent((p - antes) * (Number(item.cantidad) || 1)) } }
 }

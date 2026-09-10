@@ -5,6 +5,22 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.128.0] - 2026-09-10
+
+### Añadido
+- **💶 Cambiarle el precio a una línea.** Pasa todos los días: el menú del día se cobra a precio de menú aunque los platos vengan de la carta, se le hace precio a la mesa grande de doce, se rebaja el plato que salió tarde, o el de la pizarra se tecleó mal.
+
+  Hasta ahora la única salida era **anular la línea y volver a meterla**, que deja una anulación falsa en la auditoría y una comanda repetida en cocina. Ahora se cambia en el sitio, con el botón **€** de la propia línea.
+
+  ⚠️ **Cambiar un precio es, literalmente, la forma en que el dinero se va de un bar sin que nadie robe nada.** Así que no es un `update` a secas: pide **motivo** —como al anular— y deja registro de **qué línea, cuánto valía, cuánto vale, quién y por qué**, en una tabla nueva (`cambios_precio`, migración `20260910T44`). Se mira en **Admin › Caja › Cambios de precio**, al lado de las anulaciones, porque se miran por lo mismo y a la vez.
+
+  **No se toca una línea ya cobrada**: ese importe está dentro de un ticket registrado en la AEAT, y cambiarlo dejaría la cuenta y el ticket diciendo cosas distintas. Para eso está la rectificativa. Lo comprueba el servidor, no solo la pantalla.
+
+  Y como todo lo que pone precios a mano, la función está concedida **solo a `authenticated`**: comprobado contra la base real, con la clave anónima responde `permission denied`.
+
+### Arreglado
+- **La fila de una línea, con un botón más, se aplastaba a 375 px.** Con el nuevo **€** eran cinco botones peleándose con el nombre del plato. Ahora el nombre tiene una base de ancho y los botones —con su importe— se bajan juntos a su propia línea, en vez de dejar el precio solo en una tercera.
+
 ## [0.127.0] - 2026-09-10
 
 ### Añadido

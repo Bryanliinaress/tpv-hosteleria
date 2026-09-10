@@ -19,7 +19,7 @@ const item = (over = {}) => ({
 const S = () => useStore.getState()
 
 beforeEach(() => {
-  useStore.setState({ mesas: [], pedidosCocina: [], pedidosBarra: [], avisos: [], historial: [], cierres: [], anulaciones: [] })
+  useStore.setState({ mesas: [], pedidosCocina: [], pedidosBarra: [], avisos: [], historial: [], cierres: [], anulaciones: [], cambiosPrecio: [] })
 })
 
 describe('agregarItem', () => {
@@ -119,6 +119,40 @@ describe('grupos de mesas', () => {
     expect(m2.unidaA).toBeNull()
     expect(S().historial).toHaveLength(1)
     expect(S().historial[0].pagos.tarjeta).toBeCloseTo(4)
+  })
+})
+
+describe('cambiarPrecio con auditoría', () => {
+  it('cambia el precio y deja escrito cuánto valía, cuánto vale, quién y por qué', () => {
+    useStore.setState({ mesas: [mesa({ personas: [persona('p1', 'Ana', [item({ uid: 'i1', nombre: 'Solomillo', precio: 18, cantidad: 2 })])] })] })
+    const r = S().cambiarPrecio('mesa-t1', 'p1', 'i1', '15,50', { motivo: 'Menú del día', por: 'Luis' })
+    expect(r.ok).toBe(true)
+    expect(S().mesas[0].personas[0].items[0].precio).toBe(15.5)
+    expect(S().cambiosPrecio).toHaveLength(1)
+    expect(S().cambiosPrecio[0]).toMatchObject({
+      nombre: 'Solomillo', cantidad: 2, antes: 18, despues: 15.5, diferencia: -5,
+      motivo: 'Menú del día', por: 'Luis',
+    })
+  })
+
+  it('no toca una cuenta ya pagada: ese importe está en un ticket fiscal', () => {
+    useStore.setState({ mesas: [mesa({ personas: [{ ...persona('p1', 'Ana', [item({ uid: 'i1', precio: 3 })]), pagado: true }] })] })
+    const r = S().cambiarPrecio('mesa-t1', 'p1', 'i1', '1')
+    expect(r.ok).toBe(false)
+    expect(S().mesas[0].personas[0].items[0].precio).toBe(3)
+    expect(S().cambiosPrecio || []).toHaveLength(0)
+  })
+
+  it('el mismo precio no deja apunte', () => {
+    useStore.setState({ mesas: [mesa({ personas: [persona('p1', 'Ana', [item({ uid: 'i1', precio: 3 })])] })] })
+    expect(S().cambiarPrecio('mesa-t1', 'p1', 'i1', '3').ok).toBe(false)
+    expect(S().cambiosPrecio || []).toHaveLength(0)
+  })
+
+  it('sin motivo queda un guión, no un hueco', () => {
+    useStore.setState({ mesas: [mesa({ personas: [persona('p1', 'Ana', [item({ uid: 'i1', precio: 3 })])] })] })
+    S().cambiarPrecio('mesa-t1', 'p1', 'i1', '2')
+    expect(S().cambiosPrecio[0].motivo).toBe('—')
   })
 })
 
