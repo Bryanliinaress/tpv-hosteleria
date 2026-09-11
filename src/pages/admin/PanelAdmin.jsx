@@ -752,6 +752,14 @@ export default function PanelAdmin() {
                   <CampoGuardado valor={local.cif || ''} onGuardar={v => updateLocal({ cif: v })} placeholder="B12345678" style={inputStyle} />
                 </div>
               </div>
+              <label style={{ ...lblCampo, marginTop: '0.7rem' }}>Correo del local</label>
+              <CampoGuardado valor={local.email || ''} onGuardar={v => updateLocal({ email: v })} inputMode="email" placeholder="info@tubar.es" style={inputStyle} />
+              {/* Las facturas salen de un dominio de envíos compartido; si el
+                  cliente contesta, tiene que llegarle al BAR, no a quien
+                  mantiene el TPV. */}
+              <p style={{ fontSize: '0.72rem', color: 'var(--color-muted)', marginTop: '0.3rem' }}>
+                Aquí llegan las respuestas de los clientes a las facturas que se les mandan por correo.
+              </p>
             </div>
 
             <div style={ajusteCard}>
