@@ -5,6 +5,25 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.130.0] - 2026-09-11
+
+### Añadido
+- **🧾 Facturas: «¿me haces factura?».** Desde el Mostrador (🧾 Cerradas hoy) y desde Admin › Caja › Tickets del mes, cualquier ticket cobrado se convierte en una **factura completa** con el nombre o razón social, el NIF y el domicilio del cliente. Al emitirla se abre la factura con **🖨️ Imprimir** (en A4) y **✉️ Enviar por correo**; si el ticket ya tiene factura, el botón la abre (📄 F-12) en vez de emitir otra.
+
+  ⚠️ **No es una venta nueva.** Cada cobro ya es una factura simplificada (el ticket, F2) registrada en Hacienda. La factura completa es la MISMA consumición con los datos del cliente, y se registra como **F3** —«emitida en sustitución de facturas simplificadas»— apuntando al ticket. Una factura aparte (F1) declararía la venta dos veces. Por eso tampoco es un ticket más: no entra en el arqueo, ni en los informes, ni en «facturado hoy». Va en su propia tabla, con **su serie (F) y su numeración correlativa sin huecos**, con el mismo contador bloqueado que los tickets.
+
+  - **El NIF se comprueba de verdad**: DNI, NIE y CIF con su letra o dígito de control. La AEAT rechaza un NIF que no existe, y eso se descubre cuando el cliente ya se ha ido con el papel.
+  - **Lo que pide la ley en una factura completa**: emisor y cliente con NIF y domicilio, número y serie, fecha, líneas, base y cuota por cada tipo de IVA, y a qué ticket sustituye. Las líneas se **agrupan** —en la comida de empresa «4× Menú del día» es una línea, no cuatro repartidas por comensal— y el desglose sale de la **misma función** que el ticket, para que la factura y el F2 no digan bases distintas.
+  - **Todo se congela al emitir**: si mañana cambia el nombre del local o el IVA de un producto, la factura de hoy sigue diciendo lo que dijo. Y no se puede editar: solo la escribe `emitir_factura`.
+  - **Por correo** va con la plantilla de EmailJS que ya existe (asunto y mensaje: no hay que tocar nada) y un **enlace** a la factura para verla, imprimirla o guardarla en PDF desde el móvil o la gestoría. El enlace lleva un token de 64 caracteres y abre esa factura y ninguna otra. Sin EmailJS configurado, se abre el programa de correo con todo escrito.
+  - **Registro en Hacienda**: por la misma Edge Function y con los mismos reintentos que un ticket. Si el ticket al que sustituye aún no consta en la AEAT, la factura **espera** sin gastar intentos y entra en el siguiente reintento. `npm run salud` avisa también de facturas sin registrar.
+
+  **Lo que no se puede hacer (y dice por qué):** facturar dos veces el mismo ticket, facturar una devolución, o facturar un ticket que ya tiene devoluciones — ahí la AEAT exige F1 y no F3, que es otro documento. Y hace falta el **CIF y la dirección fiscal del local** (Admin › Local): sin eso, la pantalla lo dice antes de pedir los datos del cliente.
+
+- **Un ticket con factura ya no ofrece «↩ Devolver».** La devolución emite una rectificativa R5, que corrige el ticket; pero con factura, el ticket está sustituido por ella y lo que habría que rectificar es la factura (R1–R4), un circuito que todavía no existe. Mejor un «no se puede» claro en el mostrador que un registro fiscal que no cuadra. Lo impide también el servidor, con un trigger sobre `tickets` (migración `20260911T46`), venga la devolución de donde venga.
+
+  Migración `20260911T45`. `emitir_factura` es solo para el personal; las funciones que tocan el registro fiscal, solo para el servidor; al cliente solo se le abre `factura_por_token`. En la demo funciona entero salvo el registro en Hacienda.
+
 ## [0.129.0] - 2026-09-11
 
 ### Cambiado

@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.129.0 · 1076 tests JS + 37 pruebas de SQL en verde · CI y deploy en
+**Estado: v0.130.0 · 1101 tests JS + 45 pruebas de SQL en verde · CI y deploy en
 verde · repo limpio · 0 vulnerabilidades.** Última sesión: 2026-09-08.
 
 Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a uno:
@@ -43,6 +43,7 @@ Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a un
 | **v0.127.0** | 10/09 | **Fuera de carta**: desde el Mostrador se cobra algo sin ficha (nombre, precio y cantidad a mano) en vez de cobrarlo por fuera del TPV. RPC solo para personal — el cliente del QR nunca pone precios. Migración 43. |
 | **v0.128.0** | 10/09 | **Cambiar el precio de una línea** (menú del día, precio a la mesa grande, plato que salió tarde) con motivo y auditoría en Admin › Caja. No toca lo ya cobrado: para eso está la rectificativa. Migración 44. |
 | **v0.129.0** | 11/09 | **Tomar pedido en el Mostrador, a pantalla completa**: apartados a la izquierda, productos en rejilla (la tarjeta entera es el botón, con lo ya pedido), comanda de la mesa a la derecha; Enter añade y Escape cierra. Arreglado: «Enviar 2» enviaba la mesa entera (5). |
+| **v0.130.0** | 11/09 | **Facturas completas** desde Mostrador y Admin: datos del cliente con NIF validado, imprimir en A4 y enviar por correo con enlace. Se registran como **F3** (sustituyen al ticket, no suman en caja), con serie F propia. Migraciones 45–46 (un ticket facturado ya no se devuelve por R5) y Edge Function `registrar-fiscal` v10 desplegada. **Pendiente:** rectificar una factura (R1–R4) y facturar un ticket con devoluciones (F1). |
 
 **Lo que hay que llevarse de la sesión**, que se repitió tres veces con distinta
 cara: *«éxito» que solo significa «se lo he dado a otro»*. El spooler aceptaba

@@ -179,6 +179,16 @@ button:focus-visible { outline: none; box-shadow: var(--ring); }
     border-radius: 0 !important;
   }
   .no-print { display: none !important; }
+  /* La factura completa va en A4 y no en el rollo de 80 mm del ticket.
+     Página con NOMBRE a propósito: un `@page { size: A4 }` general le
+     cambiaría el papel también al ticket de la impresora térmica. */
+  .solo-impresion { display: block !important; }
+  .factura-print, .factura-print * { visibility: visible; }
+  .factura-print {
+    position: absolute; left: 0; top: 0; width: 100%;
+    page: factura; box-shadow: none !important; border: none !important;
+    background: #fff !important; color: #111 !important;
+  }
   .solo-print { display: block !important; }
 
   /* ── Hoja de QR de mesa ───────────────────────────────────────────────────
@@ -214,3 +224,8 @@ button:focus-visible { outline: none; box-shadow: var(--ring); }
 @media (max-width: 430px) {
   .solo-ancho { display: none; }
 }
+
+/* La copia para imprimir de una factura: fuera de la pantalla, dentro del papel. */
+.solo-impresion { display: none; }
+
+@page factura { size: A4; margin: 14mm; }

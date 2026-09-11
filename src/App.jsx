@@ -10,6 +10,8 @@ import SiFalla from './components/SiFalla'
 const Home = lazy(() => import('./pages/Home'))
 const CartaCliente = lazy(() => import('./pages/cliente/CartaCliente'))
 const Reservar = lazy(() => import('./pages/reservar/Reservar'))
+// La factura desde el enlace del correo: pública (sin PIN), solo con su token.
+const VerFactura = lazy(() => import('./pages/factura/VerFactura'))
 const PanelCamarero = lazy(() => import('./pages/camarero/PanelCamarero'))
 const PdaCamarero = lazy(() => import('./pages/pda/PdaCamarero'))
 const PantallaKDS = lazy(() => import('./pages/cocina/PantallaKDS'))
@@ -45,6 +47,7 @@ export default function App() {
           {/* Cliente: carta por QR y reservas, sin login */}
           <Route path="/mesa/:mesaId" element={<CartaCliente />} />
           <Route path="/reservar" element={<Reservar />} />
+          <Route path="/factura" element={<VerFactura />} />
           {/* Personal: requiere PIN de empleado activo */}
           <Route path="/camarero" element={<Protegido pantalla="camarero"><PanelCamarero /></Protegido>} />
           <Route path="/pda" element={<Protegido pantalla="pda"><PdaCamarero /></Protegido>} />

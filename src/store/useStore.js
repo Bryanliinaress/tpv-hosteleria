@@ -10,6 +10,7 @@ import { revisarNumeroMesa, revisarNombreZona, revisarAltaMesas } from '../lib/s
 import { revisarNombreApartado, moverEnLista, emojiPorTipo, moverProductoEnCarta, copiaDeProducto } from '../lib/carta'
 import { revisarCambiosLocal } from '../lib/local'
 import { revisarPlatoLibre, revisarCambioDePrecio } from '../lib/fueraDeCarta'
+import { revisarDatosFactura, porQueNoSeFactura, faltaParaFacturar, lineasParaFactura, desgloseParaFactura } from '../lib/factura'
 import { totalDeMesa } from '../lib/dinero'
 
 // Aviso al usuario desde el store. Import perezoso para no acoplar el estado a
@@ -339,6 +340,43 @@ export const useStore = create(persist((set, get) => ({
   // se rompe ya en la demo.
   emitirRectificativa: async () => ({ ok: false, error: 'Las devoluciones necesitan el backend real' }),
 
+  // Factura completa de un ticket ya cobrado («¿me haces factura?»). En la demo
+  // no hay AEAT, pero sí todo lo demás —numeración, datos del cliente,
+  // imprimir y mandar—: es lo que un bar quiere ver funcionando antes de
+  // comprar. `async` por la misma razón que la rectificativa: en el backend
+  // real habla con el servidor, y las dos versiones tienen que ser iguales.
+  emitirFactura: async ({ ticketId, nombre, nif, direccion, email, por } = {}) => {
+    const st = get()
+    const ticket = st.historial.find(t => t.id === ticketId)
+    const no = porQueNoSeFactura(ticket, { historial: st.historial, facturas: st.facturas || [] })
+    if (no) return { ok: false, error: no }
+    const falta = faltaParaFacturar(st.local)
+    if (falta.length) return { ok: false, error: `Falta ${falta.join(' y ')} del local (Admin › Local)` }
+    const r = revisarDatosFactura({ nombre, nif, direccion, email })
+    if (!r.ok) return r
+    const serie = st.local.serieFacturas || 'F'
+    const numero = (st.facturas || []).filter(f => f.serie === serie).reduce((m, f) => Math.max(m, f.numero || 0), 0) + 1
+    const lineas = lineasParaFactura(ticket.personas, st.local.ivaPct ?? 10)
+    const bytes = new Uint8Array(32)
+    crypto.getRandomValues(bytes)
+    const factura = {
+      id: crearId('fa'), _ts: Date.now(), ticketId, serie, numero,
+      expedidaEn: new Date().toISOString(),
+      cliente: { nombre: r.valor.nombre, nif: r.valor.nif, direccion: r.valor.direccion, email: r.valor.email },
+      total: ticket.total, lineas, desglose: desgloseParaFactura(lineas),
+      emisor: {
+        nombre: st.local.nombre, razonSocial: st.local.razonSocial || st.local.nombre, cif: st.local.cif,
+        direccion: st.local.direccionFiscal || st.local.direccion,
+        serieTickets: st.local.serieFiscal || 'TPV', ticketNumero: ticket.numero, ticketFecha: ticket.cerradaEn,
+      },
+      token: [...bytes].map(b => b.toString(16).padStart(2, '0')).join(''),
+      creadaPor: por || null,
+      fiscalEstado: 'no_aplica',
+    }
+    set(s => ({ facturas: [...(s.facturas || []), factura] }))
+    return { ok: true, factura }
+  },
+
   // La pestaña de Fichajes pide el mes que se está mirando. En la demo está
   // todo en el dispositivo, así que no hay nada que traer; en v2 lo baja del
   // servidor (el registro de jornada se conserva 4 años y no cabe entero).
@@ -364,6 +402,7 @@ export const useStore = create(persist((set, get) => ({
   // ── AUDITORÍA DE ANULACIONES ───────────────────────────
   anulaciones: [], // { id, fecha, mesaNumero, nombre, cantidad, importe, enviado, motivo, por }
   cambiosPrecio: [], // { id, fecha, mesaNumero, nombre, cantidad, antes, despues, diferencia, motivo, por }
+  facturas: [], // { id, ticketId, serie, numero, expedidaEn, cliente, total, lineas, desglose, emisor, token, fiscalEstado }
 
   // ── FICHAJES (registro de jornada, RD-ley 8/2019) ──────
   fichajes: [], // { id, empleadoId, nombre, entrada, salida } (ISO); salida null = turno abierto
@@ -1558,6 +1597,9 @@ export const useStore = create(persist((set, get) => ({
     cierres: recientes(state.cierres, 'hasta', DIAS_LARGOS, 500),
     anulaciones: recientes(state.anulaciones, 'fecha', DIAS_TICKETS, 1000),
     cambiosPrecio: recientes(state.cambiosPrecio, 'fecha', DIAS_TICKETS, 1000),
+    // Una factura se guarda mucho más que un ticket: el cliente la vuelve a
+    // pedir en la declaración trimestral, meses después. Ocupan poco.
+    facturas: recientes(state.facturas, 'expedidaEn', DIAS_LARGOS, 3000),
     // los fichajes son NÓMINA: se conservan mucho más y ocupan poquísimo
     fichajes: recientes(state.fichajes, 'entrada', DIAS_LARGOS, 5000),
     reservas: state.reservas,

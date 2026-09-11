@@ -12,8 +12,9 @@ import { revisarNumeroMesa, revisarNombreZona, revisarAltaMesas } from '../sala'
 import { revisarNombreApartado, moverEnLista, emojiPorTipo, moverProductoEnCarta, copiaDeProducto } from '../carta'
 import { revisarCambiosLocal } from '../local'
 import { efectivoEsperado, descuadreDe, saldoMovimientos, revisarMovimiento } from '../caja'
-import { registrarTicket } from '../fiscal'
-import { getLocalId, cargarTodo, cargarSala, cargarComandas, cargarReservas, cargarCarta, cargarLocal, cargarHistorial, cargarFichajes, cargarCierres, cargarMovimientosCaja } from './estado'
+import { registrarTicket, registrarFactura } from '../fiscal'
+import { revisarDatosFactura } from '../factura'
+import { getLocalId, cargarTodo, cargarSala, cargarComandas, cargarReservas, cargarCarta, cargarLocal, cargarHistorial, cargarFichajes, cargarCierres, cargarMovimientosCaja, cargarFacturas } from './estado'
 
 // Segunda ola de acciones v2: KDS, agenda de reservas, CRUD de carta/sala/
 // personal, caja y config del local. Personal/admin operan por RLS.
@@ -32,6 +33,17 @@ async function rpc(fn, args) {
 const MOTIVOS = {
   motivo_obligatorio: 'Escribe el motivo de la devolución: queda en el registro fiscal.',
   ticket_no_existe: 'Ese ticket ya no está.',
+  // Facturas completas
+  nombre_vacio: 'Falta el nombre o la razón social del cliente.',
+  direccion_vacia: 'Falta el domicilio del cliente: la factura completa lo exige.',
+  nif_invalido: 'Ese NIF no es válido: revísalo.',
+  email_invalido: 'Ese correo no parece válido.',
+  local_sin_cif: 'Falta el CIF del local (Admin › Local): sin él la factura no es válida.',
+  local_sin_direccion: 'Falta la dirección fiscal del local (Admin › Local).',
+  es_devolucion: 'Una devolución no se factura.',
+  ticket_con_devolucion: 'Este ticket tiene devoluciones: no se puede facturar desde aquí.',
+  ya_facturado: 'Ese ticket ya tiene factura.',
+  ticket_facturado: 'Ese ticket tiene factura: la devolución habría que hacerla sobre la factura, y eso aún no se puede desde aquí.',
   ya_es_rectificativa: 'Eso ya es una devolución: no se puede devolver una devolución.',
   importe_invalido: 'Ese ticket ya está devuelto por completo.',
   supera_lo_pendiente: 'No se puede devolver más de lo que queda pendiente de ese ticket.',
@@ -551,6 +563,27 @@ export function accionesV2b() {
     // rectificativa (negativa, apuntando al original) y aquí solo se refresca
     // y se manda a registrar en la AEAT, por la misma vía que un ticket normal
     // —con sus reintentos si Hacienda no responde—.
+    // Factura completa de un ticket: el servidor la numera en su serie, congela
+    // líneas y desglose, y aquí se manda a registrar como F3 —sustituyendo al
+    // ticket— por la misma vía y con los mismos reintentos que un ticket.
+    emitirFactura: async ({ ticketId, nombre, nif, direccion, email, por } = {}) => {
+      const r = revisarDatosFactura({ nombre, nif, direccion, email })
+      if (!r.ok) return r
+      try {
+        const filas = await rpc('emitir_factura', {
+          p_ticket: ticketId, p_nombre: r.valor.nombre, p_nif: r.valor.nif,
+          p_direccion: r.valor.direccion, p_email: r.valor.email, p_por: por || null,
+        })
+        const f = Array.isArray(filas) ? filas[0] : filas
+        await cargarFacturas()
+        if (f?.id) registrarFactura(f.id).then(() => cargarFacturas())
+        const factura = useStore.getState().facturas.find(x => x.id === f?.id)
+        return factura ? { ok: true, factura } : { ok: false, error: 'La factura se emitió pero no se pudo leer: recarga' }
+      } catch (e) {
+        return { ok: false, error: motivoLegible(e) }
+      }
+    },
+
     emitirRectificativa: async ({ ticketId, motivo, importe, metodo, por }) => {
       try {
         const filas = await rpc('emitir_rectificativa', {

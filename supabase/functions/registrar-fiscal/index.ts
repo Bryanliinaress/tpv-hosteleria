@@ -5,7 +5,8 @@
 // (VERIFACTI_API_KEY), nunca en el navegador.
 //
 // Uso: POST { ticketId }  → { estado, qr, url, numero }
-//      POST { pendientes: true }  → reintenta los tickets que fallaron
+//      POST { facturaId } → registra una factura completa (F3)
+//      POST { pendientes: true }  → reintenta tickets y facturas que fallaron
 //
 // Importante: el cobro NO depende de esto. Si la AEAT o la red fallan, el
 // ticket queda 'pendiente'/'error' y se reintenta; el bar sigue cobrando.
@@ -125,6 +126,66 @@ function componerFactura(t: Record<string, unknown>) {
   return factura
 }
 
+// ── Factura COMPLETA: F3, en sustitución del ticket ─────────────────────────
+//
+// El cliente que viene por trabajo pide factura con sus datos. No es una venta
+// nueva: es la consumición del ticket (F2, ya declarado) con destinatario. Se
+// registra como **F3** —«emitida en sustitución de facturas simplificadas
+// facturadas y declaradas»— y apunta al F2 en `facturas_sustituidas`. Una F1
+// aparte declararía la venta dos veces.
+//
+// Aquí SÍ van `nif` y `nombre` del destinatario: es justo lo que la hace
+// completa. El desglose por tipo viene congelado del ticket.
+function componerF3(f: Record<string, unknown>) {
+  const cliente = f.cliente as Record<string, string>
+  const sust = f.sustituye as Record<string, unknown>
+  const desglose = (f.desglose as Array<Record<string, unknown>> | undefined) ?? []
+  return {
+    serie: String(f.serie),
+    numero: String(f.numero),
+    fecha_expedicion: fechaES(String(f.fecha)),
+    tipo_factura: 'F3',
+    descripcion: 'Consumicion en local',
+    nif: cliente.nif,
+    nombre: cliente.nombre,
+    lineas: desglose.map((d) => ({
+      base_imponible: dec(Number(d.base)),
+      tipo_impositivo: String(Number(d.ivaPct)),
+      cuota_repercutida: dec(Number(d.cuota)),
+    })),
+    facturas_sustituidas: [{
+      serie: String(sust.serie || 'TPV'),
+      numero: String(sust.numero),
+      fecha_expedicion: fechaES(String(sust.fecha)),
+    }],
+    importe_total: dec(Number(f.total)),
+  }
+}
+
+// Manda un registro a Verifacti y guarda el resultado con la RPC que toque.
+async function enviar(cuerpo: Record<string, unknown>, guardar: (r: Record<string, unknown>) => Promise<unknown>) {
+  try {
+    const res = await fetch(`${VERIFACTI_URL}/verifactu/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${API_KEY}` },
+      body: JSON.stringify(cuerpo),
+    })
+    const r = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      const msg = r?.message || r?.error || `HTTP ${res.status}`
+      await guardar({ p_estado: 'error', p_error: String(msg).slice(0, 300) })
+      return { ok: false, motivo: msg }
+    }
+    const qr = r.qr ?? r.qr_base64 ?? null
+    const url = r.url ?? r.qr_url ?? null
+    await guardar({ p_estado: 'enviado', p_uuid: r.uuid ?? null, p_qr: qr, p_url: url })
+    return { ok: true, uuid: r.uuid, qr, url }
+  } catch (e) {
+    await guardar({ p_estado: 'pendiente', p_error: `Sin conexión con Verifacti: ${e}`.slice(0, 300) })
+    return { ok: false, motivo: 'sin_conexion' }
+  }
+}
+
 async function registrar(ticketId: string) {
   const { data: t, error } = await supabase.rpc('ticket_para_fiscal', { p_ticket: ticketId })
   if (error || !t) return { ok: false, motivo: 'ticket_no_encontrado' }
@@ -139,36 +200,29 @@ async function registrar(ticketId: string) {
     return { ok: false, motivo: 'sin_nif' }
   }
 
-  const factura = componerFactura(t)
-  try {
-    const res = await fetch(`${VERIFACTI_URL}/verifactu/create`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${API_KEY}` },
-      body: JSON.stringify(factura),
-    })
-    const cuerpo = await res.json().catch(() => ({}))
+  return enviar(componerFactura(t), (r) => supabase.rpc('fiscal_resultado', { p_ticket: ticketId, ...r }))
+}
 
-    if (!res.ok) {
-      const msg = cuerpo?.message || cuerpo?.error || `HTTP ${res.status}`
-      await supabase.rpc('fiscal_resultado', {
-        p_ticket: ticketId, p_estado: 'error', p_error: String(msg).slice(0, 300),
-      })
-      return { ok: false, motivo: msg }
-    }
+async function registrarFactura(facturaId: string) {
+  const { data: f, error } = await supabase.rpc('factura_para_fiscal', { p_factura: facturaId })
+  if (error || !f) return { ok: false, motivo: 'factura_no_encontrada' }
+  if (f.estado === 'enviado') return { ok: true, yaEnviado: true }
 
-    await supabase.rpc('fiscal_resultado', {
-      p_ticket: ticketId, p_estado: 'enviado',
-      p_uuid: cuerpo.uuid ?? null,
-      p_qr: cuerpo.qr ?? cuerpo.qr_base64 ?? null,
-      p_url: cuerpo.url ?? cuerpo.qr_url ?? null,
+  if (!(f.emisor as Record<string, string>)?.nif) {
+    await supabase.rpc('factura_fiscal_resultado', {
+      p_factura: facturaId, p_estado: 'error', p_error: 'Falta el CIF/NIF del local (Admin → Local)',
     })
-    return { ok: true, uuid: cuerpo.uuid, qr: cuerpo.qr ?? cuerpo.qr_base64 ?? null, url: cuerpo.url ?? null }
-  } catch (e) {
-    await supabase.rpc('fiscal_resultado', {
-      p_ticket: ticketId, p_estado: 'pendiente', p_error: `Sin conexión con Verifacti: ${e}`.slice(0, 300),
-    })
-    return { ok: false, motivo: 'sin_conexion' }
+    return { ok: false, motivo: 'sin_nif' }
   }
+
+  // Una F3 sustituye a un F2 que la AEAT tiene que conocer YA. Si el ticket
+  // aún no consta (sin red al cobrar, reintento pendiente), se espera: se deja
+  // la factura como estaba, SIN gastar un intento, y el reintento en lote la
+  // manda en cuanto el ticket entre.
+  const sust = f.sustituye as Record<string, unknown>
+  if (sust?.estado !== 'enviado') return { ok: false, motivo: 'ticket_sin_registrar' }
+
+  return enviar(componerF3(f), (r) => supabase.rpc('factura_fiscal_resultado', { p_factura: facturaId, ...r }))
 }
 
 Deno.serve(async (req) => {
@@ -177,7 +231,7 @@ Deno.serve(async (req) => {
   if (!API_KEY) return json({ error: 'VERIFACTI_API_KEY no configurada' }, 500)
 
   try {
-    const { ticketId, pendientes } = await req.json()
+    const { ticketId, facturaId, pendientes } = await req.json()
 
     // reintento en lote de lo que quedó sin registrar
     if (pendientes) {
@@ -194,7 +248,28 @@ Deno.serve(async (req) => {
       const ids = (data ?? []).map((r: { id: string }) => r.id)
       const res = []
       for (const id of ids) res.push({ id, ...(await registrar(id)) })
+      // Las facturas DESPUÉS de los tickets: una F3 necesita que su ticket
+      // conste antes en Hacienda, y así entran en la misma pasada.
+      const { data: fs } = await supabase
+        .from('facturas')
+        .select('id')
+        .in('fiscal_estado', ['pendiente', 'error'])
+        .lt('fiscal_intentos', 10)
+        .eq('local_id', local)
+        .limit(25)
+      for (const r of fs ?? []) res.push({ id: r.id, factura: true, ...(await registrarFactura(r.id)) })
       return json({ procesados: res.length, resultados: res })
+    }
+
+    // Una factura completa la emite SIEMPRE el personal: sin sesión no hay
+    // nada que hacer, y la factura tiene que ser de su local.
+    if (facturaId) {
+      const local = await localDelLlamante(req)
+      if (!local) return json({ error: 'Hace falta sesión del local' }, 401)
+      const { data: duenio } = await supabase.from('facturas').select('local_id').eq('id', facturaId).single()
+      if (!duenio || duenio.local_id !== local) return json({ error: 'Esa factura no es de tu local' }, 403)
+      const r = await registrarFactura(facturaId)
+      return json(r, r.ok ? 200 : 202)
     }
 
     if (!ticketId) return json({ error: 'Falta ticketId' }, 400)

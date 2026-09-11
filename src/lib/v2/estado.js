@@ -368,6 +368,26 @@ export async function cargarFichajes(mes = mesActual()) {
   } catch { /* tabla aún no migrada: se ignora */ }
 }
 
+/**
+ * Facturas completas emitidas. Se bajan con la misma ventana que los tickets:
+ * la factura se pide sobre un ticket de estos días, y la de hace meses se
+ * vuelve a abrir desde el enlace del correo.
+ */
+export async function cargarFacturas() {
+  try {
+    const desde = { col: 'expedida_en', valor: inicioVentanaHistorial(new Date(), useStore.getState().cierres?.[0]?.hasta ?? null) }
+    const filas = await q('facturas', 'id, ticket_id, serie, numero, expedida_en, cliente_nombre, cliente_nif, cliente_direccion, cliente_email, total, lineas, desglose, emisor, token, fiscal_estado, fiscal_url, fiscal_error', {}, desde)
+    useStore.setState({
+      facturas: filas.map(f => ({
+        id: f.id, ticketId: f.ticket_id, serie: f.serie, numero: Number(f.numero), expedidaEn: f.expedida_en,
+        cliente: { nombre: f.cliente_nombre, nif: f.cliente_nif, direccion: f.cliente_direccion, email: f.cliente_email },
+        total: Number(f.total), lineas: f.lineas, desglose: f.desglose, emisor: f.emisor, token: f.token,
+        fiscalEstado: f.fiscal_estado, fiscalUrl: f.fiscal_url, fiscalError: f.fiscal_error,
+      })),
+    })
+  } catch { /* tabla aún no migrada: se ignora */ }
+}
+
 export async function cargarTodo() {
   // la identidad puede fallar (anon sin migración 05): carta y sala son
   // lecturas públicas y deben cargar igualmente.
@@ -376,7 +396,7 @@ export async function cargarTodo() {
   // Los cierres van ANTES que el historial: la ventana de tickets se estira
   // hasta el último cierre, y si aún no están cargados no hay hasta dónde.
   await cargarCierres().catch(() => {})
-  await Promise.all([cargarComandas(), cargarAvisos(), cargarReservas(), cargarHistorial(), cargarFichajes(), cargarPagosSinCuenta()])
+  await Promise.all([cargarComandas(), cargarAvisos(), cargarReservas(), cargarHistorial(), cargarFichajes(), cargarPagosSinCuenta(), cargarFacturas()])
   // después de los cierres: la ventana de movimientos arranca en el último
   await cargarMovimientosCaja()
 }
