@@ -7,6 +7,8 @@ import MetodoPago from '../../components/MetodoPago'
 import ReservasManager from '../../components/ReservasManager'
 import BotonSalir from '../../components/BotonSalir'
 import PedirPda from '../pda/PedirPda'
+import PedirMostrador from './PedirMostrador'
+import { useEsAncho } from '../../components/useEsAncho'
 import FueraDeCarta from '../../components/FueraDeCarta'
 import CambiarPrecio from '../../components/CambiarPrecio'
 import CobroMesa from '../pda/CobroMesa'
@@ -34,6 +36,7 @@ export default function PanelCamarero() {
   const { mesas, pedidosCocina, pedidosBarra, avisos, historial, reservas, liberarMesa, atenderAviso, pagarParte, cobrarMesa, reservarMesa, cancelarReserva, sentarReserva, unirseAMesa, asignarCamarero, agruparMesas, separarMesas, marcharSiguiente, cambiarCantidad, moverItem, anularItem, confirmarPedido } = useStore()
   const empleado = useEmpleadoActual()
   useReloj()   // «hace 20 min» de una mesa no puede quedarse parado
+  const ancho = useEsAncho()   // monitor o tablet apaisada: la toma de pedido se reparte la pantalla
   const yo = empleado?.nombre || 'Mostrador'
   const [mesaSeleccionada, setMesaSeleccionada] = useState(null)
   const [ticket, setTicket] = useState(null) // { tipo, persona, mesa? }
@@ -495,7 +498,9 @@ export default function PanelCamarero() {
       )}
 
       {/* Toma de pedido (escritorio, reutiliza la carta de la PDA) */}
-      {pidiendo && mesa && <PedirPda mesaId={mesa.id} onClose={() => setPidiendo(false)} />}
+      {pidiendo && mesa && (ancho
+        ? <PedirMostrador mesaId={mesa.id} onClose={() => setPidiendo(false)} />
+        : <PedirPda mesaId={mesa.id} onClose={() => setPidiendo(false)} />)}
 
       {/* Cobro completo de mesa (descuento, dividir, efectivo) */}
       {cobrandoMesa && mesa && (

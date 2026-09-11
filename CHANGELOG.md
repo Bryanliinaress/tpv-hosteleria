@@ -5,6 +5,23 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.129.0] - 2026-09-11
+
+### Cambiado
+- **Tomar pedido en el Mostrador, rehecho para pantalla grande.** Se abría la pantalla de la PDA —una columna de 520 px pensada para usarse con una mano— en mitad del monitor, con la sala asomando por los lados: un producto por fila a todo lo ancho, los apartados en una tira y lo pedido escondido en un pie que solo salía al pedir algo.
+
+  Ahora la pantalla se reparte como se trabaja en una barra:
+  - **a la izquierda, los apartados de la carta**, siempre a la vista y con cuántos productos tiene cada uno;
+  - **en el centro, los productos en rejilla.** La tarjeta **entera** es el botón —no un «+» pequeño en una esquina— y lleva un **número con lo que ese comensal ya lleva pedido**, para no marcar dos veces el mismo café. Los que tienen opciones lo dicen («opciones ›», «menú ›») y abren una ventana centrada, no una hoja de lado a lado del monitor;
+  - **a la derecha, la comanda de la mesa entera**, con cada línea y su detalle («Pitufo · sin queso»), el tiempo (1º/2º/postre), los − y +, lo que ya se envió, «✍️ Fuera de carta» y el botón de enviar, siempre a la vista.
+
+  **Con teclado:** se escribe «semilargo» y **Enter lo añade** y deja el buscador listo para el siguiente. Solo si no hay duda: con «café» y cinco cafés, Enter no añade uno que nadie ha elegido — avisa de cuántos coinciden. **Escape** cierra de dentro afuera: la ventana de opciones, luego la búsqueda, y solo entonces la pantalla.
+
+  En un móvil (menos de 900 px) sigue saliendo la versión de una mano de la PDA, que ahí sí es la buena. Y los laterales crecen con la pantalla: con anchos fijos, en una tablet apaisada de 1024 px la rejilla del centro se quedaba en una sola columna.
+
+### Arreglado
+- **«Enviar 2 a cocina/barra» enviaba 5.** El botón contaba solo lo del comensal elegido, pero enviar manda lo pendiente de **toda la mesa**. Con dos comensales pidiendo a la vez, el camarero veía «2» y a cocina salían los cinco platos. Ahora cuenta y suma la mesa entera, en la PDA y en el Mostrador, y la PDA avisa «+ 3 de otros comensales, que también salen al enviar».
+
 ## [0.128.0] - 2026-09-10
 
 ### Añadido
