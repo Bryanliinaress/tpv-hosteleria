@@ -5,6 +5,8 @@ import { numeroDeFactura, correoDeFactura } from '../lib/factura'
 import { pdfDeFactura, trazosQr, nombreArchivoFactura } from '../lib/facturaPdf'
 import { enviarCorreoFactura, correoConAdjunto, descargarPdf } from '../lib/email'
 import { toast } from '../store/useUI'
+import { useStore } from '../store/useStore'
+import Facturar from './Facturar'
 
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
@@ -16,7 +18,11 @@ const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
  * vista previa vive dentro de un modal con scroll, y un elemento `fixed`
  * impreso se corta en la primera hoja o se repite en todas.
  */
-export default function FacturaDocumento({ factura, onCerrar }) {
+export default function FacturaDocumento({ factura: inicial, por, onCerrar }) {
+  // La factura VIVA del store: tras corregirla o registrarla en Hacienda, lo
+  // que se ve (y el PDF que se manda) se pone al día sin cerrar y volver a abrir.
+  const factura = useStore(s => (s.facturas || []).find(f => f.id === inicial.id)) || inicial
+  const [corrigiendo, setCorrigiendo] = useState(false)
   const [correo, setCorreo] = useState(factura.cliente?.email || '')
   const [enviando, setEnviando] = useState(false)
   const papel = useRef(null)
@@ -81,6 +87,19 @@ export default function FacturaDocumento({ factura, onCerrar }) {
             </div>
           </div>
 
+          {/* Rechazada por Hacienda: casi siempre, un nombre que no casa con el
+              NIF. Se corrige y se reenvía con el mismo número, que nunca llegó
+              a constar. */}
+          {factura.fiscalEstado === 'error' && (
+            <div role="alert" style={{ display: 'flex', gap: '0.7rem', alignItems: 'center', flexWrap: 'wrap', background: 'var(--tint-danger-bg)', color: 'var(--tint-danger-fg)', border: '1px solid #f43f5e', borderRadius: 'var(--radius-lg)', padding: '0.75rem 1rem' }}>
+              <div style={{ flex: '1 1 18rem', fontSize: '0.84rem' }}>
+                <b>Hacienda ha rechazado esta factura.</b> No vale hasta que se corrija y se reenvíe.
+                {factura.fiscalError && <div style={{ fontSize: '0.76rem', marginTop: '0.25rem', opacity: 0.9 }}>{factura.fiscalError}</div>}
+              </div>
+              <button onClick={() => setCorrigiendo(true)} style={boton('#f43f5e', '#fff')}>✏️ Corregir datos y reenviar</button>
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: '0.7rem 1rem', alignItems: 'center' }}>
             <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>✉️ Enviar por correo</span>
             <input value={correo} onChange={e => setCorreo(e.target.value)} type="email" inputMode="email" placeholder="correo@empresa.es"
@@ -101,6 +120,7 @@ export default function FacturaDocumento({ factura, onCerrar }) {
       </div>
 
       {createPortal(<div className="factura-print solo-impresion"><FacturaPapel factura={factura} /></div>, document.body)}
+      {corrigiendo && <Facturar factura={factura} por={por} onCerrar={() => setCorrigiendo(false)} />}
     </>
   )
 }

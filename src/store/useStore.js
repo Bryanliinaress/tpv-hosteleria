@@ -10,7 +10,7 @@ import { revisarNumeroMesa, revisarNombreZona, revisarAltaMesas } from '../lib/s
 import { revisarNombreApartado, moverEnLista, emojiPorTipo, moverProductoEnCarta, copiaDeProducto } from '../lib/carta'
 import { revisarCambiosLocal } from '../lib/local'
 import { revisarPlatoLibre, revisarCambioDePrecio } from '../lib/fueraDeCarta'
-import { revisarDatosFactura, porQueNoSeFactura, faltaParaFacturar, lineasParaFactura, desgloseParaFactura } from '../lib/factura'
+import { revisarDatosFactura, porQueNoSeFactura, faltaParaFacturar, lineasParaFactura, desgloseParaFactura, puedeCorregirse, mismosDatosCliente } from '../lib/factura'
 import { guardarCliente } from '../lib/clientesFactura'
 import { totalDeMesa } from '../lib/dinero'
 
@@ -379,6 +379,26 @@ export const useStore = create(persist((set, get) => ({
       ...(guardar ? { clientesFactura: guardarCliente(s.clientesFactura || [], r.valor, { id: crearId('cl') }) } : {}),
     }))
     return { ok: true, factura }
+  },
+
+  // Corregir los datos del cliente de una factura que Hacienda RECHAZÓ y
+  // dejarla lista para reenviar con el mismo número. En la demo no hay
+  // Hacienda, así que ninguna llega a estar rechazada: se responde lo mismo
+  // que respondería el servidor.
+  corregirFactura: async ({ facturaId, nombre, nif, direccion, email, por, guardar = false } = {}) => {
+    const st = get()
+    const f = (st.facturas || []).find(x => x.id === facturaId)
+    if (!f) return { ok: false, error: 'Esa factura ya no está' }
+    if (!puedeCorregirse(f)) return { ok: false, error: 'Solo se corrige una factura que Hacienda ha rechazado' }
+    const r = revisarDatosFactura({ nombre, nif, direccion, email })
+    if (!r.ok) return r
+    if (mismosDatosCliente(f, r.valor)) return { ok: false, error: 'Son los mismos datos que rechazó Hacienda: cambia lo que no casaba' }
+    const nueva = { ...f, cliente: { ...r.valor }, fiscalEstado: 'pendiente', fiscalError: null, corregidaPor: por || null }
+    set(s => ({
+      facturas: (s.facturas || []).map(x => x.id === facturaId ? nueva : x),
+      ...(guardar ? { clientesFactura: guardarCliente(s.clientesFactura || [], r.valor, { id: crearId('cl') }) } : {}),
+    }))
+    return { ok: true, factura: nueva }
   },
 
   // Borrar un cliente guardado (RGPD: se guarda solo para facturarle). Sus

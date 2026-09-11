@@ -565,7 +565,7 @@ export default function PanelCamarero() {
       )}
 
       {facturando && <Facturar ticket={facturando} por={yo} onCerrar={() => setFacturando(null)} />}
-      {verFactura && <FacturaDocumento factura={verFactura} onCerrar={() => setVerFactura(null)} />}
+      {verFactura && <FacturaDocumento factura={verFactura} por={yo} onCerrar={() => setVerFactura(null)} />}
 
       {verHistorial && (
         <div onClick={() => setVerHistorial(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', display: 'flex', justifyContent: 'flex-end', zIndex: 90, animation: 'fadeIn 0.2s ease both' }}>
@@ -583,14 +583,14 @@ export default function PanelCamarero() {
               <div key={r.id} style={{ background: 'var(--color-inset)', borderRadius: '0.625rem', padding: '0.75rem 0.875rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontWeight: 700 }}>Mesa {r.mesaNumero}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>{new Date(r.cerradaEn).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} · {r.total.toFixed(2)} €</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)', whiteSpace: 'nowrap' }}>{new Date(r.cerradaEn).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} · {r.total.toFixed(2)} €</div>
                 </div>
                 <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                   {/* «¿Me haces factura?» se pide en la barra, al pagar o al
                       volver a por ella: tiene que estar aquí y no solo en Admin. */}
                   {(() => {
                     const f = facturas.find(x => x.ticketId === r.id)
-                    if (f) return <button onClick={() => setVerFactura(f)} style={btn('var(--color-surface-2)', { fontSize: '0.78rem', padding: '0.4rem 0.7rem' })}>📄 {numeroDeFactura(f)}</button>
+                    if (f) return <button onClick={() => setVerFactura(f)} style={btn('var(--color-surface-2)', { fontSize: '0.78rem', padding: '0.4rem 0.7rem' })}>📄 {numeroDeFactura(f)}{f.fiscalEstado === 'error' ? ' ⚠ rechazada' : ''}</button>
                     if (porQueNoSeFactura(r, { historial, facturas })) return null
                     return <button onClick={() => setFacturando(r)} style={btn('var(--color-surface-2)', { fontSize: '0.78rem', padding: '0.4rem 0.7rem' })}>🧾 Factura</button>
                   })()}

@@ -163,14 +163,26 @@ function componerF3(f: Record<string, unknown>) {
 }
 
 // Manda un registro a Verifacti y guarda el resultado con la RPC que toque.
-async function enviar(cuerpo: Record<string, unknown>, guardar: (r: Record<string, unknown>) => Promise<unknown>) {
+// `ruta`/`metodo` cambian solo al subsanar (PUT /verifactu/modify).
+async function enviar(
+  cuerpo: Record<string, unknown>,
+  guardar: (r: Record<string, unknown>) => Promise<unknown>,
+  { ruta = '/verifactu/create', metodo = 'POST', antesDeGuardar = null }:
+    { ruta?: string, metodo?: string, antesDeGuardar?: ((res: Response, r: Record<string, unknown>) => Promise<unknown | null>) | null } = {},
+) {
   try {
-    const res = await fetch(`${VERIFACTI_URL}/verifactu/create`, {
-      method: 'POST',
+    const res = await fetch(`${VERIFACTI_URL}${ruta}`, {
+      method: metodo,
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${API_KEY}` },
       body: JSON.stringify(cuerpo),
     })
     const r = await res.json().catch(() => ({}))
+    // Quien llama puede quedarse con la respuesta antes de darla por error
+    // (p. ej. «ya existe» al reenviar una corregida: entonces se subsana).
+    if (antesDeGuardar) {
+      const otro = await antesDeGuardar(res, r)
+      if (otro) return otro
+    }
     if (!res.ok) {
       const msg = r?.message || r?.error || `HTTP ${res.status}`
       await guardar({ p_estado: 'error', p_error: String(msg).slice(0, 300) })
@@ -222,7 +234,30 @@ async function registrarFactura(facturaId: string) {
   const sust = f.sustituye as Record<string, unknown>
   if (sust?.estado !== 'enviado') return { ok: false, motivo: 'ticket_sin_registrar' }
 
-  return enviar(componerF3(f), (r) => supabase.rpc('factura_fiscal_resultado', { p_factura: facturaId, ...r }))
+  const cuerpo = componerF3(f)
+  const guardar = (r: Record<string, unknown>) => supabase.rpc('factura_fiscal_resultado', { p_factura: facturaId, ...r })
+
+  // ── Reenvío de una factura CORREGIDA tras un rechazo ──────────────────────
+  //
+  // Con el destinatario mal (nombre que no casa con el NIF), Verifacti la
+  // para ANTES de mandarla a la AEAT —valida el censo por defecto— y no queda
+  // registro: se manda otra vez por `create`, con el mismo número y fecha.
+  //
+  // Si aun así Verifacti dice que ya la tiene (porque llegó a la AEAT y esta la
+  // rechazó), se manda como SUBSANACIÓN de un registro rechazado:
+  // `PUT /verifactu/modify` con `rechazo_previo: "S"`.
+  if (f.subsanar) {
+    return enviar(cuerpo, guardar, {
+      antesDeGuardar: async (res, r) => {
+        const msg = String(r?.message || r?.error || '')
+        const yaExiste = res.status === 409 || /ya exist|existe|duplicad|already/i.test(msg)
+        if (res.ok || !yaExiste) return null
+        return enviar({ ...cuerpo, rechazo_previo: 'S' }, guardar, { ruta: '/verifactu/modify', metodo: 'PUT' })
+      },
+    })
+  }
+
+  return enviar(cuerpo, guardar)
 }
 
 Deno.serve(async (req) => {

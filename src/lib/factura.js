@@ -174,3 +174,18 @@ export const desgloseParaFactura = (lineas) =>
  */
 export const enlaceFactura = (f, origen = globalThis.location?.origin ?? '', base = import.meta.env?.BASE_URL ?? '/') =>
   `${origen}${base}#/factura?t=${f.token}`
+
+/**
+ * ¿Se puede corregir y reenviar? Solo si Hacienda la RECHAZÓ: entonces nunca
+ * llegó a constar y se reenvía con el mismo número. Una aceptada ya no se
+ * toca (eso sería rectificarla), y una pendiente aún no ha tenido respuesta.
+ */
+export const puedeCorregirse = (f) => f?.fiscalEstado === 'error'
+
+/** ¿Los datos tecleados son los mismos que ya tiene la factura? */
+export function mismosDatosCliente(f, datos) {
+  const c = f?.cliente || {}
+  const limpio = (s) => String(s ?? '').trim().replace(/\s+/g, ' ')
+  return limpio(c.nombre) === limpio(datos.nombre) && normalizarNif(c.nif) === normalizarNif(datos.nif) &&
+    limpio(c.direccion) === limpio(datos.direccion) && limpio(c.email) === limpio(datos.email)
+}

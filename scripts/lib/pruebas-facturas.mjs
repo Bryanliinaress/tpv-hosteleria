@@ -194,6 +194,67 @@ ${comprobarIgual('(select count(*) from clientes_factura where local_id = v_loca
   },
 
   {
+    nombre: 'corregir: una factura pendiente o aceptada no se corrige',
+    cuerpo: () => `
+${localFacturable}
+${montarMesa(926)}
+${linea('5.00')}
+${cobrar('5.00')}
+  select * into v_fila from ${emitir()};
+  -- recien emitida esta pendiente: aun no ha respondido Hacienda
+${debeFallar("corregir_factura(v_fila.id, 'Otro Nombre S.L.', 'B12345674', 'C/ Otra 1')", 'factura_no_corregible', 'ha dejado corregir una factura sin respuesta de Hacienda')}
+  update facturas set fiscal_estado = 'enviado' where id = v_fila.id;
+${debeFallar("corregir_factura(v_fila.id, 'Otro Nombre S.L.', 'B12345674', 'C/ Otra 1')", 'factura_no_corregible', 'ha dejado cambiar el titular de una factura ACEPTADA')}
+`,
+  },
+
+  {
+    nombre: 'corregir: la rechazada se corrige con el mismo numero y fecha, y queda constancia',
+    cuerpo: ({ comprobar, comprobarIgual }) => `
+${localFacturable}
+${montarMesa(927)}
+${linea('6.40')}
+${cobrar('6.40')}
+  select * into v_fila from emitir_factura(v_id, 't', '79362129P', 'C/ Prueba 1', null, 'Prueba');
+  update facturas set fiscal_estado = 'error', fiscal_error = 'NIF/NOMBRE no casan', fiscal_intentos = 3 where id = v_fila.id;
+  select f.expedida_en::text into v_txt from facturas f where f.id = v_fila.id;
+
+${debeFallar("corregir_factura(v_fila.id, 't', '79.362.129-p', 'C/ Prueba 1')", 'sin_cambios', 'ha reenviado los mismos datos que rechazo Hacienda')}
+
+  perform corregir_factura(v_fila.id, 'Construcciones Avila S.A.', 'A58818501', 'Av. del Sol 1', null, 'Encargado');
+
+${comprobarIgual('(select f.numero from facturas f where f.id = v_fila.id)', 'v_fila.numero', 'la corregida conserva su numero')}
+${comprobarIgual('(select f.expedida_en::text from facturas f where f.id = v_fila.id)', 'v_txt', 'y su fecha de expedicion')}
+${comprobarIgual("(select f.fiscal_estado from facturas f where f.id = v_fila.id)", "'pendiente'", 'queda pendiente de reenviar')}
+${comprobarIgual('(select f.fiscal_intentos from facturas f where f.id = v_fila.id)', '0', 'con los reintentos a cero')}
+${comprobar('(select f.subsanar from facturas f where f.id = v_fila.id)', 'marcada para subsanar')}
+${comprobarIgual("(select f.cliente_nif from facturas f where f.id = v_fila.id)", "'A58818501'", 'con los datos nuevos')}
+
+  -- el motivo del rechazo es TEXTO: se comprueba aparte (v_json es jsonb)
+  select c.antes ->> 'nombre' into v_txt
+    from correcciones_factura c where c.factura_id = v_fila.id;
+${comprobarIgual('v_txt', "'t'", 'la auditoria guarda que ponia antes')}
+${comprobar("(select c.error_previo from correcciones_factura c where c.factura_id = v_fila.id) = 'NIF/NOMBRE no casan'", 'y por que lo rechazo Hacienda')}
+${comprobar("(select c.por from correcciones_factura c where c.factura_id = v_fila.id) = 'Encargado'", 'y quien lo cambio')}
+`,
+  },
+
+  {
+    nombre: 'corregir: la factura de otro bar no se toca',
+    cuerpo: () => `
+${localFacturable}
+${montarMesa(928)}
+${linea('4.00')}
+${cobrar('4.00')}
+  select * into v_fila from ${emitir()};
+  update facturas set fiscal_estado = 'error' where id = v_fila.id;
+  perform set_config('request.jwt.claims',
+    json_build_object('app_metadata', json_build_object('local_id', gen_random_uuid()))::text, true);
+${debeFallar("corregir_factura(v_fila.id, 'Otro S.L.', 'B12345674', 'C/ Otra 1')", 'factura_no_existe', 'ha dejado corregir la factura de otro local')}
+`,
+  },
+
+  {
     nombre: 'factura: no se puede facturar el ticket de otro bar',
     cuerpo: () => `
 ${localFacturable}

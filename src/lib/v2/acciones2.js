@@ -13,7 +13,7 @@ import { revisarNombreApartado, moverEnLista, emojiPorTipo, moverProductoEnCarta
 import { revisarCambiosLocal } from '../local'
 import { efectivoEsperado, descuadreDe, saldoMovimientos, revisarMovimiento } from '../caja'
 import { registrarTicket, registrarFactura } from '../fiscal'
-import { revisarDatosFactura } from '../factura'
+import { revisarDatosFactura, mismosDatosCliente } from '../factura'
 import { getLocalId, cargarTodo, cargarSala, cargarComandas, cargarReservas, cargarCarta, cargarLocal, cargarHistorial, cargarFichajes, cargarCierres, cargarMovimientosCaja, cargarFacturas, cargarClientesFactura } from './estado'
 
 // Segunda ola de acciones v2: KDS, agenda de reservas, CRUD de carta/sala/
@@ -43,6 +43,9 @@ const MOTIVOS = {
   es_devolucion: 'Una devolución no se factura.',
   ticket_con_devolucion: 'Este ticket tiene devoluciones: no se puede facturar desde aquí.',
   ya_facturado: 'Ese ticket ya tiene factura.',
+  factura_no_existe: 'Esa factura ya no está.',
+  factura_no_corregible: 'Solo se corrige una factura que Hacienda ha rechazado.',
+  sin_cambios: 'Son los mismos datos que rechazó Hacienda: cambia lo que no casaba.',
   ticket_facturado: 'Ese ticket tiene factura: la devolución habría que hacerla sobre la factura, y eso aún no se puede desde aquí.',
   ya_es_rectificativa: 'Eso ya es una devolución: no se puede devolver una devolución.',
   importe_invalido: 'Ese ticket ya está devuelto por completo.',
@@ -581,6 +584,30 @@ export function accionesV2b() {
         if (f?.id) registrarFactura(f.id).then(() => cargarFacturas())
         const factura = useStore.getState().facturas.find(x => x.id === f?.id)
         return factura ? { ok: true, factura } : { ok: false, error: 'La factura se emitió pero no se pudo leer: recarga' }
+      } catch (e) {
+        return { ok: false, error: motivoLegible(e) }
+      }
+    },
+
+    // Corregir y reenviar una factura RECHAZADA por Hacienda. El servidor
+    // guarda qué había antes (auditoría), la deja pendiente con el mismo
+    // número y fecha, y aquí se manda de nuevo a registrar.
+    corregirFactura: async ({ facturaId, nombre, nif, direccion, email, por, guardar = false } = {}) => {
+      const r = revisarDatosFactura({ nombre, nif, direccion, email })
+      if (!r.ok) return r
+      const antes = (useStore.getState().facturas || []).find(x => x.id === facturaId)
+      if (antes && mismosDatosCliente(antes, r.valor)) return { ok: false, error: MOTIVOS.sin_cambios }
+      try {
+        await rpc('corregir_factura', {
+          p_factura: facturaId, p_nombre: r.valor.nombre, p_nif: r.valor.nif,
+          p_direccion: r.valor.direccion, p_email: r.valor.email, p_por: por || null,
+          p_guardar: !!guardar,
+        })
+        await cargarFacturas()
+        if (guardar) cargarClientesFactura()
+        registrarFactura(facturaId).then(() => cargarFacturas())
+        const factura = (useStore.getState().facturas || []).find(x => x.id === facturaId)
+        return { ok: true, factura }
       } catch (e) {
         return { ok: false, error: motivoLegible(e) }
       }
