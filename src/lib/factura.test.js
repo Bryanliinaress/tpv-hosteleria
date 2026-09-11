@@ -114,12 +114,13 @@ describe('correoDeFactura', () => {
     expect(correoDeFactura(f).asunto).toBe('Factura F-12 de Bar Loli S.L.')
   })
 
-  it('lleva líneas, desglose, total con coma y el enlace', () => {
-    const { mensaje } = correoDeFactura(f, { enlace: 'https://x/#/factura?t=abc' })
+  it('acompaña al PDF adjunto: líneas, desglose y total con coma, y SIN enlace', () => {
+    const { mensaje } = correoDeFactura(f)
+    expect(mensaje).toContain('adjuntamos en PDF')
+    expect(mensaje).not.toMatch(/https?:/)
     expect(mensaje).toContain('2× Menú del día — 23,50 €')
     expect(mensaje).toContain('IVA 10 % 2,14 €')
     expect(mensaje).toContain('TOTAL 23,50 €')
-    expect(mensaje).toContain('https://x/#/factura?t=abc')
   })
 
   it('numeroDeFactura sin número no inventa uno', () => {

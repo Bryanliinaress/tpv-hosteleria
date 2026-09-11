@@ -114,12 +114,13 @@ export const numeroDeFactura = (f) => (f?.numero != null ? `${f.serie || 'F'}-${
 const euros = (n) => `${(Number(n) || 0).toFixed(2).replace('.', ',')} €`
 
 /**
- * Asunto y cuerpo del correo. Texto plano a propósito: la plantilla de EmailJS
+ * Asunto y cuerpo del correo que ACOMPAÑA al PDF adjunto (sin enlaces: la
+ * factura es el adjunto). Texto plano a propósito: la plantilla de EmailJS
  * del local ya sabe pintar {{asunto}} y {{mensaje}}, y un correo con la
  * factura escrita y el enlace para verla e imprimirla se lee en cualquier
  * cliente de correo —también en el de la gestoría—.
  */
-export function correoDeFactura(f, { enlace = null } = {}) {
+export function correoDeFactura(f) {
   const emisor = f.emisor || {}
   const quien = emisor.razonSocial || emisor.nombre || 'el local'
   const lineas = (f.lineas || []).map(l => `  ${l.cantidad}× ${l.nombre} — ${euros(l.importe)}`).join('\n')
@@ -128,14 +129,12 @@ export function correoDeFactura(f, { enlace = null } = {}) {
   const mensaje = [
     `Hola${f.cliente?.nombre ? `, ${f.cliente.nombre}` : ''}:`,
     '',
-    `Te enviamos la factura ${numeroDeFactura(f)} de ${quien}.`,
+    `Te adjuntamos en PDF la factura ${numeroDeFactura(f)} de ${quien}.`,
     '',
     lineas,
     '',
     desglose,
     `  TOTAL ${euros(f.total)}`,
-    '',
-    enlace ? `Puedes verla, imprimirla o guardarla en PDF aquí:\n${enlace}` : '',
     '',
     `${quien} · NIF ${emisor.cif || ''}`,
   ].filter((l, i, a) => !(l === '' && a[i - 1] === '')).join('\n')

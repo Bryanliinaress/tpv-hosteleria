@@ -11,6 +11,7 @@ import { revisarNombreApartado, moverEnLista, emojiPorTipo, moverProductoEnCarta
 import { revisarCambiosLocal } from '../lib/local'
 import { revisarPlatoLibre, revisarCambioDePrecio } from '../lib/fueraDeCarta'
 import { revisarDatosFactura, porQueNoSeFactura, faltaParaFacturar, lineasParaFactura, desgloseParaFactura } from '../lib/factura'
+import { guardarCliente } from '../lib/clientesFactura'
 import { totalDeMesa } from '../lib/dinero'
 
 // Aviso al usuario desde el store. Import perezoso para no acoplar el estado a
@@ -345,7 +346,7 @@ export const useStore = create(persist((set, get) => ({
   // imprimir y mandar—: es lo que un bar quiere ver funcionando antes de
   // comprar. `async` por la misma razón que la rectificativa: en el backend
   // real habla con el servidor, y las dos versiones tienen que ser iguales.
-  emitirFactura: async ({ ticketId, nombre, nif, direccion, email, por } = {}) => {
+  emitirFactura: async ({ ticketId, nombre, nif, direccion, email, por, guardar = false } = {}) => {
     const st = get()
     const ticket = st.historial.find(t => t.id === ticketId)
     const no = porQueNoSeFactura(ticket, { historial: st.historial, facturas: st.facturas || [] })
@@ -373,9 +374,16 @@ export const useStore = create(persist((set, get) => ({
       creadaPor: por || null,
       fiscalEstado: 'no_aplica',
     }
-    set(s => ({ facturas: [...(s.facturas || []), factura] }))
+    set(s => ({
+      facturas: [...(s.facturas || []), factura],
+      ...(guardar ? { clientesFactura: guardarCliente(s.clientesFactura || [], r.valor, { id: crearId('cl') }) } : {}),
+    }))
     return { ok: true, factura }
   },
+
+  // Borrar un cliente guardado (RGPD: se guarda solo para facturarle). Sus
+  // facturas NO se tocan: son documentos fiscales y llevan sus datos dentro.
+  borrarClienteFactura: (id) => set(s => ({ clientesFactura: (s.clientesFactura || []).filter(c => c.id !== id) })),
 
   // La pestaña de Fichajes pide el mes que se está mirando. En la demo está
   // todo en el dispositivo, así que no hay nada que traer; en v2 lo baja del
@@ -403,6 +411,7 @@ export const useStore = create(persist((set, get) => ({
   anulaciones: [], // { id, fecha, mesaNumero, nombre, cantidad, importe, enviado, motivo, por }
   cambiosPrecio: [], // { id, fecha, mesaNumero, nombre, cantidad, antes, despues, diferencia, motivo, por }
   facturas: [], // { id, ticketId, serie, numero, expedidaEn, cliente, total, lineas, desglose, emisor, token, fiscalEstado }
+  clientesFactura: [], // { id, nombre, nif, direccion, email, facturas, usadoEn } — el que vuelve no teclea otra vez
 
   // ── FICHAJES (registro de jornada, RD-ley 8/2019) ──────
   fichajes: [], // { id, empleadoId, nombre, entrada, salida } (ISO); salida null = turno abierto
@@ -1600,6 +1609,7 @@ export const useStore = create(persist((set, get) => ({
     // Una factura se guarda mucho más que un ticket: el cliente la vuelve a
     // pedir en la declaración trimestral, meses después. Ocupan poco.
     facturas: recientes(state.facturas, 'expedidaEn', DIAS_LARGOS, 3000),
+    clientesFactura: state.clientesFactura,
     // los fichajes son NÓMINA: se conservan mucho más y ocupan poquísimo
     fichajes: recientes(state.fichajes, 'entrada', DIAS_LARGOS, 5000),
     reservas: state.reservas,

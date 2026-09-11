@@ -14,7 +14,7 @@ import { revisarCambiosLocal } from '../local'
 import { efectivoEsperado, descuadreDe, saldoMovimientos, revisarMovimiento } from '../caja'
 import { registrarTicket, registrarFactura } from '../fiscal'
 import { revisarDatosFactura } from '../factura'
-import { getLocalId, cargarTodo, cargarSala, cargarComandas, cargarReservas, cargarCarta, cargarLocal, cargarHistorial, cargarFichajes, cargarCierres, cargarMovimientosCaja, cargarFacturas } from './estado'
+import { getLocalId, cargarTodo, cargarSala, cargarComandas, cargarReservas, cargarCarta, cargarLocal, cargarHistorial, cargarFichajes, cargarCierres, cargarMovimientosCaja, cargarFacturas, cargarClientesFactura } from './estado'
 
 // Segunda ola de acciones v2: KDS, agenda de reservas, CRUD de carta/sala/
 // personal, caja y config del local. Personal/admin operan por RLS.
@@ -566,22 +566,34 @@ export function accionesV2b() {
     // Factura completa de un ticket: el servidor la numera en su serie, congela
     // líneas y desglose, y aquí se manda a registrar como F3 —sustituyendo al
     // ticket— por la misma vía y con los mismos reintentos que un ticket.
-    emitirFactura: async ({ ticketId, nombre, nif, direccion, email, por } = {}) => {
+    emitirFactura: async ({ ticketId, nombre, nif, direccion, email, por, guardar = false } = {}) => {
       const r = revisarDatosFactura({ nombre, nif, direccion, email })
       if (!r.ok) return r
       try {
         const filas = await rpc('emitir_factura', {
           p_ticket: ticketId, p_nombre: r.valor.nombre, p_nif: r.valor.nif,
           p_direccion: r.valor.direccion, p_email: r.valor.email, p_por: por || null,
+          p_guardar: !!guardar,
         })
         const f = Array.isArray(filas) ? filas[0] : filas
         await cargarFacturas()
+        if (guardar) cargarClientesFactura()
         if (f?.id) registrarFactura(f.id).then(() => cargarFacturas())
         const factura = useStore.getState().facturas.find(x => x.id === f?.id)
         return factura ? { ok: true, factura } : { ok: false, error: 'La factura se emitió pero no se pudo leer: recarga' }
       } catch (e) {
         return { ok: false, error: motivoLegible(e) }
       }
+    },
+
+    // Borrar un cliente guardado. Sus facturas no se tocan: son documentos
+    // fiscales con los datos congelados dentro.
+    borrarClienteFactura: (id) => {
+      useStore.setState(s => ({ clientesFactura: (s.clientesFactura || []).filter(c => c.id !== id) }))
+      ;(async () => {
+        const { error } = await supabase.from('clientes_factura').delete().eq('id', id)
+        if (error) { toast('No se pudo borrar el cliente', 'error'); cargarClientesFactura() }
+      })()
     },
 
     emitirRectificativa: async ({ ticketId, motivo, importe, metodo, por }) => {

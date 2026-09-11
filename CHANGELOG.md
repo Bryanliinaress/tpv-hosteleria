@@ -5,6 +5,22 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.131.0] - 2026-09-11
+
+### Añadido
+- **👥 Clientes de factura guardados.** El que pide factura suele volver: el comercial de los martes, el taller de enfrente, la empresa de la comida de Navidad. Al emitir, la casilla **«Guardar este cliente para la próxima vez»** (marcada por defecto) lo guarda, y la próxima vez aparece arriba del formulario: se busca por nombre («talleres») o por un trozo de NIF («B123»), sin mirar tildes ni puntos, y **un toque rellena nombre, NIF, domicilio y correo**. Si alguien teclea a mano un NIF que ya está guardado, se le ofrece «Usar sus datos» en vez de escribirlos otra vez con otra errata.
+
+  Un NIF es un cliente: si vuelve con otro domicilio, se actualiza el suyo en vez de duplicarlo, y un correo vacío no borra el que ya tenía. Se guarda **en la misma transacción que la factura** (migración `20260912T47`): no queda un cliente guardado de una factura que falló, ni al revés.
+
+  ⚠️ **Datos personales (RGPD).** Un DNI y un domicilio son datos de una persona: se guardan solo para facturarle y se **borran desde Admin › Caja › Clientes de facturas**, sin llamar a nadie. Borrar al cliente no toca sus facturas ya emitidas, que son documentos fiscales y llevan sus datos dentro.
+
+### Cambiado
+- **El correo lleva la factura en PDF adjunta, no un enlace.** Es lo que espera una gestoría: un enlace a una web es algo que un departamento de administración no abre. El PDF se genera en el propio aparato, en A4, con lo mismo que la factura impresa —y el QR de Verifactu cuando ya consta en Hacienda—, pasa a otra página si hay muchas líneas y pesa unos pocos KB. Además hay **⬇️ Descargar PDF** junto a Imprimir.
+
+  El PDF se escribe sin librerías (fuentes estándar de PDF con codificación WinAnsi, que tiene el «€» y todas las tildes): no añade peso al mostrador y el mismo código sirve en Node.
+
+  **Para que se envíe solo** hace falta una plantilla de EmailJS con el adjunto configurado —se hace en su panel, no desde el código— y ponerla en `VITE_EMAILJS_TEMPLATE_FACTURA_ID` (ver `.env.example`). Mientras no esté, «📎 Enviar PDF» abre el menú **Compartir** del sistema con el PDF ya adjunto para elegir Gmail, Outlook o WhatsApp, y si el aparato no puede, descarga el PDF y abre el correo para adjuntarlo.
+
 ## [0.130.0] - 2026-09-11
 
 ### Añadido

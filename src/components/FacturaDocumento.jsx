@@ -1,15 +1,16 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import FacturaPapel from './FacturaPapel'
-import { numeroDeFactura, correoDeFactura, enlaceFactura } from '../lib/factura'
-import { enviarCorreoFactura, emailConfigurado } from '../lib/email'
-import { copiar } from '../lib/portapapeles'
+import { numeroDeFactura, correoDeFactura } from '../lib/factura'
+import { pdfDeFactura, trazosQr, nombreArchivoFactura } from '../lib/facturaPdf'
+import { enviarCorreoFactura, correoConAdjunto, descargarPdf } from '../lib/email'
 import { toast } from '../store/useUI'
 
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
 /**
- * Una factura emitida, con lo que se hace con ella: imprimirla o mandarla.
+ * Una factura emitida, con lo que se hace con ella: imprimirla, descargarla en
+ * PDF o mandarla por correo con el PDF adjunto.
  *
  * Para imprimir se pinta una COPIA aparte, colgada directamente del `body`: la
  * vista previa vive dentro de un modal con scroll, y un elemento `fixed`
@@ -18,17 +19,43 @@ const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 export default function FacturaDocumento({ factura, onCerrar }) {
   const [correo, setCorreo] = useState(factura.cliente?.email || '')
   const [enviando, setEnviando] = useState(false)
+  const papel = useRef(null)
+
+  // El QR de Verifactu ya está pintado en la vista previa: se lee de ahí en
+  // vez de volver a calcularlo, y así el PDF lleva EXACTAMENTE el mismo.
+  const qrDelPapel = () => {
+    const svg = papel.current?.querySelector('svg')
+    if (!svg) return null
+    const n = Number(svg.getAttribute('viewBox')?.split(/\s+/)[2])
+    const rutas = svg.querySelectorAll('path')
+    const trazos = trazosQr(rutas[rutas.length - 1]?.getAttribute('d'))
+    return n && trazos.length ? { n, trazos } : null
+  }
+  const generarPdf = () => pdfDeFactura(factura, { qr: qrDelPapel() })
+
+  const descargar = () => {
+    try { descargarPdf(generarPdf(), nombreArchivoFactura(factura)) }
+    catch (e) { toast(`No se pudo generar el PDF: ${e.message}`, 'error') }
+  }
 
   const enviar = async () => {
     const para = correo.trim()
     if (!EMAIL.test(para)) { toast('Ese correo no parece válido', 'error'); return }
     setEnviando(true)
     try {
-      const { asunto, mensaje } = correoDeFactura(factura, { enlace: enlaceFactura(factura) })
-      const r = await enviarCorreoFactura({ para, nombre: factura.cliente?.nombre, asunto, mensaje })
-      toast(r.via === 'mailto' ? 'Se ha abierto tu programa de correo con la factura' : `Factura enviada a ${para}`, 'success')
+      const { asunto, mensaje } = correoDeFactura(factura)
+      const r = await enviarCorreoFactura({
+        para, nombre: factura.cliente?.nombre, asunto, mensaje,
+        pdf: generarPdf(), nombreArchivo: nombreArchivoFactura(factura),
+      })
+      toast({
+        emailjs: `Factura enviada a ${para} con el PDF adjunto`,
+        compartir: 'Elige tu correo: el PDF va ya adjunto',
+        mailto: 'PDF descargado: adjúntalo al correo que se ha abierto',
+      }[r.via], 'success')
     } catch (e) {
-      toast(`No se pudo enviar: ${e.message}`, 'error')
+      // Cerrar el menú de compartir no es un error: es cambiar de idea.
+      if (e?.name !== 'AbortError') toast(`No se pudo enviar: ${e.message}`, 'error')
     } finally { setEnviando(false) }
   }
 
@@ -49,7 +76,7 @@ export default function FacturaDocumento({ factura, onCerrar }) {
             </div>
             <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
               <button onClick={() => window.print()} style={boton('var(--color-accent)', '#fff')}>🖨️ Imprimir</button>
-              <button onClick={async () => toast(await copiar(enlaceFactura(factura)) ? 'Enlace copiado' : 'No se pudo copiar', 'info')} style={boton('var(--color-surface-2)')}>🔗 Copiar enlace</button>
+              <button onClick={descargar} style={boton('var(--color-surface-2)')}>⬇️ Descargar PDF</button>
               <button onClick={onCerrar} aria-label="Cerrar" style={boton('var(--color-surface-3)')}>✕</button>
             </div>
           </div>
@@ -59,15 +86,15 @@ export default function FacturaDocumento({ factura, onCerrar }) {
             <input value={correo} onChange={e => setCorreo(e.target.value)} type="email" inputMode="email" placeholder="correo@empresa.es"
               onKeyDown={e => { if (e.key === 'Enter') enviar() }}
               style={{ flex: '1 1 14rem', minWidth: 0, background: 'var(--color-inset)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.55rem 0.7rem', color: 'var(--color-text)', fontSize: '0.9rem' }} />
-            <button onClick={enviar} disabled={enviando} style={boton('#10b981', '#fff')}>{enviando ? 'Enviando…' : 'Enviar'}</button>
-            {!emailConfigurado && (
+            <button onClick={enviar} disabled={enviando} style={boton('#10b981', '#fff')}>{enviando ? 'Enviando…' : '📎 Enviar PDF'}</button>
+            {!correoConAdjunto && (
               <span style={{ flexBasis: '100%', fontSize: '0.72rem', color: 'var(--color-muted)' }}>
-                El correo automático no está configurado: se abrirá tu programa de correo con la factura ya escrita.
+                El envío automático con adjunto no está configurado: se abrirá «Compartir» con el PDF para elegir tu correo o, si este aparato no puede, se descargará para adjuntarlo.
               </span>
             )}
           </div>
 
-          <div style={{ borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
+          <div ref={papel} style={{ borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
             <FacturaPapel factura={factura} />
           </div>
         </div>

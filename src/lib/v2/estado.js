@@ -388,6 +388,19 @@ export async function cargarFacturas() {
   } catch { /* tabla aún no migrada: se ignora */ }
 }
 
+/** Clientes de factura guardados: los más recientes, que son los que vuelven. */
+export async function cargarClientesFactura() {
+  try {
+    const { data, error } = await supabase.from('clientes_factura')
+      .select('id, nombre, nif, direccion, email, facturas, usado_en')
+      .order('usado_en', { ascending: false }).limit(500)
+    if (error) throw new Error(error.message)
+    useStore.setState({
+      clientesFactura: data.map(c => ({ id: c.id, nombre: c.nombre, nif: c.nif, direccion: c.direccion, email: c.email, facturas: c.facturas, usadoEn: c.usado_en })),
+    })
+  } catch { /* tabla aún no migrada: se ignora */ }
+}
+
 export async function cargarTodo() {
   // la identidad puede fallar (anon sin migración 05): carta y sala son
   // lecturas públicas y deben cargar igualmente.
@@ -396,7 +409,7 @@ export async function cargarTodo() {
   // Los cierres van ANTES que el historial: la ventana de tickets se estira
   // hasta el último cierre, y si aún no están cargados no hay hasta dónde.
   await cargarCierres().catch(() => {})
-  await Promise.all([cargarComandas(), cargarAvisos(), cargarReservas(), cargarHistorial(), cargarFichajes(), cargarPagosSinCuenta(), cargarFacturas()])
+  await Promise.all([cargarComandas(), cargarAvisos(), cargarReservas(), cargarHistorial(), cargarFichajes(), cargarPagosSinCuenta(), cargarFacturas(), cargarClientesFactura()])
   // después de los cierres: la ventana de movimientos arranca en el último
   await cargarMovimientosCaja()
 }

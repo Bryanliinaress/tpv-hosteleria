@@ -160,6 +160,40 @@ ${debeFallar("emitir_rectificativa(v_id, 'Prueba', 2.00, 'efectivo', 'Prueba')",
   },
 
   {
+    nombre: 'clientes: guardar no duplica por NIF, pone al dia el domicilio y cuenta facturas',
+    cuerpo: ({ comprobarIgual }) => `
+${localFacturable}
+  -- el recuento va en v_dato: v_num lo pisa cobrar() con el numero de ticket
+  select count(*) into v_dato from clientes_factura where local_id = v_local;
+${montarMesa(923)}
+${linea('5.00')}
+${cobrar('5.00')}
+  perform emitir_factura(v_id, 'Construcciones Avila', 'A58818501', 'C/ Vieja 1', null, 'Prueba', true);
+${montarMesa(924)}
+${linea('6.00')}
+${cobrar('6.00')}
+  perform emitir_factura(v_id, 'Construcciones Avila S.A.', 'a-58.818.501', 'C/ Nueva 2', null, 'Prueba', true);
+${comprobarIgual('(select count(*) from clientes_factura where local_id = v_local)', 'v_dato + 1', 'el mismo NIF es UN cliente')}
+  select c.direccion, c.facturas into v_txt, v_dato from clientes_factura c where c.local_id = v_local and c.nif = 'A58818501';
+${comprobarIgual('v_txt', "'C/ Nueva 2'", 'vale el domicilio de hoy')}
+${comprobarIgual('v_dato >= 2', 'true', 'lleva la cuenta de sus facturas')}
+`,
+  },
+
+  {
+    nombre: 'clientes: sin marcar guardar, no se guarda nadie',
+    cuerpo: ({ comprobarIgual }) => `
+${localFacturable}
+  select count(*) into v_dato from clientes_factura where local_id = v_local;
+${montarMesa(925)}
+${linea('5.00')}
+${cobrar('5.00')}
+  perform ${emitir('12345678Z')};
+${comprobarIgual('(select count(*) from clientes_factura where local_id = v_local)', 'v_dato', 'ha guardado un cliente sin pedirlo')}
+`,
+  },
+
+  {
     nombre: 'factura: no se puede facturar el ticket de otro bar',
     cuerpo: () => `
 ${localFacturable}
