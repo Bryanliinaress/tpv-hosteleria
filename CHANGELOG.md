@@ -5,6 +5,11 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.132.1] - 2026-09-11
+
+### Arreglado
+- **El deploy no pasaba la plantilla de EmailJS de facturas al build.** `VITE_EMAILJS_TEMPLATE_FACTURA_ID` estaba en el código y en `.env.example`, pero el workflow de GitHub Pages no la reenviaba: aunque se creara la plantilla con el adjunto y su secreto en el repositorio, la web publicada seguiría sin verla y «📎 Enviar PDF» seguiría abriendo Compartir en vez de mandar el correo solo.
+
 ## [0.132.0] - 2026-09-11
 
 ### Añadido
