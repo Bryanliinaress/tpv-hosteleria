@@ -5,6 +5,21 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.132.0] - 2026-09-11
+
+### Añadido
+- **✏️ Corregir y reenviar una factura que Hacienda ha rechazado.** Pasó con la F-1 de prueba: nombre «t» con un NIF real. Hacienda comprueba que el nombre del destinatario casa con su NIF, y si no, la rechaza. Y la factura se quedaba atascada: no se puede editar (a propósito), los reintentos repetían el mismo error y el ticket ya no admitía otra.
+
+  Ahora la factura rechazada **se ve**: el botón del ticket dice «📄 F-1 ⚠ rechazada» y, al abrirla, un aviso rojo con el motivo exacto de Hacienda y **«Corregir datos y reenviar»**. Se abre el mismo formulario de siempre ya relleno —con el buscador de clientes guardados—, se corrige y se reenvía **con el mismo número y la misma fecha**: como Hacienda la rechazó, nunca llegó a constar.
+
+  - **Solo se corrige una rechazada.** Una aceptada ya es un documento fiscal y no se toca; una pendiente aún no ha tenido respuesta. Lo comprueba el servidor.
+  - **Reenviar lo mismo no arregla nada**, así que no deja: «Son los mismos datos que rechazó Hacienda».
+  - **Queda constancia** de qué ponía antes, qué pone ahora, por qué se rechazó y quién lo cambió (`correcciones_factura`): una factura que cambia de titular es justo lo que hay que poder explicar en una inspección.
+  - **Al reenviarla**, se manda otra vez a Verifacti. Verifacti valida el NIF contra el censo de Hacienda *antes* de mandarla —por eso el rechazo llega al momento y sin registro—; si aun así contesta que ya la tiene, se envía como **subsanación** de un registro rechazado (`PUT /verifactu/modify` con `rechazo_previo`).
+  - El formulario avisa ahora bajo el nombre: **«Tal como consta en Hacienda: si no casa con el NIF, la rechaza»**.
+
+  Migración `20260912T48`. `corregir_factura` es solo para el personal.
+
 ## [0.131.0] - 2026-09-11
 
 ### Añadido

@@ -1572,7 +1572,7 @@ function TicketsDelMes({ delMes, dias, porDia, diaBonito, mesNombre, totalMes, p
                       pedirla dos veces es lo normal y emitir dos, un error. */}
                   {(() => {
                     const f = facturas.find(x => x.ticketId === r.id)
-                    if (f) return <button onClick={() => setVerFactura(f)} title="Ver, imprimir o enviar la factura" style={{ background: 'none', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.4rem 0.6rem', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>📄 {numeroDeFactura(f)}</button>
+                    if (f) return <button onClick={() => setVerFactura(f)} title="Ver, imprimir o enviar la factura" style={{ background: 'none', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.4rem 0.6rem', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>📄 {numeroDeFactura(f)}{f.fiscalEstado === 'error' ? ' ⚠ rechazada' : ''}</button>
                     if (porQueNoSeFactura(r, { historial, facturas })) return null
                     return <button onClick={() => setFacturando(r)} title="Factura completa con los datos del cliente" style={{ background: 'none', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.4rem 0.6rem', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>🧾 Factura</button>
                   })()}

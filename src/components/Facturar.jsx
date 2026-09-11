@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '../store/useStore'
-import { revisarDatosFactura, faltaParaFacturar, validarNif, normalizarNif } from '../lib/factura'
+import { revisarDatosFactura, faltaParaFacturar, validarNif, normalizarNif, numeroDeFactura } from '../lib/factura'
 import { buscarClientes, clientePorNif } from '../lib/clientesFactura'
 import FacturaDocumento from './FacturaDocumento'
 
@@ -15,14 +15,23 @@ const euros = (n) => `${(Number(n) || 0).toFixed(2).replace('.', ',')} €`
  * un toque. Y si alguien teclea un NIF que ya está guardado, se le ofrece usar
  * esos datos en vez de escribirlos otra vez (con otra errata).
  *
+ * Con `factura` es el MISMO formulario para corregir una que Hacienda ha
+ * rechazado —casi siempre porque el nombre no casa con el NIF—: sale ya
+ * relleno, con el motivo del rechazo a la vista, y se reenvía con el mismo
+ * número. Una factura aceptada no pasa por aquí: esa ya no se toca.
+ *
  * Al emitirla se pasa directamente a la factura, con Imprimir y Enviar a la
  * vista: es lo siguiente que va a pedir el cliente, que está delante.
  */
-export default function Facturar({ ticket, por, onCerrar }) {
+export default function Facturar({ ticket, factura = null, por, onCerrar }) {
+  const corrigiendo = !!factura
   const local = useStore(s => s.local)
   const emitirFactura = useStore(s => s.emitirFactura)
+  const corregirFactura = useStore(s => s.corregirFactura)
   const clientes = useStore(s => s.clientesFactura) || []
-  const [datos, setDatos] = useState({ nombre: '', nif: '', direccion: '', email: '' })
+  const [datos, setDatos] = useState(() => (corrigiendo
+    ? { nombre: factura.cliente?.nombre || '', nif: factura.cliente?.nif || '', direccion: factura.cliente?.direccion || '', email: factura.cliente?.email || '' }
+    : { nombre: '', nif: '', direccion: '', email: '' }))
   const [error, setError] = useState(null)
   const [emitiendo, setEmitiendo] = useState(false)
   const [hecha, setHecha] = useState(null)
@@ -33,9 +42,9 @@ export default function Facturar({ ticket, por, onCerrar }) {
   const [elegido, setElegido] = useState(null)   // id del cliente guardado que se está usando
   const [guardar, setGuardar] = useState(true)
 
-  if (hecha) return <FacturaDocumento factura={hecha} onCerrar={onCerrar} />
+  if (hecha) return <FacturaDocumento factura={hecha} por={por} onCerrar={onCerrar} />
 
-  const falta = faltaParaFacturar(local)
+  const falta = corrigiendo ? [] : faltaParaFacturar(local)
   const cambia = (k) => (e) => { setDatos(d => ({ ...d, [k]: e.target.value })); setError(null) }
   const usar = (c) => {
     setDatos({ nombre: c.nombre, nif: c.nif, direccion: c.direccion, email: c.email || '' })
@@ -45,23 +54,40 @@ export default function Facturar({ ticket, por, onCerrar }) {
   // Un NIF tecleado a mano que ya está guardado con otros datos.
   const yaGuardado = !elegido && datos.nif.trim() ? clientePorNif(clientes, datos.nif) : null
 
-  const emitir = async () => {
+  const enviar = async () => {
     const r = revisarDatosFactura(datos)
     if (!r.ok) { setError(r.error); return }
     setEmitiendo(true)
-    const res = await emitirFactura({ ticketId: ticket.id, ...r.valor, por, guardar })
+    const res = corrigiendo
+      ? await corregirFactura({ facturaId: factura.id, ...r.valor, por, guardar })
+      : await emitirFactura({ ticketId: ticket.id, ...r.valor, por, guardar })
     setEmitiendo(false)
     if (!res?.ok) { setError(res?.error || 'No se pudo emitir la factura'); return }
-    setHecha(res.factura)
+    // Corrigiendo, quien la abrió (la factura) ya la está enseñando y se pone
+    // al día sola: basta con cerrar el formulario.
+    if (corrigiendo) onCerrar()
+    else setHecha(res.factura)
   }
 
+  const importe = corrigiendo ? factura.total : ticket.total
+
   return (
-    <div onClick={onCerrar} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 110, padding: '1rem', animation: 'fadeIn 0.2s ease both' }}>
+    <div onClick={onCerrar} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 120, padding: '1rem', animation: 'fadeIn 0.2s ease both' }}>
       <div onClick={e => e.stopPropagation()} className="anim-pop" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', padding: '1.25rem', width: '100%', maxWidth: '460px', maxHeight: '92vh', overflowY: 'auto' }}>
-        <h3 style={{ fontWeight: 800, fontSize: '1.1rem', marginBottom: '0.2rem' }}>🧾 Factura del ticket nº {ticket.numero}</h3>
+        <h3 style={{ fontWeight: 800, fontSize: '1.1rem', marginBottom: '0.2rem' }}>
+          {corrigiendo ? `✏️ Corregir la factura ${numeroDeFactura(factura)}` : `🧾 Factura del ticket nº ${ticket.numero}`}
+        </h3>
         <p style={{ fontSize: '0.8rem', color: 'var(--color-muted)', marginBottom: '1rem' }}>
-          {ticket.mesaNumero != null ? `Mesa ${ticket.mesaNumero} · ` : ''}{euros(ticket.total)}. Sustituye al ticket: no es una venta nueva y no suma otra vez en caja.
+          {corrigiendo
+            ? `${euros(importe)}. Se reenvía a Hacienda con el mismo número: como la rechazó, nunca llegó a constar.`
+            : `${ticket.mesaNumero != null ? `Mesa ${ticket.mesaNumero} · ` : ''}${euros(importe)}. Sustituye al ticket: no es una venta nueva y no suma otra vez en caja.`}
         </p>
+
+        {corrigiendo && factura.fiscalError && (
+          <div role="alert" style={{ background: 'var(--tint-danger-bg)', color: 'var(--tint-danger-fg)', borderRadius: '0.6rem', padding: '0.7rem 0.8rem', fontSize: '0.8rem', marginBottom: '0.9rem' }}>
+            <b>Hacienda la rechazó:</b> {factura.fiscalError}
+          </div>
+        )}
 
         {falta.length > 0 ? (
           <div role="alert" style={{ background: 'var(--tint-warning-bg)', color: 'var(--tint-warning-fg)', borderRadius: '0.6rem', padding: '0.8rem', fontSize: '0.85rem' }}>
@@ -71,7 +97,7 @@ export default function Facturar({ ticket, por, onCerrar }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
             {clientes.length > 0 && (
               <div style={{ background: 'var(--color-inset)', border: '1px solid var(--color-border)', borderRadius: '0.6rem', padding: '0.6rem' }}>
-                <input value={busca} onChange={e => setBusca(e.target.value)} autoFocus
+                <input value={busca} onChange={e => setBusca(e.target.value)} autoFocus={!corrigiendo}
                   placeholder={`🔍 Cliente guardado (${clientes.length}): nombre o NIF`}
                   style={{ ...inp, background: 'var(--color-surface)' }} />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.45rem' }}>
@@ -93,7 +119,10 @@ export default function Facturar({ ticket, por, onCerrar }) {
 
             <label style={campo}>
               <span style={etiqueta}>Nombre o razón social</span>
-              <input value={datos.nombre} onChange={e => { cambia('nombre')(e); setElegido(null) }} autoFocus={clientes.length === 0} maxLength={120} placeholder="Talleres Pérez S.L." style={inp} />
+              <input value={datos.nombre} onChange={e => { cambia('nombre')(e); setElegido(null) }} autoFocus={corrigiendo || clientes.length === 0} maxLength={120} placeholder="Talleres Pérez S.L." style={inp} />
+              {/* Hacienda comprueba que el nombre casa con el NIF: con un nombre
+                  inventado o abreviado, rechaza la factura. Pasó con la F-1. */}
+              <span style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Tal como consta en Hacienda: si no casa con el NIF, la rechaza.</span>
             </label>
             <label style={campo}>
               <span style={etiqueta}>NIF / CIF / NIE</span>
@@ -101,7 +130,7 @@ export default function Facturar({ ticket, por, onCerrar }) {
                 onBlur={() => { const v = datos.nif.trim() ? validarNif(datos.nif) : { ok: true }; setAvisoNif(v.ok ? null : v.error) }}
                 autoCapitalize="characters" autoComplete="off" placeholder="B12345674" style={{ ...inp, textTransform: 'uppercase', borderColor: avisoNif ? '#f43f5e' : 'var(--color-border)' }} />
               {avisoNif && <span style={{ fontSize: '0.74rem', color: '#f43f5e' }}>{avisoNif}</span>}
-              {yaGuardado && normalizarNif(datos.nif).length >= 9 && (
+              {yaGuardado && normalizarNif(datos.nif).length >= 9 && !corrigiendo && (
                 <span style={{ fontSize: '0.78rem', color: 'var(--color-muted)' }}>
                   Ya está guardado como «{yaGuardado.nombre}».{' '}
                   <button onClick={() => usar(yaGuardado)} style={{ background: 'none', border: 'none', color: 'var(--color-accent)', fontWeight: 700, cursor: 'pointer', padding: 0, fontSize: '0.78rem' }}>Usar sus datos</button>
@@ -128,7 +157,9 @@ export default function Facturar({ ticket, por, onCerrar }) {
 
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.1rem' }}>
               <button onClick={onCerrar} style={{ ...boton, background: 'var(--color-surface-3)', color: 'var(--color-text)', flex: 1 }}>Cancelar</button>
-              <button onClick={emitir} disabled={emitiendo} style={{ ...boton, background: 'var(--color-accent)', color: '#fff', flex: 2 }}>{emitiendo ? 'Emitiendo…' : 'Emitir factura'}</button>
+              <button onClick={enviar} disabled={emitiendo} style={{ ...boton, background: 'var(--color-accent)', color: '#fff', flex: 2 }}>
+                {emitiendo ? (corrigiendo ? 'Reenviando…' : 'Emitiendo…') : (corrigiendo ? 'Corregir y reenviar' : 'Emitir factura')}
+              </button>
             </div>
           </div>
         )}

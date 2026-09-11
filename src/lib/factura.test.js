@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { validarNif, normalizarNif, revisarDatosFactura, porQueNoSeFactura, faltaParaFacturar, numeroDeFactura, correoDeFactura, lineasParaFactura, desgloseParaFactura, enlaceFactura } from './factura.js'
+import { validarNif, normalizarNif, revisarDatosFactura, porQueNoSeFactura, faltaParaFacturar, numeroDeFactura, correoDeFactura, lineasParaFactura, desgloseParaFactura, enlaceFactura, puedeCorregirse, mismosDatosCliente } from './factura.js'
 
 describe('validarNif', () => {
   it('acepta un DNI con su letra y lo deja limpio', () => {
@@ -157,5 +157,21 @@ describe('lineasParaFactura', () => {
 describe('enlaceFactura', () => {
   it('lleva a la ruta pública con el token', () => {
     expect(enlaceFactura({ token: 'abc123' }, 'https://bar.es', '/')).toBe('https://bar.es/#/factura?t=abc123')
+  })
+})
+
+describe('corregir una factura rechazada', () => {
+  const f = { fiscalEstado: 'error', cliente: { nombre: 't', nif: '79362129P', direccion: 'C/ A 1', email: null } }
+
+  it('solo se corrige la que Hacienda rechazó', () => {
+    expect(puedeCorregirse(f)).toBe(true)
+    expect(puedeCorregirse({ ...f, fiscalEstado: 'enviado' })).toBe(false)   // aceptada: se rectifica, no se corrige
+    expect(puedeCorregirse({ ...f, fiscalEstado: 'pendiente' })).toBe(false) // aún sin respuesta
+    expect(puedeCorregirse({ ...f, fiscalEstado: 'no_aplica' })).toBe(false)
+  })
+
+  it('reenviar lo mismo no arregla nada: se detecta', () => {
+    expect(mismosDatosCliente(f, { nombre: ' t ', nif: '79.362.129-p', direccion: 'C/ A 1', email: '' })).toBe(true)
+    expect(mismosDatosCliente(f, { nombre: 'Ana Torres', nif: '79362129P', direccion: 'C/ A 1', email: '' })).toBe(false)
   })
 })
