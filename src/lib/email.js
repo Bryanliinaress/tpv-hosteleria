@@ -8,6 +8,8 @@ import { useStore } from '../store/useStore'
 // recordatorios desde el PC del bar (scripts/lib/vigilante.mjs).
 import { contenidoReserva, paramsEmailJS } from './textosReserva.js'
 import { bytesABase64 } from './facturaPdf.js'
+import { interpretarEnvio } from './envioFactura.js'
+import { supabase, supabaseActivo } from './supabase'
 
 const SERVICE = import.meta.env.VITE_EMAILJS_SERVICE_ID
 const TEMPLATE = import.meta.env.VITE_EMAILJS_TEMPLATE_ID
@@ -59,23 +61,17 @@ export async function enviarEmailReserva(tipo, r, { permitirMailto = true } = {}
 
 // ── Correo con la factura EN PDF ────────────────────────────────────────────
 //
-// El PDF va ADJUNTO, no un enlace: es lo que espera una gestoría, y un enlace
-// a una web es algo que un departamento de administración no abre.
+// El PDF va ADJUNTO, no un enlace: es lo que espera una gestoría.
 //
-// EmailJS solo adjunta si la plantilla lo tiene configurado (pestaña
-// «Attachments» → «Add Variable Attachment», parámetro `factura_pdf`,
-// tipo PDF). Eso se hace en su panel, no desde aquí, y por eso es una
-// plantilla APARTE (`VITE_EMAILJS_TEMPLATE_FACTURA_ID`): la de reservas no
-// lleva adjunto y no hay que tocarla. No es un secreto: los id de EmailJS
-// viajan igualmente en el navegador.
+// Sale del SERVIDOR (Edge Function `enviar-factura`, por Resend), desde el
+// dominio del bar. No desde EmailJS: su plan gratuito no adjunta archivos, y
+// un documento fiscal no debería depender de una clave que viaja en la web.
 //
-// Sin esa plantilla, lo mejor que puede hacer una web: el menú «Compartir»
-// del sistema con el archivo (en el móvil y en Windows abre Gmail, Outlook o
-// WhatsApp con el PDF ya adjunto) y, si ni eso, descargar el PDF y abrir el
+// Si el bar aún no ha configurado su correo (secretos RESEND_API_KEY y
+// CORREO_REMITENTE en Supabase), o no hay servidor (la demo), se hace lo
+// mejor que puede hacer una web: el menú «Compartir» del sistema con el PDF
+// ya adjunto (Gmail, Outlook, WhatsApp) y, si ni eso, descargarlo y abrir el
 // correo para adjuntarlo a mano.
-const TEMPLATE_FACTURA = import.meta.env.VITE_EMAILJS_TEMPLATE_FACTURA_ID
-
-export const correoConAdjunto = !!(SERVICE && TEMPLATE_FACTURA && PUBLIC_KEY)
 
 /** Descarga un PDF generado en el navegador. */
 export function descargarPdf(bytes, nombreArchivo) {
@@ -89,27 +85,29 @@ export function descargarPdf(bytes, nombreArchivo) {
   setTimeout(() => URL.revokeObjectURL(url), 10000)
 }
 
-export async function enviarCorreoFactura({ para, nombre, asunto, mensaje, pdf, nombreArchivo }) {
+async function enviarDesdeServidor({ facturaId, para, pdf }) {
+  if (!supabaseActivo || !facturaId) return { alternativa: true }
+  const { data: sesion } = await supabase.auth.getSession()
+  const token = sesion?.session?.access_token
+  if (!token) return { alternativa: true }
+  const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/enviar-factura`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY },
+    body: JSON.stringify({ facturaId, para, pdf: bytesABase64(pdf) }),
+  })
+  // Una función que aún no está desplegada en esta instalación responde 404:
+  // eso es «sin configurar», no un error del bar.
+  if (res.status === 404) return { alternativa: true }
+  return interpretarEnvio(await res.json().catch(() => ({})), res.status)
+}
+
+export async function enviarCorreoFactura({ facturaId, para, asunto, mensaje, pdf, nombreArchivo }) {
   if (!para) throw new Error('Falta el correo del cliente')
   if (!pdf?.length) throw new Error('No se pudo generar el PDF')
 
-  if (correoConAdjunto) {
-    const local = nombreLocal()
-    const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        service_id: SERVICE, template_id: TEMPLATE_FACTURA, user_id: PUBLIC_KEY,
-        template_params: {
-          to_email: para, to_name: nombre || '', asunto, mensaje, local, from_name: local,
-          factura_pdf: `data:application/pdf;base64,${bytesABase64(pdf)}`,
-          nombre_archivo: nombreArchivo,
-        },
-      }),
-    })
-    if (!res.ok) throw new Error(`EmailJS ${res.status}: ${await res.text()}`)
-    return { via: 'emailjs' }
-  }
+  const r = await enviarDesdeServidor({ facturaId, para, pdf })
+  if (r.enviado) return { via: 'servidor' }
+  if (r.error) throw new Error(r.error)
 
   const archivo = typeof File !== 'undefined' ? new File([pdf], nombreArchivo, { type: 'application/pdf' }) : null
   if (archivo && navigator.canShare?.({ files: [archivo] })) {
