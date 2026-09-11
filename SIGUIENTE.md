@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.128.0 · 1058 tests JS + 37 pruebas de SQL en verde · CI y deploy en
+**Estado: v0.129.0 · 1076 tests JS + 37 pruebas de SQL en verde · CI y deploy en
 verde · repo limpio · 0 vulnerabilidades.** Última sesión: 2026-09-08.
 
 Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a uno:
@@ -42,6 +42,7 @@ Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a un
 | **v0.126.0** | 10/09 | **Dispositivos vuelve a tener pestaña propia** —es la salida de emergencia, no puede estar escondida— y cada aparato puede llevar **dueño** («la PDA de María»). Migración 42. |
 | **v0.127.0** | 10/09 | **Fuera de carta**: desde el Mostrador se cobra algo sin ficha (nombre, precio y cantidad a mano) en vez de cobrarlo por fuera del TPV. RPC solo para personal — el cliente del QR nunca pone precios. Migración 43. |
 | **v0.128.0** | 10/09 | **Cambiar el precio de una línea** (menú del día, precio a la mesa grande, plato que salió tarde) con motivo y auditoría en Admin › Caja. No toca lo ya cobrado: para eso está la rectificativa. Migración 44. |
+| **v0.129.0** | 11/09 | **Tomar pedido en el Mostrador, a pantalla completa**: apartados a la izquierda, productos en rejilla (la tarjeta entera es el botón, con lo ya pedido), comanda de la mesa a la derecha; Enter añade y Escape cierra. Arreglado: «Enviar 2» enviaba la mesa entera (5). |
 
 **Lo que hay que llevarse de la sesión**, que se repitió tres veces con distinta
 cara: *«éxito» que solo significa «se lo he dado a otro»*. El spooler aceptaba

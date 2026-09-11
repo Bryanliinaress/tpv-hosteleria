@@ -1,25 +1,30 @@
 import { useState } from 'react'
-import { useStore, TIEMPOS, normalizarExtra, etiquetasDe } from '../../store/useStore'
+import { useStore, TIEMPOS } from '../../store/useStore'
 import { pedirTexto } from '../../store/useUI'
 import { productosVisibles, descripcionUtil } from '../../lib/carta'
-import { esMenu, conFormatos, conOpciones, menuCompleto, siguientePendiente, precioMenu, lineaDeMenu, alternarOpcion } from '../../lib/menuDia'
-import { importeLinea, cent } from '../../lib/dinero'
+import { esMenu, conFormatos, conOpciones, precioMenu } from '../../lib/menuDia'
+import { sinEnviar } from '../../lib/tomaPedido'
+import HojaOpciones from './HojaOpciones'
 
 // Toma de pedidos desde la PDA del camarero, para un comensal de la mesa.
+// En un monitor se usa `PedirMostrador`: esta es la versión de una mano.
 export default function PedirPda({ mesaId, onClose }) {
   const { carta, mesas, agregarItem, cambiarCantidad, confirmarPedido, unirseAMesa, setTiempoItem } = useStore()
   const mesa = mesas.find(m => m.id === mesaId)
   const [personaId, setPersonaId] = useState(mesa?.personas[0]?.id || null)
   const [cat, setCat] = useState(carta.categorias[0].id)
   const [busqueda, setBusqueda] = useState('')
-  const [pers, setPers] = useState(null) // personalización de montadito
+  const [hoja, setHoja] = useState(null) // producto con opciones (montadito, menú)
 
   if (!mesa) return null
   const persona = mesa.personas.find(p => p.id === personaId) || mesa.personas[0]
   // Con 60+ productos, teclear «cafe» gana siempre a bajar por la categoría.
   const productos = productosVisibles(carta, { busqueda, categoria: cat })
   const pendientes = persona?.items.filter(i => i.estado === 'pendiente') || []
-  const totalPend = cent(pendientes.reduce((s, i) => s + importeLinea(i), 0))
+  // Lo que sale al pulsar «Enviar» es lo pendiente de TODA la mesa, no solo
+  // del comensal elegido: el botón decía «2» y a cocina salían 5.
+  const mesaSinEnviar = sinEnviar(mesa)
+  const deOtros = mesaSinEnviar.unidades - pendientes.reduce((s, i) => s + i.cantidad, 0)
 
   const nuevoComensal = async () => {
     const nombre = await pedirTexto({ titulo: 'Nuevo comensal', placeholder: 'Nombre (opcional)', confirmar: 'Añadir' })
@@ -29,28 +34,6 @@ export default function PedirPda({ mesaId, onClose }) {
     // camarero acababa cargándole los platos al primero de la mesa.
     const id = await Promise.resolve(unirseAMesa(mesaId, nombre))
     if (id) setPersonaId(id)
-  }
-
-  const etiquetas = etiquetasDe(carta)
-  const extrasNorm = (carta.extras || []).map(normalizarExtra)
-  const precioExtra = (nombre) => extrasNorm.find(x => x.nombre === nombre)?.precio || 0
-  const precioPers = !pers ? 0 : esMenu(pers.producto)
-    ? precioMenu(pers.producto, pers.elecciones || [])
-    : ((pers.producto.precios?.[pers.formato] ?? 0) + (carta.tiposPan.find(t => t.id === pers.tipo)?.sup || 0) + pers.anadidos.reduce((s, n) => s + precioExtra(n), 0))
-  // un menú a medias no se manda: cocina no sabría qué preparar
-  const menuIncompleto = pers ? !menuCompleto(pers.producto, pers.elecciones || []) : false
-  const faltaGrupo = pers && menuIncompleto ? siguientePendiente(pers.producto, pers.elecciones || []) : null
-  const toggleEn = (setKey, val) => setPers(s => { const a = s[setKey]; return { ...s, [setKey]: a.includes(val) ? a.filter(x => x !== val) : [...a, val] } })
-  const confirmarPers = () => {
-    if (esMenu(pers.producto)) {
-      agregarItem(mesaId, persona.id, lineaDeMenu(pers.producto, pers.elecciones || [], pers.nota))
-      setPers(null)
-      return
-    }
-    const fmt = carta.formatos.find(f => f.id === pers.formato)
-    const tp = carta.tiposPan.find(t => t.id === pers.tipo)
-    agregarItem(mesaId, persona.id, { productoId: pers.producto.id, nombre: pers.producto.nombre, precio: precioPers, tipo: pers.producto.tipo, pan: { formato: pers.formato, tipo: pers.tipo, nombreFormato: fmt.nombre, nombreTipo: tp.nombre }, quitados: pers.quitados, anadidos: pers.anadidos, nota: pers.nota.trim() })
-    setPers(null)
   }
 
   return (
@@ -104,14 +87,14 @@ export default function PedirPda({ mesaId, onClose }) {
                 {descripcionUtil(prod) && <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>{descripcionUtil(prod)}</div>}
                 <div style={{ fontWeight: 700, color: 'var(--color-accent)', fontSize: '0.85rem' }}>{esMont ? `desde ${Math.min(...Object.values(prod.precios || {}).map(Number)).toFixed(2)}` : esMenu(prod) ? precioMenu(prod).toFixed(2) : (prod.precio ?? 0).toFixed(2)} €</div>
               </div>
-              <button onClick={() => abreHoja ? setPers({ producto: prod, formato: (carta.formatos.find(f => prod.precios?.[f.id] != null) || carta.formatos[0])?.id, tipo: carta.tiposPan[0]?.id, quitados: [], anadidos: [], nota: '', elecciones: [] }) : agregarItem(mesaId, persona.id, { productoId: prod.id, nombre: prod.nombre, precio: prod.precio, tipo: prod.tipo })} aria-label={`Añadir ${prod.nombre}`} style={btn('var(--color-accent)', cuadrado)}>+</button>
+              <button onClick={() => abreHoja ? setHoja(prod) : agregarItem(mesaId, persona.id, { productoId: prod.id, nombre: prod.nombre, precio: prod.precio, tipo: prod.tipo })} aria-label={`Añadir ${prod.nombre}`} style={btn('var(--color-accent)', cuadrado)}>+</button>
             </div>
           )
         })}
       </div>
 
       {/* Pendientes + enviar */}
-      {pendientes.length > 0 && (
+      {mesaSinEnviar.unidades > 0 && (
         <div style={{ background: 'var(--color-surface)', borderTop: '1px solid var(--color-border)', padding: '0.75rem 1rem' }}>
           <div style={{ maxHeight: '30vh', overflowY: 'auto', marginBottom: '0.5rem' }}>
             {pendientes.map(it => (
@@ -131,95 +114,21 @@ export default function PedirPda({ mesaId, onClose }) {
                 </div>
               </div>
             ))}
+            {deOtros > 0 && (
+              <p style={{ fontSize: '0.75rem', color: 'var(--color-muted)', padding: '0.25rem 0' }}>
+                + {deOtros} de otros comensales, que también salen al enviar
+              </p>
+            )}
           </div>
           <button onClick={() => { confirmarPedido(mesaId); onClose() }} style={btn('var(--color-accent)', { width: '100%', padding: '0.8rem', fontSize: '0.95rem' })}>
-            Enviar {pendientes.reduce((s, i) => s + i.cantidad, 0)} a cocina/barra · {totalPend.toFixed(2)} €
+            Enviar {mesaSinEnviar.unidades} a cocina/barra · {mesaSinEnviar.total.toFixed(2)} €
           </button>
         </div>
       )}
 
-      {/* Personalización */}
-      {pers && (
-        <div onClick={() => setPers(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 70, animation: 'fadeIn 0.2s ease both' }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--color-surface)', borderTopLeftRadius: 'var(--radius-lg)', borderTopRightRadius: 'var(--radius-lg)', width: '100%', maxWidth: '520px', maxHeight: '88vh', display: 'flex', flexDirection: 'column', borderTop: '1px solid var(--color-border)', boxShadow: '0 -22px 50px -20px rgba(0,0,0,0.8)', animation: 'slideUp 0.28s cubic-bezier(0.16,1,0.3,1) both' }}>
-            <div style={{ padding: '1.1rem 1.1rem 0.6rem', borderBottom: '1px solid var(--color-border)' }}>
-              <div style={{ width: '36px', height: '4px', borderRadius: '9999px', background: 'var(--color-border)', margin: '-0.15rem auto 0.7rem' }} />
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <h3 style={{ fontWeight: 800, fontSize: '1.1rem' }}>{pers.producto.nombre}</h3>
-                <button onClick={() => setPers(null)} aria-label="Cerrar" style={btn('var(--color-surface-3)', cuadrado)}>✕</button>
-              </div>
-            </div>
-            {/* cuerpo con scroll: el botón de añadir nunca se va de pantalla */}
-            <div style={{ padding: '0.9rem 1.1rem', overflowY: 'auto', flex: 1, minHeight: 0 }}>
-            {/* Menú del día / combo: elegir de cada grupo (primero, segundo, postre) */}
-            {esMenu(pers.producto) && pers.producto.menu.grupos.map((g, gi) => {
-              const titulo = g.titulo || `Grupo ${gi + 1}`
-              const elegidas = (pers.elecciones || []).filter(e => e.grupo === titulo)
-              return (
-                <div key={gi} style={{ marginBottom: '0.7rem' }}>
-                  <p style={lbl}>
-                    {titulo}
-                    <span style={{ marginLeft: '0.4rem', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>
-                      {(g.max ?? 1) > 1 ? `(elige hasta ${g.max})` : ''}
-                      {elegidas.length === 0 && <span style={{ color: 'var(--tint-warning-fg)' }}> · elige uno</span>}
-                    </span>
-                  </p>
-                  <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-                    {(g.opciones || []).map((o, oi) => {
-                      const sel = elegidas.some(e => e.opcion === o.nombre)
-                      return (
-                        <button key={oi} onClick={() => setPers(s => ({ ...s, elecciones: alternarOpcion({ ...g, titulo }, o, s.elecciones || []) }))}
-                          style={btn(sel ? 'var(--color-accent)' : 'var(--color-surface-2)', { fontSize: '0.82rem', padding: '0.5rem 0.75rem' })}>
-                          {o.nombre}{o.sup ? ` +${Number(o.sup).toFixed(2)} €` : ''}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              )
-            })}
-
-            {!esMenu(pers.producto) && <>
-            <p style={lbl}>{etiquetas.formatos}</p>
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.6rem', flexWrap: 'wrap' }}>
-              {carta.formatos.filter(f => pers.producto.precios?.[f.id] != null).map(f => (
-                <button key={f.id} onClick={() => setPers(s => ({ ...s, formato: f.id }))} style={btn(pers.formato === f.id ? 'var(--color-accent)' : 'var(--color-surface-2)', { flex: 1, minWidth: '7rem', padding: '0.55rem' })}>{f.nombre} · {(pers.producto.precios[f.id] ?? 0).toFixed(2)}€</button>
-              ))}
-            </div>
-            <p style={lbl}>{etiquetas.tiposPan}</p>
-            <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginBottom: '0.6rem' }}>
-              {carta.tiposPan.map(t => (
-                <button key={t.id} onClick={() => setPers(s => ({ ...s, tipo: t.id }))} style={btn(pers.tipo === t.id ? '#7c3aed' : 'var(--color-surface-2)', { fontSize: '0.78rem', padding: '0.3rem 0.6rem' })}>{t.nombre}{t.sup > 0 ? ` +${t.sup.toFixed(2)}€` : ''}</button>
-              ))}
-            </div>
-            </>}
-            {(pers.producto.ingredientes || []).length > 0 && (
-              <>
-                <p style={lbl}>Lleva (toca para quitar)</p>
-                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginBottom: '0.6rem' }}>
-                  {pers.producto.ingredientes.map(ing => {
-                    const q = pers.quitados.includes(ing)
-                    return <button key={ing} onClick={() => toggleEn('quitados', ing)} style={btn(q ? '#7f1d1d' : 'var(--color-surface-3)', { fontSize: '0.78rem', padding: '0.3rem 0.6rem', textDecoration: q ? 'line-through' : 'none' })}>{q ? '✕ ' : ''}{ing}</button>
-                  })}
-                </div>
-              </>
-            )}
-            <p style={lbl}>Añadir {etiquetas.extras.toLowerCase()}</p>
-            <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginBottom: '0.8rem' }}>
-              {extrasNorm.map(ex => {
-                const on = pers.anadidos.includes(ex.nombre)
-                return <button key={ex.nombre} onClick={() => toggleEn('anadidos', ex.nombre)} style={btn(on ? '#065f46' : 'var(--color-surface-2)', { fontSize: '0.78rem', padding: '0.3rem 0.6rem' })}>{on ? '✓ ' : '+ '}{ex.nombre}{ex.precio > 0 ? ` +${ex.precio.toFixed(2)}€` : ''}</button>
-              })}
-            </div>
-            </div>
-            <div style={{ padding: '0.85rem 1.1rem calc(0.85rem + env(safe-area-inset-bottom))', borderTop: '1px solid var(--color-border)' }}>
-              <button onClick={confirmarPers} disabled={menuIncompleto}
-                style={btn(menuIncompleto ? 'var(--color-surface-3)' : 'var(--color-accent)', { width: '100%', minHeight: `${TOQUE + 6}px`, fontSize: '0.95rem', cursor: menuIncompleto ? 'not-allowed' : 'pointer' })}>
-                {menuIncompleto ? `Elige ${faltaGrupo?.titulo || ''}` : `Añadir · ${precioPers.toFixed(2)} €`}
-              </button>
-            </div>
-          </div>
-        </div>
+      {hoja && (
+        <HojaOpciones carta={carta} producto={hoja} onCerrar={() => setHoja(null)}
+          onAnadir={(config) => { agregarItem(mesaId, persona.id, config); setHoja(null) }} />
       )}
     </div>
   )
@@ -229,5 +138,4 @@ export default function PedirPda({ mesaId, onClose }) {
 const TOQUE = 44
 const cuadrado = { width: `${TOQUE}px`, height: `${TOQUE}px`, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }
 const card = { background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.7rem', boxShadow: 'var(--shadow-sm)' }
-const lbl = { fontSize: '0.72rem', color: 'var(--color-muted)', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.05em' }
 const btn = (bg, extra = {}) => ({ background: bg, color: /surface|inset|transparent|none|tint-[a-z]+-bg/.test(bg) ? 'var(--color-text)' : '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 0.85rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem', ...extra })
