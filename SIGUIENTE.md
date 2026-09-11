@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.134.0 · 1136 tests JS + 50 pruebas de SQL en verde · CI y deploy en
+**Estado: v0.135.0 · 1141 tests JS + 50 pruebas de SQL en verde · CI y deploy en
 verde · repo limpio · 0 vulnerabilidades.** Última sesión: 2026-09-08.
 
 Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a uno:
@@ -48,6 +48,7 @@ Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a un
 | **v0.132.0** | 11/09 | **Corregir y reenviar una factura rechazada por Hacienda** (mismo número y fecha, auditoría en `correcciones_factura`, subsanación si Verifacti ya la tenía). Migración 48 y `registrar-fiscal` desplegada. La F-1 de prueba (nombre «t») queda para corregir con datos reales. |
 | **v0.133.0** | 11/09 | **La factura por correo sale del servidor por Resend** (Edge Function `enviar-factura`, registro en `envios_factura`, migración 49). **Pendiente de Bryan en cada instalación:** cuenta de Resend, verificar el dominio del bar en su DNS, y en Supabase → Edge Functions → Secrets poner `RESEND_API_KEY` y `CORREO_REMITENTE` («Bar <facturas@dominio>»). Hasta entonces «Enviar PDF» abre Compartir. **El envío real por Resend no se ha podido probar aún.** |
 | **v0.134.0** | 11/09 | **Respuestas a las facturas al correo del bar** (Admin › Local → Correo) y remitente con el nombre del bar desde el dominio de envíos compartido. |
+| **v0.135.0** | 11/09 | **Pestaña Clientes en Admin**: lista y buscador, ficha con todas sus facturas del servidor (filtro por año, abrir/imprimir/PDF/enviar, CSV), editar datos (el NIF no), alta manual y guardar de un toque a quien tiene facturas sin estar guardado. |
 
 **Lo que hay que llevarse de la sesión**, que se repitió tres veces con distinta
 cara: *«éxito» que solo significa «se lo he dado a otro»*. El spooler aceptaba

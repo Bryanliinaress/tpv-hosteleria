@@ -25,7 +25,7 @@ import Dispositivos from '../../components/Dispositivos'
 import Devolver from '../../components/Devolver'
 import Facturar from '../../components/Facturar'
 import FacturaDocumento from '../../components/FacturaDocumento'
-import ClientesFactura from '../../components/ClientesFactura'
+import ClientesTab from './ClientesTab'
 import { porQueNoSeFactura, numeroDeFactura } from '../../lib/factura'
 import { desgloseIVA, totalDe, cent, pendienteDeDevolver, importeDesdeTexto } from '../../lib/dinero'
 import { efectivoEsperado, descuadreDe, saldoMovimientos, movimientosDesde, cobrosPorPersona } from '../../lib/caja'
@@ -33,7 +33,7 @@ import { efectivoEsperado, descuadreDe, saldoMovimientos, movimientosDesde, cobr
 const emptyForm = { nombre: '', nombreEn: '', categoria: '', descripcion: '', descripcionEn: '', alergenos: [], imagen: '', conFormatos: false, precios: {}, precio: '', menu: null, ivaPct: '' }
 
 export default function PanelAdmin() {
-  const { carta, mesas, historial, cierres, anulaciones, cambiosPrecio, facturas, clientesFactura, borrarClienteFactura, pagosSinCuenta, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, moverProducto, duplicarProducto, reponerTodo, resetDatos, addMesa, removeMesa, updateMesa, renumerarMesa, renombrarZona, moverZona, addCategoria, removeCategoria, updateCategoria, moverCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, crearFichaje, editarFichaje, borrarFichaje, pedirFichajesDe, reintentarReembolso, movimientosCaja, registrarMovimiento } = useStore()
+  const { carta, mesas, historial, cierres, anulaciones, cambiosPrecio, facturas, pagosSinCuenta, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, moverProducto, duplicarProducto, reponerTodo, resetDatos, addMesa, removeMesa, updateMesa, renumerarMesa, renombrarZona, moverZona, addCategoria, removeCategoria, updateCategoria, moverCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, crearFichaje, editarFichaje, borrarFichaje, pedirFichajesDe, reintentarReembolso, movimientosCaja, registrarMovimiento } = useStore()
   const hoyStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
   const reservasHoy = reservas.filter(r => r.fecha === hoyStr && r.estado === 'confirmada').length
   const [tab, setTab] = useState('carta')
@@ -226,6 +226,7 @@ export default function PanelAdmin() {
           { id: 'mesas', label: '🍽 Mesas' },
           { id: 'reservas', label: `📅 Reservas${reservasHoy ? ` (${reservasHoy})` : ''}` },
           { id: 'caja', label: '💰 Caja' },
+          { id: 'clientes', label: '🤝 Clientes' },
           { id: 'informes', label: '📊 Informes' },
           { id: 'dispositivos', label: '🔗 Dispositivos' },
         ].map(t => (
@@ -645,14 +646,6 @@ export default function PanelAdmin() {
           </Plegable>
           )}
 
-          {/* Los que piden factura y vuelven. Aquí se BORRAN (RGPD): se guardan
-              solo para facturarles, y sus facturas no se tocan al borrarlos. */}
-          <Plegable icono="👥" titulo="Clientes de facturas" resumen={`${(clientesFactura || []).length} guardados`}>
-            <div style={ajusteCard}>
-              <ClientesFactura clientes={clientesFactura || []} borrar={borrarClienteFactura} />
-            </div>
-          </Plegable>
-
           {/* Cambiar un precio es la forma en que el dinero se va de un bar
               sin que nadie robe nada. Se mira aquí, al lado de las
               anulaciones, porque se miran por lo mismo y a la vez. */}
@@ -723,6 +716,10 @@ export default function PanelAdmin() {
         {/* Tab Dispositivos: quién puede entrar al TPV de este bar. Tiene
             pestaña propia a propósito — es lo que hay que encontrar rápido
             cuando un aparato se queda fuera. */}
+        {/* Tab Clientes: los que piden factura, y todo sobre sus facturas.
+            Vivía plegado dentro de Caja, donde solo se podía borrar. */}
+        {tab === 'clientes' && <ClientesTab />}
+
         {tab === 'dispositivos' && <Dispositivos />}
 
         {/* Tab Local (identidad del negocio) */}

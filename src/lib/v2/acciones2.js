@@ -13,8 +13,9 @@ import { revisarNombreApartado, moverEnLista, emojiPorTipo, moverProductoEnCarta
 import { revisarCambiosLocal } from '../local'
 import { efectivoEsperado, descuadreDe, saldoMovimientos, revisarMovimiento } from '../caja'
 import { registrarTicket, registrarFactura } from '../fiscal'
-import { revisarDatosFactura, mismosDatosCliente } from '../factura'
-import { getLocalId, cargarTodo, cargarSala, cargarComandas, cargarReservas, cargarCarta, cargarLocal, cargarHistorial, cargarFichajes, cargarCierres, cargarMovimientosCaja, cargarFacturas, cargarClientesFactura } from './estado'
+import { revisarDatosFactura, mismosDatosCliente, normalizarNif } from '../factura'
+import { clientePorNif } from '../clientesFactura'
+import { getLocalId, cargarTodo, cargarSala, cargarComandas, cargarReservas, cargarCarta, cargarLocal, cargarHistorial, cargarFichajes, cargarCierres, cargarMovimientosCaja, cargarFacturas, cargarClientesFactura, facturasPorNif } from './estado'
 
 // Segunda ola de acciones v2: KDS, agenda de reservas, CRUD de carta/sala/
 // personal, caja y config del local. Personal/admin operan por RLS.
@@ -610,6 +611,44 @@ export function accionesV2b() {
         return { ok: true, factura }
       } catch (e) {
         return { ok: false, error: motivoLegible(e) }
+      }
+    },
+
+    // Alta manual de un cliente. Se valida AQUÍ (la pantalla lee el
+    // { ok, error } en el acto) y se escribe en segundo plano.
+    crearClienteFactura: (datos) => {
+      const r = revisarDatosFactura(datos)
+      if (!r.ok) return r
+      if (clientePorNif(useStore.getState().clientesFactura || [], r.valor.nif)) return { ok: false, error: 'Ya hay un cliente guardado con ese NIF' }
+      ;(async () => {
+        const { error } = await supabase.from('clientes_factura').insert({
+          nombre: r.valor.nombre, nif: r.valor.nif, direccion: r.valor.direccion, email: r.valor.email,
+        })
+        if (error) toast(/duplicate|unique/i.test(error.message) ? 'Ya hay un cliente guardado con ese NIF' : 'No se pudo guardar el cliente', 'error')
+        cargarClientesFactura()
+      })()
+      return { ok: true }
+    },
+
+    // Corregir nombre, domicilio o correo. El NIF no: une al cliente con sus facturas.
+    actualizarClienteFactura: (id, datos) => {
+      const c = (useStore.getState().clientesFactura || []).find(x => x.id === id)
+      if (!c) return { ok: false, error: 'Ese cliente ya no está' }
+      const r = revisarDatosFactura({ ...datos, nif: c.nif })
+      if (!r.ok) return r
+      const cambios = { nombre: r.valor.nombre, direccion: r.valor.direccion, email: r.valor.email }
+      useStore.setState(s => ({ clientesFactura: (s.clientesFactura || []).map(x => x.id === id ? { ...x, ...cambios } : x) }))
+      ;(async () => {
+        const { error } = await supabase.from('clientes_factura').update(cambios).eq('id', id)
+        if (error) { toast('No se pudo guardar el cliente', 'error'); cargarClientesFactura() }
+      })()
+      return { ok: true }
+    },
+
+    // Todas sus facturas, del servidor. Sin conexión, las que tenga el aparato.
+    facturasDeCliente: async (nif) => {
+      try { return await facturasPorNif(normalizarNif(nif)) } catch {
+        return (useStore.getState().facturas || []).filter(f => normalizarNif(f.cliente?.nif) === normalizarNif(nif))
       }
     },
 

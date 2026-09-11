@@ -5,6 +5,19 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.135.0] - 2026-09-11
+
+### Añadido
+- **🤝 Pestaña Clientes en Admin.** Los que piden factura tenían una sección plegada dentro de Caja donde solo se podían borrar. Pero «¿me sacas todas las facturas de Talleres Pérez de este año?» es lo que pide la gestoría del cliente cada trimestre, y la respuesta tiene que estar a dos toques.
+  - **Lista** con buscador por nombre o trozo de NIF, cuántas facturas lleva cada uno y cuándo fue la última.
+  - **Ficha del cliente**: facturas, **facturado** (sin contar las rechazadas por Hacienda, que no valen y se cuentan aparte), última factura y rechazadas.
+  - **Todas sus facturas**, pedidas al servidor —no solo las del mes que tiene bajadas el aparato—, con **filtro por año** y su estado en Hacienda. Cada una se abre para verla, imprimirla, descargar el PDF o enviarla.
+  - **⬇️ CSV** de sus facturas (del año elegido o de todas) con `;` y coma decimal, como el de Informes: Excel en español lo abre bien a la primera.
+  - **Editar** nombre, domicilio y correo. El **NIF no se cambia**: es lo que une al cliente con sus facturas. Las facturas ya emitidas conservan los datos con los que se hicieron.
+  - **Alta manual** («+ Nuevo cliente»), para tener listo al habitual antes de su primera factura. Un NIF, un cliente.
+  - **«Tienen facturas pero no están guardados»**: a quien se le facturó sin marcar «Guardar este cliente» se le puede guardar de un toque, con los datos de su última factura.
+  - **Borrar** sigue aquí (RGPD), y sigue sin tocar sus facturas.
+
 ## [0.134.0] - 2026-09-11
 
 ### Añadido
