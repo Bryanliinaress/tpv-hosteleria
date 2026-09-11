@@ -5,6 +5,19 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.133.0] - 2026-09-11
+
+### Cambiado
+- **La factura por correo sale del servidor (Resend), no de EmailJS.** El plan gratuito de EmailJS no adjunta archivos, así que «📎 Enviar PDF» nunca iba a mandar el PDF solo. Ahora la pantalla genera el PDF y lo pasa a una Edge Function nueva (`enviar-factura`), que lo manda con Resend desde el **dominio del bar**: llega a la bandeja de entrada en vez de a spam, y la clave vive como secreto del servidor, no en la web.
+
+  - La función **comprueba** que la factura es del local del aparato, que el archivo es un PDF de verdad y que el correo es válido. **El texto lo escribe el servidor** con los datos de la factura: el dominio del bar solo puede mandar facturas, no cualquier cosa.
+  - **Una factura rechazada por Hacienda no se manda**: primero se corrige.
+  - **Cada envío queda apuntado** (`envios_factura`, migración `20260912T49`): a quién, cuándo y si falló.
+  - **Sin configurar** (secretos `RESEND_API_KEY` y `CORREO_REMITENTE` en Supabase), el botón sigue como antes: Compartir con el PDF adjunto o descargarlo. Un **error de verdad** —factura rechazada, dominio sin verificar— se enseña como error y no abre Compartir, para que nadie crea que salió.
+
+### Quitado
+- La plantilla de EmailJS para facturas (`VITE_EMAILJS_TEMPLATE_FACTURA_ID`) y su paso en el deploy: con el plan gratuito no podía funcionar. EmailJS sigue mandando los correos de reservas.
+
 ## [0.132.1] - 2026-09-11
 
 ### Arreglado

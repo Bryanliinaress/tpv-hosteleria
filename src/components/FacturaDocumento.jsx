@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import FacturaPapel from './FacturaPapel'
 import { numeroDeFactura, correoDeFactura } from '../lib/factura'
 import { pdfDeFactura, trazosQr, nombreArchivoFactura } from '../lib/facturaPdf'
-import { enviarCorreoFactura, correoConAdjunto, descargarPdf } from '../lib/email'
+import { enviarCorreoFactura, descargarPdf } from '../lib/email'
 import { toast } from '../store/useUI'
 import { useStore } from '../store/useStore'
 import Facturar from './Facturar'
@@ -51,11 +51,11 @@ export default function FacturaDocumento({ factura: inicial, por, onCerrar }) {
     try {
       const { asunto, mensaje } = correoDeFactura(factura)
       const r = await enviarCorreoFactura({
-        para, nombre: factura.cliente?.nombre, asunto, mensaje,
+        facturaId: factura.id, para, asunto, mensaje,
         pdf: generarPdf(), nombreArchivo: nombreArchivoFactura(factura),
       })
       toast({
-        emailjs: `Factura enviada a ${para} con el PDF adjunto`,
+        servidor: `Factura enviada a ${para} con el PDF adjunto`,
         compartir: 'Elige tu correo: el PDF va ya adjunto',
         mailto: 'PDF descargado: adjúntalo al correo que se ha abierto',
       }[r.via], 'success')
@@ -106,11 +106,6 @@ export default function FacturaDocumento({ factura: inicial, por, onCerrar }) {
               onKeyDown={e => { if (e.key === 'Enter') enviar() }}
               style={{ flex: '1 1 14rem', minWidth: 0, background: 'var(--color-inset)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.55rem 0.7rem', color: 'var(--color-text)', fontSize: '0.9rem' }} />
             <button onClick={enviar} disabled={enviando} style={boton('#10b981', '#fff')}>{enviando ? 'Enviando…' : '📎 Enviar PDF'}</button>
-            {!correoConAdjunto && (
-              <span style={{ flexBasis: '100%', fontSize: '0.72rem', color: 'var(--color-muted)' }}>
-                El envío automático con adjunto no está configurado: se abrirá «Compartir» con el PDF para elegir tu correo o, si este aparato no puede, se descargará para adjuntarlo.
-              </span>
-            )}
           </div>
 
           <div ref={papel} style={{ borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>

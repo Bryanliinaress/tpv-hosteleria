@@ -34,9 +34,6 @@ jobs:
           VITE_EMAILJS_SERVICE_ID: ${{ secrets.VITE_EMAILJS_SERVICE_ID }}
           VITE_EMAILJS_TEMPLATE_ID: ${{ secrets.VITE_EMAILJS_TEMPLATE_ID }}
           VITE_EMAILJS_PUBLIC_KEY: ${{ secrets.VITE_EMAILJS_PUBLIC_KEY }}
-          # Plantilla de FACTURAS (con el PDF adjunto). Sin esta línea, aunque exista
-          # el secreto, el build publicado no la ve y «Enviar PDF» no sale solo.
-          VITE_EMAILJS_TEMPLATE_FACTURA_ID: ${{ secrets.VITE_EMAILJS_TEMPLATE_FACTURA_ID }}
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
