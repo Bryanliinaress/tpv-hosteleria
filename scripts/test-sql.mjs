@@ -27,6 +27,7 @@ if (!env.token) {
 const FOTO = `select
   (select count(*) from tickets) tickets,
   (select count(*) from facturas) facturas,
+  (select count(*) from clientes_factura) clientes_factura,
   (select count(*) from comensales) comensales,
   (select count(*) from lineas_pedido) lineas,
   (select count(*) from pagos_online) pagos,

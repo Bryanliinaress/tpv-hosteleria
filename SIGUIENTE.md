@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.130.0 · 1101 tests JS + 45 pruebas de SQL en verde · CI y deploy en
+**Estado: v0.131.0 · 1124 tests JS + 47 pruebas de SQL en verde · CI y deploy en
 verde · repo limpio · 0 vulnerabilidades.** Última sesión: 2026-09-08.
 
 Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a uno:
@@ -44,6 +44,7 @@ Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a un
 | **v0.128.0** | 10/09 | **Cambiar el precio de una línea** (menú del día, precio a la mesa grande, plato que salió tarde) con motivo y auditoría en Admin › Caja. No toca lo ya cobrado: para eso está la rectificativa. Migración 44. |
 | **v0.129.0** | 11/09 | **Tomar pedido en el Mostrador, a pantalla completa**: apartados a la izquierda, productos en rejilla (la tarjeta entera es el botón, con lo ya pedido), comanda de la mesa a la derecha; Enter añade y Escape cierra. Arreglado: «Enviar 2» enviaba la mesa entera (5). |
 | **v0.130.0** | 11/09 | **Facturas completas** desde Mostrador y Admin: datos del cliente con NIF validado, imprimir en A4 y enviar por correo con enlace. Se registran como **F3** (sustituyen al ticket, no suman en caja), con serie F propia. Migraciones 45–46 (un ticket facturado ya no se devuelve por R5) y Edge Function `registrar-fiscal` v10 desplegada. **Pendiente:** rectificar una factura (R1–R4) y facturar un ticket con devoluciones (F1). |
+| **v0.131.0** | 11/09 | **Clientes de factura guardados** (buscar por nombre o NIF, un toque rellena; se borran desde Admin por RGPD) y **el correo lleva el PDF adjunto**, generado sin librerías. Migración 47. **Pendiente de Bryan:** crear en EmailJS la plantilla con adjunto (`factura_pdf`) y poner su id en `VITE_EMAILJS_TEMPLATE_FACTURA_ID`; hasta entonces se envía con «Compartir». |
 
 **Lo que hay que llevarse de la sesión**, que se repitió tres veces con distinta
 cara: *«éxito» que solo significa «se lo he dado a otro»*. El spooler aceptaba
