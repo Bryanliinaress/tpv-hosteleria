@@ -373,17 +373,33 @@ export async function cargarFichajes(mes = mesActual()) {
  * la factura se pide sobre un ticket de estos días, y la de hace meses se
  * vuelve a abrir desde el enlace del correo.
  */
+const COLUMNAS_FACTURA = 'id, ticket_id, serie, numero, expedida_en, cliente_nombre, cliente_nif, cliente_direccion, cliente_email, total, lineas, desglose, emisor, token, fiscal_estado, fiscal_url, fiscal_error'
+
+/** Una fila de `facturas` con la forma que usan las pantallas. */
+export const aFactura = (f) => ({
+  id: f.id, ticketId: f.ticket_id, serie: f.serie, numero: Number(f.numero), expedidaEn: f.expedida_en,
+  cliente: { nombre: f.cliente_nombre, nif: f.cliente_nif, direccion: f.cliente_direccion, email: f.cliente_email },
+  total: Number(f.total), lineas: f.lineas, desglose: f.desglose, emisor: f.emisor, token: f.token,
+  fiscalEstado: f.fiscal_estado, fiscalUrl: f.fiscal_url, fiscalError: f.fiscal_error,
+})
+
+/**
+ * TODAS las facturas de un cliente, no solo las de la ventana que tiene bajada
+ * el aparato: la gestoría pide las del trimestre, o las del año.
+ */
+export async function facturasPorNif(nif) {
+  const { data, error } = await supabase.from('facturas').select(COLUMNAS_FACTURA)
+    .eq('cliente_nif', nif).order('expedida_en', { ascending: false }).limit(500)
+  if (error) throw new Error(error.message)
+  return data.map(aFactura)
+}
+
 export async function cargarFacturas() {
   try {
     const desde = { col: 'expedida_en', valor: inicioVentanaHistorial(new Date(), useStore.getState().cierres?.[0]?.hasta ?? null) }
-    const filas = await q('facturas', 'id, ticket_id, serie, numero, expedida_en, cliente_nombre, cliente_nif, cliente_direccion, cliente_email, total, lineas, desglose, emisor, token, fiscal_estado, fiscal_url, fiscal_error', {}, desde)
+    const filas = await q('facturas', COLUMNAS_FACTURA, {}, desde)
     useStore.setState({
-      facturas: filas.map(f => ({
-        id: f.id, ticketId: f.ticket_id, serie: f.serie, numero: Number(f.numero), expedidaEn: f.expedida_en,
-        cliente: { nombre: f.cliente_nombre, nif: f.cliente_nif, direccion: f.cliente_direccion, email: f.cliente_email },
-        total: Number(f.total), lineas: f.lineas, desglose: f.desglose, emisor: f.emisor, token: f.token,
-        fiscalEstado: f.fiscal_estado, fiscalUrl: f.fiscal_url, fiscalError: f.fiscal_error,
-      })),
+      facturas: filas.map(aFactura),
     })
   } catch { /* tabla aún no migrada: se ignora */ }
 }

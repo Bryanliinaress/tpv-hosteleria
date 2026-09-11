@@ -10,8 +10,8 @@ import { revisarNumeroMesa, revisarNombreZona, revisarAltaMesas } from '../lib/s
 import { revisarNombreApartado, moverEnLista, emojiPorTipo, moverProductoEnCarta, copiaDeProducto } from '../lib/carta'
 import { revisarCambiosLocal } from '../lib/local'
 import { revisarPlatoLibre, revisarCambioDePrecio } from '../lib/fueraDeCarta'
-import { revisarDatosFactura, porQueNoSeFactura, faltaParaFacturar, lineasParaFactura, desgloseParaFactura, puedeCorregirse, mismosDatosCliente } from '../lib/factura'
-import { guardarCliente } from '../lib/clientesFactura'
+import { revisarDatosFactura, porQueNoSeFactura, faltaParaFacturar, lineasParaFactura, desgloseParaFactura, puedeCorregirse, mismosDatosCliente, normalizarNif } from '../lib/factura'
+import { guardarCliente, clientePorNif } from '../lib/clientesFactura'
 import { totalDeMesa } from '../lib/dinero'
 
 // Aviso al usuario desde el store. Import perezoso para no acoplar el estado a
@@ -400,6 +400,31 @@ export const useStore = create(persist((set, get) => ({
     }))
     return { ok: true, factura: nueva }
   },
+
+  // Dar de alta un cliente a mano, sin factura todavía (el habitual que aún
+  // no ha pedido ninguna, o para tenerlo listo). Un NIF, un cliente.
+  crearClienteFactura: (datos) => {
+    const r = revisarDatosFactura(datos)
+    if (!r.ok) return r
+    if (clientePorNif(get().clientesFactura || [], r.valor.nif)) return { ok: false, error: 'Ya hay un cliente guardado con ese NIF' }
+    set(s => ({ clientesFactura: [...(s.clientesFactura || []), { id: crearId('cl'), ...r.valor, facturas: 0, usadoEn: new Date().toISOString() }] }))
+    return { ok: true }
+  },
+
+  // Corregir los datos de un cliente guardado. El NIF NO se cambia: es lo que
+  // le une a sus facturas. Si está mal, se borra y se da de alta de nuevo.
+  actualizarClienteFactura: (id, datos) => {
+    const c = (get().clientesFactura || []).find(x => x.id === id)
+    if (!c) return { ok: false, error: 'Ese cliente ya no está' }
+    const r = revisarDatosFactura({ ...datos, nif: c.nif })
+    if (!r.ok) return r
+    set(s => ({ clientesFactura: s.clientesFactura.map(x => x.id === id ? { ...x, nombre: r.valor.nombre, direccion: r.valor.direccion, email: r.valor.email } : x) }))
+    return { ok: true }
+  },
+
+  // Todas las facturas de un cliente. En la demo están todas en el aparato;
+  // en la app real se piden al servidor, que las tiene todas.
+  facturasDeCliente: async (nif) => (get().facturas || []).filter(f => normalizarNif(f.cliente?.nif) === normalizarNif(nif)),
 
   // Borrar un cliente guardado (RGPD: se guarda solo para facturarle). Sus
   // facturas NO se tocan: son documentos fiscales y llevan sus datos dentro.
