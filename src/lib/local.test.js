@@ -64,7 +64,7 @@ describe('los textos que salen impresos', () => {
 })
 
 describe('qué falta por rellenar', () => {
-  const COMPLETO = { direccion: 'Calle 1', telefono: '600', cif: 'B1', ivaPct: 10 }
+  const COMPLETO = { direccion: 'Calle 1', telefono: '600', email: 'info@bar.es', cif: 'B1', ivaPct: 10 }
 
   it('con todo puesto, no falta nada', () => {
     expect(loQueFaltaDelLocal(COMPLETO)).toEqual([])
@@ -80,5 +80,26 @@ describe('qué falta por rellenar', () => {
   it('dice dónde se nota cada hueco', () => {
     const [tel] = loQueFaltaDelLocal({ ...COMPLETO, telefono: '' })
     expect(tel.donde).toMatch(/Ll[áa]manos/)
+  })
+})
+
+describe('el correo del local', () => {
+  it('se guarda limpio', () => {
+    expect(revisarCambiosLocal({ email: '  info@casaloli.es ' })).toEqual({ ok: true, cambios: { email: 'info@casaloli.es' } })
+  })
+
+  it('vacío vale: aún no lo han puesto', () => {
+    expect(revisarCambiosLocal({ email: '' })).toEqual({ ok: true, cambios: { email: '' } })
+  })
+
+  it('mal escrito no: las respuestas a las facturas se perderían', () => {
+    const r = revisarCambiosLocal({ email: 'info@casaloli' })
+    expect(r.ok).toBe(false)
+    expect(r.error).toMatch(/correo/)
+  })
+
+  it('si falta, se avisa de para qué sirve', () => {
+    const falta = loQueFaltaDelLocal({ direccion: 'x', telefono: 'y', cif: 'B1', ivaPct: 10 })
+    expect(falta.map(f => f.campo)).toEqual(['el correo'])
   })
 })

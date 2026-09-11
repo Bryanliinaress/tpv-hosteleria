@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.133.0 · 1132 tests JS + 50 pruebas de SQL en verde · CI y deploy en
+**Estado: v0.134.0 · 1136 tests JS + 50 pruebas de SQL en verde · CI y deploy en
 verde · repo limpio · 0 vulnerabilidades.** Última sesión: 2026-09-08.
 
 Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a uno:
@@ -47,6 +47,7 @@ Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a un
 | **v0.131.0** | 11/09 | **Clientes de factura guardados** (buscar por nombre o NIF, un toque rellena; se borran desde Admin por RGPD) y **el correo lleva el PDF adjunto**, generado sin librerías. Migración 47. **Pendiente de Bryan:** crear en EmailJS la plantilla con adjunto (`factura_pdf`) y poner su id en `VITE_EMAILJS_TEMPLATE_FACTURA_ID`; hasta entonces se envía con «Compartir». |
 | **v0.132.0** | 11/09 | **Corregir y reenviar una factura rechazada por Hacienda** (mismo número y fecha, auditoría en `correcciones_factura`, subsanación si Verifacti ya la tenía). Migración 48 y `registrar-fiscal` desplegada. La F-1 de prueba (nombre «t») queda para corregir con datos reales. |
 | **v0.133.0** | 11/09 | **La factura por correo sale del servidor por Resend** (Edge Function `enviar-factura`, registro en `envios_factura`, migración 49). **Pendiente de Bryan en cada instalación:** cuenta de Resend, verificar el dominio del bar en su DNS, y en Supabase → Edge Functions → Secrets poner `RESEND_API_KEY` y `CORREO_REMITENTE` («Bar <facturas@dominio>»). Hasta entonces «Enviar PDF» abre Compartir. **El envío real por Resend no se ha podido probar aún.** |
+| **v0.134.0** | 11/09 | **Respuestas a las facturas al correo del bar** (Admin › Local → Correo) y remitente con el nombre del bar desde el dominio de envíos compartido. |
 
 **Lo que hay que llevarse de la sesión**, que se repitió tres veces con distinta
 cara: *«éxito» que solo significa «se lo he dado a otro»*. El spooler aceptaba
@@ -279,7 +280,7 @@ cada bar, `sk_live_` suya + rehacer el webhook con
    RPC. Si molesta, hay que juntar las dos fuentes.
 6. **Actualizar N instancias** de una vez: con un bar por instalación, cada
    mejora hay que desplegarla a cada uno.
-7. **Dominio propio para cada bar.**
+7. **Dominio de cada bar — DECIDIDO el 11/09: un subdominio de la empresa por cliente** (`casaloli.tu-empresa.es`), no carpetas (con carpetas los bares comparten origen y se pisan el estado del navegador y la caché). Hosting previsto: **Cloudflare Pages**, un proyecto por cliente conectado al mismo repo con `LOCAL=<slug>` (un push despliega a todos, que resuelve el punto 6). Correo: un único dominio de envíos `envios.tu-empresa.es` en Resend, con el nombre del bar y «responder a» su correo. Quien tenga dominio propio y lo quiera, como extra. Falta: montar el primer proyecto de Pages y el DNS.
 
 ### Dato, no código
 
@@ -579,7 +580,7 @@ vieja hasta que avisa (cada 30 min).
 
 ## El modelo: un bar, una instalación
 
-Cada bar tendrá **su proyecto Supabase, su despliegue, su dominio y su marca**.
+Cada bar tendrá **su proyecto Supabase, su despliegue, su subdominio y su marca** (subdominio de la empresa por cliente, decidido el 11/09; ver pendiente 7).
 No es un SaaS compartido. Lo que evita acabar con ocho copias divergentes:
 **un repo con el producto + un perfil por bar** (`locales/<slug>/perfil.json`),
 con módulos opcionales por local. Nunca copiar el repo.

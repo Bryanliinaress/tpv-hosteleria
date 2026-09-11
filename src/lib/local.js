@@ -22,6 +22,8 @@ import { importeDesdeTexto } from './dinero.js'
 /** El IVA más alto que tiene sentido teclear. Por encima, es un dedo torcido. */
 const IVA_MAX = 100
 
+const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
+
 /**
  * Comprueba y sanea un parche de `local`. Devuelve `{ ok: true, cambios }` con
  * lo que hay que guardar, o `{ ok: false, error }` para que la pantalla lo
@@ -53,6 +55,14 @@ export function revisarCambiosLocal(cambios = {}) {
     if (salida[campo] !== undefined) salida[campo] = String(salida[campo] ?? '').trim()
   }
 
+  // El correo del local: a él llegan las respuestas de los clientes a las
+  // facturas que se les mandan. Vacío vale (aún no lo han puesto); mal escrito
+  // no, porque las respuestas se perderían sin que nadie se entere.
+  if (salida.email !== undefined) {
+    salida.email = String(salida.email ?? '').trim()
+    if (salida.email && !EMAIL.test(salida.email)) return { ok: false, error: `«${salida.email}» no parece un correo` }
+  }
+
   return { ok: true, cambios: salida }
 }
 
@@ -65,6 +75,7 @@ export function loQueFaltaDelLocal(local = {}) {
   return [
     !local.direccion && { campo: 'la dirección', donde: 'el ticket y el recibo del cliente' },
     !local.telefono && { campo: 'el teléfono', donde: '«Llámanos» de la página de reservas' },
+    !local.email && { campo: 'el correo', donde: 'las respuestas de los clientes a las facturas que se les mandan' },
     // El CIF y el IVA son los dos que exige una factura simplificada.
     !local.cif && { campo: 'el CIF', donde: 'el ticket — es obligatorio en una factura simplificada', fiscal: true },
     (local.ivaPct == null || local.ivaPct === '') && { campo: 'el IVA', donde: 'el desglose del ticket', fiscal: true },

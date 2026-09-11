@@ -46,3 +46,41 @@ el nombre del local. Nada más en el cuerpo.
   al probar con direcciones inventadas.
 - Sin EmailJS configurado, la app abre el cliente de correo (`mailto:`) como
   alternativa, salvo en flujos automáticos.
+
+## Facturas por correo (Resend)
+
+Las facturas salen del **servidor** (Edge Function `enviar-factura`) por
+[Resend](https://resend.com), con el PDF adjunto. Todas las instalaciones envían
+desde **un único dominio de envíos de la empresa**; el bar aparece como nombre
+visible y **las respuestas le llegan a él**:
+
+    De:            Casa Loli <facturas@envios.tu-empresa.es>
+    Responder a:   info@casaloli.es      (Admin › Local → Correo del local)
+
+Por qué un subdominio (`envios.`) y no el dominio principal: si algún envío
+acaba marcado como spam, la reputación que se resiente es la del subdominio, no
+la del correo de la empresa.
+
+### Una vez (para todas las instalaciones)
+
+1. Cuenta en Resend → **Domains → Add Domain** → `envios.tu-empresa.es`.
+2. Resend enseña unos registros DNS (MX y TXT de SPF, y TXT de DKIM). Copiarlos
+   **tal cual** en el DNS de `tu-empresa.es`, donde esté gestionado. Los nombres
+   y valores exactos los da Resend: no inventarlos.
+3. Recomendado: un TXT `_dmarc.envios` con `v=DMARC1; p=none;` para empezar.
+4. Esperar a que Resend marque el dominio como **Verified**.
+5. **API Keys → Create** con permiso de solo envío.
+
+### En cada instalación (su proyecto de Supabase)
+
+En **Edge Functions → Secrets**:
+
+- `RESEND_API_KEY` — la clave. **Nunca** en el repositorio, en un commit ni en
+  una nota de versión.
+- `CORREO_REMITENTE` — `facturas@envios.tu-empresa.es` (el mismo en todas).
+
+Y en la app, **Admin › Local → Correo del local**: sin él, las facturas salen
+igual pero las respuestas no tienen a dónde ir (Admin avisa en «lo que falta»).
+
+Sin los dos secretos, «📎 Enviar PDF» abre Compartir con el PDF adjunto, como
+alternativa.

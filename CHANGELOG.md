@@ -5,6 +5,14 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.134.0] - 2026-09-11
+
+### Añadido
+- **Las respuestas a las facturas llegan al bar.** Todas las instalaciones envían desde un único dominio de envíos de la empresa (`facturas@envios.tu-empresa.es`): un solo dominio que configurar, en vez de pelearse con el DNS de cada bar, que casi nunca tiene dominio o no sabe quién se lo lleva. Pero la factura es del bar, así que el correo sale con **su nombre** como remitente visible y con **«responder a» su correo**.
+  - Campo nuevo **Admin › Local → Correo del local**, validado al guardar (uno mal escrito perdería las respuestas sin que nadie se entere). Si falta, sale en «lo que falta».
+  - `CORREO_REMITENTE` puede ser solo la dirección: el nombre visible lo pone el bar, y el **mismo valor vale para todas las instalaciones**.
+  - `docs/EMAILS.md`: cómo verificar el dominio de envíos en Resend y qué poner en cada instalación.
+
 ## [0.133.0] - 2026-09-11
 
 ### Cambiado

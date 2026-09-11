@@ -9,8 +9,14 @@
 //
 // Secretos (Supabase → Edge Functions → Secrets), NUNCA en el repositorio:
 //   RESEND_API_KEY     la clave de Resend
-//   CORREO_REMITENTE   quién envía, con un dominio verificado en Resend:
-//                      «Bar Loli <facturas@barloli.es>»
+//   CORREO_REMITENTE   la dirección que envía, de un dominio verificado en
+//                      Resend. Basta la dirección —«facturas@envios.tu-empresa.es»—:
+//                      el nombre visible se pone con el del bar, así que el
+//                      MISMO valor vale para todas las instalaciones. Si trae
+//                      nombre («Bar Loli <…>»), se respeta tal cual.
+//
+// Las respuestas del cliente van al correo del BAR (Admin › Local → Correo),
+// no a la dirección de envíos, que es compartida.
 //
 // Sin ellos responde `sin_configurar` y la pantalla ofrece Compartir el PDF.
 //
@@ -86,6 +92,14 @@ Deno.serve(async (req) => {
   // pantalla: así este dominio solo puede mandar facturas, no cualquier cosa.
   const e = (f.emisor ?? {}) as Record<string, string>
   const quien = e.razonSocial || e.nombre || 'el local'
+
+  // Quien contesta a la factura quiere hablar con el bar. El correo del local
+  // se lee de su ficha en el momento de enviar (puede haberlo cambiado).
+  const { data: loc } = await supabase.from('locales').select('config').eq('id', local).maybeSingle()
+  const correoBar = String((loc?.config as Record<string, unknown> | null)?.email ?? '').trim()
+  const responderA = EMAIL.test(correoBar) ? correoBar : null
+  const nombreVisible = quien.replace(/[<>"\r\n]/g, '').slice(0, 70)
+  const from = REMITENTE.includes('<') ? REMITENTE : `${nombreVisible} <${REMITENTE}>`
   const numero = `${f.serie}-${f.numero}`
   const asunto = `Factura ${numero} de ${quien}`
   const texto = [
@@ -104,8 +118,9 @@ Deno.serve(async (req) => {
       method: 'POST',
       headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: REMITENTE,
+        from,
         to: [para],
+        ...(responderA ? { reply_to: responderA } : {}),
         subject: asunto,
         text: texto,
         attachments: [{ filename: `Factura-${numero}.pdf`, content: pdf }],
