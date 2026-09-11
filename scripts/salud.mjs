@@ -28,6 +28,7 @@ select
   (select coalesce(sum(total), 0) from tickets where cerrado_en > now() - interval '1 day') as facturado_24h,
   (select max(cerrado_en) from tickets) as ultimo_ticket,
   (select count(*) from tickets where fiscal_estado in ('pendiente', 'error')) as fiscal_pendiente,
+  (select count(*) from facturas where fiscal_estado in ('pendiente', 'error')) as facturas_pendiente,
   (select count(*) from pagos_online where ticket is null) as pagos_sin_cuenta,
   (select coalesce(sum(importe), 0) from pagos_online where ticket is null) as importe_sin_cuenta,
   (select count(*) from comandas where estado <> 'listo' and hora_entrada < now() - interval '2 hours') as comandas_atascadas,
@@ -65,6 +66,7 @@ linea('Dispositivos con acceso', s.dispositivos)
 linea('Migraciones aplicadas', s.migraciones)
 
 if (Number(s.fiscal_pendiente) > 0) avisos.push(`${s.fiscal_pendiente} ticket(s) sin registrar en Hacienda`)
+if (Number(s.facturas_pendiente) > 0) avisos.push(`${s.facturas_pendiente} factura(s) sin registrar en Hacienda`)
 if (Number(s.pagos_sin_cuenta) > 0) avisos.push(`${s.pagos_sin_cuenta} cobro(s) sin cuenta · ${Number(s.importe_sin_cuenta).toFixed(2)} € que hay que devolver`)
 if (Number(s.comandas_atascadas) > 0) avisos.push(`${s.comandas_atascadas} comanda(s) llevan más de 2 h sin marcarse listas`)
 if (Number(s.dispositivos) === 0) avisos.push('ningún dispositivo con acceso: nadie puede entrar al TPV')

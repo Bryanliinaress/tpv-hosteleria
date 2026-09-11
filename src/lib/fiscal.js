@@ -31,6 +31,13 @@ export async function registrarTicket(ticketId) {
   try { return await llamar({ ticketId }) } catch (e) { console.warn('fiscal:', e); return null }
 }
 
+// Registra una factura completa (F3). Espera en el servidor a que su ticket
+// conste en Hacienda; si aún no, queda pendiente y entra en el reintento.
+export async function registrarFactura(facturaId) {
+  if (!fiscalActivo || !facturaId) return null
+  try { return await llamar({ facturaId }) } catch (e) { console.warn('fiscal:', e); return null }
+}
+
 // Reintenta los tickets que quedaron sin registrar (al abrir Admin o a mano).
 export async function reintentarPendientes(localId) {
   if (!fiscalActivo) return null

@@ -23,13 +23,16 @@ import EditorMenu from '../../components/EditorMenu'
 import Informes from './Informes'
 import Dispositivos from '../../components/Dispositivos'
 import Devolver from '../../components/Devolver'
+import Facturar from '../../components/Facturar'
+import FacturaDocumento from '../../components/FacturaDocumento'
+import { porQueNoSeFactura, numeroDeFactura } from '../../lib/factura'
 import { desgloseIVA, totalDe, cent, pendienteDeDevolver, importeDesdeTexto } from '../../lib/dinero'
 import { efectivoEsperado, descuadreDe, saldoMovimientos, movimientosDesde, cobrosPorPersona } from '../../lib/caja'
 
 const emptyForm = { nombre: '', nombreEn: '', categoria: '', descripcion: '', descripcionEn: '', alergenos: [], imagen: '', conFormatos: false, precios: {}, precio: '', menu: null, ivaPct: '' }
 
 export default function PanelAdmin() {
-  const { carta, mesas, historial, cierres, anulaciones, cambiosPrecio, pagosSinCuenta, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, moverProducto, duplicarProducto, reponerTodo, resetDatos, addMesa, removeMesa, updateMesa, renumerarMesa, renombrarZona, moverZona, addCategoria, removeCategoria, updateCategoria, moverCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, crearFichaje, editarFichaje, borrarFichaje, pedirFichajesDe, reintentarReembolso, movimientosCaja, registrarMovimiento } = useStore()
+  const { carta, mesas, historial, cierres, anulaciones, cambiosPrecio, facturas, pagosSinCuenta, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, moverProducto, duplicarProducto, reponerTodo, resetDatos, addMesa, removeMesa, updateMesa, renumerarMesa, renombrarZona, moverZona, addCategoria, removeCategoria, updateCategoria, moverCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, crearFichaje, editarFichaje, borrarFichaje, pedirFichajesDe, reintentarReembolso, movimientosCaja, registrarMovimiento } = useStore()
   const hoyStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
   const reservasHoy = reservas.filter(r => r.fecha === hoyStr && r.estado === 'confirmada').length
   const [tab, setTab] = useState('carta')
@@ -37,6 +40,8 @@ export default function PanelAdmin() {
   const [editando, setEditando] = useState(null) // productoId en edición
   const [form, setForm] = useState(emptyForm)
   const [devolviendo, setDevolviendo] = useState(null)   // ticket que se está devolviendo
+  const [facturando, setFacturando] = useState(null)     // ticket del que se pide factura
+  const [verFactura, setVerFactura] = useState(null)     // factura emitida abierta
   const [ticket, setTicket] = useState(null)
   // La tira de pestañas se pega DEBAJO de la cabecera, y la cabecera debajo de
   // la banda de demostración. Los tres altos se miden porque los tres cambian.
@@ -568,7 +573,8 @@ export default function PanelAdmin() {
               mesNombre={ahora.toLocaleDateString('es-ES', { month: 'long' })}
               totalMes={totalMes} propinasMes={propinasMes} historial={historial}
               devueltoDe={devueltoDe} setDevolviendo={setDevolviendo} setTicket={setTicket}
-              reintentarReembolso={reintentarReembolso} />
+              reintentarReembolso={reintentarReembolso}
+              facturas={facturas || []} setFacturando={setFacturando} setVerFactura={setVerFactura} />
           </Plegable>
 
           <Plegable icono="↔" titulo="Entradas y salidas del cajón" resumen={`${movsCaja.length} en esta caja${saldoMovs !== 0 ? ` · ${saldoMovs > 0 ? '+' : ''}${saldoMovs.toFixed(2)} €` : ''}`}>
@@ -807,6 +813,8 @@ export default function PanelAdmin() {
           <Devolver ticket={devolviendo.ticket} pendiente={devolviendo.pendiente}
             onCerrar={() => setDevolviendo(null)} />
         )}
+        {facturando && <Facturar ticket={facturando} onCerrar={() => setFacturando(null)} />}
+        {verFactura && <FacturaDocumento factura={verFactura} onCerrar={() => setVerFactura(null)} />}
 
       </div>
 
@@ -1464,7 +1472,7 @@ function Plegable({ icono, titulo, resumen, children, abiertoAlPrincipio = false
 // historial viene por ventana desde el último cierre— así que no promete
 // encontrar uno de hace tres meses.
 // ────────────────────────────────────────────────────────────────────────────
-function TicketsDelMes({ delMes, dias, porDia, diaBonito, mesNombre, totalMes, propinasMes, historial, devueltoDe, setDevolviendo, setTicket, reintentarReembolso }) {
+function TicketsDelMes({ delMes, dias, porDia, diaBonito, mesNombre, totalMes, propinasMes, historial, devueltoDe, setDevolviendo, setTicket, reintentarReembolso, facturas = [], setFacturando, setVerFactura }) {
   const [busca, setBusca] = useState('')
   const q = busca.trim().toLowerCase()
   const coincide = (r) => !q || String(r.numero).includes(q) || String(r.mesaNumero ?? '').includes(q)
@@ -1550,7 +1558,15 @@ function TicketsDelMes({ delMes, dias, porDia, diaBonito, mesNombre, totalMes, p
                     </div>
                   )}
                 </div>
-                <div style={{ display: 'flex', gap: '0.3rem', flexShrink: 0 }}>
+                <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  {/* «¿Me haces factura?». Si ya la tiene, el botón la abre:
+                      pedirla dos veces es lo normal y emitir dos, un error. */}
+                  {(() => {
+                    const f = facturas.find(x => x.ticketId === r.id)
+                    if (f) return <button onClick={() => setVerFactura(f)} title="Ver, imprimir o enviar la factura" style={{ background: 'none', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.4rem 0.6rem', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>📄 {numeroDeFactura(f)}</button>
+                    if (porQueNoSeFactura(r, { historial, facturas })) return null
+                    return <button onClick={() => setFacturando(r)} title="Factura completa con los datos del cliente" style={{ background: 'none', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.4rem 0.6rem', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>🧾 Factura</button>
+                  })()}
                   {esDevolucion && (r.reembolsoEstado === 'pendiente' || r.reembolsoEstado === 'error') && (
                     <button onClick={async () => {
                       const res = await reintentarReembolso(r.id)
@@ -1558,7 +1574,10 @@ function TicketsDelMes({ delMes, dias, porDia, diaBonito, mesNombre, totalMes, p
                     }} title="Volver a intentar la devolución a la tarjeta"
                       style={{ background: 'none', color: 'var(--tint-warning-fg)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.4rem 0.6rem', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>↻ Reintentar</button>
                   )}
-                  {!esDevolucion && pendiente > 0 && (
+                  {/* Con factura, el ticket está SUSTITUIDO por ella: una devolución
+                      rectificaría un documento que ya no es el que vale. El
+                      servidor también lo impide (migración 46). */}
+                  {!esDevolucion && pendiente > 0 && !facturas.some(x => x.ticketId === r.id) && (
                     <button onClick={() => setDevolviendo({ ticket: r, pendiente })} title="Emitir una factura rectificativa"
                       style={{ background: 'none', color: '#f43f5e', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.4rem 0.6rem', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>↩ Devolver</button>
                   )}

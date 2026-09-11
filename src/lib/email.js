@@ -55,3 +55,26 @@ export async function enviarEmailReserva(tipo, r, { permitirMailto = true } = {}
   if (!res.ok) throw new Error(`EmailJS ${res.status}: ${await res.text()}`)
   return { via: 'emailjs' }
 }
+
+// Correo con una factura. Usa la MISMA plantilla que las reservas: solo pinta
+// {{asunto}} y {{mensaje}}, así que no hay que tocar nada en EmailJS. Sin
+// EmailJS configurado, abre el programa de correo con todo ya escrito.
+export async function enviarCorreoFactura({ para, nombre, asunto, mensaje }, { permitirMailto = true } = {}) {
+  if (!para) throw new Error('Falta el correo del cliente')
+  if (!emailConfigurado) {
+    if (!permitirMailto) return { via: 'sin-config' }
+    window.open(`mailto:${para}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(mensaje)}`)
+    return { via: 'mailto' }
+  }
+  const local = nombreLocal()
+  const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      service_id: SERVICE, template_id: TEMPLATE, user_id: PUBLIC_KEY,
+      template_params: { to_email: para, to_name: nombre || '', asunto, mensaje, local, from_name: local },
+    }),
+  })
+  if (!res.ok) throw new Error(`EmailJS ${res.status}: ${await res.text()}`)
+  return { via: 'emailjs' }
+}

@@ -12,8 +12,9 @@ import { entorno, consulta, envolver, comprobar, comprobarIgual, FIN } from './l
 import { PRUEBAS as DINERO } from './lib/pruebas-dinero.mjs'
 import { PRUEBAS_RECTIFICATIVAS } from './lib/pruebas-rectificativas.mjs'
 import { PRUEBAS_INFORMES } from './lib/pruebas-informes.mjs'
+import { PRUEBAS_FACTURAS } from './lib/pruebas-facturas.mjs'
 
-const PRUEBAS = [...DINERO, ...PRUEBAS_RECTIFICATIVAS, ...PRUEBAS_INFORMES]
+const PRUEBAS = [...DINERO, ...PRUEBAS_RECTIFICATIVAS, ...PRUEBAS_INFORMES, ...PRUEBAS_FACTURAS]
 
 const env = entorno()
 if (!env.token) {
@@ -25,6 +26,7 @@ if (!env.token) {
 // dejado algo escrito y eso invalidaría el resto.
 const FOTO = `select
   (select count(*) from tickets) tickets,
+  (select count(*) from facturas) facturas,
   (select count(*) from comensales) comensales,
   (select count(*) from lineas_pedido) lineas,
   (select count(*) from pagos_online) pagos,

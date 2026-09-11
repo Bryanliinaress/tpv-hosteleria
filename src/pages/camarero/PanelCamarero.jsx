@@ -11,6 +11,9 @@ import PedirMostrador from './PedirMostrador'
 import { useEsAncho } from '../../components/useEsAncho'
 import FueraDeCarta from '../../components/FueraDeCarta'
 import CambiarPrecio from '../../components/CambiarPrecio'
+import Facturar from '../../components/Facturar'
+import FacturaDocumento from '../../components/FacturaDocumento'
+import { porQueNoSeFactura, numeroDeFactura } from '../../lib/factura'
 import CobroMesa from '../pda/CobroMesa'
 import { totalDe, totalDeMesa, pendienteDeMesa } from '../../lib/dinero'
 import { resumenSala } from '../../lib/sala'
@@ -49,6 +52,9 @@ export default function PanelCamarero() {
   const [moverLinea, setMoverLinea] = useState(null)      // { personaId, uid, nombre }
   const [libre, setLibre] = useState(null)                // { personaId } → plato fuera de carta
   const [precioDe, setPrecioDe] = useState(null)          // { personaId, item } → cambiar el precio
+  const [facturando, setFacturando] = useState(null)      // ticket del que el cliente pide factura
+  const [verFactura, setVerFactura] = useState(null)      // factura ya emitida
+  const facturas = useStore(s => s.facturas) || []
   const [reservando, setReservando] = useState(false)
   const [reservaForm, setReservaForm] = useState({ nombre: '', hora: '', personas: 2 })
 
@@ -558,6 +564,9 @@ export default function PanelCamarero() {
         </div>
       )}
 
+      {facturando && <Facturar ticket={facturando} por={yo} onCerrar={() => setFacturando(null)} />}
+      {verFactura && <FacturaDocumento factura={verFactura} onCerrar={() => setVerFactura(null)} />}
+
       {verHistorial && (
         <div onClick={() => setVerHistorial(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', display: 'flex', justifyContent: 'flex-end', zIndex: 90, animation: 'fadeIn 0.2s ease both' }}>
           <div onClick={e => e.stopPropagation()} style={{ width: '380px', maxWidth: '92vw', background: 'var(--color-surface)', height: '100%', overflowY: 'auto', padding: '1.25rem', borderLeft: '1px solid var(--color-border)', boxShadow: '-22px 0 50px -20px rgba(0,0,0,0.8)', animation: 'slideLeft 0.28s cubic-bezier(0.16,1,0.3,1) both' }}>
@@ -576,7 +585,17 @@ export default function PanelCamarero() {
                   <div style={{ fontWeight: 700 }}>Mesa {r.mesaNumero}</div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>{new Date(r.cerradaEn).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} · {r.total.toFixed(2)} €</div>
                 </div>
-                <button onClick={() => setTicket({ tipo: 'cuenta', mesa: { numero: r.mesaNumero, personas: r.personas } })} style={btn('var(--color-accent)', { fontSize: '0.78rem', padding: '0.4rem 0.7rem' })}>Ver ticket</button>
+                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  {/* «¿Me haces factura?» se pide en la barra, al pagar o al
+                      volver a por ella: tiene que estar aquí y no solo en Admin. */}
+                  {(() => {
+                    const f = facturas.find(x => x.ticketId === r.id)
+                    if (f) return <button onClick={() => setVerFactura(f)} style={btn('var(--color-surface-2)', { fontSize: '0.78rem', padding: '0.4rem 0.7rem' })}>📄 {numeroDeFactura(f)}</button>
+                    if (porQueNoSeFactura(r, { historial, facturas })) return null
+                    return <button onClick={() => setFacturando(r)} style={btn('var(--color-surface-2)', { fontSize: '0.78rem', padding: '0.4rem 0.7rem' })}>🧾 Factura</button>
+                  })()}
+                  <button onClick={() => setTicket({ tipo: 'cuenta', mesa: { numero: r.mesaNumero, personas: r.personas } })} style={btn('var(--color-accent)', { fontSize: '0.78rem', padding: '0.4rem 0.7rem' })}>Ver ticket</button>
+                </div>
               </div>
             ))}
           </div>

@@ -37,7 +37,8 @@
       "unaccent_simple",
       "solicitar_dispositivo",
       "estado_dispositivo",
-      "registrar_incidencia"
+      "registrar_incidencia",
+      "factura_por_token"
     ]
   },
   "solo_servidor": {
@@ -55,7 +56,9 @@
       "dispositivo_por_secreto",
       "vincular_dispositivo_usuario",
       "dispositivo_visto",
-      "_fallos_recientes"
+      "_fallos_recientes",
+      "factura_para_fiscal",
+      "factura_fiscal_resultado"
     ]
   }
 }
