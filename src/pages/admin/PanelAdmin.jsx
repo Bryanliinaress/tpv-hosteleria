@@ -28,6 +28,8 @@ import Devolver from '../../components/Devolver'
 import Facturar from '../../components/Facturar'
 import FacturaDocumento from '../../components/FacturaDocumento'
 import ClientesTab from './ClientesTab'
+import Borradores from '../../components/Borradores'
+import { borradoresPendientes } from '../../lib/borradores'
 import { porQueNoSeFactura, numeroDeFactura } from '../../lib/factura'
 import { desgloseIVA, totalDe, cent, pendienteDeDevolver, importeDesdeTexto } from '../../lib/dinero'
 import { efectivoEsperado, descuadreDe, saldoMovimientos, movimientosDesde, cobrosPorPersona } from '../../lib/caja'
@@ -35,7 +37,7 @@ import { efectivoEsperado, descuadreDe, saldoMovimientos, movimientosDesde, cobr
 const emptyForm = { nombre: '', nombreEn: '', categoria: '', descripcion: '', descripcionEn: '', alergenos: [], imagen: '', conFormatos: false, precios: {}, precio: '', menu: null, ivaPct: '' }
 
 export default function PanelAdmin() {
-  const { carta, mesas, historial, cierres, anulaciones, cambiosPrecio, facturas, pagosSinCuenta, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, moverProducto, duplicarProducto, reponerTodo, resetDatos, addMesa, removeMesa, updateMesa, renumerarMesa, renombrarZona, moverZona, addCategoria, removeCategoria, updateCategoria, moverCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, crearFichaje, editarFichaje, borrarFichaje, pedirFichajesDe, reintentarReembolso, movimientosCaja, registrarMovimiento } = useStore()
+  const { carta, mesas, historial, cierres, anulaciones, cambiosPrecio, facturas, cuentasAnuladas, borradoresFactura, pagosSinCuenta, reservas, local, updateLocal, empleados, addEmpleado, updateEmpleado, removeEmpleado, cerrarCaja, addProducto, updateProducto, deleteProducto, toggleDisponible, moverProducto, duplicarProducto, reponerTodo, resetDatos, addMesa, removeMesa, updateMesa, renumerarMesa, renombrarZona, moverZona, addCategoria, removeCategoria, updateCategoria, moverCategoria, addExtra, removeExtra, addTipoPan, removeTipoPan, addFormato, removeFormato, renombrarFormato, updateEtiquetas, fichajes, crearFichaje, editarFichaje, borrarFichaje, pedirFichajesDe, reintentarReembolso, movimientosCaja, registrarMovimiento } = useStore()
   const hoyStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` })()
   const reservasHoy = reservas.filter(r => r.fecha === hoyStr && r.estado === 'confirmada').length
   const [tab, setTab] = useState('carta')
@@ -686,6 +688,14 @@ export default function PanelAdmin() {
                 </>
               )}
           </div>
+          </Plegable>
+
+          {/* Lo que se empezó y no se terminó: mesas cerradas sin cobrar (se
+              ven, no se borran) y facturas a medias (se retoman). */}
+          <Plegable icono="📝" titulo="Borradores" resumen={`${(cuentasAnuladas || []).length} sin cobrar · ${borradoresPendientes(borradoresFactura || [], facturas || []).length} facturas sin terminar`}>
+            <div style={ajusteCard}>
+              <Borradores historial={historial} facturas={facturas || []} onContinuarFactura={setFacturando} />
+            </div>
           </Plegable>
 
           <Plegable icono="⊘" titulo="Anulaciones" resumen={`${(anulaciones || []).length} en total`}>
@@ -1495,6 +1505,7 @@ function Plegable({ icono, titulo, resumen, children, abiertoAlPrincipio = false
 function TicketsDelMes({ delMes, dias, porDia, diaBonito, mesNombre, totalMes, propinasMes, historial, devueltoDe, setDevolviendo, setTicket, reintentarReembolso, facturas = [], setFacturando, setVerFactura, onFiscalCambiado }) {
   const [busca, setBusca] = useState('')
   const reintentarRegistroFiscal = useStore(s => s.reintentarRegistroFiscal)
+  const borradoresFactura = useStore(s => s.borradoresFactura) || []
   const [registrando, setRegistrando] = useState(null)
   // «Solo sin registrar»: con 40 tickets en el mes, el que no llegó a Hacienda
   // no se encuentra a ojo.
@@ -1626,7 +1637,7 @@ function TicketsDelMes({ delMes, dias, porDia, diaBonito, mesNombre, totalMes, p
                     const f = facturas.find(x => x.ticketId === r.id)
                     if (f) return <button onClick={() => setVerFactura(f)} title="Ver, imprimir o enviar la factura" style={{ background: 'none', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.4rem 0.6rem', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>📄 {numeroDeFactura(f)}{f.fiscalEstado === 'error' ? ' ⚠ rechazada' : ''}</button>
                     if (porQueNoSeFactura(r, { historial, facturas })) return null
-                    return <button onClick={() => setFacturando(r)} title="Factura completa con los datos del cliente" style={{ background: 'none', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.4rem 0.6rem', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>🧾 Factura</button>
+                    return <button onClick={() => setFacturando(r)} title="Factura completa con los datos del cliente" style={{ background: 'none', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.4rem 0.6rem', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>🧾 Factura{borradoresFactura.some(b => b.ticketId === r.id) ? ' (borrador)' : ''}</button>
                   })()}
                   {esDevolucion && (r.reembolsoEstado === 'pendiente' || r.reembolsoEstado === 'error') && (
                     <button onClick={async () => {

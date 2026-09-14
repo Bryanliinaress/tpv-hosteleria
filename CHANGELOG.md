@@ -5,6 +5,22 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.137.0] - 2026-09-14
+
+### Añadido
+- **Lo que se empieza y no se termina ya no desaparece: Admin › Caja › 📝 Borradores.**
+  - **Cuentas cerradas sin cobrar.** «Cerrar mesa sin cobrar» borraba lo pedido y no quedaba ni rastro de la cuenta. Ahora, antes de liberar la mesa, se guarda lo que se pidió (comensal a comensal), el importe, lo que quedaba sin cobrar, **el motivo** y quién la cerró. **Se ven y no se pueden cambiar ni borrar** —tampoco desde la API con la sesión de un aparato—: la Ley 11/2021 (antifraude) prohíbe que un TPV permita ocultar ventas. No son tickets: no llevan número fiscal ni suman en caja.
+  - **El motivo es obligatorio** si había algo pedido: sin él no se cierra y se vuelve a pedir diciendo por qué. Una mesa abierta por error y sin nada pedido solo pide confirmación y no deja borrador.
+  - **Un grupo de mesas unidas se cierra entero** en una sola cuenta, se cierre desde la mesa que se cierre.
+  - **Facturas sin terminar.** Cancelar el formulario de factura con algo tecleado lo guarda como borrador: el botón del ticket pasa a «🧾 Factura (borrador)» y al abrirlo se retoma con los datos puestos. Desde Borradores se continúa o se descarta; al emitir la factura, el borrador se quita solo.
+
+### Arreglado
+- **La PDA cerraba una mesa sin cobrar de un toque, sin preguntar nada.** Ahora pasa por el mismo diálogo que el Mostrador (motivo obligatorio).
+- **En la demo, una mesa cerrada sin cobrar se colaba en el historial como si fuera un ticket.** Ahora va a Borradores.
+
+### Seguridad
+- El cierre sin cobrar es una sola función del servidor (`cerrar_mesa_sin_cobrar`, solo sesiones del local) que congela la cuenta y libera las mesas en la misma transacción. Queda pendiente, para el antifraude completo, quitar al personal el borrado directo de comensales y líneas por la API.
+
 ## [0.136.0] - 2026-09-14
 
 ### Añadido

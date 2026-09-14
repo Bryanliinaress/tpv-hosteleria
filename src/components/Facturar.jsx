@@ -3,6 +3,8 @@ import { useStore } from '../store/useStore'
 import { revisarDatosFactura, faltaParaFacturar, validarNif, normalizarNif, numeroDeFactura } from '../lib/factura'
 import { buscarClientes, clientePorNif } from '../lib/clientesFactura'
 import FacturaDocumento from './FacturaDocumento'
+import { toast } from '../store/useUI'
+import { borradorDeTicket, hayDatosDeFactura } from '../lib/borradores'
 
 const euros = (n) => `${(Number(n) || 0).toFixed(2).replace('.', ',')} €`
 
@@ -29,9 +31,13 @@ export default function Facturar({ ticket, factura = null, por, onCerrar }) {
   const emitirFactura = useStore(s => s.emitirFactura)
   const corregirFactura = useStore(s => s.corregirFactura)
   const clientes = useStore(s => s.clientesFactura) || []
+  const guardarBorrador = useStore(s => s.guardarBorradorFactura)
+  const descartarBorrador = useStore(s => s.descartarBorradorFactura)
+  // El borrador se lee UNA vez al abrir: es desde donde se retoma.
+  const [borrador] = useState(() => (corrigiendo ? null : borradorDeTicket(useStore.getState().borradoresFactura || [], ticket?.id)))
   const [datos, setDatos] = useState(() => (corrigiendo
     ? { nombre: factura.cliente?.nombre || '', nif: factura.cliente?.nif || '', direccion: factura.cliente?.direccion || '', email: factura.cliente?.email || '' }
-    : { nombre: '', nif: '', direccion: '', email: '' }))
+    : { nombre: '', nif: '', direccion: '', email: '', ...(borradorDeTicket(useStore.getState().borradoresFactura || [], ticket?.id)?.datos || {}) }))
   const [error, setError] = useState(null)
   const [emitiendo, setEmitiendo] = useState(false)
   const [hecha, setHecha] = useState(null)
@@ -45,6 +51,19 @@ export default function Facturar({ ticket, factura = null, por, onCerrar }) {
   if (hecha) return <FacturaDocumento factura={hecha} por={por} onCerrar={onCerrar} />
 
   const falta = corrigiendo ? [] : faltaParaFacturar(local)
+  // Cancelar no tira lo tecleado: queda como borrador y se retoma desde el
+  // ticket o desde Admin › Caja › Borradores. Vaciado del todo, se descarta.
+  const cerrar = () => {
+    if (!corrigiendo && ticket?.id) {
+      if (hayDatosDeFactura(datos)) {
+        guardarBorrador(ticket.id, datos, por)
+        toast('Factura guardada como borrador: la retomas desde el ticket', 'info')
+      } else if (borrador) {
+        descartarBorrador(ticket.id)
+      }
+    }
+    onCerrar()
+  }
   const cambia = (k) => (e) => { setDatos(d => ({ ...d, [k]: e.target.value })); setError(null) }
   const usar = (c) => {
     setDatos({ nombre: c.nombre, nif: c.nif, direccion: c.direccion, email: c.email || '' })
@@ -63,6 +82,7 @@ export default function Facturar({ ticket, factura = null, por, onCerrar }) {
       : await emitirFactura({ ticketId: ticket.id, ...r.valor, por, guardar })
     setEmitiendo(false)
     if (!res?.ok) { setError(res?.error || 'No se pudo emitir la factura'); return }
+    if (!corrigiendo && ticket?.id) descartarBorrador(ticket.id)
     // Corrigiendo, quien la abrió (la factura) ya la está enseñando y se pone
     // al día sola: basta con cerrar el formulario.
     if (corrigiendo) onCerrar()
@@ -72,7 +92,7 @@ export default function Facturar({ ticket, factura = null, por, onCerrar }) {
   const importe = corrigiendo ? factura.total : ticket.total
 
   return (
-    <div onClick={onCerrar} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 120, padding: '1rem', animation: 'fadeIn 0.2s ease both' }}>
+    <div onClick={cerrar} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 120, padding: '1rem', animation: 'fadeIn 0.2s ease both' }}>
       <div onClick={e => e.stopPropagation()} className="anim-pop" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', padding: '1.25rem', width: '100%', maxWidth: '460px', maxHeight: '92vh', overflowY: 'auto' }}>
         <h3 style={{ fontWeight: 800, fontSize: '1.1rem', marginBottom: '0.2rem' }}>
           {corrigiendo ? `✏️ Corregir la factura ${numeroDeFactura(factura)}` : `🧾 Factura del ticket nº ${ticket.numero}`}
@@ -83,6 +103,11 @@ export default function Facturar({ ticket, factura = null, por, onCerrar }) {
             : `${ticket.mesaNumero != null ? `Mesa ${ticket.mesaNumero} · ` : ''}${euros(importe)}. Sustituye al ticket: no es una venta nueva y no suma otra vez en caja.`}
         </p>
 
+        {borrador && (
+          <div style={{ background: 'var(--tint-info-bg)', color: 'var(--tint-info-fg)', borderRadius: '0.6rem', padding: '0.55rem 0.8rem', fontSize: '0.8rem', marginBottom: '0.8rem' }}>
+            📝 Retomas el borrador guardado el {new Date(borrador.actualizadoEn).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}.
+          </div>
+        )}
         {corrigiendo && factura.fiscalError && (
           <div role="alert" style={{ background: 'var(--tint-danger-bg)', color: 'var(--tint-danger-fg)', borderRadius: '0.6rem', padding: '0.7rem 0.8rem', fontSize: '0.8rem', marginBottom: '0.9rem' }}>
             <b>Hacienda la rechazó:</b> {factura.fiscalError}
@@ -156,7 +181,7 @@ export default function Facturar({ ticket, factura = null, por, onCerrar }) {
             )}
 
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.1rem' }}>
-              <button onClick={onCerrar} style={{ ...boton, background: 'var(--color-surface-3)', color: 'var(--color-text)', flex: 1 }}>Cancelar</button>
+              <button onClick={cerrar} style={{ ...boton, background: 'var(--color-surface-3)', color: 'var(--color-text)', flex: 1 }}>Cancelar</button>
               <button onClick={enviar} disabled={emitiendo} style={{ ...boton, background: 'var(--color-accent)', color: '#fff', flex: 2 }}>
                 {emitiendo ? (corrigiendo ? 'Reenviando…' : 'Emitiendo…') : (corrigiendo ? 'Corregir y reenviar' : 'Emitir factura')}
               </button>
@@ -164,7 +189,7 @@ export default function Facturar({ ticket, factura = null, por, onCerrar }) {
           </div>
         )}
         {falta.length > 0 && (
-          <button onClick={onCerrar} style={{ ...boton, background: 'var(--color-surface-3)', color: 'var(--color-text)', width: '100%', marginTop: '0.8rem' }}>Cerrar</button>
+          <button onClick={cerrar} style={{ ...boton, background: 'var(--color-surface-3)', color: 'var(--color-text)', width: '100%', marginTop: '0.8rem' }}>Cerrar</button>
         )}
       </div>
     </div>

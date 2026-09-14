@@ -13,8 +13,9 @@ import { PRUEBAS as DINERO } from './lib/pruebas-dinero.mjs'
 import { PRUEBAS_RECTIFICATIVAS } from './lib/pruebas-rectificativas.mjs'
 import { PRUEBAS_INFORMES } from './lib/pruebas-informes.mjs'
 import { PRUEBAS_FACTURAS } from './lib/pruebas-facturas.mjs'
+import { PRUEBAS_BORRADORES } from './lib/pruebas-borradores.mjs'
 
-const PRUEBAS = [...DINERO, ...PRUEBAS_RECTIFICATIVAS, ...PRUEBAS_INFORMES, ...PRUEBAS_FACTURAS]
+const PRUEBAS = [...DINERO, ...PRUEBAS_RECTIFICATIVAS, ...PRUEBAS_INFORMES, ...PRUEBAS_FACTURAS, ...PRUEBAS_BORRADORES]
 
 const env = entorno()
 if (!env.token) {
@@ -29,6 +30,8 @@ const FOTO = `select
   (select count(*) from facturas) facturas,
   (select count(*) from clientes_factura) clientes_factura,
   (select count(*) from correcciones_factura) correcciones,
+  (select count(*) from cuentas_anuladas) cuentas_anuladas,
+  (select count(*) from borradores_factura) borradores_factura,
   (select count(*) from comensales) comensales,
   (select count(*) from lineas_pedido) lineas,
   (select count(*) from pagos_online) pagos,

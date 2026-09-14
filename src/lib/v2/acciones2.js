@@ -15,7 +15,8 @@ import { efectivoEsperado, descuadreDe, saldoMovimientos, revisarMovimiento } fr
 import { registrarTicket, registrarFactura } from '../fiscal'
 import { revisarDatosFactura, mismosDatosCliente, normalizarNif } from '../factura'
 import { clientePorNif } from '../clientesFactura'
-import { getLocalId, cargarTodo, cargarSala, cargarComandas, cargarReservas, cargarCarta, cargarLocal, cargarHistorial, cargarFichajes, cargarCierres, cargarMovimientosCaja, cargarFacturas, cargarClientesFactura, facturasPorNif } from './estado'
+import { revisarCierreSinCobrar } from '../borradores'
+import { getLocalId, cargarTodo, cargarSala, cargarComandas, cargarReservas, cargarCarta, cargarLocal, cargarHistorial, cargarFichajes, cargarCierres, cargarMovimientosCaja, cargarFacturas, cargarClientesFactura, facturasPorNif, cargarAvisos, cargarCuentasAnuladas } from './estado'
 
 // Segunda ola de acciones v2: KDS, agenda de reservas, CRUD de carta/sala/
 // personal, caja y config del local. Personal/admin operan por RLS.
@@ -47,6 +48,8 @@ const MOTIVOS = {
   factura_no_existe: 'Esa factura ya no está.',
   factura_no_corregible: 'Solo se corrige una factura que Hacienda ha rechazado.',
   sin_cambios: 'Son los mismos datos que rechazó Hacienda: cambia lo que no casaba.',
+  motivo_cierre_obligatorio: 'Escribe el motivo: la cuenta queda guardada en Borradores.',
+  mesa_no_existe: 'Esa mesa ya no está.',
   ticket_facturado: 'Ese ticket tiene factura: la devolución habría que hacerla sobre la factura, y eso aún no se puede desde aquí.',
   ya_es_rectificativa: 'Eso ya es una devolución: no se puede devolver una devolución.',
   importe_invalido: 'Ese ticket ya está devuelto por completo.',
@@ -612,6 +615,42 @@ export function accionesV2b() {
       } catch (e) {
         return { ok: false, error: motivoLegible(e) }
       }
+    },
+
+    // Cerrar una mesa SIN COBRAR: el servidor congela la cuenta (lo pedido, el
+    // importe, el motivo y quién) antes de liberar el grupo, en una sola
+    // transacción. Se valida aquí para que la pantalla sepa en el acto si
+    // falta el motivo.
+    cerrarMesaSinCobrar: (mesaId, { motivo, por } = {}) => {
+      const mesa = (useStore.getState().mesas || []).find(m => m.id === mesaId)
+      if (!mesa) return { ok: false, error: 'Esa mesa ya no está' }
+      const r = revisarCierreSinCobrar(mesa, motivo)
+      if (!r.ok) return r
+      ;(async () => {
+        try { await rpc('cerrar_mesa_sin_cobrar', { p_mesa: mesaId, p_motivo: r.motivo, p_por: por || null }) }
+        catch (e) { toast(motivoLegible(e), 'error') }
+        finally { cargarSala(); cargarComandas(); cargarAvisos(); cargarCuentasAnuladas() }
+      })()
+      return { ok: true, anulada: r.hayConsumo }
+    },
+
+    // Facturas sin terminar (uno por ticket).
+    guardarBorradorFactura: (ticketId, datos, por) => {
+      const b = {
+        ticketId,
+        datos: { nombre: datos?.nombre || '', nif: datos?.nif || '', direccion: datos?.direccion || '', email: datos?.email || '' },
+        por: por || null, actualizadoEn: new Date().toISOString(),
+      }
+      useStore.setState(s => ({ borradoresFactura: [...(s.borradoresFactura || []).filter(x => x.ticketId !== ticketId), b] }))
+      ;(async () => {
+        const { error } = await supabase.from('borradores_factura')
+          .upsert({ ticket_id: ticketId, datos: b.datos, por: b.por, actualizado_en: b.actualizadoEn }, { onConflict: 'ticket_id' })
+        if (error) toast('No se pudo guardar el borrador de la factura', 'error')
+      })()
+    },
+    descartarBorradorFactura: (ticketId) => {
+      useStore.setState(s => ({ borradoresFactura: (s.borradoresFactura || []).filter(x => x.ticketId !== ticketId) }))
+      ;(async () => { await supabase.from('borradores_factura').delete().eq('ticket_id', ticketId) })()
     },
 
     // Alta manual de un cliente. Se valida AQUÍ (la pantalla lee el
