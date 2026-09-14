@@ -704,6 +704,17 @@ export function accionesV2b() {
       } catch (e) { console.warn('informe:', e); return null }
     },
 
+    // Registrar en Hacienda UN ticket concreto, desde su tarjeta. Espera la
+    // respuesta a propósito: quien pulsa quiere saber si ya entró o por qué no.
+    reintentarRegistroFiscal: async (ticketId) => {
+      const r = await registrarTicket(ticketId)
+      await cargarHistorial()
+      if (r === null) return { ok: false, error: 'El registro en Hacienda no está activado en esta instalación' }
+      if (r?.ok) return { ok: true }
+      const motivo = r?.motivo === 'sin_conexion' ? 'Sin conexión con Verifacti: se reintentará solo' : (r?.motivo || 'Hacienda no lo ha aceptado')
+      return { ok: false, error: String(motivo) }
+    },
+
     reintentarReembolso: async (rectificativaId) => {
       const res = await devolverEnStripe(rectificativaId)
       // Si el primer intento falló en Stripe, la rectificativa se quedó SIN
