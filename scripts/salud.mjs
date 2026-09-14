@@ -42,8 +42,20 @@ select clase, mensaje, pantalla, veces, ultima
  order by ultima desc limit 8;`
 
 const arranque = Date.now()
-const { ok, body } = await consulta(env, CONSULTA)
+const { ok, status, body } = await consulta(env, CONSULTA)
 const tardanza = Date.now() - arranque
+
+// Un 401/403 es el TOKEN, no el proyecto. Antes esto decía «proyecto pausado»
+// también con el token caducado (pasó el 14/09), y mandaba a buscar el fallo
+// donde no estaba: la base respondía perfectamente.
+if (!ok && (status === 401 || status === 403)) {
+  console.log(`✖ ${env.ref} · EL TOKEN DE GESTIÓN NO VALE (HTTP ${status})`)
+  console.log('')
+  console.log('  SUPABASE_ACCESS_TOKEN de .env.puente ha caducado o no tiene permiso.')
+  console.log('  Crea otro en Supabase → Account → Access Tokens y sustitúyelo en .env.puente.')
+  console.log('  Sin él tampoco funcionan las migraciones, los despliegues de funciones ni test:sql.')
+  process.exit(1)
+}
 
 if (!ok) {
   console.log(`✖ ${env.ref} · NO RESPONDE`)
