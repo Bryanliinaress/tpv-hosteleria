@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.135.0 · 1141 tests JS + 50 pruebas de SQL en verde · CI y deploy en
+**Estado: v0.136.0 · 1148 tests JS + 50 pruebas de SQL en verde · CI y deploy en
 verde · repo limpio · 0 vulnerabilidades.** Última sesión: 2026-09-08.
 
 Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a uno:
@@ -49,6 +49,7 @@ Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a un
 | **v0.133.0** | 11/09 | **La factura por correo sale del servidor por Resend** (Edge Function `enviar-factura`, registro en `envios_factura`, migración 49). **Pendiente de Bryan en cada instalación:** cuenta de Resend, verificar el dominio del bar en su DNS, y en Supabase → Edge Functions → Secrets poner `RESEND_API_KEY` y `CORREO_REMITENTE` («Bar <facturas@dominio>»). Hasta entonces «Enviar PDF» abre Compartir. **El envío real por Resend no se ha podido probar aún.** |
 | **v0.134.0** | 11/09 | **Respuestas a las facturas al correo del bar** (Admin › Local → Correo) y remitente con el nombre del bar desde el dominio de envíos compartido. |
 | **v0.135.0** | 11/09 | **Pestaña Clientes en Admin**: lista y buscador, ficha con todas sus facturas del servidor (filtro por año, abrir/imprimir/PDF/enviar, CSV), editar datos (el NIF no), alta manual y guardar de un toque a quien tiene facturas sin estar guardado. |
+| **v0.136.0** | 14/09 | **Estado en Hacienda de cada ticket** en Admin › Caja › Tickets del mes: «✓ Hacienda», o sin registrar con motivo, plazo (hoy / de otro día) y ↻ Registrar en la tarjeta; filtro «solo sin registrar». |
 
 **Lo que hay que llevarse de la sesión**, que se repitió tres veces con distinta
 cara: *«éxito» que solo significa «se lo he dado a otro»*. El spooler aceptaba
@@ -276,9 +277,7 @@ cada bar, `sk_live_` suya + rehacer el webhook con
    comportamiento con la conexión cayéndose de verdad.
 4. ~~Realtime entre dispositivos~~ ✅ **visto funcionar** el 31/08: el KDS
    estaba abierto y recogió las 7 comandas sin recargar.
-5. **Admin → Tickets** marca en el aviso cuáles faltan por registrar, pero no en
-   la lista: la pantalla saca el ticket del store y el estado fiscal vive en la
-   RPC. Si molesta, hay que juntar las dos fuentes.
+5. ~~**Admin → Tickets** no marcaba en la lista cuáles faltan por registrar~~ ✅ **hecho el 14/09** (v0.136.0): cada tarjeta dice su estado en Hacienda, con motivo, plazo y ↻ Registrar, y hay filtro «solo sin registrar».
 6. **Actualizar N instancias** de una vez: con un bar por instalación, cada
    mejora hay que desplegarla a cada uno.
 7. **Dominio de cada bar — DECIDIDO el 11/09: un subdominio de la empresa por cliente** (`casaloli.tu-empresa.es`), no carpetas (con carpetas los bares comparten origen y se pisan el estado del navegador y la caché). Hosting previsto: **Cloudflare Pages**, un proyecto por cliente conectado al mismo repo con `LOCAL=<slug>` (un push despliega a todos, que resuelve el punto 6). Correo: un único dominio de envíos `envios.tu-empresa.es` en Resend, con el nombre del bar y «responder a» su correo. Quien tenga dominio propio y lo quiera, como extra. Falta: montar el primer proyecto de Pages y el DNS.

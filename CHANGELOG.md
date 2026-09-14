@@ -5,6 +5,18 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.136.0] - 2026-09-14
+
+### Añadido
+- **Cada ticket dice si está registrado en Hacienda (Admin › Caja › Tickets del mes).** El aviso de arriba decía «3 tickets sin registrar», pero la lista no marcaba cuáles: había que ir comparando números. Y aquí el tiempo cuenta, porque **Verifacti solo acepta un ticket el día que se emitió**.
+  - Los registrados llevan una marca discreta: **«✓ Hacienda»**.
+  - Uno **de hoy** sin registrar sale con borde rojo, el motivo que dio Hacienda y **«Hay que registrarlo HOY: mañana Verifacti ya no lo acepta»**, con el botón **↻ Registrar** en la propia tarjeta, que espera la respuesta y dice si entró o por qué no.
+  - Uno **de otro día** lo dice claro —Verifacti ya no lo acepta por esa vía— y remite a Verifacti o a la gestoría, sin dejar de ofrecer el reintento.
+  - **«⚠ N sin registrar · ver solo esos»** filtra la lista del mes a los que hay que atender.
+  - Al registrar uno desde la lista, el aviso de arriba se pone al día sin recargar.
+  - «Hoy» es el día **del local**: un cobro a las 00:30 ya es del día nuevo.
+  - Sin registro fiscal activado (la demo) no aparece nada de esto.
+
 ## [0.135.2] - 2026-09-14
 
 ### Arreglado

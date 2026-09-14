@@ -13,6 +13,8 @@ import BotonSalir from '../../components/BotonSalir'
 import TemaToggle from '../../components/TemaToggle'
 import { useAltoCSS } from '../../components/useAltoCSS'
 import EstadoFiscal from '../../components/EstadoFiscal'
+import { fiscalActivo } from '../../lib/fiscal'
+import { estadoFiscalDeTicket, necesitaAtencion } from '../../lib/fiscalTicket'
 import { productosVisibles, TIPOS_APARTADO, EMOJIS_APARTADO, emojiPorTipo, esExtremoDeApartado, agotadosDe } from '../../lib/carta'
 import { perfil, urlPublica, urlDeMesa } from '../../lib/perfil'
 import { esDelMes, esDelDia, horasEntre } from '../../lib/fechas'
@@ -43,6 +45,9 @@ export default function PanelAdmin() {
   const [devolviendo, setDevolviendo] = useState(null)   // ticket que se está devolviendo
   const [facturando, setFacturando] = useState(null)     // ticket del que se pide factura
   const [verFactura, setVerFactura] = useState(null)     // factura emitida abierta
+  // Sube al registrar un ticket desde la lista, para que el aviso de arriba
+  // se ponga al día sin recargar.
+  const [versionFiscal, setVersionFiscal] = useState(0)
   const [ticket, setTicket] = useState(null)
   // La tira de pestañas se pega DEBAJO de la cabecera, y la cabecera debajo de
   // la banda de demostración. Los tres altos se miden porque los tres cambian.
@@ -462,7 +467,7 @@ export default function PanelAdmin() {
               </div>
             </div>
           )}
-          <EstadoFiscal />
+          <EstadoFiscal key={versionFiscal} />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem', alignItems: 'start' }}>
             {/* Arqueo de la caja abierta */}
             <div style={ajusteCard}>
@@ -576,7 +581,8 @@ export default function PanelAdmin() {
               totalMes={totalMes} propinasMes={propinasMes} historial={historial}
               devueltoDe={devueltoDe} setDevolviendo={setDevolviendo} setTicket={setTicket}
               reintentarReembolso={reintentarReembolso}
-              facturas={facturas || []} setFacturando={setFacturando} setVerFactura={setVerFactura} />
+              facturas={facturas || []} setFacturando={setFacturando} setVerFactura={setVerFactura}
+              onFiscalCambiado={() => setVersionFiscal(v => v + 1)} />
           </Plegable>
 
           <Plegable icono="↔" titulo="Entradas y salidas del cajón" resumen={`${movsCaja.length} en esta caja${saldoMovs !== 0 ? ` · ${saldoMovs > 0 ? '+' : ''}${saldoMovs.toFixed(2)} €` : ''}`}>
@@ -1486,10 +1492,27 @@ function Plegable({ icono, titulo, resumen, children, abiertoAlPrincipio = false
 // historial viene por ventana desde el último cierre— así que no promete
 // encontrar uno de hace tres meses.
 // ────────────────────────────────────────────────────────────────────────────
-function TicketsDelMes({ delMes, dias, porDia, diaBonito, mesNombre, totalMes, propinasMes, historial, devueltoDe, setDevolviendo, setTicket, reintentarReembolso, facturas = [], setFacturando, setVerFactura }) {
+function TicketsDelMes({ delMes, dias, porDia, diaBonito, mesNombre, totalMes, propinasMes, historial, devueltoDe, setDevolviendo, setTicket, reintentarReembolso, facturas = [], setFacturando, setVerFactura, onFiscalCambiado }) {
   const [busca, setBusca] = useState('')
+  const reintentarRegistroFiscal = useStore(s => s.reintentarRegistroFiscal)
+  const [registrando, setRegistrando] = useState(null)
+  // «Solo sin registrar»: con 40 tickets en el mes, el que no llegó a Hacienda
+  // no se encuentra a ojo.
+  const [soloSinRegistrar, setSoloSinRegistrar] = useState(false)
+  const ahora = new Date()
+  const fiscalDe = (r) => (fiscalActivo ? estadoFiscalDeTicket(r, ahora) : null)
+  const sinRegistrar = fiscalActivo ? delMes.filter(r => necesitaAtencion(r, ahora)).length : 0
   const q = busca.trim().toLowerCase()
-  const coincide = (r) => !q || String(r.numero).includes(q) || String(r.mesaNumero ?? '').includes(q)
+  const coincide = (r) => (!soloSinRegistrar || (fiscalActivo && necesitaAtencion(r, ahora))) &&
+    (!q || String(r.numero).includes(q) || String(r.mesaNumero ?? '').includes(q))
+
+  const registrar = async (r) => {
+    setRegistrando(r.id)
+    const res = await reintentarRegistroFiscal(r.id)
+    setRegistrando(null)
+    onFiscalCambiado?.()
+    toast(res?.ok ? `Ticket nº ${r.numero} registrado en Hacienda` : `Nº ${r.numero}: ${res?.error || 'no se pudo registrar'}`, res?.ok ? 'success' : 'error')
+  }
   const diasVisibles = dias.filter(d => porDia[d].some(coincide))
 
   return (
@@ -1511,6 +1534,12 @@ function TicketsDelMes({ delMes, dias, porDia, diaBonito, mesNombre, totalMes, p
         <input value={busca} onChange={e => setBusca(e.target.value)} inputMode="numeric" placeholder="🔍 Buscar por nº de ticket o de mesa…" style={{ ...inputStyle, marginBottom: 0 }} />
         {busca && <button onClick={() => setBusca('')} aria-label="Limpiar búsqueda" style={{ ...iconBtn, position: 'absolute', right: '0.2rem', top: '50%', transform: 'translateY(-50%)' }}>✕</button>}
       </div>
+      {(sinRegistrar > 0 || soloSinRegistrar) && (
+        <button onClick={() => setSoloSinRegistrar(v => !v)} aria-pressed={soloSinRegistrar}
+          style={{ marginBottom: '0.9rem', background: soloSinRegistrar ? '#f43f5e' : 'var(--tint-danger-bg)', color: soloSinRegistrar ? '#fff' : 'var(--tint-danger-fg)', border: '1px solid #f43f5e', borderRadius: '9999px', padding: '0.4rem 0.9rem', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', minHeight: '36px' }}>
+          {soloSinRegistrar ? '✕ Ver todos los tickets' : `⚠ ${sinRegistrar} sin registrar en Hacienda · ver solo esos`}
+        </button>
+      )}
       {q && (
         <p style={{ fontSize: '0.8rem', color: 'var(--color-muted)', marginBottom: '0.75rem' }}>
           {dias.reduce((s, d) => s + porDia[d].filter(coincide).length, 0)} de {delMes.length} tickets coinciden con «{busca}»
@@ -1532,10 +1561,12 @@ function TicketsDelMes({ delMes, dias, porDia, diaBonito, mesNombre, totalMes, p
               // apuntando al que corrige. Se distingue a simple vista, y no se
               // le ofrece «Devolver» a una devolución.
               const esDevolucion = !!r.rectificaA
+              const fiscal = fiscalDe(r)
+              const alerta = fiscal && fiscal.nivel !== 'ok'
               const devuelto = devueltoDe(r.id)
               const pendiente = pendienteDeDevolver(r, historial.filter(t => t.rectificaA === r.id))
               return (
-              <div key={r.id} style={{ background: 'var(--color-surface)', border: `1px solid ${esDevolucion ? 'var(--tint-warning-bd)' : 'var(--color-border)'}`, borderRadius: '0.625rem', padding: '0.75rem 0.875rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+              <div key={r.id} style={{ background: 'var(--color-surface)', border: `1px solid ${alerta ? '#f43f5e' : esDevolucion ? 'var(--tint-warning-bd)' : 'var(--color-border)'}`, borderRadius: '0.625rem', padding: '0.75rem 0.875rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>
                     {esDevolucion ? '↩ Devolución' : `Mesa ${r.mesaNumero}`}
@@ -1543,7 +1574,17 @@ function TicketsDelMes({ delMes, dias, porDia, diaBonito, mesNombre, totalMes, p
                   </div>
                   <div style={{ fontSize: '0.72rem', color: esDevolucion ? 'var(--tint-warning-fg)' : 'var(--color-muted)' }}>
                     {new Date(r.cerradaEn).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} · {r.total.toFixed(2)} €
+                    {fiscal?.nivel === 'ok' && <span style={{ color: 'var(--tint-success-fg)' }}> · {fiscal.texto}</span>}
                   </div>
+                  {/* Sin registrar: cuál es, por qué y cuánto margen queda. Uno
+                      de hoy se arregla reintentando; uno de ayer ya no. */}
+                  {alerta && (
+                    <div style={{ marginTop: '0.3rem', fontSize: '0.72rem', color: fiscal.nivel === 'pendiente' ? 'var(--tint-warning-fg)' : '#f43f5e' }}>
+                      <div style={{ fontWeight: 800 }}>{fiscal.texto}</div>
+                      <div style={{ color: 'var(--color-muted)' }}>{fiscal.detalle}</div>
+                      {fiscal.motivo && <div style={{ color: 'var(--color-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={fiscal.motivo}>Motivo: {fiscal.motivo}</div>}
+                    </div>
+                  )}
                   {esDevolucion && r.motivoRectificacion && (
                     <div style={{ fontSize: '0.7rem', color: 'var(--color-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.motivoRectificacion}</div>
                   )}
@@ -1573,6 +1614,12 @@ function TicketsDelMes({ delMes, dias, porDia, diaBonito, mesNombre, totalMes, p
                   )}
                 </div>
                 <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  {alerta && fiscal.reintentable && (
+                    <button onClick={() => registrar(r)} disabled={registrando === r.id} title="Volver a mandarlo a Hacienda"
+                      style={{ background: '#f43f5e', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.4rem 0.6rem', cursor: registrando === r.id ? 'wait' : 'pointer', fontSize: '0.78rem', fontWeight: 700 }}>
+                      {registrando === r.id ? 'Enviando…' : '↻ Registrar'}
+                    </button>
+                  )}
                   {/* «¿Me haces factura?». Si ya la tiene, el botón la abre:
                       pedirla dos veces es lo normal y emitir dos, un error. */}
                   {(() => {

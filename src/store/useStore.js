@@ -341,6 +341,10 @@ export const useStore = create(persist((set, get) => ({
   // se rompe ya en la demo.
   emitirRectificativa: async () => ({ ok: false, error: 'Las devoluciones necesitan el backend real' }),
 
+  // Volver a mandar UN ticket a Hacienda desde la lista. En la demo no hay
+  // registro fiscal: se responde lo mismo que respondería sin él.
+  reintentarRegistroFiscal: async () => ({ ok: false, error: 'En la demo no hay registro en Hacienda' }),
+
   // Factura completa de un ticket ya cobrado («¿me haces factura?»). En la demo
   // no hay AEAT, pero sí todo lo demás —numeración, datos del cliente,
   // imprimir y mandar—: es lo que un bar quiere ver funcionando antes de
