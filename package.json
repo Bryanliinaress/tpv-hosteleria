@@ -1,7 +1,7 @@
 {
   "name": "tpv-hosteleria",
   "private": true,
-  "version": "0.135.0",
+  "version": "0.135.2",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -5,6 +5,16 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.135.2] - 2026-09-14
+
+### Arreglado
+- **`npm run salud` decía «proyecto pausado» cuando lo que había caducado era el token.** Con `SUPABASE_ACCESS_TOKEN` vencido, la API de gestión responde 401 y el script mandaba a reactivar el proyecto en el panel, cuando la base respondía perfectamente. Ahora un 401/403 se explica como lo que es —el token de gestión no vale— y dice dónde crear otro; el aviso de proyecto pausado queda para cuando de verdad no responde.
+
+## [0.135.1] - 2026-09-14
+
+### Nota
+- Publicada **incompleta** por error: el script que aplicaba el arreglo de `npm run salud` falló y el comando siguió hasta publicar. Solo llegó el cambio auxiliar (`consulta` devuelve también el código HTTP). El arreglo de verdad va en la 0.135.2. La app no cambió en ninguna de las dos.
+
 ## [0.135.0] - 2026-09-11
 
 ### Añadido
