@@ -5,6 +5,7 @@ import { pedirTexto, toast } from '../../store/useUI'
 import Ticket from '../../components/Ticket'
 import MetodoPago from '../../components/MetodoPago'
 import PedirPda from './PedirPda'
+import { pedirCierreSinCobrar } from '../../components/cerrarSinCobrar'
 import CobroMesa from './CobroMesa'
 import { productosVisibles, configDeItem, ultimaRonda } from '../../lib/carta'
 import { totalDeMesa } from '../../lib/dinero'
@@ -22,7 +23,7 @@ function haceCuanto(iso) {
 }
 
 export default function PdaCamarero() {
-  const { carta, mesas, pedidosCocina, pedidosBarra, avisos, historial, atenderAviso, agregarItem, pagarParte, cobrarMesa, liberarMesa, unirseAMesa, servirMesa, anularItem, toggleDisponible, fusionarMesa, transferirComensal, asignarCamarero, reservarMesa, cancelarReserva, sentarReserva, marcharSiguiente, cambiarCantidad, moverItem, fichajes, ficharEmpleado } = useStore()
+  const { carta, mesas, pedidosCocina, pedidosBarra, avisos, historial, atenderAviso, agregarItem, pagarParte, cobrarMesa, cerrarMesaSinCobrar, unirseAMesa, servirMesa, anularItem, toggleDisponible, fusionarMesa, transferirComensal, asignarCamarero, reservarMesa, cancelarReserva, sentarReserva, marcharSiguiente, cambiarCantidad, moverItem, fichajes, ficharEmpleado } = useStore()
   const [mover, setMover] = useState(null) // { tipo:'mesa'|'comensal', personaId? }
   const [moverLinea, setMoverLinea] = useState(null) // { personaId, uid, nombre } línea a otro comensal
   const empleado = useEmpleadoActual()
@@ -213,7 +214,7 @@ export default function PdaCamarero() {
                 <button onClick={() => setTicket({ tipo: 'comanda' })} style={btn('var(--color-surface-2)', { flex: 1 })}>🧾 Comanda</button>
                 <button onClick={() => setTicket({ tipo: 'cuenta' })} style={btn('var(--color-surface-2)', { flex: 1 })}>💶 Cuenta</button>
               </div>
-              <button onClick={() => { liberarMesa(mesa.id); setMesaId(null) }} style={btn('var(--color-surface-3)', { width: '100%', fontSize: '0.85rem' })}>Cerrar mesa sin cobrar</button>
+              <button onClick={async () => { if (await pedirCierreSinCobrar({ mesa, cerrarMesaSinCobrar, por: empleado?.nombre })) setMesaId(null) }} style={btn('var(--color-surface-3)', { width: '100%', fontSize: '0.85rem' })}>Cerrar mesa sin cobrar</button>
             </>
           )}
         </div>

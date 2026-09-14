@@ -1,6 +1,6 @@
 # Punto de partida para la siguiente sesión
 
-**Estado: v0.136.0 · 1148 tests JS + 50 pruebas de SQL en verde · CI y deploy en
+**Estado: v0.137.0 · 1157 tests JS + 56 pruebas de SQL en verde · CI y deploy en
 verde · repo limpio · 0 vulnerabilidades.** Última sesión: 2026-09-08.
 
 Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a uno:
@@ -49,6 +49,7 @@ Roadmap: [PRODUCCION.md](PRODUCCION.md) · Los fallos de la auditoría, uno a un
 | **v0.133.0** | 11/09 | **La factura por correo sale del servidor por Resend** (Edge Function `enviar-factura`, registro en `envios_factura`, migración 49). **Pendiente de Bryan en cada instalación:** cuenta de Resend, verificar el dominio del bar en su DNS, y en Supabase → Edge Functions → Secrets poner `RESEND_API_KEY` y `CORREO_REMITENTE` («Bar <facturas@dominio>»). Hasta entonces «Enviar PDF» abre Compartir. **El envío real por Resend no se ha podido probar aún.** |
 | **v0.134.0** | 11/09 | **Respuestas a las facturas al correo del bar** (Admin › Local → Correo) y remitente con el nombre del bar desde el dominio de envíos compartido. |
 | **v0.135.0** | 11/09 | **Pestaña Clientes en Admin**: lista y buscador, ficha con todas sus facturas del servidor (filtro por año, abrir/imprimir/PDF/enviar, CSV), editar datos (el NIF no), alta manual y guardar de un toque a quien tiene facturas sin estar guardado. |
+| **v0.137.0** | 14/09 | **Borradores** (Admin › Caja): las mesas cerradas sin cobrar quedan guardadas con lo pedido, importe y **motivo obligatorio**, sin poder borrarse (antifraude); las facturas canceladas a medias se retoman. La PDA ya no cierra sin preguntar. Pendiente: quitar al personal el `delete` directo de comensales/líneas por la API. |
 | **v0.136.0** | 14/09 | **Estado en Hacienda de cada ticket** en Admin › Caja › Tickets del mes: «✓ Hacienda», o sin registrar con motivo, plazo (hoy / de otro día) y ↻ Registrar en la tarjeta; filtro «solo sin registrar». |
 
 **Lo que hay que llevarse de la sesión**, que se repitió tres veces con distinta

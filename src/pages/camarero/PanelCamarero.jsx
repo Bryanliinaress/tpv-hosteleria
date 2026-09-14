@@ -8,6 +8,7 @@ import ReservasManager from '../../components/ReservasManager'
 import BotonSalir from '../../components/BotonSalir'
 import PedirPda from '../pda/PedirPda'
 import PedirMostrador from './PedirMostrador'
+import { pedirCierreSinCobrar } from '../../components/cerrarSinCobrar'
 import { useEsAncho } from '../../components/useEsAncho'
 import FueraDeCarta from '../../components/FueraDeCarta'
 import CambiarPrecio from '../../components/CambiarPrecio'
@@ -15,7 +16,7 @@ import Facturar from '../../components/Facturar'
 import FacturaDocumento from '../../components/FacturaDocumento'
 import { porQueNoSeFactura, numeroDeFactura } from '../../lib/factura'
 import CobroMesa from '../pda/CobroMesa'
-import { totalDe, totalDeMesa, pendienteDeMesa } from '../../lib/dinero'
+import { totalDe, totalDeMesa } from '../../lib/dinero'
 import { resumenSala } from '../../lib/sala'
 import { useReloj } from '../../components/useReloj'
 
@@ -36,7 +37,7 @@ function haceCuanto(iso) {
 }
 
 export default function PanelCamarero() {
-  const { mesas, pedidosCocina, pedidosBarra, avisos, historial, reservas, liberarMesa, atenderAviso, pagarParte, cobrarMesa, reservarMesa, cancelarReserva, sentarReserva, unirseAMesa, asignarCamarero, agruparMesas, separarMesas, marcharSiguiente, cambiarCantidad, moverItem, anularItem, confirmarPedido } = useStore()
+  const { mesas, pedidosCocina, pedidosBarra, avisos, historial, reservas, cerrarMesaSinCobrar, atenderAviso, pagarParte, cobrarMesa, reservarMesa, cancelarReserva, sentarReserva, unirseAMesa, asignarCamarero, agruparMesas, separarMesas, marcharSiguiente, cambiarCantidad, moverItem, anularItem, confirmarPedido } = useStore()
   const empleado = useEmpleadoActual()
   useReloj()   // «hace 20 min» de una mesa no puede quedarse parado
   const ancho = useEsAncho()   // monitor o tablet apaisada: la toma de pedido se reparte la pantalla
@@ -448,17 +449,9 @@ export default function PanelCamarero() {
                     basura: anular una linea pide motivo y unir mesas confirma,
                     y esto se iba de un toque. */}
                 <button onClick={async () => {
-                  const pendiente = pendienteDeMesa(mesa)
-                  const ok = await confirmar({
-                    titulo: `Cerrar la Mesa ${mesa.numero} sin cobrar`,
-                    mensaje: pendiente > 0
-                      ? `Quedan ${pendiente.toFixed(2)} € sin cobrar. La mesa se libera y esa cuenta no se cobra a nadie.`
-                      : 'La mesa se libera y queda lista para el siguiente cliente.',
-                    confirmar: 'Cerrar sin cobrar',
-                    peligro: true,
-                  })
-                  if (!ok) return
-                  liberarMesa(mesa.id)
+                  // Con algo pedido se exige el motivo y la cuenta queda en
+                  // Admin › Caja › Borradores: antes desaparecía sin rastro.
+                  if (await pedirCierreSinCobrar({ mesa, cerrarMesaSinCobrar, por: yo })) setMesaSeleccionada(null)
                 }} style={btn('var(--color-surface-3)', { width: '100%', fontSize: '0.8rem' })}>
                   Cerrar mesa sin cobrar
                 </button>

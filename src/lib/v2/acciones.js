@@ -3,7 +3,6 @@ import { useStore } from '../../store/useStore'
 import { qr, personal, reservas as rpcReservas } from '../repo'
 import { toast } from '../../store/useUI'
 import { registrarTicket } from '../fiscal'
-import { grupoDe } from './grupos'
 import { revisarPlatoLibre, revisarCambioDePrecio } from '../fueraDeCarta'
 import { getLocalId, cargarSala, cargarComandas, cargarAvisos, cargarReservas, cargarHistorial, cargarCarta, cargarFichajes, refrescarServicio } from './estado'
 
@@ -156,19 +155,6 @@ export function accionesV2() {
         const ult = st().historial[0]
         if (ult?.id) registrarTicket(ult.id).then(() => cargarHistorial())
       }).catch(err)
-    },
-    // Cerrar una mesa unida cierra TODO el grupo. Liberando solo la cabeza, las
-    // demás se quedaban colgando de una mesa ya libre, con sus comensales y su
-    // consumo dentro: mesas fantasma que nadie cobra.
-    liberarMesa: async (mesaId) => {
-      const grupo = grupoDe(mesaId, st().mesas)
-      try {
-        await (await tabla('comensales')).delete().in('mesa_id', grupo)
-        await (await tabla('comandas')).delete().in('mesa_id', grupo)
-        await (await tabla('avisos')).delete().in('mesa_id', grupo)
-        await (await tabla('mesas')).update({ estado: 'libre', abierta_desde: null, camarero_id: null, unida_a: null }).in('id', grupo)
-        cargarSala(); cargarComandas(); cargarAvisos()
-      } catch (e) { err(e) }
     },
     fusionarMesa: (principalId, secundariaId) => {
       personal.agruparMesas(principalId, secundariaId).then(cargarSala).catch(err)

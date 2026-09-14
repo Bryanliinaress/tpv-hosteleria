@@ -51,7 +51,7 @@ const estadoBase = () => ({
     mesa(4, { zona: 'Interior', estado: 'reservada', reserva: { nombre: 'Pérez', hora: '21:00' } }),
   ],
   pedidosCocina: [], pedidosBarra: [], avisos: [], historial: [], reservas: [],
-  liberarMesa: vi.fn(), atenderAviso: vi.fn(), pagarParte: vi.fn(), cobrarMesa: vi.fn(),
+  cerrarMesaSinCobrar: vi.fn(() => ({ ok: true })), atenderAviso: vi.fn(), pagarParte: vi.fn(), cobrarMesa: vi.fn(),
   reservarMesa: vi.fn(), cancelarReserva: vi.fn(), sentarReserva: vi.fn(),
   unirseAMesa: vi.fn(), asignarCamarero: vi.fn(), agruparMesas: vi.fn(), separarMesas: vi.fn(),
   marcharSiguiente: vi.fn(), cambiarCantidad: vi.fn(), moverItem: vi.fn(), anularItem: vi.fn(),

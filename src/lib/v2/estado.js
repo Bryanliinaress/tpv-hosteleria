@@ -417,6 +417,32 @@ export async function cargarClientesFactura() {
   } catch { /* tabla aún no migrada: se ignora */ }
 }
 
+/** Mesas cerradas sin cobrar: se guardan para siempre, se bajan las últimas. */
+export async function cargarCuentasAnuladas() {
+  try {
+    const { data, error } = await supabase.from('cuentas_anuladas')
+      .select('id, mesa_numero, zona, abierta_desde, cerrada_en, total, sin_cobrar, detalle, motivo, por, camarero')
+      .order('cerrada_en', { ascending: false }).limit(300)
+    if (error) throw new Error(error.message)
+    useStore.setState({
+      cuentasAnuladas: data.map(c => ({
+        id: c.id, cerradaEn: c.cerrada_en, mesaNumero: c.mesa_numero, zona: c.zona, abiertaDesde: c.abierta_desde,
+        total: Number(c.total), sinCobrar: Number(c.sin_cobrar), personas: c.detalle, motivo: c.motivo, por: c.por, camarero: c.camarero,
+      })),
+    })
+  } catch { /* tabla aún no migrada: se ignora */ }
+}
+
+/** Facturas que se empezaron y no se emitieron. */
+export async function cargarBorradoresFactura() {
+  try {
+    const { data, error } = await supabase.from('borradores_factura')
+      .select('ticket_id, datos, por, actualizado_en').order('actualizado_en', { ascending: false }).limit(200)
+    if (error) throw new Error(error.message)
+    useStore.setState({ borradoresFactura: data.map(b => ({ ticketId: b.ticket_id, datos: b.datos, por: b.por, actualizadoEn: b.actualizado_en })) })
+  } catch { /* tabla aún no migrada: se ignora */ }
+}
+
 export async function cargarTodo() {
   // la identidad puede fallar (anon sin migración 05): carta y sala son
   // lecturas públicas y deben cargar igualmente.
@@ -425,7 +451,7 @@ export async function cargarTodo() {
   // Los cierres van ANTES que el historial: la ventana de tickets se estira
   // hasta el último cierre, y si aún no están cargados no hay hasta dónde.
   await cargarCierres().catch(() => {})
-  await Promise.all([cargarComandas(), cargarAvisos(), cargarReservas(), cargarHistorial(), cargarFichajes(), cargarPagosSinCuenta(), cargarFacturas(), cargarClientesFactura()])
+  await Promise.all([cargarComandas(), cargarAvisos(), cargarReservas(), cargarHistorial(), cargarFichajes(), cargarPagosSinCuenta(), cargarFacturas(), cargarClientesFactura(), cargarCuentasAnuladas(), cargarBorradoresFactura()])
   // después de los cierres: la ventana de movimientos arranca en el último
   await cargarMovimientosCaja()
 }

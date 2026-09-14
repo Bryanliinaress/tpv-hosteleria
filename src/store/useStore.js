@@ -12,6 +12,7 @@ import { revisarCambiosLocal } from '../lib/local'
 import { revisarPlatoLibre, revisarCambioDePrecio } from '../lib/fueraDeCarta'
 import { revisarDatosFactura, porQueNoSeFactura, faltaParaFacturar, lineasParaFactura, desgloseParaFactura, puedeCorregirse, mismosDatosCliente, normalizarNif } from '../lib/factura'
 import { guardarCliente, clientePorNif } from '../lib/clientesFactura'
+import { revisarCierreSinCobrar } from '../lib/borradores'
 import { totalDeMesa } from '../lib/dinero'
 
 // Aviso al usuario desde el store. Import perezoso para no acoplar el estado a
@@ -405,6 +406,17 @@ export const useStore = create(persist((set, get) => ({
     return { ok: true, factura: nueva }
   },
 
+  // Facturas sin terminar: al cancelar el formulario con algo tecleado se
+  // guarda; al emitir (o al descartarlo) se quita. Uno por ticket.
+  guardarBorradorFactura: (ticketId, datos, por) => set(s => ({
+    borradoresFactura: [...(s.borradoresFactura || []).filter(b => b.ticketId !== ticketId), {
+      ticketId,
+      datos: { nombre: datos?.nombre || '', nif: datos?.nif || '', direccion: datos?.direccion || '', email: datos?.email || '' },
+      por: por || null, actualizadoEn: new Date().toISOString(),
+    }],
+  })),
+  descartarBorradorFactura: (ticketId) => set(s => ({ borradoresFactura: (s.borradoresFactura || []).filter(b => b.ticketId !== ticketId) })),
+
   // Dar de alta un cliente a mano, sin factura todavía (el habitual que aún
   // no ha pedido ninguna, o para tenerlo listo). Un NIF, un cliente.
   crearClienteFactura: (datos) => {
@@ -461,6 +473,8 @@ export const useStore = create(persist((set, get) => ({
   cambiosPrecio: [], // { id, fecha, mesaNumero, nombre, cantidad, antes, despues, diferencia, motivo, por }
   facturas: [], // { id, ticketId, serie, numero, expedidaEn, cliente, total, lineas, desglose, emisor, token, fiscalEstado }
   clientesFactura: [], // { id, nombre, nif, direccion, email, facturas, usadoEn } — el que vuelve no teclea otra vez
+  cuentasAnuladas: [], // { id, cerradaEn, mesaNumero, zona, abiertaDesde, total, sinCobrar, personas, motivo, por, camarero } — mesas cerradas sin cobrar
+  borradoresFactura: [], // { ticketId, datos: { nombre, nif, direccion, email }, por, actualizadoEn } — facturas sin terminar
 
   // ── FICHAJES (registro de jornada, RD-ley 8/2019) ──────
   fichajes: [], // { id, empleadoId, nombre, entrada, salida } (ISO); salida null = turno abierto
@@ -515,18 +529,32 @@ export const useStore = create(persist((set, get) => ({
     return nuevoId
   },
 
-  liberarMesa: (mesaId) => set(state => {
-    const mesa = state.mesas.find(m => m.id === mesaId)
-    const rec = snapshotMesa(mesa)
-    const grupo = idsGrupo(mesa) // libera también las mesas unidas al grupo
-    return {
+  // Cerrar una mesa SIN COBRAR. Antes («liberarMesa») la cuenta desaparecía
+  // —en la app real se borraba; en la demo se colaba en el historial como si
+  // fuera un ticket cobrado—. Ahora, si había algo pedido, se exige el motivo y
+  // la cuenta queda como borrador anulado, que no se borra. Libera el grupo
+  // entero de mesas unidas.
+  cerrarMesaSinCobrar: (mesaId, { motivo, por } = {}) => {
+    const mesa = get().mesas.find(m => m.id === mesaId)
+    if (!mesa) return { ok: false, error: 'Esa mesa ya no está' }
+    const r = revisarCierreSinCobrar(mesa, motivo)
+    if (!r.ok) return r
+    const grupo = idsGrupo(mesa)
+    const cuenta = r.hayConsumo ? {
+      id: crearId('ca'), _ts: Date.now(), cerradaEn: new Date().toISOString(),
+      mesaNumero: mesa.numero, zona: mesa.zona || null, abiertaDesde: mesa.abiertaDesde || null,
+      total: r.total, sinCobrar: r.sinCobrar, personas: mesa.personas,
+      motivo: r.motivo, por: por || null, camarero: mesa.camarero || null,
+    } : null
+    set(state => ({
       mesas: state.mesas.map(m => grupo.includes(m.id) ? { ...m, ...CAMPOS_LIBRE } : m),
       pedidosCocina: state.pedidosCocina.filter(p => !grupo.includes(p.mesaId)),
       pedidosBarra: state.pedidosBarra.filter(p => !grupo.includes(p.mesaId)),
       avisos: state.avisos.filter(a => !grupo.includes(a.mesaId)),
-      historial: rec ? [...state.historial, rec] : state.historial,
-    }
-  }),
+      ...(cuenta ? { cuentasAnuladas: [...(state.cuentasAnuladas || []), cuenta] } : {}),
+    }))
+    return { ok: true, anulada: !!cuenta }
+  },
 
   // Asigna el camarero que atiende la mesa (solo si aún no tiene uno).
   asignarCamarero: (mesaId, nombre) => set(state => ({
@@ -1659,6 +1687,8 @@ export const useStore = create(persist((set, get) => ({
     // pedir en la declaración trimestral, meses después. Ocupan poco.
     facturas: recientes(state.facturas, 'expedidaEn', DIAS_LARGOS, 3000),
     clientesFactura: state.clientesFactura,
+    cuentasAnuladas: recientes(state.cuentasAnuladas, 'cerradaEn', DIAS_LARGOS, 2000),
+    borradoresFactura: state.borradoresFactura,
     // los fichajes son NÓMINA: se conservan mucho más y ocupan poquísimo
     fichajes: recientes(state.fichajes, 'entrada', DIAS_LARGOS, 5000),
     reservas: state.reservas,
