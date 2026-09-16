@@ -234,9 +234,9 @@ export default function PanelCamarero() {
                         style={{
                           position: 'relative', overflow: 'hidden',
                           background: m.estado === 'libre' ? 'var(--color-surface)' : `linear-gradient(160deg, ${est.color}1f, var(--color-surface) 70%)`,
-                          border: esObjetivo ? '2px dashed var(--color-accent)' : candidataTactil ? '1.5px dashed #f9731688' : `1.5px solid ${sel ? est.color : m.estado === 'libre' ? 'var(--color-border)' : est.color + '66'}`,
+                          border: esObjetivo ? '2px dashed var(--color-accent)' : candidataTactil ? `1.5px dashed color-mix(in srgb, var(--color-accent) 53%, transparent)` : `1.5px solid ${sel ? est.color : m.estado === 'libre' ? 'var(--color-border)' : est.color + '66'}`,
                           borderRadius: 'var(--radius)', padding: '0.85rem 0.9rem', cursor: arrastrable ? 'grab' : 'pointer', textAlign: 'left',
-                          boxShadow: esObjetivo ? '0 0 0 4px rgba(249,115,22,0.35), var(--shadow-lg)' : sel ? `0 0 0 3px ${est.color}55, var(--shadow)` : 'var(--shadow-sm)',
+                          boxShadow: esObjetivo ? `0 0 0 4px color-mix(in srgb, var(--color-accent) 35%, transparent), var(--shadow-lg)` : sel ? `0 0 0 3px ${est.color}55, var(--shadow)` : 'var(--shadow-sm)',
                           minHeight: '6.6rem', display: 'flex', flexDirection: 'column',
                           opacity: arrastrando === m.id ? 0.4 : 1,
                           transform: esObjetivo ? 'scale(1.04)' : 'none',

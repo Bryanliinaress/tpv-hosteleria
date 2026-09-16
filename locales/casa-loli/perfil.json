@@ -1,0 +1,33 @@
+{
+  "marca": {
+    "nombre": "Casa Loli",
+    "corto": "Casa Loli",
+    "descripcion": "Carta, pedidos y reservas del Restaurante Casa Loli, en Estación de Cártama.",
+    "emoji": "🍽",
+    "colores": {
+      "acento": "#d4a537",
+      "acento2": "#e8c46b",
+      "acentoClaro": "#6d4e1f",
+      "acento2Claro": "#b98b2f",
+      "fondo": "#10100d",
+      "tema": "#1a1813"
+    }
+  },
+  "despliegue": {
+    "base": "/",
+    "url": "https://casaloli.puntodelanzamiento.es",
+    "salida": "dist/casa-loli"
+  },
+  "supabase": {
+    "ref": null,
+    "url": null,
+    "anonKey": null
+  },
+  "backend": "v2",
+  "fiscal": null,
+  "publicado": false,
+  "modulos": {
+    "pagosOnline": true,
+    "reservas": true
+  }
+}

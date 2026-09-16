@@ -256,6 +256,6 @@ const titulo = { fontWeight: 800, fontSize: '1.15rem', marginBottom: '0.75rem' }
 const lbl = { display: 'block', fontSize: '0.72rem', color: 'var(--color-muted)', marginBottom: '0.25rem' }
 const inp = { background: 'var(--color-inset)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.65rem 0.8rem', color: 'var(--color-text)', fontSize: '0.92rem', width: '100%', marginBottom: '0.7rem' }
 const nota = { fontSize: '0.78rem', color: 'var(--color-muted)', marginBottom: '0.9rem', lineHeight: 1.5 }
-const btnPrimario = { width: '100%', background: 'var(--color-accent)', color: '#fff', border: 'none', borderRadius: '0.6rem', padding: '0.85rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.95rem', marginTop: '0.5rem', boxShadow: '0 6px 16px -8px rgba(249,115,22,0.8)' }
+const btnPrimario = { width: '100%', background: 'var(--color-accent)', color: '#fff', border: 'none', borderRadius: '0.6rem', padding: '0.85rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.95rem', marginTop: '0.5rem', boxShadow: `0 6px 16px -8px color-mix(in srgb, var(--color-accent) 80%, transparent)` }
 const btnSuave = { background: 'var(--color-surface-2)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.55rem', padding: '0.5rem 0.9rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem', marginBottom: '0.4rem' }
 const opcion = { background: 'var(--color-inset)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.9rem', color: 'var(--color-text)' }

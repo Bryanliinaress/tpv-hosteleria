@@ -47,18 +47,30 @@ export default function Home() {
         </div>
         {/* Hero */}
         <div style={{ textAlign: 'center', marginBottom: '2.75rem' }}>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: '4.25rem', height: '4.25rem', fontSize: '2.25rem', marginBottom: '1.1rem',
-            background: 'linear-gradient(145deg, rgba(249,115,22,0.18), rgba(249,115,22,0.04))',
-            border: '1px solid rgba(249,115,22,0.35)', borderRadius: '1.25rem',
-            boxShadow: '0 10px 30px -10px rgba(249,115,22,0.5)',
-            overflow: 'hidden',
-          }}>
-            {urlLogo()
-              ? <img src={urlLogo()} alt={perfil.nombre} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-              : perfil.emoji}
-          </div>
+          {/* El logo manda su proporción: el de un bar suele ser una palabra
+              larga («Casa Loli»), no un cuadrado. Metido en una caja cuadrada
+              de 68 px, el texto quedaba a tres píxeles de alto e ilegible. Con
+              la altura fija y el ancho libre, un logo cuadrado sigue saliendo
+              cuadrado y uno alargado se extiende. El marco solo se pinta
+              cuando NO hay logo: una palabra enmarcada no queda bien. */}
+          {urlLogo()
+            ? <img
+                src={urlLogo()} alt={perfil.nombre}
+                style={{
+                  display: 'block', margin: '0 auto 1.1rem',
+                  height: '4.25rem', width: 'auto',
+                  maxWidth: 'min(20rem, 72vw)', objectFit: 'contain',
+                }}
+              />
+            : <div style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                width: '4.25rem', height: '4.25rem', fontSize: '2.25rem', marginBottom: '1.1rem',
+                background: 'linear-gradient(145deg, color-mix(in srgb, var(--color-accent) 18%, transparent), color-mix(in srgb, var(--color-accent) 4%, transparent))',
+                border: '1px solid color-mix(in srgb, var(--color-accent) 35%, transparent)',
+                borderRadius: '1.25rem',
+                boxShadow: '0 10px 30px -10px color-mix(in srgb, var(--color-accent) 50%, transparent)',
+                overflow: 'hidden',
+              }}>{perfil.emoji}</div>}
           <h1 style={{
             fontSize: 'clamp(2rem, 5vw, 2.75rem)', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1.05,
             background: 'linear-gradient(120deg, var(--color-text) 25%, var(--color-accent))', WebkitBackgroundClip: 'text',
@@ -73,10 +85,10 @@ export default function Home() {
         {!local?.onboarded && (
           <button onClick={() => navigate('/setup')} style={{
             display: 'flex', alignItems: 'center', gap: '1rem', width: '100%', textAlign: 'left',
-            background: 'linear-gradient(120deg, rgba(249,115,22,0.16), rgba(249,115,22,0.05))',
-            border: '1px solid rgba(249,115,22,0.5)', borderRadius: 'var(--radius-lg)',
+            background: 'linear-gradient(120deg, color-mix(in srgb, var(--color-accent) 16%, transparent), color-mix(in srgb, var(--color-accent) 5%, transparent))',
+            border: '1px solid color-mix(in srgb, var(--color-accent) 50%, transparent)', borderRadius: 'var(--radius-lg)',
             padding: '1.1rem 1.3rem', cursor: 'pointer', marginBottom: '1.75rem',
-            boxShadow: '0 10px 30px -12px rgba(249,115,22,0.4)',
+            boxShadow: '0 10px 30px -12px color-mix(in srgb, var(--color-accent) 40%, transparent)',
           }}>
             <span style={{ fontSize: '1.8rem' }}>🚀</span>
             <span style={{ flex: 1 }}>
