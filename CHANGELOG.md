@@ -5,6 +5,11 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.137.1] - 2026-09-16
+
+### Arreglado
+- **Un ticket ya emitido se podía modificar y borrar, y nada se enteraba.** `tickets` seguía con la política de la primera migración —`for all to authenticated`, que incluye `update` y `delete`—, así que cualquier dispositivo autorizado del local podía cambiar el importe de un ticket ya cobrado y ya registrado en Hacienda, o borrarlo, sin dejar rastro: no hay trigger, ni huella local, ni aviso. El RRSIF (RD 1007/2023, art. 8.2.a) exige justo lo contrario. Las facturas ya se hicieron bien en su día —«una factura que se puede editar con un `update` no es una factura»—; los tickets se habían quedado atrás. Ahora el personal solo los lee (migración 52). Lo que de verdad los escribe no pasa por RLS y sigue igual: las RPC del cobro, `fiscal_resultado` y `reembolso_resultado` (todas `security definer`) y el servicio de impresión con `service_role`.
+
 ## [0.137.0] - 2026-09-14
 
 ### Añadido
