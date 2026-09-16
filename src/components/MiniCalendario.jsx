@@ -56,7 +56,7 @@ export default function MiniCalendario({ value, onChange, esCerrado, minISO }) {
                 color: sel ? '#fff' : deshab ? 'var(--color-faint)' : 'var(--color-text)',
                 fontWeight: sel ? 800 : 600, fontSize: '0.85rem',
                 textDecoration: cerrado ? 'line-through' : 'none',
-                boxShadow: sel ? '0 6px 16px -6px rgba(249,115,22,0.85)' : 'none',
+                boxShadow: sel ? '0 6px 16px -6px color-mix(in srgb, var(--color-accent) 85%, transparent)' : 'none',
                 transition: 'transform 0.12s ease, background 0.15s ease',
               }}>{d}</button>
           )
