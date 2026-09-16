@@ -5,6 +5,15 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.138.0] - 2026-09-16
+
+### Añadido
+- **Alta de Casa Loli, el primer bar real.** `locales/casa-loli/perfil.json` con su marca (el oro de su propia web, en variantes para tema claro y oscuro), su subdominio previsto y su carpeta `marca/` con logo e iconos. Va con `publicado: false` a propósito: todavía no tiene proyecto de Supabase ni de Cloudflare Pages, así que se compila nombrándolo pero no entra en el deploy. Sus claves de Supabase van a `null` en vez de inventarse una falsa en un repo público.
+
+### Arreglado
+- **La marca del local se aplicaba a medias.** En cinco pantallas —portada, cartel de onboarding, minicalendario, selección de mesas y botones de Reservar— el naranja de Marchando estaba escrito a pelo en vez de leerse del acento del local. Un bar de marca dorada veía resplandores naranjas debajo de sus botones dorados. Ahora se mezcla con `color-mix()` sobre `var(--color-accent)`, y un test impide que ese hex vuelva a ninguna pantalla.
+- **La portada aplastaba el logo del local en una caja cuadrada.** El logo de un bar suele ser una palabra larga, no un cuadrado: metido en 4,25 rem quedaba a tres píxeles de alto e ilegible. Ahora manda la altura y el ancho es libre. Marchando no cambia: su portada usa emoji, no logo.
+
 ## [0.137.1] - 2026-09-16
 
 ### Arreglado
