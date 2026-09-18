@@ -6,6 +6,7 @@ import { revisarCorreccionFichaje, revisarNuevoFichaje } from '../lib/fichajes'
 import { efectivoEsperado, descuadreDe, saldoMovimientos, movimientosDesde, revisarMovimiento } from '../lib/caja'
 import { revisarNuevoEmpleado, revisarCambioEmpleado, revisarBajaEmpleado } from '../lib/personal'
 import { rolDe } from '../lib/roles'
+import { retencionDias } from '../lib/privacidad'
 import { revisarNumeroMesa, revisarNombreZona, revisarAltaMesas } from '../lib/sala'
 import { revisarNombreApartado, moverEnLista, emojiPorTipo, moverProductoEnCarta, copiaDeProducto } from '../lib/carta'
 import { revisarCambiosLocal } from '../lib/local'
@@ -1169,8 +1170,8 @@ export const useStore = create(persist((set, get) => ({
   // RGPD: borra las reservas cuya fecha pasó hace más de `retencionDias`
   // (minimización de datos: nombre/email/teléfono no se guardan para siempre).
   purgarReservasAntiguas: () => set(state => {
-    const dias = Number(state.reservasConfig.retencionDias ?? 30)
-    if (!dias) return {}
+    const dias = retencionDias(state.reservasConfig)
+    if (!dias) return {}   // 0 = el local guarda las reservas indefinidamente
     const limite = new Date(Date.now() - dias * 86400000)
     const conservar = state.reservas.filter(r => new Date((r.fecha || '9999-12-31') + 'T23:59:59') >= limite)
     return conservar.length === state.reservas.length ? {} : { reservas: conservar }

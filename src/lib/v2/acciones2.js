@@ -1,6 +1,7 @@
 import { supabase } from '../supabase'
 import { preciosNumericos, importeDesdeTexto } from '../dinero'
 import { useStore, propinasPorMetodoDe } from '../../store/useStore'
+import { retencionDias } from '../privacidad.js'
 import { reservas as rpcReservas, personal } from '../repo'
 import { toast } from '../../store/useUI'
 import { sembrarCartaEjemplo, vaciarCartaV2 } from './plantillaCarta'
@@ -783,8 +784,8 @@ export function accionesV2b() {
     // la deshace, así que en v2 los nombres y teléfonos de las reservas se
     // quedaban para siempre — que es justo lo que esto existe para evitar.
     purgarReservasAntiguas: async () => {
-      const dias = Number(useStore.getState().reservasConfig.retencionDias ?? 30)
-      if (!dias) return
+      const dias = retencionDias(useStore.getState().reservasConfig)
+      if (!dias) return   // 0 = el local guarda las reservas indefinidamente
       const limite = new Date(Date.now() - dias * 86400000).toISOString().slice(0, 10)
       try {
         await t('reservas').delete().eq('local_id', getLocalId()).lt('fecha', limite)

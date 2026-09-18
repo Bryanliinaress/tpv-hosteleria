@@ -795,6 +795,10 @@ export default function PanelAdmin() {
               <CampoGuardado valor={local.razonSocial || ''} onGuardar={v => updateLocal({ razonSocial: v })} placeholder="Si difiere del nombre comercial" style={{ ...inputStyle, marginBottom: '0.7rem' }} />
               <label style={lblCampo}>Dirección fiscal (ticket)</label>
               <CampoGuardado valor={local.direccionFiscal || ''} onGuardar={v => updateLocal({ direccionFiscal: v })} placeholder="Si difiere de la dirección" style={{ ...inputStyle, marginBottom: '0.7rem' }} />
+              {/* Sale en /privacidad como vía para ejercer derechos (RGPD
+                  art. 13). Si está vacío, esa página lo dice: no se inventa. */}
+              <label style={lblCampo}>Correo de contacto (privacidad)</label>
+              <CampoGuardado valor={local.emailRgpd || ''} onGuardar={v => updateLocal({ emailRgpd: v })} placeholder="para ejercer derechos RGPD" style={{ ...inputStyle, marginBottom: '0.7rem' }} />
               <label style={lblCampo}>URL de reseñas (QR del ticket)</label>
               <CampoGuardado valor={local.urlResena || ''} onGuardar={v => updateLocal({ urlResena: v })} placeholder="https://g.page/r/... (vacío = QR a la carta)" style={{ ...inputStyle, marginBottom: '0.7rem' }} />
               <label style={lblCampo}>Pie del ticket</label>
