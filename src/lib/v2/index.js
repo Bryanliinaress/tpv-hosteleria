@@ -1,4 +1,4 @@
-import { supabase } from '../supabase'
+import { supabase, supabaseActivo } from '../supabase'
 import { useStore } from '../../store/useStore'
 import { backendV2, personal, cuenta } from '../repo'
 import { cargarTodo, iniciarRealtime, iniciarModoAnon } from './estado'
@@ -49,12 +49,24 @@ export function initV2() {
 }
 
 // ── Sesión del LOCAL (Supabase Auth) ────────────────────────────────────────
+//
+// ⚠️ `supabase` es null cuando el local no tiene proyecto todavía: el perfil se
+// da de alta antes que la base (es el caso de un bar recién firmado). El módulo
+// `supabase.js` ya prometía que sin credenciales «la app funciona en modo
+// local», pero aquí se llamaba a `.auth` a pelo y la pantalla se quedaba EN
+// BLANCO con un `Cannot read properties of null (reading 'auth')` en la
+// consola, que es donde no mira nadie. Sin base no hay sesión de local: eso se
+// responde, no se revienta.
+const SIN_BASE = 'Este local todavía no tiene su base de datos configurada.'
+
 export async function haySesionLocal() {
+  if (!supabaseActivo) return false
   const { data } = await supabase.auth.getSession()
   return !!data.session
 }
 
 export async function loginLocal(email, password) {
+  if (!supabaseActivo) throw new Error(SIN_BASE)
   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
   if (error) throw new Error(error.message)
   await initV2()
@@ -62,7 +74,7 @@ export async function loginLocal(email, password) {
 }
 
 export async function logoutLocal() {
-  await supabase.auth.signOut()
+  if (supabaseActivo) await supabase.auth.signOut()
   window.location.reload()
 }
 
@@ -71,6 +83,7 @@ export async function logoutLocal() {
 // Crea la cuenta del dueño. Según la config del proyecto, Supabase puede
 // exigir confirmar el email antes de poder entrar.
 export async function registrarCuenta(email, password) {
+  if (!supabaseActivo) throw new Error(SIN_BASE)
   const { data, error } = await supabase.auth.signUp({ email, password })
   if (error) throw new Error(error.message)
   return { sesion: data.session, requiereConfirmacion: !data.session }
@@ -82,6 +95,7 @@ export const miLocal = () => cuenta.miLocal()
 // Registra el local y refresca la sesión: el JWT nuevo lleva el local_id que
 // leen todas las policies RLS (sin esto, el usuario no vería sus propios datos).
 export async function crearLocal(nombre, pinAdmin = '1234') {
+  if (!supabaseActivo) throw new Error(SIN_BASE)
   const id = await cuenta.registrarLocal(nombre, pinAdmin)
   await supabase.auth.refreshSession()
   await initV2()

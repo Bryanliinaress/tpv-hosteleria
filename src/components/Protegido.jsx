@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useEmpleadoActual, clearSesion } from '../lib/sesion'
 import PinLogin from './PinLogin'
 import { backendV2 } from '../lib/repo'
+import { supabaseActivo } from '../lib/supabase'
 import { haySesionLocal } from '../lib/v2'
 import { anotarPantalla } from '../lib/v2/dispositivo'
 import LoginLocal from '../pages/login/LoginLocal'
@@ -16,20 +17,49 @@ import { puedeAbrir, pantallaInicial, nombreRol, PANTALLAS } from '../lib/roles'
 // Auth) — una vez por dispositivo.
 export default function Protegido({ pantalla, children }) {
   const emp = useEmpleadoActual()
-  const [sesionLocal, setSesionLocal] = useState(backendV2 ? null : true) // null = comprobando
+  // `backendV2` dice que este local usa el backend nuevo; `supabaseActivo`,
+  // que además tiene base. Un perfil dado de alta antes que su proyecto cumple
+  // lo primero y no lo segundo — y mirar solo `backendV2` dejaba la pantalla en
+  // blanco.
+  const conBase = backendV2 && supabaseActivo
+  const [sesionLocal, setSesionLocal] = useState(conBase ? null : true) // null = comprobando
   useEffect(() => {
-    if (backendV2) haySesionLocal().then(setSesionLocal)
-  }, [])
+    if (conBase) haySesionLocal().then(setSesionLocal)
+  }, [conBase])
 
   // Deja anotado para qué se usa este aparato. Con cuatro tablets iguales, lo
   // que las distingue no es el nombre que alguien tecleó una vez: es que una
   // lleva semanas abierta en el KDS de cocina.
   useEffect(() => {
-    if (backendV2 && sesionLocal) anotarPantalla(pantalla)
-  }, [pantalla, sesionLocal])
+    if (conBase && sesionLocal) anotarPantalla(pantalla)
+  }, [pantalla, sesionLocal, conBase])
 
-  if (backendV2 && sesionLocal === null) return null            // comprobando sesión
-  if (backendV2 && !sesionLocal) {
+  // Local con backend v2 y SIN proyecto todavía (un bar recién firmado, antes
+  // de crearle la base). No es que falte la sesión: es que no hay servidor
+  // contra el que comprobar nada — ni el PIN, que se verifica en servidor.
+  // Enseñar el teclado aquí era invitar a teclear un PIN que nunca va a valer,
+  // y el error decía «conexión o sesión — reintenta», o sea: reintenta algo
+  // que no puede funcionar.
+  if (backendV2 && !supabaseActivo) {
+    return (
+      <div style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', padding: '2rem 1.25rem' }}>
+        <div style={{ maxWidth: '26rem', textAlign: 'center' }}>
+          <div style={{ fontSize: '2.5rem' }}>🧰</div>
+          <h1 style={{ fontWeight: 800, fontSize: '1.25rem', margin: '0.6rem 0 0.4rem' }}>
+            Este local todavía no tiene base de datos
+          </h1>
+          <p style={{ color: 'var(--color-muted)', lineHeight: 1.55, fontSize: '0.92rem' }}>
+            Las pantallas públicas —la carta y las reservas— funcionan, pero las
+            de personal necesitan su propio proyecto. Falta crearlo y ponerlo en
+            el perfil del local.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (conBase && sesionLocal === null) return null            // comprobando sesión
+  if (conBase && !sesionLocal) {
     // En un bar ya montado no hay credenciales que teclear: el aparato pide
     // permiso y lo autoriza el encargado. El login con correo y contraseña
     // solo queda para el build genérico, que es el que da de alta un negocio
