@@ -1,7 +1,7 @@
 {
   "name": "tpv-hosteleria",
   "private": true,
-  "version": "0.139.2",
+  "version": "0.140.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -14,7 +14,8 @@
     "permisos": "node scripts/revisar-permisos.mjs",
     "migraciones": "node scripts/aplicar-migracion.mjs",
     "test:sql": "node scripts/test-sql.mjs",
-    "salud": "node scripts/salud.mjs"
+    "salud": "node scripts/salud.mjs",
+    "carta": "node scripts/cargar-carta.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",
