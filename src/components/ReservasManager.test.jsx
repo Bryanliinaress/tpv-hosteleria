@@ -137,13 +137,21 @@ describe('nueva reserva desde la agenda', () => {
 // y la que entra por la puerta en diez minutos sin mesa asignada.
 // ────────────────────────────────────────────────────────────────────────────
 describe('lo que reclama atención ahora', () => {
-  const hoyYMD = () => {
-    const d = new Date()
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  }
-  const aLasDeAqui = (min) => {
+  // ⚠️ La fecha tiene que ir con la hora, no la de hoy a secas.
+  //
+  // Antes eran dos ayudantes sueltos: `hoyYMD()` y `aLasDeAqui(min)`. A las
+  // 22:04, «dentro de 180 minutos» son las 01:04 — y con la fecha de HOY eso
+  // es el pasado, así que la reserva salía como «1260 min tarde». Un test que
+  // solo se cae a partir de las nueve de la noche es peor que uno que se cae
+  // siempre: parece cosa del cambio que acabas de hacer.
+  const dentroDe = (min, extra = {}) => {
     const d = new Date(Date.now() + min * 60000)
-    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+    const p = (n) => String(n).padStart(2, '0')
+    return {
+      fecha: `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`,
+      hora: `${p(d.getHours())}:${p(d.getMinutes())}`,
+      ...extra,
+    }
   }
   const enAgenda = (reservas) => {
     useStore.setState({ reservas })
@@ -151,26 +159,26 @@ describe('lo que reclama atención ahora', () => {
   }
 
   it('avisa de la que llega enseguida sin mesa asignada', () => {
-    enAgenda([{ id: 'r1', fecha: hoyYMD(), hora: aLasDeAqui(10), personas: 4, nombre: 'Ana', estado: 'confirmada', mesaId: null }])
+    enAgenda([dentroDe(10, { id: 'r1', personas: 4, nombre: 'Ana', estado: 'confirmada', mesaId: null })])
     expect(document.body.textContent).toMatch(/Ahora mismo/)
     expect(document.body.textContent).toMatch(/sin mesa asignada/)
     expect(document.body.textContent).toMatch(/Ana/)
   })
 
   it('y de la que se ha retrasado', () => {
-    enAgenda([{ id: 'r2', fecha: hoyYMD(), hora: aLasDeAqui(-25), personas: 2, nombre: 'Luis', estado: 'confirmada', mesaId: 'm1' }])
+    enAgenda([dentroDe(-25, { id: 'r2', personas: 2, nombre: 'Luis', estado: 'confirmada', mesaId: 'm1' })])
     expect(document.body.textContent).toMatch(/min tarde/)
   })
 
   // Un aviso que salta con la reserva de dentro de ocho horas se aprende a
   // ignorar, y entonces no sirve para la que sí importa.
   it('la reserva de dentro de tres horas no monta ningún aviso', () => {
-    enAgenda([{ id: 'r3', fecha: hoyYMD(), hora: aLasDeAqui(180), personas: 2, nombre: 'Tarde', estado: 'confirmada', mesaId: null }])
+    enAgenda([dentroDe(180, { id: 'r3', personas: 2, nombre: 'Tarde', estado: 'confirmada', mesaId: null })])
     expect(document.body.textContent).not.toMatch(/Ahora mismo/)
   })
 
   it('una ya sentada no reclama nada', () => {
-    enAgenda([{ id: 'r4', fecha: hoyYMD(), hora: aLasDeAqui(-40), personas: 2, nombre: 'Sentada', estado: 'sentada', mesaId: 'm1' }])
+    enAgenda([dentroDe(-40, { id: 'r4', personas: 2, nombre: 'Sentada', estado: 'sentada', mesaId: 'm1' })])
     expect(document.body.textContent).not.toMatch(/Ahora mismo/)
   })
 })

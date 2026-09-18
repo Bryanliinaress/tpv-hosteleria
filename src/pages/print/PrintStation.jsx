@@ -91,7 +91,7 @@ export default function PrintStation() {
         </div>
 
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-          <button onClick={() => setAuto(a => !a)} style={btn(auto ? '#10b981' : 'var(--color-surface-3)', { flex: 1 })}>{auto ? '🟢 Auto-impresión ON' : '⚪ Auto-impresión OFF'}</button>
+          <button onClick={() => setAuto(a => !a)} style={btn(auto ? 'var(--color-success)' : 'var(--color-surface-3)', { flex: 1 })}>{auto ? '🟢 Auto-impresión ON' : '⚪ Auto-impresión OFF'}</button>
           <button onClick={() => { const ult = relevantes.slice(-1); if (ult.length) setCola(c => [...c, { id: 'test' + Date.now(), mesaNumero: ult[0].mesaNumero, destino: ult[0].destino, items: [ult[0]], hora: new Date().toISOString() }]) }} style={btn('var(--color-surface-2)')}>Imprimir prueba</button>
         </div>
 

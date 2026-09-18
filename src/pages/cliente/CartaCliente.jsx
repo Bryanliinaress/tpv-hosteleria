@@ -253,9 +253,9 @@ export default function CartaCliente() {
   const cuentaCompletaAporta = mesa.personas.filter(p => !p.pagado).length > 1
 
   const ESTADO_ITEM = {
-    recibido: { label: t('En cola'), color: '#f59e0b', emoji: '📥' },
-    preparando: { label: t('Preparándose'), color: '#3b82f6', emoji: '👨‍🍳' },
-    listo: { label: t('¡Listo!'), color: '#10b981', emoji: '✅' },
+    recibido: { label: t('En cola'), color: 'var(--color-warning)', emoji: '📥' },
+    preparando: { label: t('Preparándose'), color: 'var(--color-info)', emoji: '👨‍🍳' },
+    listo: { label: t('¡Listo!'), color: 'var(--color-success)', emoji: '✅' },
   }
   const misPedidos = [...pedidosCocina, ...pedidosBarra].filter(p => p.personaId === yo?.id)
   const misListos = misPedidos.filter(p => p.estado === 'listo')
@@ -386,7 +386,7 @@ export default function CartaCliente() {
           const esYo = p.id === yo.id
           const lineas = lineasDe(p)
           return (
-            <div key={p.id} style={{ ...cardStyle, marginBottom: '0.75rem', borderColor: p.pagado ? '#10b981' : esYo ? 'var(--color-accent)' : 'var(--color-border)' }}>
+            <div key={p.id} style={{ ...cardStyle, marginBottom: '0.75rem', borderColor: p.pagado ? 'var(--color-success)' : esYo ? 'var(--color-accent)' : 'var(--color-border)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                 <div style={{ fontWeight: 700, color: 'var(--color-accent)' }}>{p.nombre}{esYo && <span style={{ color: 'var(--color-muted)', fontWeight: 400 }}> (tú)</span>}</div>
                 {p.pagado && <span style={{ fontSize: '0.7rem', background: 'var(--tint-success-bg)', color: 'var(--tint-success-fg)', borderRadius: '9999px', padding: '0.15rem 0.6rem', fontWeight: 700 }}>✓ Pagado{p.propina > 0 ? ` · +${p.propina.toFixed(2)} €` : ''}</span>}
@@ -693,7 +693,7 @@ export default function CartaCliente() {
           </div>
           <div style={{ display: 'flex', gap: '0.4rem' }}>
             <button onClick={() => setIdioma(idioma === 'es' ? 'en' : 'es')} title="Idioma / Language" aria-label="Idioma / Language" style={btnStyle('var(--color-surface-2)', { ...paso, padding: 0, fontSize: '1rem' })}>{idioma === 'es' ? '🇬🇧' : '🇪🇸'}</button>
-            <button onClick={toggleAviso} title={avisoActivo ? t('Cancelar el aviso al camarero') : t('Llamar al camarero')} aria-label={t('Llamar al camarero')} style={btnStyle(avisoActivo ? '#10b981' : 'var(--color-surface-2)', { ...paso, padding: avisoActivo ? '0 0.75rem' : 0, width: avisoActivo ? 'auto' : `${TOQUE}px`, fontSize: '0.8rem' })}>{avisoActivo ? `🔔 ${t('Avisado')} ✕` : '🔔'}</button>
+            <button onClick={toggleAviso} title={avisoActivo ? t('Cancelar el aviso al camarero') : t('Llamar al camarero')} aria-label={t('Llamar al camarero')} style={btnStyle(avisoActivo ? 'var(--color-success)' : 'var(--color-surface-2)', { ...paso, padding: avisoActivo ? '0 0.75rem' : 0, width: avisoActivo ? 'auto' : `${TOQUE}px`, fontSize: '0.8rem' })}>{avisoActivo ? `🔔 ${t('Avisado')} ✕` : '🔔'}</button>
 
           </div>
         </div>

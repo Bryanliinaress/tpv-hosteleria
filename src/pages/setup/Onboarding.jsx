@@ -141,7 +141,7 @@ export default function Onboarding() {
                   <label style={lbl}>Plazas</label>
                   <input value={z.capacidad} onChange={e => setZonas(a => a.map((x, j) => j === i ? { ...x, capacidad: e.target.value } : x))} type="number" min="1" style={{ ...inp, marginBottom: 0 }} />
                 </div>
-                <button onClick={() => setZonas(a => a.filter((_, j) => j !== i))} disabled={zonas.length <= 1} style={{ background: 'none', border: 'none', color: zonas.length <= 1 ? 'var(--color-faint)' : '#f43f5e', cursor: zonas.length <= 1 ? 'not-allowed' : 'pointer', fontSize: '1rem', paddingBottom: '0.6rem' }}>🗑️</button>
+                <button onClick={() => setZonas(a => a.filter((_, j) => j !== i))} disabled={zonas.length <= 1} style={{ background: 'none', border: 'none', color: zonas.length <= 1 ? 'var(--color-faint)' : 'var(--color-danger)', cursor: zonas.length <= 1 ? 'not-allowed' : 'pointer', fontSize: '1rem', paddingBottom: '0.6rem' }}>🗑️</button>
               </div>
             ))}
             <button onClick={() => setZonas(a => [...a, { nombre: '', mesas: 4, capacidad: 4 }])} style={btnSuave}>+ Añadir zona</button>
@@ -162,7 +162,7 @@ export default function Onboarding() {
                 <input value={e.nombre} onChange={ev => updateEmpleado(e.id, { nombre: ev.target.value })} style={{ ...inp, marginBottom: 0, flex: 2 }} />
                 <span style={{ fontSize: '0.72rem', color: e.rol === 'admin' ? '#a78bfa' : 'var(--color-muted)', width: '4.5rem' }}>{e.rol === 'admin' ? '🔐 Admin' : '👤 Camarero'}</span>
                 <span style={{ fontSize: '0.82rem', letterSpacing: '0.15em', fontWeight: 700 }}>{e.pin}</span>
-                <button onClick={() => { const r = removeEmpleado(e.id); if (!r.ok) toast(r.error, 'error') }} style={{ background: 'none', border: 'none', color: '#f43f5e', cursor: 'pointer' }}>🗑️</button>
+                <button onClick={() => { const r = removeEmpleado(e.id); if (!r.ok) toast(r.error, 'error') }} style={{ background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer' }}>🗑️</button>
               </div>
             ))}
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', marginTop: '0.8rem', flexWrap: 'wrap' }}>
@@ -192,7 +192,7 @@ export default function Onboarding() {
             <div style={{ display: 'grid', gap: '0.6rem' }}>
               {carta.productos.length > 0 ? (
                 <>
-                  <div style={{ ...opcion, borderColor: '#10b981' }}>
+                  <div style={{ ...opcion, borderColor: 'var(--color-success)' }}>
                     <div style={{ fontWeight: 700 }}>✅ Mantener la carta actual</div>
                     <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>{carta.productos.length} productos (bar/cafetería) listos para editar.</div>
                   </div>

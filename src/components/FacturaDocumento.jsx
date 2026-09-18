@@ -68,7 +68,7 @@ export default function FacturaDocumento({ factura: inicial, por, onCerrar }) {
   const fiscal = {
     enviado: { txt: '✓ Registrada en Hacienda', color: 'var(--tint-success-fg)' },
     pendiente: { txt: '⏳ Pendiente de registrar en Hacienda', color: 'var(--tint-warning-fg)' },
-    error: { txt: `⚠ No se pudo registrar${factura.fiscalError ? `: ${factura.fiscalError}` : ''}`, color: '#f43f5e' },
+    error: { txt: `⚠ No se pudo registrar${factura.fiscalError ? `: ${factura.fiscalError}` : ''}`, color: 'var(--color-danger)' },
   }[factura.fiscalEstado]
 
   return (
@@ -91,12 +91,12 @@ export default function FacturaDocumento({ factura: inicial, por, onCerrar }) {
               NIF. Se corrige y se reenvía con el mismo número, que nunca llegó
               a constar. */}
           {factura.fiscalEstado === 'error' && (
-            <div role="alert" style={{ display: 'flex', gap: '0.7rem', alignItems: 'center', flexWrap: 'wrap', background: 'var(--tint-danger-bg)', color: 'var(--tint-danger-fg)', border: '1px solid #f43f5e', borderRadius: 'var(--radius-lg)', padding: '0.75rem 1rem' }}>
+            <div role="alert" style={{ display: 'flex', gap: '0.7rem', alignItems: 'center', flexWrap: 'wrap', background: 'var(--tint-danger-bg)', color: 'var(--tint-danger-fg)', border: '1px solid var(--color-danger)', borderRadius: 'var(--radius-lg)', padding: '0.75rem 1rem' }}>
               <div style={{ flex: '1 1 18rem', fontSize: '0.84rem' }}>
                 <b>Hacienda ha rechazado esta factura.</b> No vale hasta que se corrija y se reenvíe.
                 {factura.fiscalError && <div style={{ fontSize: '0.76rem', marginTop: '0.25rem', opacity: 0.9 }}>{factura.fiscalError}</div>}
               </div>
-              <button onClick={() => setCorrigiendo(true)} style={boton('#f43f5e', '#fff')}>✏️ Corregir datos y reenviar</button>
+              <button onClick={() => setCorrigiendo(true)} style={boton('var(--color-danger)', '#fff')}>✏️ Corregir datos y reenviar</button>
             </div>
           )}
 
@@ -105,7 +105,7 @@ export default function FacturaDocumento({ factura: inicial, por, onCerrar }) {
             <input value={correo} onChange={e => setCorreo(e.target.value)} type="email" inputMode="email" placeholder="correo@empresa.es"
               onKeyDown={e => { if (e.key === 'Enter') enviar() }}
               style={{ flex: '1 1 14rem', minWidth: 0, background: 'var(--color-inset)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.55rem 0.7rem', color: 'var(--color-text)', fontSize: '0.9rem' }} />
-            <button onClick={enviar} disabled={enviando} style={boton('#10b981', '#fff')}>{enviando ? 'Enviando…' : '📎 Enviar PDF'}</button>
+            <button onClick={enviar} disabled={enviando} style={boton('var(--color-success)', '#fff')}>{enviando ? 'Enviando…' : '📎 Enviar PDF'}</button>
           </div>
 
           <div ref={papel} style={{ borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>

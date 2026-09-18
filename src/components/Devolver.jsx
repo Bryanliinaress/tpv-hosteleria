@@ -152,7 +152,7 @@ export default function Devolver({ ticket, pendiente, onCerrar, onHecho }) {
           <button onClick={onCerrar} style={{ ...boton(false), flex: '0 1 8rem' }}>Cancelar</button>
           <button onClick={confirmar} disabled={!puede} style={{
             ...boton(true), opacity: puede ? 1 : 0.5, cursor: puede ? 'pointer' : 'not-allowed',
-            background: '#f43f5e', borderColor: '#f43f5e',
+            background: 'var(--color-danger)', borderColor: 'var(--color-danger)',
           }}>
             {enviando ? 'Emitiendo…' : 'Devolver'}
           </button>

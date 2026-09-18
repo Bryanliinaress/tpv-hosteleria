@@ -33,7 +33,7 @@ export default function ColaKDS({ pedidos, estados, acento, onAvanzar, unidad = 
         return (
           <div key={g.mesaId} className={urgente ? 'anim-fade pulse-attn' : 'anim-fade'} style={{
             background: 'var(--color-surface)',
-            border: `2px solid ${urgente ? '#f43f5e' : est.color + '44'}`,
+            border: `2px solid ${urgente ? 'var(--color-danger)' : est.color + '44'}`,
             borderLeft: `5px solid ${est.color}`,
             borderRadius: 'var(--radius)', padding: '1rem', boxShadow: 'var(--shadow)',
           }}>
@@ -46,7 +46,7 @@ export default function ColaKDS({ pedidos, estados, acento, onAvanzar, unidad = 
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-                <span style={{ fontSize: '0.85rem', color: urgente ? '#f43f5e' : 'var(--color-faint)', fontWeight: urgente ? 800 : 400 }}>
+                <span style={{ fontSize: '0.85rem', color: urgente ? 'var(--color-danger)' : 'var(--color-faint)', fontWeight: urgente ? 800 : 400 }}>
                   {urgente ? '⚠️ ' : ''}{tiempo(g.desde)}
                 </span>
                 <span style={{ fontSize: '0.7rem', background: est.color + '22', color: est.color, borderRadius: '4px', padding: '0.15rem 0.5rem', fontWeight: 700 }}>{est.label}</span>
@@ -66,7 +66,7 @@ export default function ColaKDS({ pedidos, estados, acento, onAvanzar, unidad = 
                   }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 700, fontSize: '1.05rem', textDecoration: hecho ? 'line-through' : 'none' }}>
-                        <span style={{ color: '#f59e0b' }}>{p.cantidad}×</span> {p.nombre}
+                        <span style={{ color: 'var(--color-warning)' }}>{p.cantidad}×</span> {p.nombre}
                         {(p.tiempo || 1) > 1 && (
                           <span style={{ marginLeft: '0.5rem', fontSize: '0.72rem', background: '#3b0764', color: '#c4b5fd', borderRadius: '9999px', padding: '0.12rem 0.5rem', fontWeight: 700, verticalAlign: 'middle', display: 'inline-block', whiteSpace: 'nowrap' }}>
                             {p.tiempo === 3 ? '🍰 Postre' : '2º plato'}{p.estado === 'espera' ? ' · sin marchar' : ''}
@@ -96,7 +96,7 @@ export default function ColaKDS({ pedidos, estados, acento, onAvanzar, unidad = 
             {est.next && (
               <button
                 onClick={() => delPaso.forEach(p => onAvanzar(p.id, est.next))}
-                style={{ background: est.next === 'listo' ? '#10b981' : '#1d4ed8', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.85rem 1rem', minHeight: '56px', cursor: 'pointer', fontWeight: 800, fontSize: '1rem', width: '100%' }}
+                style={{ background: est.next === 'listo' ? 'var(--color-success)' : '#1d4ed8', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.85rem 1rem', minHeight: '56px', cursor: 'pointer', fontWeight: 800, fontSize: '1rem', width: '100%' }}
               >
                 {est.nextLabel}{delPaso.length > 1 ? ` · ${uds(delPaso.length)}` : ''}
               </button>

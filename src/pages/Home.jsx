@@ -8,7 +8,7 @@ const grupos = (mesa1) => [
   {
     titulo: 'Cliente',
     roles: [
-      { label: 'Mesa 1 (QR)', path: `/mesa/${mesa1}`, emoji: '📱', color: '#3b82f6', desc: 'Carta y autopedido desde el móvil' },
+      { label: 'Mesa 1 (QR)', path: `/mesa/${mesa1}`, emoji: '📱', color: 'var(--color-info)', desc: 'Carta y autopedido desde el móvil' },
       { label: 'Reservar mesa', path: '/reservar', emoji: '📅', color: '#0ea5e9', desc: 'Reserva online estilo CoverManager' },
     ],
   },
@@ -16,14 +16,14 @@ const grupos = (mesa1) => [
     titulo: 'Personal de sala',
     roles: [
       { label: 'PDA Camarero', path: '/pda', emoji: '📟', color: '#06b6d4', desc: 'Móvil de mano: avisos y mesas' },
-      { label: 'Mostrador · TPV', path: '/camarero', emoji: '🧑‍🍳', color: '#f59e0b', desc: 'Terminal fijo: sala, pedidos y cobro' },
+      { label: 'Mostrador · TPV', path: '/camarero', emoji: '🧑‍🍳', color: 'var(--color-warning)', desc: 'Terminal fijo: sala, pedidos y cobro' },
     ],
   },
   {
     titulo: 'Producción',
     roles: [
-      { label: 'Pantalla Cocina', path: '/cocina', emoji: '🍳', color: '#10b981', desc: 'KDS — pedidos de comida' },
-      { label: 'Pantalla Barra', path: '/barra', emoji: '🍺', color: '#f43f5e', desc: 'KDS — pedidos de bebida' },
+      { label: 'Pantalla Cocina', path: '/cocina', emoji: '🍳', color: 'var(--color-success)', desc: 'KDS — pedidos de comida' },
+      { label: 'Pantalla Barra', path: '/barra', emoji: '🍺', color: 'var(--color-danger)', desc: 'KDS — pedidos de bebida' },
       { label: 'Estación de impresión', path: '/print', emoji: '🖨️', color: '#94a3b8', desc: 'Imprime comandas en automático' },
     ],
   },
@@ -137,7 +137,10 @@ export default function Home() {
                     }}>{r.emoji}</div>
                     <div style={{ fontWeight: 700, color: 'var(--color-text)', marginBottom: '0.2rem', fontSize: '0.98rem' }}>{r.label}</div>
                     <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)', lineHeight: 1.4 }}>{r.desc}</div>
-                    <span style={{ position: 'absolute', top: '1.1rem', right: '1.2rem', color: r.color, fontSize: '1.1rem', opacity: 0.55 }}>→</span>
+                    {/* La flecha es un adorno, no información: el color de la tarjeta ya
+                        lo dice el icono. En claro, ese color al 55% se quedaba en 2,4
+                        de contraste. */}
+                    <span style={{ position: 'absolute', top: '1.1rem', right: '1.2rem', color: 'var(--color-muted)', fontSize: '1.1rem' }}>→</span>
                   </button>
                 ))}
               </div>

@@ -59,9 +59,9 @@ export default function CobroMesa({ mesa, onCobrar, onCerrar }) {
         <p style={lbl}>Método de pago</p>
         <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.7rem', flexWrap: 'wrap' }}>
           {METODOS_PAGO.map(m => (
-            <button key={m.id} onClick={() => setMetodo(m.id)} style={btn(metodo === m.id ? '#10b981' : 'var(--color-surface-3)', { flex: 1, fontSize: '0.82rem', padding: '0.55rem 0.4rem' })}>{m.emoji} {m.label}</button>
+            <button key={m.id} onClick={() => setMetodo(m.id)} style={btn(metodo === m.id ? 'var(--color-success)' : 'var(--color-surface-3)', { flex: 1, fontSize: '0.82rem', padding: '0.55rem 0.4rem' })}>{m.emoji} {m.label}</button>
           ))}
-          <button onClick={() => setMetodo('mixto')} style={btn(metodo === 'mixto' ? '#10b981' : 'var(--color-surface-3)', { flex: 1, fontSize: '0.82rem', padding: '0.55rem 0.4rem' })}>🧮 Mixto</button>
+          <button onClick={() => setMetodo('mixto')} style={btn(metodo === 'mixto' ? 'var(--color-success)' : 'var(--color-surface-3)', { flex: 1, fontSize: '0.82rem', padding: '0.55rem 0.4rem' })}>🧮 Mixto</button>
         </div>
 
         {/* Pago mixto: parte en efectivo + resto a tarjeta/bizum */}
@@ -72,7 +72,7 @@ export default function CobroMesa({ mesa, onCobrar, onCerrar }) {
             <p style={{ ...lbl, marginTop: 0 }}>El resto ({mixtoRestoImp.toFixed(2)} €) con</p>
             <div style={{ display: 'flex', gap: '0.4rem' }}>
               {METODOS_PAGO.filter(m => m.id !== 'efectivo').map(m => (
-                <button key={m.id} onClick={() => setMixtoResto(m.id)} style={btn(mixtoResto === m.id ? '#10b981' : 'var(--color-surface-3)', { flex: 1, fontSize: '0.8rem', padding: '0.45rem 0.4rem' })}>{m.emoji} {m.label}</button>
+                <button key={m.id} onClick={() => setMixtoResto(m.id)} style={btn(mixtoResto === m.id ? 'var(--color-success)' : 'var(--color-surface-3)', { flex: 1, fontSize: '0.8rem', padding: '0.45rem 0.4rem' })}>{m.emoji} {m.label}</button>
               ))}
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginTop: '0.55rem', color: 'var(--color-muted)' }}>
@@ -100,14 +100,14 @@ export default function CobroMesa({ mesa, onCobrar, onCerrar }) {
               {[10, 20, 50].map(b => <button key={b} onClick={() => setEfectivo(String(b))} style={btn('var(--color-surface-2)', { fontSize: '0.78rem', padding: '0.4rem 0.5rem' })}>{b}</button>)}
             </div>
             {dado > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, marginBottom: '0.8rem', color: cambio >= 0 ? '#10b981' : '#f43f5e' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, marginBottom: '0.8rem', color: cambio >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
                 <span>Cambio</span><span>{cambio >= 0 ? cambio.toFixed(2) + ' €' : 'Falta ' + (-cambio).toFixed(2) + ' €'}</span>
               </div>
             )}
           </>
         )}
 
-        <button onClick={confirmarCobro} disabled={cobrando || (metodo === 'mixto' && mixtoEf <= 0)} style={btn(metodo === 'mixto' && mixtoEf <= 0 ? 'var(--color-surface-3)' : '#10b981', { width: '100%', padding: '0.85rem', fontSize: '1rem', cursor: metodo === 'mixto' && mixtoEf <= 0 ? 'not-allowed' : 'pointer' })}>{cobrando ? 'Cobrando…' : '✓ Cobrado · cerrar mesa'}</button>
+        <button onClick={confirmarCobro} disabled={cobrando || (metodo === 'mixto' && mixtoEf <= 0)} style={btn(metodo === 'mixto' && mixtoEf <= 0 ? 'var(--color-surface-3)' : 'var(--color-success)', { width: '100%', padding: '0.85rem', fontSize: '1rem', cursor: metodo === 'mixto' && mixtoEf <= 0 ? 'not-allowed' : 'pointer' })}>{cobrando ? 'Cobrando…' : '✓ Cobrado · cerrar mesa'}</button>
       </div>
     </div>
   )

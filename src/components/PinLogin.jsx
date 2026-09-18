@@ -49,13 +49,13 @@ export default function PinLogin({ soloAdmin = false, titulo }) {
           {[0, 1, 2, 3].map(i => (
             <div key={i} style={{
               width: '0.9rem', height: '0.9rem', borderRadius: '9999px',
-              background: error ? '#f43f5e' : pin.length > i ? 'var(--color-accent)' : 'transparent',
-              border: `2px solid ${error ? '#f43f5e' : pin.length > i ? 'var(--color-accent)' : 'var(--color-border)'}`,
+              background: error ? 'var(--color-danger)' : pin.length > i ? 'var(--color-accent)' : 'transparent',
+              border: `2px solid ${error ? 'var(--color-danger)' : pin.length > i ? 'var(--color-accent)' : 'var(--color-border)'}`,
               transition: 'all 0.12s',
             }} />
           ))}
         </div>
-        {error && <p style={{ textAlign: 'center', color: '#f43f5e', fontSize: '0.8rem', marginTop: '-0.6rem', marginBottom: '0.8rem' }}>
+        {error && <p style={{ textAlign: 'center', color: 'var(--color-danger)', fontSize: '0.8rem', marginTop: '-0.6rem', marginBottom: '0.8rem' }}>
           {error === 'bloqueado'
             ? 'Demasiados intentos. Espera 5 minutos y vuelve a probar.'
             : error === 'tecnico'

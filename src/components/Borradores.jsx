@@ -54,7 +54,7 @@ export default function Borradores({ historial = [], facturas = [], onContinuarF
                 </span>
               </span>
               <span style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                <span style={{ display: 'block', fontWeight: 800, color: '#f43f5e' }}>{euros(c.sinCobrar)}</span>
+                <span style={{ display: 'block', fontWeight: 800, color: 'var(--color-danger)' }}>{euros(c.sinCobrar)}</span>
                 <span style={{ fontSize: '0.7rem', color: 'var(--color-muted)' }}>
                   {Number(c.total) !== Number(c.sinCobrar) ? `de ${euros(c.total)} · ` : ''}sin cobrar {abierta === c.id ? '▲' : '▼'}
                 </span>
@@ -98,7 +98,7 @@ export default function Borradores({ historial = [], facturas = [], onContinuarF
               </div>
               <button onClick={() => ticket && onContinuarFactura?.(ticket)} disabled={!ticket}
                 title={ticket ? 'Seguir con la factura' : 'Ese ticket no está en los tickets cargados'} style={boton(ticket ? 'var(--color-accent)' : 'var(--color-surface-3)', ticket ? '#fff' : 'var(--color-muted)')}>Continuar</button>
-              <button onClick={() => quitarBorrador(b, ticket?.numero)} style={{ ...boton('none'), color: '#f43f5e', border: '1px solid var(--color-border)' }}>Descartar</button>
+              <button onClick={() => quitarBorrador(b, ticket?.numero)} style={{ ...boton('none'), color: 'var(--color-danger)', border: '1px solid var(--color-border)' }}>Descartar</button>
             </div>
           )
         })}
