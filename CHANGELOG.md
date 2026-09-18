@@ -5,6 +5,15 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.139.0] - 2026-09-18
+
+### Añadido
+- **Página de privacidad del local (`/privacidad`)**, enlazada desde Reservar. El art. 13 del RGPD obliga a decir quién trata los datos, para qué, con qué base legal, cuánto los guarda y cómo se ejercen los derechos, y a decirlo antes de pedirlos; ese texto vivía en `docs/RGPD.md`, que no lo lee ningún cliente. El responsable, NIF, dirección y correo los pone el bar en Admin › Local —con un campo nuevo para el correo de contacto RGPD— y llegan al navegador por `config_publica` (migración 54), que sigue **sin** publicar el teléfono. **Lo que falta se dice que falta**: sale «pendiente de rellenar» en vez de inventarse un NIF.
+
+### Arreglado
+- **Se estaban tirando tickets que todavía entraban en Hacienda.** El vigilante daba por perdido todo lo que no fuera de hoy, pero la API admite la fecha del día anterior: la ventana son **dos días**. Importa el día que el bar abre después de cerrar — un lunes, lo del domingo se salva.
+- **El plazo de conservación estaba escrito cinco veces** y ahora vive en un solo sitio, con un test que impide una sexta copia. El `0` sigue significando «guardar indefinidamente», que es una decisión del local.
+
 ## [0.138.0] - 2026-09-16
 
 ### Añadido

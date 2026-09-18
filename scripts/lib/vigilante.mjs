@@ -5,10 +5,18 @@
 // lo que ya no tiene arreglo.
 //
 // ── Por qué existe ──────────────────────────────────────────────────────────
-// Verifacti responde «el campo fecha_expedicion debe ser la fecha actual»: un
-// ticket solo se puede registrar **el día que se emitió**. Si el envío falla un
-// martes por la tarde —AEAT caída, un corte de red— y nadie abre el panel hasta
-// el jueves, ese ticket NO ENTRA NUNCA.
+// Verifacti compone el registro y lo remite en una sola llamada, y el campo
+// `fecha_expedicion` no puede ser cualquiera. Si el envío falla un martes por
+// la tarde —AEAT caída, un corte de red— y nadie lo atiende a tiempo, ese
+// ticket NO ENTRA NUNCA.
+//
+// ── La ventana son DOS días, no uno (confirmado por Verifacti el 18/09/2026)
+// «Para acomodar posibles errores, nuestra API permite generar registros con
+// fecha del día anterior a la fecha actual.»
+//
+// Antes aquí se daba por perdido todo lo que no fuera de hoy, y se estaban
+// tirando tickets que aún entraban. Importa sobre todo el día que el bar abre
+// después de cerrar: un lunes, lo del domingo todavía se salva.
 //
 // El reintento ya existía (`reintentarPendientes`), pero solo corría «al abrir
 // Admin o a mano». Es decir: dependía de que alguien se acordara, justo el día
@@ -31,12 +39,20 @@ export function diaLocal(fecha = new Date()) {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
 }
 
+/** El día anterior a uno dado, en YYYY-MM-DD. El constructor de Date normaliza
+ *  el día 0 y el mes -1, así que el 1 de marzo y el 1 de enero salen bien. */
+export function diaAnterior(dia = diaLocal()) {
+  const [a, m, d] = dia.split('-').map(Number)
+  return diaLocal(new Date(a, m - 1, d - 1))
+}
+
 /**
  * Reparte los tickets sin registrar entre los que aún se pueden salvar y los
  * que ya no.
  *
- * Lo de HOY se reintenta. Lo de días anteriores no entra ya, por mucho que se
- * insista: eso hay que decirlo, no seguir intentándolo en silencio.
+ * Lo de HOY y lo de AYER se reintenta —es lo que admite la API—. Lo anterior no
+ * entra ya, por mucho que se insista: eso hay que decirlo, no seguir
+ * intentándolo en silencio.
  */
 export function clasificar(tickets = [], hoy = diaLocal()) {
   // `fiscal_intentos < 10` es el mismo tope que usa el reintento en lote de la
@@ -45,14 +61,15 @@ export function clasificar(tickets = [], hoy = diaLocal()) {
   const sinRegistrar = (tickets || []).filter(
     t => t && (t.fiscal_estado === 'pendiente' || t.fiscal_estado === 'error') &&
          (t.fiscal_intentos ?? 0) < 10)
-  const deHoy = sinRegistrar.filter(t => diaLocal(t.cerrado_en) === hoy)
-  const perdidos = sinRegistrar.filter(t => diaLocal(t.cerrado_en) !== hoy)
-  return { sinRegistrar, deHoy, perdidos }
+  const ventana = [hoy, diaAnterior(hoy)]
+  const aTiempo = sinRegistrar.filter(t => ventana.includes(diaLocal(t.cerrado_en)))
+  const perdidos = sinRegistrar.filter(t => !ventana.includes(diaLocal(t.cerrado_en)))
+  return { sinRegistrar, aTiempo, perdidos }
 }
 
 /** El aviso que se guarda cuando hay tickets que ya no se pueden registrar. */
 export const mensajePerdidos = (perdidos = []) =>
-  `${perdidos.length} ticket(s) no se registraron en Hacienda el día que se emitieron y ya no pueden entrar: ` +
+  `${perdidos.length} ticket(s) llevan más de un día sin registrarse en Hacienda y ya no pueden entrar: ` +
   perdidos.slice(0, 5).map(t => `nº ${t.numero} (${diaLocal(t.cerrado_en)})`).join(', ') +
   (perdidos.length > 5 ? `, y ${perdidos.length - 5} más` : '')
 
@@ -69,11 +86,11 @@ export const mensajePerdidos = (perdidos = []) =>
  */
 export async function pasada({ listar, reintentar, avisar, log = () => {}, hoy = diaLocal() }) {
   const tickets = await listar()
-  const { deHoy, perdidos } = clasificar(tickets, hoy)
+  const { aTiempo, perdidos } = clasificar(tickets, hoy)
 
-  if (deHoy.length) {
-    log(`🧾 ${deHoy.length} ticket(s) de hoy sin registrar: reintentando`)
-    await reintentar(deHoy)
+  if (aTiempo.length) {
+    log(`🧾 ${aTiempo.length} ticket(s) de hoy o de ayer sin registrar: reintentando`)
+    await reintentar(aTiempo)
   }
 
   if (perdidos.length) {
@@ -83,5 +100,5 @@ export async function pasada({ listar, reintentar, avisar, log = () => {}, hoy =
     await avisar(mensajePerdidos(perdidos))
   }
 
-  return { reintentados: deHoy.length, perdidos: perdidos.length }
+  return { reintentados: aTiempo.length, perdidos: perdidos.length }
 }

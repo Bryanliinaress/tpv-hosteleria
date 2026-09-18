@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useStore, aforoTotal } from '../store/useStore'
+import { retencionDias, RETENCION_POR_DEFECTO } from '../lib/privacidad'
 
 const DIAS = [{ d: 1, t: 'L' }, { d: 2, t: 'M' }, { d: 3, t: 'X' }, { d: 4, t: 'J' }, { d: 5, t: 'V' }, { d: 6, t: 'S' }, { d: 0, t: 'D' }]
 
@@ -62,7 +63,7 @@ export default function ReservasConfig() {
               <input type="number" min="1" value={cfg.maxPersonasOnline} onChange={e => updateReservasConfig({ maxPersonasOnline: Number(e.target.value) || 10 })} style={inp} />
             </Campo>
             <Campo label="RGPD: borrar tras (días)">
-              <input type="number" min="1" value={cfg.retencionDias ?? 30} onChange={e => updateReservasConfig({ retencionDias: Number(e.target.value) || 30 })} style={inp} />
+              <input type="number" min="1" value={retencionDias(cfg)} onChange={e => updateReservasConfig({ retencionDias: Number(e.target.value) || RETENCION_POR_DEFECTO })} style={inp} />
             </Campo>
           </div>
 
