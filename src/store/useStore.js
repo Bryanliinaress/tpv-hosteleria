@@ -44,24 +44,10 @@ export function metodosDe(pagos = {}) {
   ]
 }
 
-// Los 14 alérgenos de declaración obligatoria en la UE (Reglamento 1169/2011)
-export const ALERGENOS = [
-  { id: 'gluten', nombre: 'Gluten', emoji: '🌾' },
-  { id: 'crustaceos', nombre: 'Crustáceos', emoji: '🦐' },
-  { id: 'huevos', nombre: 'Huevos', emoji: '🥚' },
-  { id: 'pescado', nombre: 'Pescado', emoji: '🐟' },
-  { id: 'cacahuetes', nombre: 'Cacahuetes', emoji: '🥜' },
-  { id: 'soja', nombre: 'Soja', emoji: '🫘' },
-  { id: 'lacteos', nombre: 'Lácteos', emoji: '🥛' },
-  { id: 'frutos_cascara', nombre: 'Frutos de cáscara', emoji: '🌰' },
-  { id: 'apio', nombre: 'Apio', emoji: '🥬' },
-  { id: 'mostaza', nombre: 'Mostaza', emoji: '🟡' },
-  { id: 'sesamo', nombre: 'Sésamo', emoji: '⚪' },
-  { id: 'sulfitos', nombre: 'Sulfitos', emoji: '🍷' },
-  { id: 'altramuces', nombre: 'Altramuces', emoji: '🌼' },
-  { id: 'moluscos', nombre: 'Moluscos', emoji: '🐚' },
-]
-export const ALERGENO_INFO = Object.fromEntries(ALERGENOS.map(a => [a.id, a]))
+// Los 14 alérgenos viven en `lib/alergenos.js` para que también los lea Node
+// (el cargador de cartas los necesita). Se reexportan para no romper a quien
+// ya los importaba de aquí.
+export { ALERGENOS, ALERGENO_INFO } from '../lib/alergenos.js'
 
 // Deducción básica de alérgenos por texto (solo para sembrar la carta demo;
 // en un local real los fija el admin producto a producto).
