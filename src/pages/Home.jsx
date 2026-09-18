@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore'
 import TemaToggle from '../components/TemaToggle'
 import { perfil, urlLogo, esDemo } from '../lib/perfil'
+import { PRODUCTO } from '../lib/producto'
 
 const grupos = (mesa1) => [
   {
@@ -47,6 +48,10 @@ export default function Home() {
         </div>
         {/* Hero */}
         <div style={{ textAlign: 'center', marginBottom: '2.75rem' }}>
+          {/* Con logo, el titular dice el PRODUCTO, no el bar: el logo ya
+              dice de quién es la casa y repetirlo debajo era decir «Casa Loli»
+              dos veces seguidas. Sin logo, el titular sigue siendo el nombre
+              del local, que si no no aparecería en ninguna parte. */}
           {/* El logo manda su proporción: el de un bar suele ser una palabra
               larga («Casa Loli»), no un cuadrado. Metido en una caja cuadrada
               de 68 px, el texto quedaba a tres píxeles de alto e ilegible. Con
@@ -75,7 +80,7 @@ export default function Home() {
             fontSize: 'clamp(2rem, 5vw, 2.75rem)', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1.05,
             background: 'linear-gradient(120deg, var(--color-text) 25%, var(--color-accent))', WebkitBackgroundClip: 'text',
             backgroundClip: 'text', color: 'transparent', marginBottom: '0.6rem',
-          }}>{perfil.nombre}</h1>
+          }}>{urlLogo() ? PRODUCTO : perfil.nombre}</h1>
           <p style={{ color: 'var(--color-muted)', fontSize: '1rem', maxWidth: '34rem', margin: '0 auto' }}>
             {perfil.descripcion}
           </p>

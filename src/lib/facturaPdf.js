@@ -16,6 +16,7 @@
 // ────────────────────────────────────────────────────────────────────────────
 
 import { numeroDeFactura } from './factura.js'
+import { PRODUCTO_LARGO } from './producto.js'
 
 const A4 = { w: 595.28, h: 841.89 }
 const MARGEN = 48
@@ -280,7 +281,7 @@ function ensamblar(paginas, titulo) {
   objetos[2] = `<< /Type /Pages /Kids [${paginas.map((_, i) => `${idPagina(i)} 0 R`).join(' ')}] /Count ${nPag} >>`
   objetos[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>'
   objetos[4] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>'
-  objetos[5] = `<< /Title (${textoPdf(titulo)}) /Producer (Marchando TPV) >>`
+  objetos[5] = `<< /Title (${textoPdf(titulo)}) /Producer (${textoPdf(PRODUCTO_LARGO)}) >>`
   paginas.forEach((pg, i) => {
     const contenido = pg.ops.join('\n')
     objetos[idPagina(i)] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${A4.w} ${A4.h}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${idPagina(i) + 1} 0 R >>`
