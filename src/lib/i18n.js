@@ -191,6 +191,7 @@ const EN = {
   'solo para gestionar tu reserva': 'only to manage your booking',
   '(confirmación, cambios y recordatorio).': '(confirmation, changes and reminder).',
   'Más información sobre tus datos': 'More about your data',
+  'Política de privacidad': 'Privacy policy',
   'Responsable: el establecimiento{local}. Finalidad: gestionar la reserva. Conservación: los datos se eliminan automáticamente {dias} días después de la fecha de la reserva. No se ceden a terceros ni se usan para publicidad. Puedes cancelar o modificar la reserva (y tus datos) desde el enlace del email de confirmación.':
     'Data controller: the venue{local}. Purpose: managing your booking. Retention: data is deleted automatically {dias} days after the booking date. It is never shared with third parties or used for advertising. You can cancel or change your booking (and your data) from the link in the confirmation email.',
   '¡Reserva confirmada!': 'Booking confirmed!',

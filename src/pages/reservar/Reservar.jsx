@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { useStore, generarSlots, slotDisponible, diaCerrado } from '../../store/useStore'
 import { enviarEmailReserva, emailConfigurado } from '../../lib/email'
 import { syncListo } from '../../lib/sync'
+import { retencionDias } from '../../lib/privacidad'
 import MiniCalendario from '../../components/MiniCalendario'
 import { confirmar as pedirConfirmacion } from '../../store/useUI'
 import { useIdioma, tr, diasSemana } from '../../lib/i18n'
@@ -317,8 +318,11 @@ export default function Reservar() {
                   <summary style={{ cursor: 'pointer', textAlign: 'center' }}>{t('Más información sobre tus datos')}</summary>
                   <p style={{ marginTop: '0.4rem', lineHeight: 1.55 }}>
                     Responsable: el establecimiento{local?.nombre ? ` (${local.nombre})` : ''}. Finalidad: gestionar la reserva.
-                    Conservación: los datos se eliminan automáticamente {cfg.retencionDias ?? 30} días después de la fecha de la reserva.
+                    Conservación: los datos se eliminan automáticamente {retencionDias(cfg)} días después de la fecha de la reserva.
                     No se ceden a terceros ni se usan para publicidad. Puedes cancelar o modificar la reserva (y tus datos) desde el enlace del email de confirmación.
+                  </p>
+                  <p style={{ marginTop: '0.35rem', textAlign: 'center' }}>
+                    <a href="#/privacidad" style={{ color: 'var(--color-accent)', fontWeight: 600 }}>{t('Política de privacidad')}</a>
                   </p>
                 </details>
               </>
