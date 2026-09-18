@@ -211,7 +211,7 @@ export default function PanelAdmin() {
       {/* Stats rápidas */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(8.5rem, 1fr))', gap: '0.75rem', padding: '1rem 1.25rem', borderBottom: '1px solid var(--color-border)' }}>
         {[
-          { label: 'Facturado hoy', value: `${facturadoHoy.toFixed(2)} €`, color: '#10b981' },
+          { label: 'Facturado hoy', value: `${facturadoHoy.toFixed(2)} €`, color: 'var(--color-success)' },
           { label: 'Tickets hoy', value: ticketsHoy.length, color: 'var(--tint-info-fg)' },
           { label: 'Mesas ocupadas', value: `${mesasOcupadas}/${mesas.length}`, color: 'var(--tint-warning-fg)' },
           { label: 'Sin cobrar en sala', value: `${totalVentas.toFixed(2)} €`, color: 'var(--color-accent)' },
@@ -300,7 +300,7 @@ export default function PanelAdmin() {
                         <div style={{ flex: '1 1 11rem', minWidth: 0 }}>
                           <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>
                             {prod.nombre}
-                            {!prod.disponible && <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', color: '#f43f5e' }}>(agotado)</span>}
+                            {!prod.disponible && <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', color: 'var(--color-danger)' }}>(agotado)</span>}
                           </div>
                           <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>
                             {prod.descripcion}
@@ -487,11 +487,11 @@ export default function PanelAdmin() {
                 </div>
                 <div style={{ background: 'var(--color-inset)', borderRadius: '0.625rem', padding: '0.75rem' }}>
                   <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Tickets</div>
-                  <div style={{ fontWeight: 800, fontSize: '1.3rem', color: '#3b82f6' }}>{ticketsCaja.length}</div>
+                  <div style={{ fontWeight: 800, fontSize: '1.3rem', color: 'var(--color-info)' }}>{ticketsCaja.length}</div>
                 </div>
                 <div style={{ background: 'var(--color-inset)', borderRadius: '0.625rem', padding: '0.75rem' }}>
                   <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Propinas</div>
-                  <div style={{ fontWeight: 800, fontSize: '1.3rem', color: '#10b981' }}>{cajaPropinas.toFixed(2)} €</div>
+                  <div style={{ fontWeight: 800, fontSize: '1.3rem', color: 'var(--color-success)' }}>{cajaPropinas.toFixed(2)} €</div>
                 </div>
                 <div style={{ background: 'var(--color-inset)', borderRadius: '0.625rem', padding: '0.75rem' }}>
                   <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>Ticket medio</div>
@@ -563,7 +563,7 @@ export default function PanelAdmin() {
               )}
               <div style={{ ...ajusteFila, fontWeight: 700 }}><span>Efectivo esperado en el cajón</span><strong>{efectivoEsp.toFixed(2)} €</strong></div>
               {descuadre != null && (
-                <div style={{ ...ajusteFila, color: Math.abs(descuadre) < 0.005 ? '#10b981' : '#f43f5e' }}>
+                <div style={{ ...ajusteFila, color: Math.abs(descuadre) < 0.005 ? 'var(--color-success)' : 'var(--color-danger)' }}>
                   <span>Descuadre</span><strong>{descuadre >= 0 ? '+' : ''}{descuadre.toFixed(2)} €</strong>
                 </div>
               )}
@@ -618,7 +618,7 @@ export default function PanelAdmin() {
                     <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {new Date(m.creadoEn).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} · {m.motivo}
                     </span>
-                    <strong style={{ color: m.tipo === 'salida' ? '#f43f5e' : '#10b981', whiteSpace: 'nowrap' }}>
+                    <strong style={{ color: m.tipo === 'salida' ? 'var(--color-danger)' : 'var(--color-success)', whiteSpace: 'nowrap' }}>
                       {m.tipo === 'salida' ? '−' : '+'}{Number(m.importe).toFixed(2)} €
                     </strong>
                   </div>
@@ -645,7 +645,7 @@ export default function PanelAdmin() {
                     <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>
                       {z.nTickets} ticket(s)
                       {metodosDe(z.pagos).map(k => ` · ${METODO_EMOJI[k] || '💰'} ${z.pagos[k].toFixed(2)}`).join('')}
-                      {z.descuadre != null && Math.abs(z.descuadre) >= 0.005 && <span style={{ color: '#f43f5e' }}> · descuadre {z.descuadre >= 0 ? '+' : ''}{z.descuadre.toFixed(2)} €</span>}
+                      {z.descuadre != null && Math.abs(z.descuadre) >= 0.005 && <span style={{ color: 'var(--color-danger)' }}> · descuadre {z.descuadre >= 0 ? '+' : ''}{z.descuadre.toFixed(2)} €</span>}
                     </div>
                   </div>
                 ))}
@@ -667,14 +667,14 @@ export default function PanelAdmin() {
                     <span>Diferencia acumulada</span>
                     {(() => {
                       const d = (cambiosPrecio || []).reduce((s2, x) => s2 + (x.diferencia || 0), 0)
-                      return <span style={{ color: d < 0 ? '#f43f5e' : '#10b981' }}>{d > 0 ? '+' : ''}{d.toFixed(2)} €</span>
+                      return <span style={{ color: d < 0 ? 'var(--color-danger)' : 'var(--color-success)' }}>{d > 0 ? '+' : ''}{d.toFixed(2)} €</span>
                     })()}
                   </div>
                   {(cambiosPrecio || []).slice(-15).reverse().map(x => (
                     <div key={x.id} style={{ background: 'var(--color-inset)', borderRadius: '0.5rem', padding: '0.55rem 0.75rem', marginBottom: '0.4rem' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 700, gap: '0.5rem', flexWrap: 'wrap' }}>
                         <span>M{x.mesaNumero} · {x.cantidad}× {x.nombre}</span>
-                        <span style={{ color: (x.diferencia || 0) < 0 ? '#f43f5e' : '#10b981' }}>
+                        <span style={{ color: (x.diferencia || 0) < 0 ? 'var(--color-danger)' : 'var(--color-success)' }}>
                           {(x.antes || 0).toFixed(2)} → {(x.despues || 0).toFixed(2)} €
                         </span>
                       </div>
@@ -707,13 +707,13 @@ export default function PanelAdmin() {
                 <>
                   <div style={{ ...ajusteFila, fontWeight: 700 }}>
                     <span>Importe anulado (total)</span>
-                    <span style={{ color: '#f43f5e' }}>{(anulaciones || []).reduce((s, a) => s + (a.importe || 0), 0).toFixed(2)} €</span>
+                    <span style={{ color: 'var(--color-danger)' }}>{(anulaciones || []).reduce((s, a) => s + (a.importe || 0), 0).toFixed(2)} €</span>
                   </div>
                   {(anulaciones || []).slice(-15).reverse().map(a => (
                     <div key={a.id} style={{ background: 'var(--color-inset)', borderRadius: '0.5rem', padding: '0.55rem 0.75rem', marginBottom: '0.4rem' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 700 }}>
                         <span>M{a.mesaNumero} · {a.cantidad}× {a.nombre}{a.enviado ? ' 🔥' : ''}</span>
-                        <span style={{ color: '#f43f5e' }}>−{(a.importe || 0).toFixed(2)} €</span>
+                        <span style={{ color: 'var(--color-danger)' }}>−{(a.importe || 0).toFixed(2)} €</span>
                       </div>
                       <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>
                         {new Date(a.fecha).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}
@@ -973,7 +973,7 @@ function TarjetaMesa({ m, zonas, updateMesa, renumerarMesa, removeMesa, copiarTe
     <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '0.875rem', padding: '1rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.625rem' }}>
         <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>Mesa {m.numero}</span>
-        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: libre ? '#10b981' : '#f59e0b' }}>{libre ? 'Libre' : 'Ocupada'}</span>
+        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: libre ? 'var(--color-success)' : 'var(--color-warning)' }}>{libre ? 'Libre' : 'Ocupada'}</span>
       </div>
       {/* El número sale en el ticket, en la comanda de cocina y en el QR de la
           pegatina: cambiarlo se comprueba, no se guarda a lo que salga. */}
@@ -1002,7 +1002,7 @@ function TarjetaMesa({ m, zonas, updateMesa, renumerarMesa, removeMesa, copiarTe
         <button onClick={() => setVerQR(v => !v)} style={{ flex: 1, background: 'var(--color-surface-2)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.45rem', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>
           {verQR ? '▲ Ocultar QR' : '📱 Ver su QR'}
         </button>
-        <button onClick={async () => { if (libre && await confirmar({ titulo: 'Borrar mesa', mensaje: `¿Borrar la mesa ${m.numero}?`, peligro: true, confirmar: 'Borrar' })) { removeMesa(m.id); toast('Mesa borrada', 'success') } }} disabled={!libre} title={libre ? 'Borrar mesa' : 'Está ocupada'} style={{ background: 'none', color: libre ? '#f43f5e' : '#64748b', border: 'none', borderRadius: '0.5rem', padding: '0.45rem 0.7rem', cursor: libre ? 'pointer' : 'not-allowed', fontSize: '0.85rem' }}>🗑️</button>
+        <button onClick={async () => { if (libre && await confirmar({ titulo: 'Borrar mesa', mensaje: `¿Borrar la mesa ${m.numero}?`, peligro: true, confirmar: 'Borrar' })) { removeMesa(m.id); toast('Mesa borrada', 'success') } }} disabled={!libre} title={libre ? 'Borrar mesa' : 'Está ocupada'} style={{ background: 'none', color: libre ? 'var(--color-danger)' : '#64748b', border: 'none', borderRadius: '0.5rem', padding: '0.45rem 0.7rem', cursor: libre ? 'pointer' : 'not-allowed', fontSize: '0.85rem' }}>🗑️</button>
       </div>
 
       {verQR && (
@@ -1251,7 +1251,7 @@ function EditorApartado({ cat, carta, onCerrar, updateCategoria, removeCategoria
       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
         <button onClick={guardar} style={{ ...addBtn, flex: '1 1 8rem' }}>Guardar cambios ✓</button>
         <button onClick={onCerrar} style={{ background: 'var(--color-surface-2)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.85rem', cursor: 'pointer', fontSize: '0.82rem' }}>Cancelar</button>
-        <button onClick={() => setBorrando(v => !v)} style={{ background: 'none', color: '#f43f5e', border: 'none', padding: '0.5rem 0.6rem', cursor: 'pointer', fontSize: '0.82rem', marginLeft: 'auto' }}>🗑️ Borrar apartado</button>
+        <button onClick={() => setBorrando(v => !v)} style={{ background: 'none', color: 'var(--color-danger)', border: 'none', padding: '0.5rem 0.6rem', cursor: 'pointer', fontSize: '0.82rem', marginLeft: 'auto' }}>🗑️ Borrar apartado</button>
       </div>
 
       {/* Borrar un apartado se llevaba sus productos por delante sin decir
@@ -1419,7 +1419,7 @@ function OpcionesCarta({ carta, etiquetas, addExtra, removeExtra, addTipoPan, re
                 return (
                   <span key={ex.nombre} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: 'var(--color-inset)', border: '1px solid var(--color-border)', borderRadius: '9999px', padding: '0.2rem 0.5rem 0.2rem 0.7rem', fontSize: '0.8rem' }}>
                     {ex.nombre}{ex.precio > 0 && <span style={{ color: 'var(--color-accent)', fontSize: '0.72rem' }}>+{ex.precio.toFixed(2)}€</span>}
-                    <button onClick={() => removeExtra(ex.nombre)} aria-label={`Quitar ${ex.nombre}`} style={{ background: 'none', border: 'none', color: '#f43f5e', cursor: 'pointer', fontSize: '0.85rem' }}>✕</button>
+                    <button onClick={() => removeExtra(ex.nombre)} aria-label={`Quitar ${ex.nombre}`} style={{ background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', fontSize: '0.85rem' }}>✕</button>
                   </span>
                 )
               })}
@@ -1534,9 +1534,9 @@ function TicketsDelMes({ delMes, dias, porDia, diaBonito, mesNombre, totalMes, p
     <div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
         {[
-          { label: `Tickets de ${mesNombre}`, value: delMes.length, color: '#3b82f6' },
+          { label: `Tickets de ${mesNombre}`, value: delMes.length, color: 'var(--color-info)' },
           { label: 'Facturado (mes)', value: `${totalMes.toFixed(2)} €`, color: 'var(--color-accent)' },
-          { label: 'Propinas (mes)', value: `${propinasMes.toFixed(2)} €`, color: '#10b981' },
+          { label: 'Propinas (mes)', value: `${propinasMes.toFixed(2)} €`, color: 'var(--color-success)' },
         ].map(s => (
           <div key={s.label} style={{ background: 'var(--color-surface)', borderRadius: '0.75rem', padding: '0.85rem', border: '1px solid var(--color-border)' }}>
             <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)', marginBottom: '0.2rem' }}>{s.label}</div>
@@ -1551,7 +1551,7 @@ function TicketsDelMes({ delMes, dias, porDia, diaBonito, mesNombre, totalMes, p
       </div>
       {(sinRegistrar > 0 || soloSinRegistrar) && (
         <button onClick={() => setSoloSinRegistrar(v => !v)} aria-pressed={soloSinRegistrar}
-          style={{ marginBottom: '0.9rem', background: soloSinRegistrar ? '#f43f5e' : 'var(--tint-danger-bg)', color: soloSinRegistrar ? '#fff' : 'var(--tint-danger-fg)', border: '1px solid #f43f5e', borderRadius: '9999px', padding: '0.4rem 0.9rem', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', minHeight: '36px' }}>
+          style={{ marginBottom: '0.9rem', background: soloSinRegistrar ? 'var(--color-danger)' : 'var(--tint-danger-bg)', color: soloSinRegistrar ? '#fff' : 'var(--tint-danger-fg)', border: '1px solid var(--color-danger)', borderRadius: '9999px', padding: '0.4rem 0.9rem', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', minHeight: '36px' }}>
           {soloSinRegistrar ? '✕ Ver todos los tickets' : `⚠ ${sinRegistrar} sin registrar en Hacienda · ver solo esos`}
         </button>
       )}
@@ -1581,7 +1581,7 @@ function TicketsDelMes({ delMes, dias, porDia, diaBonito, mesNombre, totalMes, p
               const devuelto = devueltoDe(r.id)
               const pendiente = pendienteDeDevolver(r, historial.filter(t => t.rectificaA === r.id))
               return (
-              <div key={r.id} style={{ background: 'var(--color-surface)', border: `1px solid ${alerta ? '#f43f5e' : esDevolucion ? 'var(--tint-warning-bd)' : 'var(--color-border)'}`, borderRadius: '0.625rem', padding: '0.75rem 0.875rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <div key={r.id} style={{ background: 'var(--color-surface)', border: `1px solid ${alerta ? 'var(--color-danger)' : esDevolucion ? 'var(--tint-warning-bd)' : 'var(--color-border)'}`, borderRadius: '0.625rem', padding: '0.75rem 0.875rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>
                     {esDevolucion ? '↩ Devolución' : `Mesa ${r.mesaNumero}`}
@@ -1594,7 +1594,7 @@ function TicketsDelMes({ delMes, dias, porDia, diaBonito, mesNombre, totalMes, p
                   {/* Sin registrar: cuál es, por qué y cuánto margen queda. Uno
                       de hoy se arregla reintentando; uno de ayer ya no. */}
                   {alerta && (
-                    <div style={{ marginTop: '0.3rem', fontSize: '0.72rem', color: fiscal.nivel === 'pendiente' ? 'var(--tint-warning-fg)' : '#f43f5e' }}>
+                    <div style={{ marginTop: '0.3rem', fontSize: '0.72rem', color: fiscal.nivel === 'pendiente' ? 'var(--tint-warning-fg)' : 'var(--color-danger)' }}>
                       <div style={{ fontWeight: 800 }}>{fiscal.texto}</div>
                       <div style={{ color: 'var(--color-muted)' }}>{fiscal.detalle}</div>
                       {fiscal.motivo && <div style={{ color: 'var(--color-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={fiscal.motivo}>Motivo: {fiscal.motivo}</div>}
@@ -1613,7 +1613,7 @@ function TicketsDelMes({ delMes, dias, porDia, diaBonito, mesNombre, totalMes, p
                     </div>
                   )}
                   {esDevolucion && r.reembolsoEstado === 'error' && (
-                    <div style={{ fontSize: '0.7rem', color: '#f43f5e', fontWeight: 700 }}>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--color-danger)', fontWeight: 700 }}>
                       ✖ no se pudo devolver a la tarjeta{r.reembolsoError ? `: ${r.reembolsoError}` : ''}
                     </div>
                   )}
@@ -1631,7 +1631,7 @@ function TicketsDelMes({ delMes, dias, porDia, diaBonito, mesNombre, totalMes, p
                 <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                   {alerta && fiscal.reintentable && (
                     <button onClick={() => registrar(r)} disabled={registrando === r.id} title="Volver a mandarlo a Hacienda"
-                      style={{ background: '#f43f5e', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.4rem 0.6rem', cursor: registrando === r.id ? 'wait' : 'pointer', fontSize: '0.78rem', fontWeight: 700 }}>
+                      style={{ background: 'var(--color-danger)', color: '#fff', border: 'none', borderRadius: '0.5rem', padding: '0.4rem 0.6rem', cursor: registrando === r.id ? 'wait' : 'pointer', fontSize: '0.78rem', fontWeight: 700 }}>
                       {registrando === r.id ? 'Enviando…' : '↻ Registrar'}
                     </button>
                   )}
@@ -1655,7 +1655,7 @@ function TicketsDelMes({ delMes, dias, porDia, diaBonito, mesNombre, totalMes, p
                       servidor también lo impide (migración 46). */}
                   {!esDevolucion && pendiente > 0 && !facturas.some(x => x.ticketId === r.id) && (
                     <button onClick={() => setDevolviendo({ ticket: r, pendiente })} title="Emitir una factura rectificativa"
-                      style={{ background: 'none', color: '#f43f5e', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.4rem 0.6rem', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>↩ Devolver</button>
+                      style={{ background: 'none', color: 'var(--color-danger)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.4rem 0.6rem', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}>↩ Devolver</button>
                   )}
                   <button onClick={() => setTicket({
                     numero: r.mesaNumero, personas: r.personas,
@@ -1839,7 +1839,7 @@ function RegistroJornada({ mes, setMes, delMes: crudos, empleados = [], crearFic
         : delMes.map(f => {
           const abierto = !f.salida
           return (
-            <div key={f.id} style={{ background: 'var(--color-surface)', border: `1px solid ${abierto ? '#10b981' : 'var(--color-border)'}66`, borderRadius: '0.625rem', padding: '0.7rem 0.85rem', marginBottom: '0.5rem' }}>
+            <div key={f.id} style={{ background: 'var(--color-surface)', border: `1px solid ${abierto ? 'var(--color-success)' : 'var(--color-border)'}66`, borderRadius: '0.625rem', padding: '0.7rem 0.85rem', marginBottom: '0.5rem' }}>
               {edit?.id === f.id ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -1868,7 +1868,7 @@ function RegistroJornada({ mes, setMes, delMes: crudos, empleados = [], crearFic
                     <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>
                       🟢 {new Date(f.entrada).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
                       {' → '}
-                      {abierto ? <span style={{ color: '#10b981' }}>en curso</span> : `🔴 ${new Date(f.salida).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`}
+                      {abierto ? <span style={{ color: 'var(--color-success)' }}>en curso</span> : `🔴 ${new Date(f.salida).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`}
                       {!abierto && <strong style={{ color: 'var(--color-accent)', marginLeft: '0.5rem' }}>· {fmtH(horasEntre(f.entrada, f.salida))}</strong>}
                     </div>
                   </div>
@@ -1917,7 +1917,7 @@ function PersonalTab({ empleados, addEmpleado, updateEmpleado, removeEmpleado, f
     <div style={{ maxWidth: '760px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
         <p style={{ color: 'var(--color-muted)', fontSize: '0.85rem', margin: 0, flex: '1 1 240px' }}>
-          Quién trabaja aquí y qué abre su PIN. {enTurno > 0 && <strong style={{ color: '#10b981' }}>{enTurno} en turno ahora.</strong>}
+          Quién trabaja aquí y qué abre su PIN. {enTurno > 0 && <strong style={{ color: 'var(--color-success)' }}>{enTurno} en turno ahora.</strong>}
         </p>
         <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem', color: 'var(--color-muted)' }}>
           Jornada de
@@ -2006,7 +2006,7 @@ function FichaEmpleado({ e, jornada, updateEmpleado, removeEmpleado }) {
         {/* Lo primero que se quiere saber de una plantilla: quién está dentro
             ahora mismo, y quién se dejó el turno abierto anteayer. */}
         {jornada.abierto && (
-          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#10b981', background: 'var(--tint-success-bg)', borderRadius: '9999px', padding: '0.1rem 0.5rem', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-success)', background: 'var(--tint-success-bg)', borderRadius: '9999px', padding: '0.1rem 0.5rem', whiteSpace: 'nowrap' }}>
             🟢 En turno desde {new Date(jornada.abierto.entrada).toLocaleString('es-ES', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}
           </span>
         )}
@@ -2050,7 +2050,7 @@ function FichaEmpleado({ e, jornada, updateEmpleado, removeEmpleado }) {
               style={{ background: e.activo ? 'var(--color-surface-3)' : 'var(--tint-success-bg)', color: e.activo ? 'var(--tint-warning-fg)' : 'var(--tint-success-fg)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.85rem', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700 }}>
               {e.activo ? '⏸ Dejar sin turno' : '🟢 Devolverle el turno'}
             </button>
-            <button onClick={borrar} style={{ background: 'none', color: '#f43f5e', border: 'none', padding: '0.5rem 0.6rem', cursor: 'pointer', fontSize: '0.82rem', marginLeft: 'auto' }}>🗑️ Eliminar</button>
+            <button onClick={borrar} style={{ background: 'none', color: 'var(--color-danger)', border: 'none', padding: '0.5rem 0.6rem', cursor: 'pointer', fontSize: '0.82rem', marginLeft: 'auto' }}>🗑️ Eliminar</button>
           </div>
         </div>
       )}

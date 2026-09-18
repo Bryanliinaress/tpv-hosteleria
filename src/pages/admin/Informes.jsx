@@ -120,7 +120,7 @@ export default function Informes({ moneda = '€' }) {
             <span><strong style={{ color: 'var(--color-text)' }}>{r.tickets}</strong> tickets</span>
             <span>medio <strong style={{ color: 'var(--color-text)' }}>{f(r.medio)}</strong></span>
             <span><strong style={{ color: 'var(--color-text)' }}>{r.comensales}</strong> comensales</span>
-            {r.propinas > 0 && <span>propinas <strong style={{ color: '#10b981' }}>{f(r.propinas)}</strong></span>}
+            {r.propinas > 0 && <span>propinas <strong style={{ color: 'var(--color-success)' }}>{f(r.propinas)}</strong></span>}
           </div>
           {/* Las devoluciones no se esconden: es dinero que salió */}
           {r.devuelto > 0 && (
@@ -139,17 +139,17 @@ export default function Informes({ moneda = '€' }) {
             color="linear-gradient(180deg, var(--color-accent-2), var(--color-accent))" />
 
           <Lista titulo="Top productos" filas={(datos.por_producto || []).slice(0, 8)}
-            etiqueta={p => `${p.nombre} · ${Number(p.uds)} uds`} color="#3b82f6" moneda={moneda} />
+            etiqueta={p => `${p.nombre} · ${Number(p.uds)} uds`} color="var(--color-info)" moneda={moneda} />
 
           <Lista titulo="Ventas por camarero" pie="Quien atendió la mesa"
-            filas={datos.por_camarero} color="#10b981" moneda={moneda}
+            filas={datos.por_camarero} color="var(--color-success)" moneda={moneda}
             etiqueta={c => `👤 ${c.nombre} · ${c.tickets} tickets`} />
 
           {/* El pago por el móvil del cliente no lo cobra ninguna persona: el
               servidor lo apunta como «Pago online» y aquí salía listado como si
               fuera alguien del personal. */}
           <Lista titulo="Cobrado por" pie="Quien estaba en la caja al cerrar"
-            filas={datos.por_cobrador} color="#f59e0b" moneda={moneda}
+            filas={datos.por_cobrador} color="var(--color-warning)" moneda={moneda}
             etiqueta={c => c.nombre === COBRO_ONLINE
               ? `📱 Pagó el cliente por el móvil · ${c.tickets} tickets`
               : `💶 ${c.nombre} · ${c.tickets} tickets`} />
@@ -179,7 +179,7 @@ function Comparacion({ neto, antes, f }) {
   const sube = v >= 0
   return (
     <div style={{ marginTop: '0.35rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-      <span style={{ fontWeight: 700, color: sube ? '#10b981' : '#f43f5e' }}>
+      <span style={{ fontWeight: 700, color: sube ? 'var(--color-success)' : 'var(--color-danger)' }}>
         {sube ? '↑' : '↓'} {Math.abs(v).toFixed(0)}%
       </span>
       <span style={{ color: 'var(--color-muted)' }}>

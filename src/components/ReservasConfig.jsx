@@ -40,7 +40,7 @@ export default function ReservasConfig() {
                 <input type="time" value={t.inicio} onChange={e => setTurno(i, 'inicio', e.target.value)} style={{ ...inp, width: '110px' }} />
                 <span style={{ color: 'var(--color-muted)' }}>→</span>
                 <input type="time" value={t.fin} onChange={e => setTurno(i, 'fin', e.target.value)} style={{ ...inp, width: '110px' }} />
-                <button onClick={() => removeTurno(i)} style={{ background: 'none', border: 'none', color: '#f43f5e', cursor: 'pointer', fontSize: '1rem' }}>🗑️</button>
+                <button onClick={() => removeTurno(i)} style={{ background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', fontSize: '1rem' }}>🗑️</button>
               </div>
             ))}
             <button onClick={addTurno} style={addBtn}>+ Añadir turno</button>

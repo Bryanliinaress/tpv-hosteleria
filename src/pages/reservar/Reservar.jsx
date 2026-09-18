@@ -121,7 +121,7 @@ export default function Reservar() {
   if (hecha) {
     return (
       <div style={wrap}>
-        <div style={{ ...card, textAlign: 'center', borderColor: '#10b981', boxShadow: '0 18px 50px -18px rgba(16,185,129,0.5)' }}>
+        <div style={{ ...card, textAlign: 'center', borderColor: 'var(--color-success)', boxShadow: '0 18px 50px -18px rgba(16,185,129,0.5)' }}>
           <div className="anim-pop" style={{ fontSize: '3.5rem' }}>✅</div>
           <h1 style={{ fontWeight: 800, fontSize: '1.5rem', margin: '0.5rem 0' }}>{hecha.modificada ? t('¡Reserva modificada!') : t('¡Reserva confirmada!')}</h1>
           <p style={{ color: 'var(--color-muted)', marginBottom: '1rem' }}>{t('Te esperamos, {nombre}.', { nombre: hecha.nombre })}</p>
@@ -131,7 +131,7 @@ export default function Reservar() {
             <Fila k={t('👥 Personas')} v={hecha.personas} />
             {hecha.zona && <Fila k={t('📍 Zona')} v={hecha.zona} />}
           </div>
-          <p style={{ fontSize: '0.82rem', color: emailConfigurado ? '#10b981' : 'var(--color-muted)', marginTop: '0.875rem' }}>
+          <p style={{ fontSize: '0.82rem', color: emailConfigurado ? 'var(--color-success)' : 'var(--color-muted)', marginTop: '0.875rem' }}>
             {emailConfigurado ? t('📧 Te hemos enviado la confirmación a {email}', { email: hecha.email }) : t('📧 Confirmación a {email}', { email: hecha.email })}
           </p>
           <a href={gcalLink(hecha, cfg.duracionMin)} target="_blank" rel="noreferrer" style={btn('var(--color-surface-2)', { display: 'block', marginTop: '0.875rem', padding: '0.75rem', textDecoration: 'none' })}>{t('📆 Añadir a mi calendario')}</a>
@@ -207,7 +207,7 @@ export default function Reservar() {
 
       {!editandoId && misReservas.length > 0 && (
         <div style={{ marginBottom: '0.75rem' }}>
-          <button onClick={() => setVerMias(v => !v)} style={btn('var(--tint-info-bg)', { width: '100%', border: '1px solid #3b82f6', color: 'var(--tint-info-fg)', fontSize: '0.82rem' })}>
+          <button onClick={() => setVerMias(v => !v)} style={btn('var(--tint-info-bg)', { width: '100%', border: '1px solid var(--color-info)', color: 'var(--tint-info-fg)', fontSize: '0.82rem' })}>
             {t('🔔 Tienes {n} reserva(s)', { n: misReservas.length })} · {verMias ? t('ocultar') : t('gestionar')}
           </button>
           {verMias && (
@@ -302,13 +302,13 @@ export default function Reservar() {
         {paso === 'datos' && (
           <Paso titulo={t('Tus datos')} onAtras={atras}>
             <input value={form.nombre} onChange={e => set('nombre', e.target.value)} placeholder={t('Nombre y apellidos *')} autoFocus style={{ ...inp, fontSize: '1rem' }} />
-            <input value={form.email} onChange={e => set('email', e.target.value)} type="email" inputMode="email" placeholder={t('Email * (te enviamos la confirmación)')} style={{ ...inp, fontSize: '1rem', borderColor: form.email && !emailValido(form.email) ? '#f43f5e' : 'var(--color-border)' }} />
+            <input value={form.email} onChange={e => set('email', e.target.value)} type="email" inputMode="email" placeholder={t('Email * (te enviamos la confirmación)')} style={{ ...inp, fontSize: '1rem', borderColor: form.email && !emailValido(form.email) ? 'var(--color-danger)' : 'var(--color-border)' }} />
             <input value={form.telefono} onChange={e => set('telefono', e.target.value)} type="tel" inputMode="tel" placeholder={t('Teléfono (opcional)')} style={inp} />
             <input value={form.notas} onChange={e => set('notas', e.target.value)} placeholder={t('Alergias, trona, celebración… (opcional)')} style={{ ...inp, marginTop: '0.3rem' }} />
             {(() => {
               const ok = form.nombre.trim() && emailValido(form.email)
               return <>
-                <button onClick={confirmar} disabled={!ok} style={btn(ok ? '#10b981' : 'var(--color-surface-3)', { width: '100%', padding: '0.95rem', fontSize: '1.05rem', marginTop: '0.9rem', cursor: ok ? 'pointer' : 'not-allowed' })}>{editandoId ? t('Guardar cambios ✓') : t('Confirmar reserva ✓')}</button>
+                <button onClick={confirmar} disabled={!ok} style={btn(ok ? 'var(--color-success)' : 'var(--color-surface-3)', { width: '100%', padding: '0.95rem', fontSize: '1.05rem', marginTop: '0.9rem', cursor: ok ? 'pointer' : 'not-allowed' })}>{editandoId ? t('Guardar cambios ✓') : t('Confirmar reserva ✓')}</button>
                 {!ok && <p style={{ fontSize: '0.75rem', color: 'var(--color-muted)', textAlign: 'center', marginTop: '0.5rem' }}>{!form.nombre.trim() ? t('Escribe tu nombre') : t('Escribe un email válido')} {t('para terminar.')}</p>}
                 {/* RGPD: información básica sobre el uso de los datos */}
                 <p style={{ fontSize: '0.68rem', color: 'var(--color-faint)', textAlign: 'center', marginTop: '0.7rem', lineHeight: 1.5 }}>
