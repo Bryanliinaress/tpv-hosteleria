@@ -5,6 +5,15 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.140.0] - 2026-09-18
+
+### Añadido
+- **`npm run carta`: cargar la carta de un bar desde un fichero.** Hasta ahora solo se podía sembrar copiando la de la demo o con la plantilla de fábrica; ninguna sirve para un bar que llega con la suya (la de Casa Loli son 75 productos). Como corre contra la base de un cliente, se comporta como tal: revisa la carta entera antes de mirar la base y dice **todos** los fallos de golpe —precios que no son números, alérgenos que no son de los 14, categorías inexistentes, platos repetidos—; no pisa ni borra —si el local ya tiene productos, se planta—; va en seco por defecto; y al terminar **relee de la base y compara los números**, porque que la petición no diera error dice que se pidió, no que esté.
+- La `service_role` es de cada bar (`SUPABASE_SERVICE_KEY_<SLUG>`) y la URL sale del perfil, no del entorno: con una sola `SUPABASE_URL` suelta, escribirle la carta al bar equivocado es cuestión de tiempo.
+
+### Cambiado
+- Los 14 alérgenos se mudan a `src/lib/alergenos.js` para que también los lea Node. Vivían dentro de `useStore.js`, que importa zustand, y el cargador habría tenido que repetir la lista: una lista repetida es una lista que un día deja de coincidir, y aquí la que fallara sería la que le dice a un celíaco si puede comerse un plato.
+
 ## [0.139.2] - 2026-09-18
 
 ### Arreglado
