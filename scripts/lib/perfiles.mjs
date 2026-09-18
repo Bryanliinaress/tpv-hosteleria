@@ -35,7 +35,9 @@ const PREDET = {
   descripcion: 'Carta, pedidos y reservas.',
   colores: {
     acento: '#f97316', acento2: '#fb923c',        // tema oscuro
-    acentoClaro: '#c2410c', acento2Claro: '#ea580c', // tema claro
+    // Medidos sobre el fondo del tema claro (#e0e8f2), no sobre blanco:
+    // #c2410c se quedaba en 4,19 y #ea580c aún más bajo. Estos dan 5,9 y 4,6.
+    acentoClaro: '#9a3412', acento2Claro: '#b0410c', // tema claro
     fondo: '#0b1120',                                 // fondo de arranque (PWA)
     tema: '#0f172a',                                  // barra del navegador / PWA
   },

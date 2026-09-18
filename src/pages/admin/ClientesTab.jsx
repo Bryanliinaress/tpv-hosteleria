@@ -199,7 +199,7 @@ function FichaCliente({ cliente, onVolver }) {
   const estado = {
     enviado: { txt: '✓ Registrada', color: 'var(--tint-success-fg)' },
     pendiente: { txt: '⏳ Pendiente', color: 'var(--tint-warning-fg)' },
-    error: { txt: '⚠ Rechazada', color: '#f43f5e' },
+    error: { txt: '⚠ Rechazada', color: 'var(--color-danger)' },
   }
 
   return (
@@ -217,7 +217,7 @@ function FichaCliente({ cliente, onVolver }) {
           { label: anio === 'todos' ? 'Facturas' : `Facturas ${anio}`, valor: facturas ? r.numero : '…' },
           { label: 'Facturado', valor: facturas ? euros(r.total) : '…', color: 'var(--color-accent)' },
           { label: 'Última factura', valor: facturas ? fecha(todas.ultima) : '…' },
-          ...(r.rechazadas ? [{ label: 'Rechazadas', valor: r.rechazadas, color: '#f43f5e' }] : []),
+          ...(r.rechazadas ? [{ label: 'Rechazadas', valor: r.rechazadas, color: 'var(--color-danger)' }] : []),
         ].map(s => (
           <div key={s.label} style={{ ...tarjeta, padding: '0.75rem 0.9rem' }}>
             <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{s.label}</div>
@@ -270,7 +270,7 @@ function FichaCliente({ cliente, onVolver }) {
         </p>
         {error && <div role="alert" style={alerta}>{error}</div>}
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.6rem', flexWrap: 'wrap', marginTop: '0.7rem' }}>
-          <button onClick={quitar} style={{ ...boton('none'), color: '#f43f5e', border: '1px solid var(--color-border)' }}>🗑 Borrar cliente</button>
+          <button onClick={quitar} style={{ ...boton('none'), color: 'var(--color-danger)', border: '1px solid var(--color-border)' }}>🗑 Borrar cliente</button>
           <button onClick={guardar} disabled={!cambiado} style={boton(cambiado ? 'var(--color-accent)' : 'var(--color-surface-3)', cambiado ? '#fff' : 'var(--color-muted)')}>Guardar cambios</button>
         </div>
       </div>

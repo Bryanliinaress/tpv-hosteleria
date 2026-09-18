@@ -153,8 +153,8 @@ export default function Facturar({ ticket, factura = null, por, onCerrar }) {
               <span style={etiqueta}>NIF / CIF / NIE</span>
               <input value={datos.nif} onChange={e => { cambia('nif')(e); setAvisoNif(null); setElegido(null) }}
                 onBlur={() => { const v = datos.nif.trim() ? validarNif(datos.nif) : { ok: true }; setAvisoNif(v.ok ? null : v.error) }}
-                autoCapitalize="characters" autoComplete="off" placeholder="B12345674" style={{ ...inp, textTransform: 'uppercase', borderColor: avisoNif ? '#f43f5e' : 'var(--color-border)' }} />
-              {avisoNif && <span style={{ fontSize: '0.74rem', color: '#f43f5e' }}>{avisoNif}</span>}
+                autoCapitalize="characters" autoComplete="off" placeholder="B12345674" style={{ ...inp, textTransform: 'uppercase', borderColor: avisoNif ? 'var(--color-danger)' : 'var(--color-border)' }} />
+              {avisoNif && <span style={{ fontSize: '0.74rem', color: 'var(--color-danger)' }}>{avisoNif}</span>}
               {yaGuardado && normalizarNif(datos.nif).length >= 9 && !corrigiendo && (
                 <span style={{ fontSize: '0.78rem', color: 'var(--color-muted)' }}>
                   Ya está guardado como «{yaGuardado.nombre}».{' '}

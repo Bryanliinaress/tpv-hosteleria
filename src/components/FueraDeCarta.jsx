@@ -96,7 +96,7 @@ export default function FueraDeCarta({ mesa, personaId, onCerrar }) {
 
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.3rem' }}>
             <button onClick={onCerrar} style={{ ...boton, background: 'var(--color-surface-3)', color: 'var(--color-text)', flex: 1 }}>Cancelar</button>
-            <button onClick={guardar} style={{ ...boton, background: '#10b981', color: '#fff', flex: 2 }}>Añadir al pedido</button>
+            <button onClick={guardar} style={{ ...boton, background: 'var(--color-success)', color: '#fff', flex: 2 }}>Añadir al pedido</button>
           </div>
         </div>
       </div>

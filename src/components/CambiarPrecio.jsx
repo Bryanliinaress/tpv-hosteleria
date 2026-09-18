@@ -66,7 +66,7 @@ export default function CambiarPrecio({ mesa, personaId, item, por, onCerrar }) 
 
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.3rem' }}>
             <button onClick={onCerrar} style={{ ...boton, background: 'var(--color-surface-3)', color: 'var(--color-text)', flex: 1 }}>Cancelar</button>
-            <button onClick={guardar} style={{ ...boton, background: '#10b981', color: '#fff', flex: 2 }}>Cambiar el precio</button>
+            <button onClick={guardar} style={{ ...boton, background: 'var(--color-success)', color: '#fff', flex: 2 }}>Cambiar el precio</button>
           </div>
         </div>
       </div>

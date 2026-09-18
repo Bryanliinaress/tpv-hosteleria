@@ -21,10 +21,10 @@ import { resumenSala } from '../../lib/sala'
 import { useReloj } from '../../components/useReloj'
 
 const ESTADO = {
-  libre: { label: 'Libre', color: '#10b981', bg: 'var(--tint-success-bg)' },
-  ocupada: { label: 'Ocupada', color: '#f59e0b', bg: 'var(--tint-warning-bg)' },
-  esperando_cobro: { label: 'Pide cuenta', color: '#f43f5e', bg: 'var(--tint-danger-bg)' },
-  reservada: { label: 'Reservada', color: '#3b82f6', bg: 'var(--tint-info-bg)' },
+  libre: { label: 'Libre', color: 'var(--color-success)', bg: 'var(--tint-success-bg)' },
+  ocupada: { label: 'Ocupada', color: 'var(--color-warning)', bg: 'var(--tint-warning-bg)' },
+  esperando_cobro: { label: 'Pide cuenta', color: 'var(--color-danger)', bg: 'var(--tint-danger-bg)' },
+  reservada: { label: 'Reservada', color: 'var(--color-info)', bg: 'var(--tint-info-bg)' },
 }
 const ORDEN_ESTADO = ['esperando_cobro', 'ocupada', 'reservada', 'libre']
 
@@ -129,7 +129,7 @@ export default function PanelCamarero() {
         <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
           {totalCocina > 0 && <div style={{ background: 'var(--tint-success-bg)', color: 'var(--tint-success-fg)', borderRadius: '0.5rem', padding: '0.375rem 0.75rem', fontSize: '0.8rem', fontWeight: 700 }}>🍳 {totalCocina} listo(s)</div>}
           {totalBarra > 0 && <div style={{ background: 'var(--tint-danger-bg)', color: 'var(--tint-danger-fg)', borderRadius: '0.5rem', padding: '0.375rem 0.75rem', fontSize: '0.8rem', fontWeight: 700 }}>🍺 {totalBarra} listo(s)</div>}
-          <button onClick={() => setVerReservas(true)} style={{ background: reservasHoyN ? 'var(--tint-info-bg)' : 'var(--color-surface-2)', color: reservasHoyN ? 'var(--tint-info-fg)' : 'var(--color-text)', border: `1px solid ${reservasHoyN ? '#3b82f6' : 'var(--color-border)'}`, borderRadius: '0.5rem', padding: '0.5rem 0.85rem', minHeight: '44px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
+          <button onClick={() => setVerReservas(true)} style={{ background: reservasHoyN ? 'var(--tint-info-bg)' : 'var(--color-surface-2)', color: reservasHoyN ? 'var(--tint-info-fg)' : 'var(--color-text)', border: `1px solid ${reservasHoyN ? 'var(--color-info)' : 'var(--color-border)'}`, borderRadius: '0.5rem', padding: '0.5rem 0.85rem', minHeight: '44px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
             📅 Reservas{reservasHoyN > 0 ? ` (${reservasHoyN})` : ''}
           </button>
           <button onClick={() => setVerHistorial(true)} style={{ background: 'var(--color-surface-2)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: '0.5rem', padding: '0.5rem 0.85rem', minHeight: '44px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
@@ -144,10 +144,10 @@ export default function PanelCamarero() {
         <div style={{ background: 'var(--tint-warning-bg)', borderBottom: '1px solid var(--tint-warning-bd)', padding: '0.75rem 1.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.625rem', alignItems: 'center' }}>
           <span style={{ fontWeight: 800, color: 'var(--tint-warning-fg)', fontSize: '0.85rem' }}>🔔 Te llaman:</span>
           {avisos.map(a => (
-            <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--color-surface-2)', border: '1px solid #f59e0b', borderRadius: '9999px', padding: '0.25rem 0.4rem 0.25rem 0.75rem' }}>
+            <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--color-surface-2)', border: '1px solid var(--color-warning)', borderRadius: '9999px', padding: '0.25rem 0.4rem 0.25rem 0.75rem' }}>
               <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>Mesa {a.mesaNumero}</span>
               {a.personaNombre && <span style={{ fontSize: '0.78rem', color: 'var(--color-muted)' }}>· {a.personaNombre}</span>}
-              <button onClick={() => atenderAviso(a.id)} title="Marcar atendido" style={{ background: '#10b981', color: 'white', border: 'none', borderRadius: '9999px', width: '2.25rem', height: '2.25rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem', flexShrink: 0 }}>✓</button>
+              <button onClick={() => atenderAviso(a.id)} title="Marcar atendido" style={{ background: 'var(--color-success)', color: 'white', border: 'none', borderRadius: '9999px', width: '2.25rem', height: '2.25rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem', flexShrink: 0 }}>✓</button>
             </div>
           ))}
         </div>
@@ -295,7 +295,7 @@ export default function PanelCamarero() {
 
             {mesa.estado === 'reservada' ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <div style={{ background: 'var(--tint-info-bg)', border: '1px solid #3b82f6', borderRadius: '0.625rem', padding: '0.875rem' }}>
+                <div style={{ background: 'var(--tint-info-bg)', border: '1px solid var(--color-info)', borderRadius: '0.625rem', padding: '0.875rem' }}>
                   <div style={{ fontWeight: 800, color: 'var(--tint-info-fg)', marginBottom: '0.35rem' }}>📅 Reservada</div>
                   <div style={{ fontSize: '0.9rem' }}>{mesa.reserva?.nombre}</div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>
@@ -303,17 +303,17 @@ export default function PanelCamarero() {
                     {mesa.reserva?.telefono && ` · ☎ ${mesa.reserva.telefono}`}
                   </div>
                 </div>
-                <button onClick={() => { sentarReserva(mesa.id, mesa.reserva?.nombre || '') }} style={btn('#10b981', { width: '100%' })}>▶ Sentar (abrir mesa)</button>
+                <button onClick={() => { sentarReserva(mesa.id, mesa.reserva?.nombre || '') }} style={btn('var(--color-success)', { width: '100%' })}>▶ Sentar (abrir mesa)</button>
                 <button onClick={() => cancelarReserva(mesa.id)} style={btn('var(--color-surface-3)', { width: '100%', fontSize: '0.8rem' })}>Cancelar reserva</button>
               </div>
             ) : mesa.estado === 'libre' ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <p style={{ color: 'var(--color-muted)', fontSize: '0.875rem' }}>Mesa libre · {mesa.capacidad} plazas</p>
-                <button onClick={() => abrirMesa(mesa)} style={btn('#10b981', { width: '100%', padding: '0.75rem' })}>▶ Abrir mesa y pedir</button>
+                <button onClick={() => abrirMesa(mesa)} style={btn('var(--color-success)', { width: '100%', padding: '0.75rem' })}>▶ Abrir mesa y pedir</button>
                 {!reservando ? (
-                  <button onClick={() => { setReservaForm({ nombre: '', hora: '', personas: mesa.capacidad }); setReservando(true) }} style={btn('#3b82f6', { width: '100%' })}>📅 Reservar mesa</button>
+                  <button onClick={() => { setReservaForm({ nombre: '', hora: '', personas: mesa.capacidad }); setReservando(true) }} style={btn('var(--color-info)', { width: '100%' })}>📅 Reservar mesa</button>
                 ) : (
-                  <div style={{ background: 'var(--color-inset)', borderRadius: '0.625rem', padding: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', border: '1px solid #3b82f6' }}>
+                  <div style={{ background: 'var(--color-inset)', borderRadius: '0.625rem', padding: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', border: '1px solid var(--color-info)' }}>
                     <div style={{ fontWeight: 700, color: 'var(--tint-info-fg)', fontSize: '0.9rem' }}>Nueva reserva</div>
                     <input value={reservaForm.nombre} onChange={e => setReservaForm(s => ({ ...s, nombre: e.target.value }))} placeholder="Nombre" style={inp} autoFocus />
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -322,7 +322,7 @@ export default function PanelCamarero() {
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                       <button onClick={() => setReservando(false)} style={btn('var(--color-surface-3)', { flex: 1, fontSize: '0.8rem' })}>Cancelar</button>
-                      <button onClick={() => { reservarMesa(mesa.id, reservaForm); setReservando(false) }} disabled={!reservaForm.nombre.trim()} style={btn(reservaForm.nombre.trim() ? '#3b82f6' : 'var(--color-surface-3)', { flex: 1, fontSize: '0.8rem' })}>Guardar</button>
+                      <button onClick={() => { reservarMesa(mesa.id, reservaForm); setReservando(false) }} disabled={!reservaForm.nombre.trim()} style={btn(reservaForm.nombre.trim() ? 'var(--color-info)' : 'var(--color-surface-3)', { flex: 1, fontSize: '0.8rem' })}>Guardar</button>
                     </div>
                   </div>
                 )}
@@ -333,7 +333,7 @@ export default function PanelCamarero() {
                 {mesa.personas.map(p => {
                   const aPagar = owed[p.id] ?? totalDe(p)
                   return (
-                    <div key={p.id} style={{ background: 'var(--color-inset)', borderRadius: '0.625rem', padding: '0.875rem', border: p.pagado ? '1px solid #10b981' : '1px solid transparent' }}>
+                    <div key={p.id} style={{ background: 'var(--color-inset)', borderRadius: '0.625rem', padding: '0.875rem', border: p.pagado ? '1px solid var(--color-success)' : '1px solid transparent' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                         <span style={{ fontWeight: 700, color: 'var(--color-accent)', fontSize: '0.9rem' }}>{p.nombre}</span>
                         {p.pagado && <span style={{ fontSize: '0.7rem', background: 'var(--tint-success-bg)', color: 'var(--tint-success-fg)', borderRadius: '9999px', padding: '0.15rem 0.6rem', fontWeight: 700 }}>✓ Pagado{p.propina > 0 ? ` · +${p.propina.toFixed(2)} €` : ''}</span>}
@@ -346,7 +346,7 @@ export default function PanelCamarero() {
                           // lista de dispositivos en la v0.116.0). Con una base
                           // de ancho, los botones se bajan solos a su línea.
                           <div key={item.uid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', fontSize: '0.8rem', padding: '0.2rem 0', borderBottom: '1px solid var(--color-border)', gap: '0.4rem' }}>
-                            <span style={{ flex: '1 1 9rem', color: item.estado === 'pendiente' ? '#f59e0b' : 'var(--color-muted)' }}>
+                            <span style={{ flex: '1 1 9rem', color: item.estado === 'pendiente' ? 'var(--color-warning)' : 'var(--color-muted)' }}>
                               {item.cantidad}× {item.nombre}
                               {item.estado === 'pendiente' && <span style={{ marginLeft: '4px', fontSize: '0.7rem' }}>●</span>}
                             </span>
@@ -362,7 +362,7 @@ export default function PanelCamarero() {
                                   tarde. Antes esto se hacía anulando y volviendo
                                   a meterlo: anulación falsa y comanda repetida. */}
                               {!p.pagado && <button onClick={() => setPrecioDe({ personaId: p.id, item })} title="Cambiar el precio" style={miniBtn(false)}>€</button>}
-                              <button onClick={async () => { const motivo = await pedirTexto({ titulo: `Anular ${item.cantidad}× ${item.nombre}`, mensaje: 'Indica el motivo — queda registrado en la auditoría.', placeholder: 'Motivo (error, cliente cambió…)', confirmar: 'Anular' }); if (motivo === null) return; anularItem(mesa.id, p.id, item.uid, { motivo, por: yo }); toast('Línea anulada', 'success') }} title="Anular" style={{ background: 'none', border: 'none', color: '#f43f5e', cursor: 'pointer', fontSize: '0.85rem', padding: '0 0.15rem' }}>✕</button>
+                              <button onClick={async () => { const motivo = await pedirTexto({ titulo: `Anular ${item.cantidad}× ${item.nombre}`, mensaje: 'Indica el motivo — queda registrado en la auditoría.', placeholder: 'Motivo (error, cliente cambió…)', confirmar: 'Anular' }); if (motivo === null) return; anularItem(mesa.id, p.id, item.uid, { motivo, por: yo }); toast('Línea anulada', 'success') }} title="Anular" style={{ background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', fontSize: '0.85rem', padding: '0 0.15rem' }}>✕</button>
                               <span style={{ fontWeight: 600, whiteSpace: 'nowrap', marginLeft: '0.35rem' }}>{(item.precio * item.cantidad).toFixed(2)} €</span>
                             </span>
                           </div>
@@ -373,7 +373,7 @@ export default function PanelCamarero() {
                         <div style={{ display: 'flex', gap: '0.4rem' }}>
                           <button onClick={() => setTicket({ tipo: 'persona', persona: p })} title="Ticket de este cliente" style={btn('var(--color-surface-2)', { fontSize: '0.78rem', padding: '0.35rem 0.6rem' })}>🧾</button>
                           {!p.pagado && (
-                            <button onClick={() => setCobro({ tipo: 'persona', personaId: p.id, importe: aPagar })} style={btn('#10b981', { fontSize: '0.78rem', padding: '0.35rem 0.75rem' })}>Cobrar</button>
+                            <button onClick={() => setCobro({ tipo: 'persona', personaId: p.id, importe: aPagar })} style={btn('var(--color-success)', { fontSize: '0.78rem', padding: '0.35rem 0.75rem' })}>Cobrar</button>
                           )}
                         </div>
                       </div>
@@ -390,7 +390,7 @@ export default function PanelCamarero() {
                 {/* Listos para servir */}
                 {(pedidosCocina.some(p => p.mesaId === mesa.id && p.estado === 'listo') || pedidosBarra.some(p => p.mesaId === mesa.id && p.estado === 'listo')) && (
                   <div style={{ background: 'var(--tint-success-bg)', borderRadius: '0.625rem', padding: '0.875rem' }}>
-                    <div style={{ fontWeight: 700, color: '#10b981', marginBottom: '0.5rem', fontSize: '0.875rem' }}>✅ Listos para servir</div>
+                    <div style={{ fontWeight: 700, color: 'var(--color-success)', marginBottom: '0.5rem', fontSize: '0.875rem' }}>✅ Listos para servir</div>
                     {[...pedidosCocina, ...pedidosBarra].filter(p => p.mesaId === mesa.id && p.estado === 'listo').map(p => (
                       <div key={p.id} style={{ fontSize: '0.8rem', color: '#86efac', padding: '0.2rem 0' }}>
                         {p.cantidad}× {p.nombre} → {p.personaNombre}
@@ -426,13 +426,13 @@ export default function PanelCamarero() {
                   if (pend.length === 0) return null
                   const n = pend.reduce((s, i) => s + i.cantidad, 0)
                   return (
-                    <button onClick={() => { confirmarPedido(mesa.id); toast(`${n} a cocina/barra`, 'success') }} style={btn('#f59e0b', { width: '100%', padding: '0.8rem', fontSize: '0.95rem' })}>
+                    <button onClick={() => { confirmarPedido(mesa.id); toast(`${n} a cocina/barra`, 'success') }} style={btn('var(--color-warning)', { width: '100%', padding: '0.8rem', fontSize: '0.95rem' })}>
                       📤 Enviar {n} a cocina/barra
                     </button>
                   )
                 })()}
                 {mesa.personas.some(p => !p.pagado) && (
-                  <button onClick={() => { asignarCamarero(mesa.id, yo); setCobrandoMesa(true) }} style={btn('#10b981', { width: '100%', padding: '0.8rem', fontSize: '0.95rem' })}>💶 Cobrar mesa</button>
+                  <button onClick={() => { asignarCamarero(mesa.id, yo); setCobrandoMesa(true) }} style={btn('var(--color-success)', { width: '100%', padding: '0.8rem', fontSize: '0.95rem' })}>💶 Cobrar mesa</button>
                 )}
                 <button onClick={() => setMover({ tipo: 'mesa' })} style={btn('var(--color-surface-2)', { width: '100%', fontSize: '0.85rem' })}>🔗 Unir con otra mesa</button>
                 {mesa.unidas?.length > 0 && (
@@ -534,9 +534,9 @@ export default function PanelCamarero() {
               {mesas.filter(m => m.id !== mesa.id && !m.unidaA && !(mesa.unidas || []).includes(m.id) && m.estado !== 'reservada').map(m => {
                 const libre = m.estado === 'libre'
                 return (
-                  <button key={m.id} onClick={() => { asignarCamarero(mesa.id, yo); agruparMesas(mesa.id, m.id); setMover(null); setMesaSeleccionada(mesa.id); toast(`Mesa ${m.numero} unida a la ${mesa.numero}`, 'success') }} style={{ background: 'var(--color-surface-2)', border: `1px solid ${(libre ? '#10b981' : '#f59e0b')}66`, borderRadius: 'var(--radius)', padding: '0.7rem', cursor: 'pointer', textAlign: 'left', color: 'var(--color-text)', boxShadow: 'var(--shadow-sm)' }}>
+                  <button key={m.id} onClick={() => { asignarCamarero(mesa.id, yo); agruparMesas(mesa.id, m.id); setMover(null); setMesaSeleccionada(mesa.id); toast(`Mesa ${m.numero} unida a la ${mesa.numero}`, 'success') }} style={{ background: 'var(--color-surface-2)', border: `1px solid ${(libre ? 'var(--color-success)' : 'var(--color-warning)')}66`, borderRadius: 'var(--radius)', padding: '0.7rem', cursor: 'pointer', textAlign: 'left', color: 'var(--color-text)', boxShadow: 'var(--shadow-sm)' }}>
                     <div style={{ fontWeight: 800 }}>M{m.numero}</div>
-                    <div style={{ fontSize: '0.7rem', color: libre ? '#10b981' : '#f59e0b' }}>{libre ? 'Libre' : `Ocupada (${m.personas.length})`}</div>
+                    <div style={{ fontSize: '0.7rem', color: libre ? 'var(--color-success)' : 'var(--color-warning)' }}>{libre ? 'Libre' : `Ocupada (${m.personas.length})`}</div>
                   </button>
                 )
               })}

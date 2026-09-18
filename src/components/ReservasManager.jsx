@@ -22,10 +22,10 @@ const enviarCorreo = async (tipo, r) => {
 }
 
 const EST = {
-  confirmada: { label: 'Confirmada', color: '#3b82f6' },
-  sentada: { label: 'Sentada', color: '#10b981' },
+  confirmada: { label: 'Confirmada', color: 'var(--color-info)' },
+  sentada: { label: 'Sentada', color: 'var(--color-success)' },
   cancelada: { label: 'Cancelada', color: '#6b7280' },
-  no_show: { label: 'No-show', color: '#f43f5e' },
+  no_show: { label: 'No-show', color: 'var(--color-danger)' },
 }
 
 // Agenda de reservas con gestión (asignar mesa, sentar, cancelar, no-show).
@@ -74,7 +74,7 @@ export default function ReservasManager({ onSentada }) {
     <div>
       <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1rem' }}>
         {[{ id: 'agenda', t: '📋 Agenda' }, { id: 'servicio', t: '📊 Servicio' }].map(o => (
-          <button key={o.id} onClick={() => setVista(o.id)} style={btn(vista === o.id ? '#3b82f6' : 'var(--color-surface-2)', { flex: 1, fontSize: '0.82rem' })}>{o.t}</button>
+          <button key={o.id} onClick={() => setVista(o.id)} style={btn(vista === o.id ? 'var(--color-info)' : 'var(--color-surface-2)', { flex: 1, fontSize: '0.82rem' })}>{o.t}</button>
         ))}
       </div>
 
@@ -136,7 +136,7 @@ export default function ReservasManager({ onSentada }) {
                           <option key={m.id} value={m.id}>Mesa {m.numero} · {m.zona} · {m.capacidad}p{m.capacidad < r.personas ? ' ⚠' : ''}</option>
                         ))}
                       </select>
-                      <button onClick={() => sentar(r.id)} disabled={!r.mesaId} title={r.mesaId ? '' : 'Asigna una mesa primero'} style={btn(r.mesaId ? '#10b981' : 'var(--color-surface-3)', { fontSize: '0.8rem', cursor: r.mesaId ? 'pointer' : 'not-allowed' })}>▶ Sentar</button>
+                      <button onClick={() => sentar(r.id)} disabled={!r.mesaId} title={r.mesaId ? '' : 'Asigna una mesa primero'} style={btn(r.mesaId ? 'var(--color-success)' : 'var(--color-surface-3)', { fontSize: '0.8rem', cursor: r.mesaId ? 'pointer' : 'not-allowed' })}>▶ Sentar</button>
                       {r.email && <button onClick={() => enviarCorreo('confirmacion', r)} title={`Confirmación a ${r.email}`} style={btn('#16a34a', { fontSize: '0.8rem' })}>✉️ Confirmar</button>}
                       {r.email && <button onClick={() => enviarCorreo('recordatorio', r)} title={`Recordatorio a ${r.email}`} style={btn('#1d4ed8', { fontSize: '0.8rem' })}>🔔 Recordar</button>}
                       <button onClick={async () => { if (await confirmar({ titulo: 'Cancelar reserva', mensaje: 'Se avisará al cliente por email. ¿Continuar?', peligro: true, confirmar: 'Cancelar reserva', cancelar: 'Volver' })) { cambiarEstadoReserva(r.id, 'cancelada'); if (r.email) enviarEmailReserva('cancelacion', r, { permitirMailto: false }).catch(() => {}); toast('Reserva cancelada', 'success') } }} style={btn('var(--color-surface-3)', { fontSize: '0.8rem' })}>Cancelar</button>
@@ -256,7 +256,7 @@ function NuevaReserva({ cfg, mesas, reservas, crear }) {
 
   if (!abierto) {
     return (
-      <button onClick={() => setAbierto(true)} style={btn('#10b981', { width: '100%', marginBottom: '1rem', padding: '0.7rem', fontSize: '0.9rem' })}>
+      <button onClick={() => setAbierto(true)} style={btn('var(--color-success)', { width: '100%', marginBottom: '1rem', padding: '0.7rem', fontSize: '0.9rem' })}>
         ➕ Nueva reserva (teléfono)
       </button>
     )
@@ -310,11 +310,11 @@ function NuevaReserva({ cfg, mesas, reservas, crear }) {
       <input value={form.nombre} onChange={e => set('nombre', e.target.value)} placeholder="Nombre *" style={{ ...inp, marginBottom: '0.4rem' }} />
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.4rem' }}>
         <input value={form.telefono} onChange={e => set('telefono', e.target.value)} type="tel" inputMode="tel" placeholder="Teléfono" style={{ ...inp, flex: '1 1 140px' }} />
-        <input value={form.email} onChange={e => set('email', e.target.value)} type="email" inputMode="email" placeholder="Email (para confirmarle)" style={{ ...inp, flex: '1 1 180px', borderColor: emailMal ? '#f43f5e' : 'var(--color-border)' }} />
+        <input value={form.email} onChange={e => set('email', e.target.value)} type="email" inputMode="email" placeholder="Email (para confirmarle)" style={{ ...inp, flex: '1 1 180px', borderColor: emailMal ? 'var(--color-danger)' : 'var(--color-border)' }} />
       </div>
       <input value={form.notas} onChange={e => set('notas', e.target.value)} placeholder="Alergias, trona, celebración…" style={{ ...inp, marginBottom: '0.6rem' }} />
 
-      <button onClick={guardar} disabled={!ok} style={btn(ok ? '#10b981' : 'var(--color-surface-3)', { width: '100%', padding: '0.7rem', cursor: ok ? 'pointer' : 'not-allowed' })}>
+      <button onClick={guardar} disabled={!ok} style={btn(ok ? 'var(--color-success)' : 'var(--color-surface-3)', { width: '100%', padding: '0.7rem', cursor: ok ? 'pointer' : 'not-allowed' })}>
         {guardando ? 'Guardando…' : 'Guardar reserva ✓'}
       </button>
       <p style={{ fontSize: '0.72rem', color: 'var(--color-muted)', textAlign: 'center', marginTop: '0.45rem' }}>
@@ -360,7 +360,7 @@ function Servicio({ cfg, mesas, reservas, fecha, setFecha }) {
           {ss.map(s => {
             const ocup = ocupacionEn(reservas, cfg, fecha, s.hora)
             const pct = aforo ? Math.min(100, Math.round(ocup / aforo * 100)) : 0
-            const col = pct >= 100 ? '#f43f5e' : pct >= 70 ? '#f59e0b' : '#10b981'
+            const col = pct >= 100 ? 'var(--color-danger)' : pct >= 70 ? 'var(--color-warning)' : 'var(--color-success)'
             const enSlot = delDia.filter(r => r.hora === s.hora)
             return (
               <div key={s.hora} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.3rem' }}>

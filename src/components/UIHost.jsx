@@ -3,10 +3,10 @@ import { useActualizacion } from '../lib/actualizaciones'
 import { useUI } from '../store/useUI'
 
 const TIPO = {
-  info: { color: '#3b82f6', emoji: 'ℹ️' },
-  success: { color: '#10b981', emoji: '✅' },
-  error: { color: '#f43f5e', emoji: '⚠️' },
-  warning: { color: '#f59e0b', emoji: '⏳' },
+  info: { color: 'var(--color-info)', emoji: 'ℹ️' },
+  success: { color: 'var(--color-success)', emoji: '✅' },
+  error: { color: 'var(--color-danger)', emoji: '⚠️' },
+  warning: { color: 'var(--color-warning)', emoji: '⏳' },
 }
 
 // ¿Estamos en la carta del cliente (`#/mesa/<id>`)? Se mira el hash y no la
@@ -121,7 +121,7 @@ function Dialogo({ dialogo, responder }) {
 
   const aceptar = () => responder(esPrompt ? valor : true)
   const cancelar = () => responder(esPrompt ? null : false)
-  const colorOk = dialogo.peligro ? '#f43f5e' : 'var(--color-accent)'
+  const colorOk = dialogo.peligro ? 'var(--color-danger)' : 'var(--color-accent)'
 
   return (
     <div className="no-print" onClick={cancelar} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300, padding: '1rem', animation: 'fadeIn 0.2s ease both' }}>

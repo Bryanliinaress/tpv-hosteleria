@@ -83,9 +83,9 @@ export default function PdaCamarero() {
   }, [idsActuales])
 
   const EV = {
-    llamada: { color: '#f59e0b', bg: 'var(--tint-warning-bg)', emoji: '🔔' },
-    listo: { color: '#10b981', bg: 'var(--tint-success-bg)', emoji: '✅' },
-    cuenta: { color: '#f43f5e', bg: 'var(--tint-danger-bg)', emoji: '💶' },
+    llamada: { color: 'var(--color-warning)', bg: 'var(--tint-warning-bg)', emoji: '🔔' },
+    listo: { color: 'var(--color-success)', bg: 'var(--tint-success-bg)', emoji: '✅' },
+    cuenta: { color: 'var(--color-danger)', bg: 'var(--tint-danger-bg)', emoji: '💶' },
   }
 
   // «Lo mismo otra vez»: en una barra es la comanda más frecuente. Repite una
@@ -121,11 +121,11 @@ export default function PdaCamarero() {
             <div style={{ textAlign: 'center', padding: '1.5rem 1rem', color: 'var(--color-muted)' }}>
               <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>🪑</div>
               <p style={{ marginBottom: '1.25rem' }}>Mesa libre · {mesa.capacidad} plazas</p>
-              <button onClick={async () => { const n = await pedirTexto({ titulo: 'Abrir mesa', mensaje: 'Nombre del primer comensal (opcional)', placeholder: 'Nombre', confirmar: 'Abrir mesa' }); if (n === null) return; unirseAMesa(mesa.id, n); asignarCamarero(mesa.id, camarero) }} style={btn('#10b981', { padding: '0.8rem 1.5rem', fontSize: '0.95rem' })}>▶ Abrir mesa</button>
+              <button onClick={async () => { const n = await pedirTexto({ titulo: 'Abrir mesa', mensaje: 'Nombre del primer comensal (opcional)', placeholder: 'Nombre', confirmar: 'Abrir mesa' }); if (n === null) return; unirseAMesa(mesa.id, n); asignarCamarero(mesa.id, camarero) }} style={btn('var(--color-success)', { padding: '0.8rem 1.5rem', fontSize: '0.95rem' })}>▶ Abrir mesa</button>
               {!reservando ? (
-                <button onClick={() => { setReservaForm({ nombre: '', hora: '', personas: mesa.capacidad }); setReservando(true) }} style={btn('#3b82f6', { padding: '0.8rem 1.5rem', fontSize: '0.95rem', marginLeft: '0.5rem' })}>📅 Reservar</button>
+                <button onClick={() => { setReservaForm({ nombre: '', hora: '', personas: mesa.capacidad }); setReservando(true) }} style={btn('var(--color-info)', { padding: '0.8rem 1.5rem', fontSize: '0.95rem', marginLeft: '0.5rem' })}>📅 Reservar</button>
               ) : (
-                <div style={{ ...card, marginTop: '1rem', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '0.5rem', borderColor: '#3b82f6' }}>
+                <div style={{ ...card, marginTop: '1rem', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '0.5rem', borderColor: 'var(--color-info)' }}>
                   <div style={{ fontWeight: 700, color: 'var(--tint-info-fg)' }}>Nueva reserva</div>
                   <input value={reservaForm.nombre} onChange={e => setReservaForm(s => ({ ...s, nombre: e.target.value }))} placeholder="Nombre" style={inp} autoFocus />
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -134,27 +134,27 @@ export default function PdaCamarero() {
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <button onClick={() => setReservando(false)} style={btn('var(--color-surface-3)', { flex: 1 })}>Cancelar</button>
-                    <button onClick={() => { reservarMesa(mesa.id, reservaForm); setReservando(false) }} disabled={!reservaForm.nombre.trim()} style={btn(reservaForm.nombre.trim() ? '#3b82f6' : 'var(--color-surface-3)', { flex: 1 })}>Guardar</button>
+                    <button onClick={() => { reservarMesa(mesa.id, reservaForm); setReservando(false) }} disabled={!reservaForm.nombre.trim()} style={btn(reservaForm.nombre.trim() ? 'var(--color-info)' : 'var(--color-surface-3)', { flex: 1 })}>Guardar</button>
                   </div>
                 </div>
               )}
             </div>
           )}
           {mesa.estado === 'reservada' && (
-            <div style={{ ...card, borderColor: '#3b82f6', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ ...card, borderColor: 'var(--color-info)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <div>
                 <div style={{ fontWeight: 800, color: 'var(--tint-info-fg)' }}>📅 Reservada</div>
                 <div style={{ fontSize: '0.95rem', marginTop: '0.25rem' }}>{mesa.reserva?.nombre}</div>
                 <div style={{ fontSize: '0.82rem', color: 'var(--color-muted)' }}>{mesa.reserva?.hora && `🕐 ${mesa.reserva.hora} · `}{mesa.reserva?.personas} pers.</div>
               </div>
-              <button onClick={() => { sentarReserva(mesa.id, mesa.reserva?.nombre || ''); asignarCamarero(mesa.id, camarero) }} style={btn('#10b981', { width: '100%', padding: '0.75rem' })}>▶ Sentar (abrir mesa)</button>
+              <button onClick={() => { sentarReserva(mesa.id, mesa.reserva?.nombre || ''); asignarCamarero(mesa.id, camarero) }} style={btn('var(--color-success)', { width: '100%', padding: '0.75rem' })}>▶ Sentar (abrir mesa)</button>
               <button onClick={() => cancelarReserva(mesa.id)} style={btn('var(--color-surface-3)', { width: '100%', fontSize: '0.85rem' })}>Cancelar reserva</button>
             </div>
           )}
           {mesa.personas.map(p => {
             const aPagar = owed[p.id] ?? 0
             return (
-              <div key={p.id} style={{ ...card, borderColor: p.pagado ? '#10b981' : 'var(--color-border)' }}>
+              <div key={p.id} style={{ ...card, borderColor: p.pagado ? 'var(--color-success)' : 'var(--color-border)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
                   <span style={{ fontWeight: 700, color: 'var(--color-accent)' }}>{p.nombre}</span>
                   {p.pagado
@@ -175,14 +175,14 @@ export default function PdaCamarero() {
                         {mesa.personas.length > 1 && (
                           <button onClick={() => setMoverLinea({ personaId: p.id, uid: it.uid, nombre: it.nombre })} title="Mover a otro comensal" style={miniBtn(false)}>⇄</button>
                         )}
-                        <button onClick={async () => { const motivo = await pedirTexto({ titulo: `Anular ${it.cantidad}× ${it.nombre}`, mensaje: 'Indica el motivo — queda registrado en la auditoría.', placeholder: 'Motivo (error, cliente cambió…)', confirmar: 'Anular' }); if (motivo === null) return; anularItem(mesa.id, p.id, it.uid, { motivo, por: camarero }); toast('Línea anulada', 'success') }} title="Anular" aria-label={`Anular ${it.nombre}`} style={{ ...miniBtn(false), background: 'none', border: '1px solid transparent', color: '#f43f5e' }}>✕</button>
+                        <button onClick={async () => { const motivo = await pedirTexto({ titulo: `Anular ${it.cantidad}× ${it.nombre}`, mensaje: 'Indica el motivo — queda registrado en la auditoría.', placeholder: 'Motivo (error, cliente cambió…)', confirmar: 'Anular' }); if (motivo === null) return; anularItem(mesa.id, p.id, it.uid, { motivo, por: camarero }); toast('Línea anulada', 'success') }} title="Anular" aria-label={`Anular ${it.nombre}`} style={{ ...miniBtn(false), background: 'none', border: '1px solid transparent', color: 'var(--color-danger)' }}>✕</button>
                       </span>
                     </div>
                   ))}
                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem' }}>
                   <button onClick={() => setTicket({ tipo: 'persona', persona: p })} style={btn('var(--color-surface-2)', { flex: 1 })}>🧾 Ticket</button>
                   <button onClick={() => setMover({ tipo: 'comensal', personaId: p.id })} title="Mover a otra mesa" style={btn('var(--color-surface-2)', { padding: '0.55rem 0.7rem' })}>⇄</button>
-                  {!p.pagado && <button onClick={() => setCobroPersona({ personaId: p.id, importe: aPagar })} style={btn('#10b981', { flex: 1 })}>Cobrar</button>}
+                  {!p.pagado && <button onClick={() => setCobroPersona({ personaId: p.id, importe: aPagar })} style={btn('var(--color-success)', { flex: 1 })}>Cobrar</button>}
                 </div>
               </div>
             )
@@ -208,7 +208,7 @@ export default function PdaCamarero() {
                   <button onClick={repetirRondaMesa} title="Repetir la última ronda de la mesa" style={btn('var(--color-surface-2)', { padding: '0.75rem 0.9rem', fontSize: '0.95rem', whiteSpace: 'nowrap' })}>🔁 Otra ronda</button>
                 )}
               </div>
-              <button onClick={() => { asignarCamarero(mesa.id, camarero); setCobrando(true) }} style={btn('#10b981', { width: '100%', padding: '0.75rem', fontSize: '0.95rem' })}>💶 Cobrar mesa</button>
+              <button onClick={() => { asignarCamarero(mesa.id, camarero); setCobrando(true) }} style={btn('var(--color-success)', { width: '100%', padding: '0.75rem', fontSize: '0.95rem' })}>💶 Cobrar mesa</button>
               <button onClick={() => setMover({ tipo: 'mesa' })} style={btn('var(--color-surface-2)', { width: '100%', fontSize: '0.9rem' })}>🔀 Mover / Juntar mesa</button>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button onClick={() => setTicket({ tipo: 'comanda' })} style={btn('var(--color-surface-2)', { flex: 1 })}>🧾 Comanda</button>
@@ -263,9 +263,9 @@ export default function PdaCamarero() {
                       if (mover.tipo === 'mesa') { fusionarMesa(mesa.id, m.id); setMesaId(null) }
                       else { transferirComensal(mesa.id, mover.personaId, m.id) }
                       setMover(null)
-                    }} style={{ ...card, textAlign: 'left', cursor: 'pointer', borderColor: (libre ? '#10b981' : '#f59e0b') + '66' }}>
+                    }} style={{ ...card, textAlign: 'left', cursor: 'pointer', borderColor: (libre ? 'var(--color-success)' : 'var(--color-warning)') + '66' }}>
                       <div style={{ fontWeight: 800 }}>M{m.numero}</div>
-                      <div style={{ fontSize: '0.72rem', color: libre ? '#10b981' : '#f59e0b' }}>{libre ? 'Libre · mover aquí' : `Juntar (${m.personas.length})`}</div>
+                      <div style={{ fontSize: '0.72rem', color: libre ? 'var(--color-success)' : 'var(--color-warning)' }}>{libre ? 'Libre · mover aquí' : `Juntar (${m.personas.length})`}</div>
                     </button>
                   )
                 })}
@@ -307,19 +307,19 @@ export default function PdaCamarero() {
                   <div style={{ fontSize: '0.85rem' }}>{ev.texto}</div>
                   {ev.tipo === 'listo' && (
                     <>
-                      <div style={{ fontSize: '0.75rem', color: '#10b981' }}>{ev.items.map(i => `${i.cantidad}× ${i.nombre}`).join(', ')}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--color-success)' }}>{ev.items.map(i => `${i.cantidad}× ${i.nombre}`).join(', ')}</div>
                       {ev.pendientes.length > 0
-                        ? <div style={{ fontSize: '0.75rem', color: '#f59e0b', marginTop: '0.15rem' }}>⏳ Faltan {ev.pendientes.reduce((s, p) => s + p.cantidad, 0)}: {ev.pendientes.map(p => `${p.cantidad}× ${p.nombre} (${p.estado === 'preparando' ? 'preparándose' : p.estado === 'espera' ? 'sin marchar' : 'en cola'})`).join(', ')}</div>
+                        ? <div style={{ fontSize: '0.75rem', color: 'var(--color-warning)', marginTop: '0.15rem' }}>⏳ Faltan {ev.pendientes.reduce((s, p) => s + p.cantidad, 0)}: {ev.pendientes.map(p => `${p.cantidad}× ${p.nombre} (${p.estado === 'preparando' ? 'preparándose' : p.estado === 'espera' ? 'sin marchar' : 'en cola'})`).join(', ')}</div>
                         : <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)', marginTop: '0.15rem' }}>✅ No queda nada más — puedes llevarlo todo</div>}
                     </>
                   )}
                   <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{haceCuanto(ev.hora)}</div>
                 </div>
                 {ev.tipo === 'llamada' && (
-                  <button onClick={e2 => { e2.stopPropagation(); atenderAviso(ev.avisoId) }} style={btn('#10b981', { padding: '0.6rem 0.9rem', minHeight: '44px' })}>✓ Atender</button>
+                  <button onClick={e2 => { e2.stopPropagation(); atenderAviso(ev.avisoId) }} style={btn('var(--color-success)', { padding: '0.6rem 0.9rem', minHeight: '44px' })}>✓ Atender</button>
                 )}
                 {ev.tipo === 'listo' && (
-                  <button onClick={e2 => { e2.stopPropagation(); servirMesa(ev.mesaId) }} style={btn('#10b981', { padding: '0.6rem 0.9rem', minHeight: '44px' })}>✓ Servir</button>
+                  <button onClick={e2 => { e2.stopPropagation(); servirMesa(ev.mesaId) }} style={btn('var(--color-success)', { padding: '0.6rem 0.9rem', minHeight: '44px' })}>✓ Servir</button>
                 )}
               </div>
             )
@@ -344,7 +344,7 @@ export default function PdaCamarero() {
                   const libre = m.estado === 'libre'
                   const reservada = m.estado === 'reservada'
                   const total = totalDeMesa(m)
-                  const col = libre ? '#10b981' : reservada ? '#3b82f6' : m.estado === 'esperando_cobro' ? '#f43f5e' : '#f59e0b'
+                  const col = libre ? 'var(--color-success)' : reservada ? 'var(--color-info)' : m.estado === 'esperando_cobro' ? 'var(--color-danger)' : 'var(--color-warning)'
                   const etiqueta = libre ? 'Libre' : reservada ? 'Reservada' : m.estado === 'esperando_cobro' ? 'Pide cuenta' : 'Ocupada'
                   return (
                     <button key={m.id} onClick={() => setMesaId(m.id)} style={{ ...card, textAlign: 'left', cursor: 'pointer', borderColor: col + '66', background: libre ? 'var(--color-surface)' : col + '14' }}>
@@ -354,7 +354,7 @@ export default function PdaCamarero() {
                       </div>
                       <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)' }}>{m.capacidad} plazas</div>
                       {libre
-                        ? <div style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '0.25rem', fontWeight: 600 }}>Toca para abrir ▶</div>
+                        ? <div style={{ fontSize: '0.75rem', color: 'var(--color-success)', marginTop: '0.25rem', fontWeight: 600 }}>Toca para abrir ▶</div>
                         : reservada
                         ? <div style={{ fontSize: '0.72rem', color: 'var(--tint-info-fg)', marginTop: '0.25rem' }}>📅 {m.reserva?.nombre}{m.reserva?.hora && ` · ${m.reserva.hora}`}</div>
                         : <>
@@ -404,17 +404,17 @@ export default function PdaCamarero() {
           {(() => {
             const abierto = fichajes.find(f => f.empleadoId === empleado?.id && !f.salida)
             return (
-              <div style={{ ...card, textAlign: 'center', border: `1px solid ${abierto ? '#10b981' : 'var(--color-border)'}` }}>
+              <div style={{ ...card, textAlign: 'center', border: `1px solid ${abierto ? 'var(--color-success)' : 'var(--color-border)'}` }}>
                 {abierto ? (
                   <>
-                    <div style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 700 }}>🟢 Fichado desde {haceCuanto(abierto.entrada)}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--color-success)', fontWeight: 700 }}>🟢 Fichado desde {haceCuanto(abierto.entrada)}</div>
                     <div style={{ fontSize: '0.72rem', color: 'var(--color-muted)', marginBottom: '0.6rem' }}>Entrada: {new Date(abierto.entrada).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</div>
-                    <button onClick={() => { const r = ficharEmpleado(empleado.id); if (r.accion === 'salida') toast('Salida fichada · ¡buen descanso!', 'success') }} style={btn('#f43f5e', { width: '100%', padding: '0.75rem', fontSize: '0.95rem' })}>🔴 Fichar salida</button>
+                    <button onClick={() => { const r = ficharEmpleado(empleado.id); if (r.accion === 'salida') toast('Salida fichada · ¡buen descanso!', 'success') }} style={btn('var(--color-danger)', { width: '100%', padding: '0.75rem', fontSize: '0.95rem' })}>🔴 Fichar salida</button>
                   </>
                 ) : (
                   <>
                     <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)', marginBottom: '0.6rem' }}>No has fichado tu entrada</div>
-                    <button onClick={() => { ficharEmpleado(empleado.id); toast('Entrada fichada · ¡buen turno!', 'success') }} style={btn('#10b981', { width: '100%', padding: '0.75rem', fontSize: '0.95rem' })}>🟢 Fichar entrada</button>
+                    <button onClick={() => { ficharEmpleado(empleado.id); toast('Entrada fichada · ¡buen turno!', 'success') }} style={btn('var(--color-success)', { width: '100%', padding: '0.75rem', fontSize: '0.95rem' })}>🟢 Fichar entrada</button>
                   </>
                 )}
               </div>
@@ -428,11 +428,11 @@ export default function PdaCamarero() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.625rem' }}>
             <div style={{ ...card, textAlign: 'center' }}>
-              <div style={{ fontWeight: 800, fontSize: '1.4rem', color: '#3b82f6' }}>{misTickets.length}</div>
+              <div style={{ fontWeight: 800, fontSize: '1.4rem', color: 'var(--color-info)' }}>{misTickets.length}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>mesas cobradas</div>
             </div>
             <div style={{ ...card, textAlign: 'center' }}>
-              <div style={{ fontWeight: 800, fontSize: '1.4rem', color: '#10b981' }}>{propinasTurno.toFixed(2)} €</div>
+              <div style={{ fontWeight: 800, fontSize: '1.4rem', color: 'var(--color-success)' }}>{propinasTurno.toFixed(2)} €</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>en propinas</div>
             </div>
           </div>
@@ -446,7 +446,7 @@ export default function PdaCamarero() {
           <button key={t.id} onClick={() => setVista(t.id)} style={{ flex: 1, background: 'none', border: 'none', padding: '0.75rem', cursor: 'pointer', color: vista === t.id ? 'var(--color-accent)' : 'var(--color-muted)', fontWeight: vista === t.id ? 700 : 400, fontSize: '0.8rem' }}>
             <div style={{ fontSize: '1.3rem', position: 'relative', display: 'inline-block' }}>
               {t.emoji}
-              {t.n > 0 && <span style={{ position: 'absolute', top: '-4px', right: '-10px', background: t.id === 'avisos' ? '#f43f5e' : 'var(--color-accent)', color: 'white', borderRadius: '9999px', fontSize: '0.6rem', padding: '0 4px', fontWeight: 700 }}>{t.n}</span>}
+              {t.n > 0 && <span style={{ position: 'absolute', top: '-4px', right: '-10px', background: t.id === 'avisos' ? 'var(--color-danger)' : 'var(--color-accent)', color: 'white', borderRadius: '9999px', fontSize: '0.6rem', padding: '0 4px', fontWeight: 700 }}>{t.n}</span>}
             </div>
             <div>{t.label}</div>
           </button>
@@ -461,7 +461,7 @@ function FilaAgotado({ prod, onToggle }) {
   return (
     <div style={{ ...card, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.6rem', opacity: prod.disponible ? 1 : 0.55 }}>
       <span style={{ fontSize: '0.88rem', fontWeight: 600 }}>{prod.nombre}</span>
-      <button onClick={onToggle} style={btn(prod.disponible ? '#10b981' : '#7f1d1d', { fontSize: '0.8rem', padding: '0.5rem 0.8rem', minHeight: '44px', whiteSpace: 'nowrap' })}>
+      <button onClick={onToggle} style={btn(prod.disponible ? 'var(--color-success)' : '#7f1d1d', { fontSize: '0.8rem', padding: '0.5rem 0.8rem', minHeight: '44px', whiteSpace: 'nowrap' })}>
         {prod.disponible ? 'Disponible' : '⛔ Agotado'}
       </button>
     </div>

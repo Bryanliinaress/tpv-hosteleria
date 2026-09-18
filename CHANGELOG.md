@@ -5,6 +5,19 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.141.0] - 2026-09-18
+
+### Cambiado
+- **Paleta medida, sobre todo el modo claro** — el que va a usar un bar de día, con luz de ventana y tablets que se miran de lado. Estaba así: el borde de una tarjeta contra la tarjeta daba **1,37** (la norma pide 3), la tarjeta blanca contra el fondo **1,12**, el texto tenue **4,23** (pide 4,5) y «Libre» en verde sobre blanco **3,77**. El texto se leía; lo que no existía era la **separación**: una sábana pálida donde no se distinguía una tarjeta de la de al lado ni una pastilla de estado de otra. Ahora el fondo es un punto más hondo, los bordes existen (2,10 en tarjetas, **3,49** en lo que se pulsa), los cuatro colores de estado valen como texto y como fondo de botón, y cada pastilla lleva su borde a ~3:1.
+- En **modo oscuro**, el tono tenue se quedaba en 3,46 sobre una tarjeta: los rótulos de sección eran lo primero que se perdía.
+- **188 colores de estado escritos a pelo** en 24 ficheros pasan a ser tokens (no cambia nada en oscuro, arregla el claro solo), y `.force-dark` declara los suyos en vez de heredar los del tema claro, que dejaba el pase de cocina apagado.
+
+### Añadido
+- `src/paleta.test.js`: mide la paleta y no deja aclararla. Aclarar un token es fácil de hacer sin querer y difícil de ver en un diff — ya cazó uno que la revisión a ojo no vio.
+
+### Arreglado
+- `ReservasManager.test.jsx` se caía **a partir de las 21:00**: creaba una reserva «dentro de 3 horas» con la fecha de hoy, y pasada la medianoche eso es el pasado. Ahora la fecha va con la hora.
+
 ## [0.140.0] - 2026-09-18
 
 ### Añadido
