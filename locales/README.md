@@ -81,6 +81,30 @@ Y dos cosas más que el test no deja pasar: dos bares no pueden compartir
 la carta de otro; compartir proyecto sería compartir mesas y caja, que no es
 este producto.
 
+## Cargar su carta
+
+Un bar llega con SU carta, no con la de la demo. Se escribe en un JSON
+(categorías + productos, con precios, formatos, alérgenos y grupos de menú) y
+se carga de una vez:
+
+```bash
+npm run carta -- casa-loli ruta/a/su-carta.json            # dice qué haría
+npm run carta -- casa-loli ruta/a/su-carta.json --aplicar  # la escribe
+```
+
+Antes de tocar la base revisa la carta entera y **dice todos los fallos de
+golpe**: precios que no son números, alérgenos que no son de los 14, productos
+que apuntan a una categoría que no existe, platos repetidos. Si hay uno solo,
+no escribe nada.
+
+Tampoco pisa ni borra: si el local ya tiene productos, se planta. Para
+completar una carta que ya existe está `copiar-carta.mjs`, que solo añade.
+
+La `service_role` es **de cada bar**, así que va en `.env.puente` con su slug:
+`SUPABASE_SERVICE_KEY_CASA_LOLI=…`. La URL sale del perfil y no del entorno: con
+una sola `SUPABASE_URL` suelta, escribirle la carta al bar equivocado es
+cuestión de tiempo.
+
 Al dar de alta el bar, además del perfil hay que **aplicar las migraciones a su
 proyecto**: `PROJECT_REF=<ref> npm run migraciones -- --todas`. Y
 `PROJECT_REF=<ref> npm run salud` dice cómo está en cualquier momento.
