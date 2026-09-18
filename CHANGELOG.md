@@ -5,6 +5,11 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.139.2] - 2026-09-18
+
+### Arreglado
+- **La portada decía el nombre del bar dos veces.** Con logo se pintaba el logo —que ya dice de quién es la casa— y debajo, en grande, otra vez el nombre del local. Ahí va el nombre del **producto**: el bar es Casa Loli, el TPV es Marchando. Sin logo, el titular sigue siendo el nombre del local. La carta del cliente no cambia: quien escanea el QR de una mesa ve el nombre del restaurante, no el del software.
+
 ## [0.139.1] - 2026-09-18
 
 ### Arreglado
