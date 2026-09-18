@@ -5,6 +5,11 @@ Todas las versiones relevantes de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.139.1] - 2026-09-18
+
+### Arreglado
+- **Un local dado de alta antes que su base de datos dejaba la pantalla en blanco.** Un perfil con `backend: v2` y sin proyecto de Supabase todavía —un bar recién firmado— reventaba al abrir cualquier pantalla de personal, con un `Cannot read properties of null (reading 'auth')` en la consola. Ahora las pantallas de personal dicen «Este local todavía no tiene base de datos» y las públicas —carta, reservas y privacidad— siguen funcionando. El teclado del PIN ahí era una trampa: el PIN se verifica en servidor, así que no podía valer nunca, y el error invitaba a reintentar lo imposible.
+
 ## [0.139.0] - 2026-09-18
 
 ### Añadido
